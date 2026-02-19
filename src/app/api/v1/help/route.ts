@@ -4,25 +4,24 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
-import { randomBytes, createHmac } from "node:crypto";
 
+/**
+ * POST /api/v1/help — Submit a help request.
+ *
+ * Required: apiKey, messages[], publicKey
+ * Optional: question
+ *
+ * Returns: requestId, refCode, status, serverPublicKey
+ * Consumer then polls GET /api/v1/help/:requestId for the response.
+ */
 export async function POST(request: Request) {
   try {
-    const apiKey = request.headers.get("x-api-key");
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "x-api-key header is required" },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
-    const { messages, question, publicKey, webhookUrl } = body;
+    const { apiKey, messages, question, publicKey } = body;
 
-    // Validate required fields
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    if (!apiKey || !messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
-        { error: "messages array is required" },
+        { error: "apiKey and messages array are required" },
         { status: 400 }
       );
     }
@@ -30,26 +29,6 @@ export async function POST(request: Request) {
     if (!publicKey) {
       return NextResponse.json(
         { error: "publicKey is required — E2E encryption is mandatory" },
-        { status: 400 }
-      );
-    }
-
-    if (!webhookUrl) {
-      return NextResponse.json(
-        { error: "webhookUrl is required — responses are delivered via webhook" },
-        { status: 400 }
-      );
-    }
-
-    // Validate webhook URL
-    try {
-      const url = new URL(webhookUrl);
-      if (!["http:", "https:"].includes(url.protocol)) {
-        throw new Error("Invalid protocol");
-      }
-    } catch {
-      return NextResponse.json(
-        { error: "webhookUrl must be a valid HTTP(S) URL" },
         { status: 400 }
       );
     }
@@ -82,9 +61,6 @@ export async function POST(request: Request) {
       ? encryptMessage(question, serverKeyPair.publicKey)
       : null;
 
-    // Generate webhook secret for HMAC signature
-    const webhookSecret = randomBytes(32).toString("hex");
-
     const helpRequest = await prisma.helpRequest.create({
       data: {
         refCode,
@@ -95,9 +71,7 @@ export async function POST(request: Request) {
         consumerPublicKey: publicKey,
         serverPublicKey: serverKeyPair.publicKey,
         serverPrivateKey: serverKeyPair.privateKey,
-        webhookUrl,
-        webhookSecret,
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 min
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       },
     });
 
@@ -105,8 +79,8 @@ export async function POST(request: Request) {
       requestId: helpRequest.id,
       refCode: helpRequest.refCode,
       status: "pending",
-      webhookSecret, // Consumer stores this to verify webhook signatures
       serverPublicKey: serverKeyPair.publicKey,
+      expiresAt: helpRequest.expiresAt.toISOString(),
     });
   } catch (err) {
     console.error("Help request error:", err);

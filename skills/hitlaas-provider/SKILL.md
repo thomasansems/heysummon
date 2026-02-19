@@ -1,104 +1,105 @@
-```skill
 # HITLaaS Provider Skill
 
 ## What You Are
-You are a HITLaaS provider. AI agents that get stuck send help requests through the relay. Your job is to:
-1. Receive incoming requests via your registered provider webhook
-2. Fetch and decrypt the encrypted messages
+You are a HITLaaS provider — a human expert's AI assistant. AI agents that get stuck send help requests to the HITLaaS platform. Your job is to:
+1. Check for pending requests
+2. Fetch and decrypt the messages
 3. Present them to your human user
-4. Send the human's response back via the relay API
+4. Send the human's response back
 
 ## Configuration
 
 | Variable | Description |
 |---|---|
-| `HITLAAS_API_KEY` | Your provider API key (`htl_...`) — passed as `x-api-key` header |
-| `HITLAAS_RELAY_URL` | Relay base URL (default: `http://localhost:4000`) |
+| `HITLAAS_API_KEY` | Your provider API key (`htl_...`) |
+| `HITLAAS_BASE_URL` | Platform base URL (default: `https://hitlaas-platform.vercel.app`) |
 
-**One-time setup:** Register your `providerWebhookUrl` on your API key via the platform dashboard (API Keys → set Webhook URL).
+## How It Works
 
-## Startup (run once)
+The platform stores encrypted help requests. You check for pending ones, present them to your human, and send back the response. The consumer polls for the answer on their side.
 
-Register your webhook URL before going live. The relay will push new requests here automatically.
-
-```bash
-export HITLAAS_API_KEY=htl_xxx
-export HITLAAS_PLATFORM_URL=http://localhost:3000
-
-./scripts/register-webhook.sh https://your-provider.com/hitlaas/incoming
-```
-
-Calls `PATCH /api/keys` authenticated by `x-api-key` header only — no session or user credentials needed.
+**No webhooks needed** — both sides use polling.
 
 ## Workflow
 
-### 1. Receive New Request (webhook push)
+### 1. Check Pending Requests
 
-The relay POSTs to your registered `providerWebhookUrl`:
+**GET** `{HITLAAS_BASE_URL}/api/requests`
+With auth session cookie (dashboard login).
 
+Or via the dashboard at `{HITLAAS_BASE_URL}/dashboard/requests`.
+
+### 2. View a Request
+
+**GET** `{HITLAAS_BASE_URL}/api/requests/{id}`
+With auth session cookie.
+
+The server decrypts messages using the server's private key and returns:
 ```json
 {
-  "event": "new_request",
-  "requestId": "abc123",
-  "refCode": "HTL-AB12",
-  "createdAt": "2026-02-20T10:00:00.000Z",
-  "expiresAt": "2026-02-20T10:30:00.000Z"
+  "request": {
+    "id": "clxyz...",
+    "refCode": "HTL-AB12",
+    "status": "reviewing",
+    "messages": [
+      { "role": "user", "content": "Deploy the app" },
+      { "role": "assistant", "content": "Got error X" }
+    ],
+    "question": "How do I fix error X?",
+    "createdAt": "...",
+    "expiresAt": "..."
+  }
 }
 ```
 
-### 2. Fetch Encrypted Messages
+### 3. Present to Human
 
-**GET** `/api/v1/relay/messages/{requestId}`  
-Header: `x-api-key: htl_your_key`
-
-```json
-{
-  "encryptedMessages": "<ciphertext>",
-  "serverPrivateKey": "-----BEGIN PRIVATE KEY-----...",
-  "requestId": "abc123",
-  "refCode": "HTL-AB12"
-}
-```
-
-Decrypt `encryptedMessages` with `serverPrivateKey` (RSA-OAEP + AES-256-GCM). Plaintext: `{ messages, question }`
-
-### 3. Check Pending Requests (fallback polling)
-
-**GET** `/api/v1/relay/pending`  
-Header: `x-api-key: htl_your_key`
-
-### 4. Present to Human
+Format the request for your human user:
 
 ```
 🆘 Help Request [HTL-AB12]
+
 Question: How do I fix deployment error X?
 
 Context:
-  User: Deploy the app
-  Assistant: Got error X, tried Y and Z
+  👤 User: Deploy the app
+  🤖 Assistant: Got error X, tried Y and Z
 
-Your answer:
+⏱️ Expires: 2026-02-21 00:00 UTC
+
+Please type your answer:
 ```
 
-### 5. Send Response
+### 4. Send Response
 
-**POST** `/api/v1/relay/respond/{requestId}`  
-Headers: `x-api-key: htl_your_key`, `Content-Type: application/json`
-
+**PATCH** `{HITLAAS_BASE_URL}/api/requests/{id}`
 ```json
-{ "response": "The human expert's answer..." }
+{ "response": "Set the JWT_SECRET env variable to fix the error." }
 ```
 
-The relay immediately POSTs the response to the consumer's `callbackUrl`.
+The response is stored. The consumer's polling will pick it up and receive it encrypted with their public key.
 
-## Helper Scripts
+## Automated Monitoring (Optional)
 
-```bash
-export HITLAAS_API_KEY=htl_xxx
-export HITLAAS_RELAY_URL=http://localhost:4000
+Set up a cron job to check for new requests periodically:
 
-./scripts/register-webhook.sh https://your-provider.com/hitlaas/incoming  # run once at startup
-./scripts/poll-requests.sh                                                  # fallback: check pending
-./scripts/respond.sh <requestId> "Your answer here"                        # send a response
 ```
+Create an OpenClaw cron job:
+- schedule: { kind: "every", everyMs: 60000 }  (every minute)
+- sessionTarget: "main"
+- payload.kind: "systemEvent" 
+- payload.text: "Check HITLaaS for pending requests:
+    curl -s {BASE_URL}/api/requests -H 'Cookie: ...'
+    If new pending requests found, notify the human user.
+    If none: NO_REPLY"
 ```
+
+Or simply check the dashboard regularly at `{HITLAAS_BASE_URL}/dashboard/requests`.
+
+## Security
+
+- Messages are **E2E encrypted** at rest (RSA-OAEP + AES-256-GCM)
+- The server decrypts messages for provider viewing using a per-request server key pair
+- The response is encrypted with the consumer's public key before delivery
+- You (the provider) never see the consumer's private key
+- The platform never sees the decrypted response that goes to the consumer

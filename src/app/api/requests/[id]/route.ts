@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decryptMessage } from "@/lib/crypto";
-import { deliverWebhook } from "@/lib/webhook";
 
 export async function GET(
   _request: Request,
@@ -61,8 +60,6 @@ export async function GET(
       messages: decryptedMessages,
       question: decryptedQuestion,
       response: helpRequest.response,
-      webhookDelivered: helpRequest.webhookDelivered,
-      webhookAttempts: helpRequest.webhookAttempts,
       createdAt: helpRequest.createdAt,
       updatedAt: helpRequest.updatedAt,
       respondedAt: helpRequest.respondedAt,
@@ -101,7 +98,7 @@ export async function PATCH(
     return NextResponse.json({ error: "response is required" }, { status: 400 });
   }
 
-  // Store plaintext response (server-side), then deliver encrypted via webhook
+  // Store plaintext response — consumer gets it encrypted via polling endpoint
   const updated = await prisma.helpRequest.update({
     where: { id },
     data: {
@@ -111,13 +108,6 @@ export async function PATCH(
     },
   });
 
-  // Deliver via webhook (async — don't block the response)
-  deliverWebhook(id).then((delivered) => {
-    if (!delivered) {
-      console.error(`Webhook delivery failed for request ${id} after all retries`);
-    }
-  });
-
   return NextResponse.json({
     request: {
       id: updated.id,
@@ -125,6 +115,5 @@ export async function PATCH(
       status: updated.status,
       respondedAt: updated.respondedAt,
     },
-    webhookQueued: true,
   });
 }

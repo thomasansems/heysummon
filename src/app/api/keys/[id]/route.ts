@@ -18,12 +18,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Key not found" }, { status: 404 });
   }
 
-  const { providerWebhookUrl } = await request.json();
+  const { name } = await request.json();
 
   const updated = await prisma.apiKey.update({
     where: { id },
-    data: { providerWebhookUrl: providerWebhookUrl || null },
-    select: { id: true, name: true, providerWebhookUrl: true },
+    data: { name: name || key.name },
+    select: { id: true, name: true },
   });
 
   return NextResponse.json({ key: updated });

@@ -62,15 +62,14 @@ model VerificationToken {
 }
 
 model ApiKey {
-  id                 String        @id @default(cuid())
-  key                String        @unique
-  name               String?
-  userId             String
-  user               User          @relation(fields: [userId], references: [id])
-  isActive           Boolean       @default(true)
-  providerWebhookUrl String?
-  requests           HelpRequest[]
-  createdAt          DateTime      @default(now())
+  id        String        @id @default(cuid())
+  key       String        @unique
+  name      String?
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  isActive  Boolean       @default(true)
+  requests  HelpRequest[]
+  createdAt DateTime      @default(now())
 }
 
 model HelpRequest {
@@ -82,16 +81,11 @@ model HelpRequest {
   expert            User      @relation("ExpertRequests", fields: [expertId], references: [id])
   messages          String    // Encrypted with server public key (at rest)
   question          String?   // Encrypted with server public key (at rest)
-  status            String    @default("pending")
-  response          String?
-  consumerPublicKey String    // Consumer's RSA public key (required)
+  status            String    @default("pending") // pending | reviewing | responded | expired
+  response          String?   // Plaintext response (encrypted with consumer pubkey on GET)
+  consumerPublicKey String    // Consumer's RSA public key (required for E2E)
   serverPublicKey   String    // Server-generated RSA public key for this request
-  serverPrivateKey  String    // Server-generated RSA private key (decrypt at-rest data for provider view)
-  webhookUrl        String    // Consumer's webhook URL for response delivery
-  webhookSecret     String?   // HMAC secret for webhook signature verification
-  webhookDelivered  Boolean   @default(false)
-  webhookAttempts   Int       @default(0)
-  webhookLastError  String?
+  serverPrivateKey  String    // Server-generated RSA private key (decrypt at-rest data)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   respondedAt       DateTime?

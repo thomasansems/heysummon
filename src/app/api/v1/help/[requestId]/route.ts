@@ -2,11 +2,15 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { encryptMessage } from "@/lib/crypto";
 
 /**
- * GET /api/v1/help/:requestId — Check request status.
- * Response is delivered via webhook, not here.
- * This endpoint only returns status + metadata.
+ * GET /api/v1/help/:requestId — Poll for response.
+ *
+ * Consumer polls this endpoint. When status = "responded",
+ * the response is encrypted with the consumer's public key.
+ *
+ * Statuses: pending → reviewing → responded | expired
  */
 export async function GET(
   _request: Request,
@@ -16,22 +20,13 @@ export async function GET(
 
   const helpRequest = await prisma.helpRequest.findUnique({
     where: { id: requestId },
-    select: {
-      id: true,
-      refCode: true,
-      status: true,
-      webhookDelivered: true,
-      createdAt: true,
-      respondedAt: true,
-      expiresAt: true,
-    },
   });
 
   if (!helpRequest) {
     return NextResponse.json({ error: "Request not found" }, { status: 404 });
   }
 
-  // Check if expired
+  // Auto-expire
   if (helpRequest.status === "pending" && new Date() > helpRequest.expiresAt) {
     await prisma.helpRequest.update({
       where: { id: requestId },
@@ -44,12 +39,25 @@ export async function GET(
     });
   }
 
-  return NextResponse.json({
+  const res: Record<string, unknown> = {
     requestId: helpRequest.id,
     refCode: helpRequest.refCode,
     status: helpRequest.status,
-    webhookDelivered: helpRequest.webhookDelivered,
-    createdAt: helpRequest.createdAt,
-    respondedAt: helpRequest.respondedAt,
-  });
+    createdAt: helpRequest.createdAt.toISOString(),
+    expiresAt: helpRequest.expiresAt.toISOString(),
+  };
+
+  if (helpRequest.respondedAt) {
+    res.respondedAt = helpRequest.respondedAt.toISOString();
+  }
+
+  // When responded, encrypt the response with consumer's public key
+  if (helpRequest.status === "responded" && helpRequest.response) {
+    res.encryptedResponse = encryptMessage(
+      helpRequest.response,
+      helpRequest.consumerPublicKey
+    );
+  }
+
+  return NextResponse.json(res);
 }

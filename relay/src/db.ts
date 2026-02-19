@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { mkdirSync } from "node:fs";
 import path from "path";
 
 const DB_PATH = process.env.RELAY_DB_PATH || path.join(__dirname, "../data/relay.db");
@@ -7,6 +8,7 @@ let db: Database.Database;
 
 export function getDb(): Database.Database {
   if (!db) {
+    mkdirSync(path.dirname(DB_PATH), { recursive: true });
     db = new Database(DB_PATH);
     db.pragma("journal_mode = WAL");
     db.pragma("foreign_keys = ON");
@@ -32,18 +34,8 @@ function initSchema() {
       expires_at TEXT NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS api_keys (
-      id TEXT PRIMARY KEY,
-      key TEXT UNIQUE NOT NULL,
-      name TEXT,
-      owner_id TEXT NOT NULL,
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-
     CREATE INDEX IF NOT EXISTS idx_sessions_ref_code ON relay_sessions(ref_code);
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON relay_sessions(status);
-    CREATE INDEX IF NOT EXISTS idx_api_keys_key ON api_keys(key);
   `);
 }
 

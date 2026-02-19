@@ -20,22 +20,38 @@ app.get("/health", (_req, res) => {
 
 // ── Validate API Key middleware ───────────────────────────────────────────────
 
-function validateApiKey(req: express.Request, res: express.Response, next: express.NextFunction) {
+const PLATFORM_URL = process.env.PLATFORM_URL || "http://localhost:3000";
+const RELAY_SECRET = process.env.RELAY_SECRET || "";
+
+async function validateApiKey(req: express.Request, res: express.Response, next: express.NextFunction) {
   const apiKey = req.headers["x-api-key"] as string || req.body?.apiKey;
   if (!apiKey) {
     res.status(401).json({ error: "API key required (x-api-key header or apiKey body field)" });
     return;
   }
 
-  const db = getDb();
-  const key = db.prepare("SELECT * FROM api_keys WHERE key = ? AND is_active = 1").get(apiKey) as Record<string, unknown> | undefined;
-  if (!key) {
-    res.status(401).json({ error: "Invalid or inactive API key" });
-    return;
-  }
+  try {
+    const response = await fetch(`${PLATFORM_URL}/api/internal/validate-key`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-relay-secret": RELAY_SECRET,
+      },
+      body: JSON.stringify({ key: apiKey }),
+    });
 
-  (req as unknown as Record<string, unknown>).apiKeyRecord = key;
-  next();
+    const data = await response.json() as { valid: boolean; ownerId?: string };
+    if (!data.valid) {
+      res.status(401).json({ error: "Invalid or inactive API key" });
+      return;
+    }
+
+    (req as unknown as Record<string, unknown>).apiKeyRecord = { owner_id: data.ownerId };
+    next();
+  } catch (err) {
+    console.error("Key validation error:", err);
+    res.status(503).json({ error: "Unable to validate API key — platform unreachable" });
+  }
 }
 
 // ── Generate ref code ─────────────────────────────────────────────────────────
@@ -234,24 +250,6 @@ app.get("/api/v1/relay/stats", validateApiKey, (req, res) => {
   const expired = (db.prepare("SELECT COUNT(*) as count FROM relay_sessions WHERE status = 'expired'").get() as Record<string, number>).count;
 
   res.json({ total, pending, responded, expired });
-});
-
-// ── API Key Management ───────────────────────────────────────────────────────
-
-app.post("/api/v1/keys", (req, res) => {
-  const { name, ownerId } = req.body;
-  if (!ownerId) {
-    res.status(400).json({ error: "ownerId is required" });
-    return;
-  }
-
-  const db = getDb();
-  const id = nanoid();
-  const key = `htl_${nanoid(48)}`;
-
-  db.prepare("INSERT INTO api_keys (id, key, name, owner_id) VALUES (?, ?, ?, ?)").run(id, key, name || null, ownerId);
-
-  res.json({ id, key, name, ownerId });
 });
 
 // ── Start server ─────────────────────────────────────────────────────────────

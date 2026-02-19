@@ -1,0 +1,4 @@
+subscription_id = "your-azure-subscription-id"
+location        = "westeurope"
+environment     = "prod"
+cors_origin     = "https://hitlaas.vercel.app"

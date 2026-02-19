@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./hitlaas.db"
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  emailVerified      DateTime?
+  password           String?
+  name               String?
+  image              String?
+  role               String    @default("expert")
+  onboardingComplete Boolean   @default(false)
+  expertise          String?
+  notificationPref   String    @default("email")
+  telegramChatId     String?
+  apiKeys            ApiKey[]
+  requests           HelpRequest[] @relation("ExpertRequests")
+  accounts           Account[]
+  sessions           Session[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model ApiKey {
+  id        String        @id @default(cuid())
+  key       String        @unique
+  name      String?
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  isActive  Boolean       @default(true)
+  requests  HelpRequest[]
+  createdAt DateTime      @default(now())
+}
+
+model HelpRequest {
+  id          String    @id @default(cuid())
+  refCode     String?   @unique
+  apiKeyId    String
+  apiKey      ApiKey    @relation(fields: [apiKeyId], references: [id])
+  expertId    String
+  expert      User      @relation("ExpertRequests", fields: [expertId], references: [id])
+  messages    String
+  question    String?
+  status      String    @default("pending")
+  response          String?
+  consumerPublicKey String?
+  serverPublicKey   String?
+  serverPrivateKey  String?
+  encrypted         Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  respondedAt DateTime?
+  expiresAt   DateTime
+}

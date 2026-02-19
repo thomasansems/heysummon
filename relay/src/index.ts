@@ -40,17 +40,38 @@ async function validateApiKey(req: express.Request, res: express.Response, next:
       body: JSON.stringify({ key: apiKey }),
     });
 
-    const data = await response.json() as { valid: boolean; ownerId?: string };
+    const data = await response.json() as { valid: boolean; ownerId?: string; providerWebhookUrl?: string };
     if (!data.valid) {
       res.status(401).json({ error: "Invalid or inactive API key" });
       return;
     }
 
-    (req as unknown as Record<string, unknown>).apiKeyRecord = { owner_id: data.ownerId };
+    (req as unknown as Record<string, unknown>).apiKeyRecord = {
+      owner_id: data.ownerId,
+      provider_webhook_url: data.providerWebhookUrl ?? null,
+    };
     next();
   } catch (err) {
     console.error("Key validation error:", err);
     res.status(503).json({ error: "Unable to validate API key — platform unreachable" });
+  }
+}
+
+// ── Webhook helper ───────────────────────────────────────────────────────────
+
+async function fireWebhook(url: string, payload: Record<string, unknown>): Promise<void> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) {
+      console.warn(`Webhook ${url} responded with ${res.status}`);
+    }
+  } catch (err) {
+    console.error(`Webhook delivery failed for ${url}:`, err);
   }
 }
 
@@ -77,12 +98,18 @@ function uniqueRefCode(): string {
 
 // ── POST /api/v1/relay/send — Consumer sends a help request ──────────────────
 
-app.post("/api/v1/relay/send", validateApiKey, (req, res) => {
+app.post("/api/v1/relay/send", validateApiKey, async (req, res) => {
   try {
-    const { messages, question, consumerPublicKey } = req.body;
+    const { messages, question, consumerPublicKey, callbackUrl } = req.body;
+    const keyRecord = (req as unknown as Record<string, unknown>).apiKeyRecord as Record<string, unknown>;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       res.status(400).json({ error: "messages array is required" });
+      return;
+    }
+
+    if (!callbackUrl) {
+      res.status(400).json({ error: "callbackUrl is required — responses are delivered via webhook" });
       return;
     }
 
@@ -98,18 +125,32 @@ app.post("/api/v1/relay/send", validateApiKey, (req, res) => {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
     db.prepare(`
-      INSERT INTO relay_sessions (id, ref_code, consumer_public_key, server_public_key, server_private_key, status, encrypted_messages, expires_at)
-      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
-    `).run(id, refCode, consumerPublicKey || null, serverKeys.publicKey, serverKeys.privateKey, encryptedMessages, expiresAt);
+      INSERT INTO relay_sessions (id, ref_code, consumer_public_key, server_public_key, server_private_key, status, encrypted_messages, callback_url, expires_at)
+      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+    `).run(id, refCode, consumerPublicKey || null, serverKeys.publicKey, serverKeys.privateKey, encryptedMessages, callbackUrl, expiresAt);
 
     res.json({
       requestId: id,
       refCode,
       status: "pending",
       serverPublicKey: serverKeys.publicKey,
-      pollUrl: `/api/v1/relay/status/${id}`,
       expiresAt,
     });
+
+    // Notify provider via their registered webhook (fire-and-forget after response)
+    const providerWebhookUrl = keyRecord.provider_webhook_url as string | null;
+    if (providerWebhookUrl) {
+      await fireWebhook(providerWebhookUrl, {
+        event: "new_request",
+        requestId: id,
+        refCode,
+        createdAt: new Date().toISOString(),
+        expiresAt,
+        serverPublicKey: serverKeys.publicKey,
+      });
+    } else {
+      console.warn(`No providerWebhookUrl set for this API key — request ${refCode} won't be pushed to provider`);
+    }
   } catch (err) {
     console.error("relay/send error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -198,7 +239,7 @@ app.get("/api/v1/relay/messages/:id", validateApiKey, (req, res) => {
 
 // ── POST /api/v1/relay/respond/:id — Provider sends response ─────────────────
 
-app.post("/api/v1/relay/respond/:id", validateApiKey, (req, res) => {
+app.post("/api/v1/relay/respond/:id", validateApiKey, async (req, res) => {
   const { response, encryptedResponse } = req.body;
 
   if (!response && !encryptedResponse) {
@@ -237,6 +278,18 @@ app.post("/api/v1/relay/respond/:id", validateApiKey, (req, res) => {
   `).run(storedResponse, req.params.id);
 
   res.json({ success: true, requestId: session.id, refCode: session.ref_code });
+
+  // Deliver response to consumer via their callbackUrl
+  const callbackUrl = session.callback_url as string | null;
+  if (callbackUrl) {
+    await fireWebhook(callbackUrl, {
+      event: "response_ready",
+      requestId: session.id,
+      refCode: session.ref_code,
+      encryptedResponse: storedResponse,
+      respondedAt: new Date().toISOString(),
+    });
+  }
 });
 
 // ── GET /api/v1/relay/stats — Dashboard stats (no message content) ───────────

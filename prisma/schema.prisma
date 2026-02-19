@@ -62,14 +62,15 @@ model VerificationToken {
 }
 
 model ApiKey {
-  id        String        @id @default(cuid())
-  key       String        @unique
-  name      String?
-  userId    String
-  user      User          @relation(fields: [userId], references: [id])
-  isActive  Boolean       @default(true)
-  requests  HelpRequest[]
-  createdAt DateTime      @default(now())
+  id                 String        @id @default(cuid())
+  key                String        @unique
+  name               String?
+  userId             String
+  user               User          @relation(fields: [userId], references: [id])
+  isActive           Boolean       @default(true)
+  providerWebhookUrl String?
+  requests           HelpRequest[]
+  createdAt          DateTime      @default(now())
 }
 
 model HelpRequest {

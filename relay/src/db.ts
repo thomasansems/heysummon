@@ -13,6 +13,7 @@ export function getDb(): Database.Database {
     db.pragma("journal_mode = WAL");
     db.pragma("foreign_keys = ON");
     initSchema();
+    migrateSchema();
   }
   return db;
 }
@@ -29,6 +30,7 @@ function initSchema() {
       status TEXT NOT NULL DEFAULT 'pending',
       encrypted_messages TEXT,
       encrypted_response TEXT,
+      callback_url TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       expires_at TEXT NOT NULL
@@ -37,6 +39,14 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_sessions_ref_code ON relay_sessions(ref_code);
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON relay_sessions(status);
   `);
+}
+
+/** Add columns introduced after the initial schema (safe to run repeatedly). */
+function migrateSchema() {
+  const cols = (db.prepare("PRAGMA table_info(relay_sessions)").all() as { name: string }[]).map(c => c.name);
+  if (!cols.includes("callback_url")) {
+    db.exec("ALTER TABLE relay_sessions ADD COLUMN callback_url TEXT");
+  }
 }
 
 export function closeDb() {

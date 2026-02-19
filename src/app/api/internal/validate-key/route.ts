@@ -21,12 +21,16 @@ export async function POST(request: Request) {
 
   const apiKey = await prisma.apiKey.findUnique({
     where: { key },
-    select: { id: true, isActive: true, userId: true },
+    select: { id: true, isActive: true, userId: true, providerWebhookUrl: true },
   });
 
   if (!apiKey || !apiKey.isActive) {
     return NextResponse.json({ valid: false }, { status: 200 });
   }
 
-  return NextResponse.json({ valid: true, ownerId: apiKey.userId });
+  return NextResponse.json({
+    valid: true,
+    ownerId: apiKey.userId,
+    providerWebhookUrl: apiKey.providerWebhookUrl ?? null,
+  });
 }

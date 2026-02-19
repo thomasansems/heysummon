@@ -1,23 +1,40 @@
 #!/bin/bash
-# Usage: request-help.sh <api-key> <question> [messages-json-file]
-# Sends a help request to HITLaaS and prints the request ID and ref code.
+# Usage: request-help.sh <question> [messages-json-file]
+# Sends a help request to the HITLaaS relay and prints the requestId and refCode.
+#
+# Required env vars:
+#   HITLAAS_API_KEY      — your API key (htl_...)
+#   HITLAAS_CALLBACK_URL — your webhook URL for receiving the response
+#
+# Optional env vars:
+#   HITLAAS_RELAY_URL    — relay base URL (default: http://localhost:4000)
 
 set -e
 
-API_KEY="${1:-}"
-QUESTION="${2:-}"
-MESSAGES_FILE="${3:-}"
+QUESTION="${1:-}"
+MESSAGES_FILE="${2:-}"
 
-if [ -z "$API_KEY" ] || [ -z "$QUESTION" ]; then
-  echo "Usage: request-help.sh <api-key> <question> [messages-json-file]"
+if [ -z "$QUESTION" ]; then
+  echo "Usage: request-help.sh <question> [messages-json-file]"
   echo ""
-  echo "  api-key           Your HITLaaS API key"
   echo "  question           The question to ask the human expert"
   echo "  messages-json-file Optional JSON file with conversation messages array"
+  echo ""
+  echo "Required env vars: HITLAAS_API_KEY, HITLAAS_CALLBACK_URL"
   exit 1
 fi
 
-BASE_URL="${HITLAAS_BASE_URL:-https://hitlaas.vercel.app}"
+if [ -z "${HITLAAS_API_KEY:-}" ]; then
+  echo "Error: HITLAAS_API_KEY env var is required"
+  exit 1
+fi
+
+if [ -z "${HITLAAS_CALLBACK_URL:-}" ]; then
+  echo "Error: HITLAAS_CALLBACK_URL env var is required"
+  exit 1
+fi
+
+RELAY_URL="${HITLAAS_RELAY_URL:-http://localhost:4000}"
 
 if [ -n "$MESSAGES_FILE" ] && [ -f "$MESSAGES_FILE" ]; then
   MESSAGES=$(cat "$MESSAGES_FILE")
@@ -26,13 +43,12 @@ else
 fi
 
 PAYLOAD=$(jq -n \
-  --arg apiKey "$API_KEY" \
   --arg question "$QUESTION" \
+  --arg callbackUrl "$HITLAAS_CALLBACK_URL" \
   --argjson messages "$MESSAGES" \
-  '{ apiKey: $apiKey, question: $question, messages: $messages }')
+  '{ question: $question, callbackUrl: $callbackUrl, messages: $messages }')
 
-RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/help" \
+curl -sf -X POST "${RELAY_URL}/api/v1/relay/send" \
   -H "Content-Type: application/json" \
-  -d "$PAYLOAD")
-
-echo "$RESPONSE" | jq .
+  -H "x-api-key: ${HITLAAS_API_KEY}" \
+  -d "$PAYLOAD" | jq .

@@ -1,40 +1,46 @@
+```skill
 # HITLaaS Consumer Skill
 
 ## What is HITLaaS?
-Human-In-The-Loop as a Service. When you (an AI agent) get stuck, you request help from a human expert. The response is delivered to your webhook — no polling needed.
+Human-In-The-Loop as a Service. When you (an AI agent) get stuck, you request help from a human expert via the relay. The response is delivered to your callback webhook — no polling needed.
 
 ## Configuration
-- `HITLAAS_API_KEY` — your API key
-- `HITLAAS_WEBHOOK_URL` — your webhook endpoint for receiving responses
-- API Base URL: `https://provider.hitlaas.thomasansems.nl` (or self-hosted)
+
+| Variable | Description |
+|---|---|
+| `HITLAAS_API_KEY` | Your API key (`htl_...`) — passed as `x-api-key` header |
+| `HITLAAS_CALLBACK_URL` | Your webhook endpoint for receiving responses |
+| `HITLAAS_RELAY_URL` | Relay base URL (default: `http://localhost:4000`) |
 
 ## Security
+
 All communication is **E2E encrypted**:
 - You generate an RSA key pair locally
 - Send your **public key** with the request
 - The response comes back encrypted with your public key
 - Only you can decrypt it with your private key
-- Webhook payloads are signed with HMAC-SHA256
+- The relay never sees plaintext message content
 
 ## How It Works
 
 ### 1. Generate Key Pair (once)
 
 ```bash
-# Generate RSA-2048 key pair
 openssl genpkey -algorithm RSA -out hitlaas-private.pem -pkeyopt rsa_keygen_bits:2048
 openssl rsa -in hitlaas-private.pem -pubout -out hitlaas-public.pem
 ```
 
 ### 2. Request Help
 
-**POST** `/api/v1/help`
+**POST** `/api/v1/relay/send`
 
+Headers: `x-api-key: htl_your_key_here` and `Content-Type: application/json`
+
+**Body:**
 ```json
 {
-  "apiKey": "<your-api-key>",
-  "publicKey": "<your-RSA-public-key-PEM>",
-  "webhookUrl": "https://your-server.com/hitlaas/callback",
+  "callbackUrl": "https://your-server.com/hitlaas/callback",
+  "consumerPublicKey": "-----BEGIN PUBLIC KEY-----...",
   "messages": [
     { "role": "user", "content": "Deploy the app" },
     { "role": "assistant", "content": "Got error X, tried Y and Z" }
@@ -43,93 +49,51 @@ openssl rsa -in hitlaas-private.pem -pubout -out hitlaas-public.pem
 }
 ```
 
-**Required fields:**
-- `apiKey` — your API key
-- `publicKey` — your RSA public key (PEM format)
-- `webhookUrl` — where to deliver the response
-- `messages` — array of conversation messages (last 10 kept)
-
-**Optional:**
-- `question` — specific question for the expert
+**Required:** `callbackUrl`, `messages`
+**Optional:** `consumerPublicKey` (PEM — if set the response is E2E encrypted for you), `question`
 
 **Response:**
 ```json
 {
-  "requestId": "clxyz...",
+  "requestId": "abc123",
   "refCode": "HTL-AB12",
   "status": "pending",
-  "webhookSecret": "abc123...",
-  "serverPublicKey": "-----BEGIN PUBLIC KEY-----..."
+  "serverPublicKey": "-----BEGIN PUBLIC KEY-----...",
+  "expiresAt": "2026-02-20T10:30:00.000Z"
 }
 ```
-
-**Store the `webhookSecret`** — use it to verify webhook signatures.
 
 ### 3. Receive Response via Webhook
 
-When the expert responds, HITLaaS POSTs to your `webhookUrl`:
-
-```
-POST https://your-server.com/hitlaas/callback
-Content-Type: application/json
-X-HITLaaS-Event: response.delivered
-X-HITLaaS-Request-Id: clxyz...
-X-HITLaaS-Signature: sha256=<hmac-hex>
-```
+The relay POSTs to your `callbackUrl` when the expert responds:
 
 ```json
 {
-  "requestId": "clxyz...",
+  "event": "response_ready",
+  "requestId": "abc123",
   "refCode": "HTL-AB12",
-  "status": "responded",
-  "response": "<encrypted-with-your-public-key>",
-  "respondedAt": "2026-02-19T21:00:00.000Z"
+  "encryptedResponse": "<encrypted-with-your-public-key>",
+  "respondedAt": "2026-02-20T10:15:00.000Z"
 }
 ```
 
-### 4. Verify & Decrypt
+### 4. Decrypt Response
+
+Format: `rsaEncryptedAesKey.iv.authTag.aesCiphertext` (base64 segments).
+Decrypt the AES key with your private key (RSA-OAEP), then AES-256-GCM decrypt.
+
+### 5. Check Status (no auth required)
+
+**GET** `/api/v1/relay/status/{requestId}`
+
+## Helper Scripts
 
 ```bash
-# Verify HMAC signature
-echo -n '<raw-body>' | openssl dgst -sha256 -hmac '<webhookSecret>'
+export HITLAAS_API_KEY=htl_xxx
+export HITLAAS_CALLBACK_URL=https://your-server.com/hitlaas/callback
+export HITLAAS_RELAY_URL=http://localhost:4000
 
-# Decrypt response (the response field is: rsaEncryptedAesKey.iv.authTag.aesCiphertext)
-# Use your private key to decrypt the AES key, then AES-256-GCM to decrypt the message
+./scripts/request-help.sh "How do I fix error X?" messages.json
+./scripts/check-status.sh <requestId>
 ```
-
-### 5. Check Status (optional)
-
-**GET** `/api/v1/help/{requestId}`
-
-Returns status only (no response content — that's webhook-only):
-```json
-{
-  "requestId": "clxyz...",
-  "refCode": "HTL-AB12",
-  "status": "responded",
-  "webhookDelivered": true
-}
-```
-
-## Webhook Retry Policy
-- 3 attempts: immediate, +5s, +15s
-- 10s timeout per attempt
-- Check `webhookDelivered` via status endpoint if unsure
-
-## Example: Full Flow with curl
-
-```bash
-# 1. Request help
-curl -X POST https://provider.hitlaas.thomasansems.nl/api/v1/help \
-  -H "Content-Type: application/json" \
-  -d '{
-    "apiKey": "'"$HITLAAS_API_KEY"'",
-    "publicKey": "'"$(cat hitlaas-public.pem)"'",
-    "webhookUrl": "'"$HITLAAS_WEBHOOK_URL"'",
-    "messages": [{"role":"user","content":"Deploy the app"},{"role":"assistant","content":"Error X"}],
-    "question": "How to fix error X?"
-  }'
-
-# 2. Wait for webhook delivery to your endpoint
-# 3. Decrypt the response with your private key
 ```

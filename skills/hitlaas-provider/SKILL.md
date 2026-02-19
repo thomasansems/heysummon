@@ -1,76 +1,104 @@
+```skill
 # HITLaaS Provider Skill
 
 ## What You Are
-You are a HITLaaS provider relay. AI agents that get stuck on problems send help requests through HITLaaS. Your job is to:
-1. Poll for incoming help requests
-2. Present them clearly to your human user
-3. Collect the human's response
-4. Send it back via the API
+You are a HITLaaS provider. AI agents that get stuck send help requests through the relay. Your job is to:
+1. Receive incoming requests via your registered provider webhook
+2. Fetch and decrypt the encrypted messages
+3. Present them to your human user
+4. Send the human's response back via the relay API
 
 ## Configuration
-- Set `HITLAAS_PROVIDER_API_KEY` environment variable (this is a session/auth token, not an API key)
-- API Base URL: `https://hitlaas.vercel.app`
-- Authentication: requests to `/api/requests` use session cookies (the human must be logged in to the dashboard)
+
+| Variable | Description |
+|---|---|
+| `HITLAAS_API_KEY` | Your provider API key (`htl_...`) — passed as `x-api-key` header |
+| `HITLAAS_RELAY_URL` | Relay base URL (default: `http://localhost:4000`) |
+
+**One-time setup:** Register your `providerWebhookUrl` on your API key via the platform dashboard (API Keys → set Webhook URL).
+
+## Startup (run once)
+
+Register your webhook URL before going live. The relay will push new requests here automatically.
+
+```bash
+export HITLAAS_API_KEY=htl_xxx
+export HITLAAS_PLATFORM_URL=http://localhost:3000
+
+./scripts/register-webhook.sh https://your-provider.com/hitlaas/incoming
+```
+
+Calls `PATCH /api/keys` authenticated by `x-api-key` header only — no session or user credentials needed.
 
 ## Workflow
 
-### 1. Check for New Requests
+### 1. Receive New Request (webhook push)
 
-**GET** `https://hitlaas.vercel.app/api/requests`
+The relay POSTs to your registered `providerWebhookUrl`:
 
-Returns all requests assigned to the authenticated user. Look for ones with `status: "pending"`.
-
-**Response:**
 ```json
 {
-  "requests": [
-    {
-      "id": "clxyz...",
-      "refCode": "HTL-AB12",
-      "status": "pending",
-      "createdAt": "2025-01-15T10:00:00Z",
-      "apiKey": { "name": "my-agent" }
-    }
-  ]
+  "event": "new_request",
+  "requestId": "abc123",
+  "refCode": "HTL-AB12",
+  "createdAt": "2026-02-20T10:00:00.000Z",
+  "expiresAt": "2026-02-20T10:30:00.000Z"
 }
 ```
 
-### 2. View Request Details
+### 2. Fetch Encrypted Messages
 
-**GET** `https://hitlaas.vercel.app/api/requests/{id}`
+**GET** `/api/v1/relay/messages/{requestId}`  
+Header: `x-api-key: htl_your_key`
 
-Returns full details including conversation messages and the question.
+```json
+{
+  "encryptedMessages": "<ciphertext>",
+  "serverPrivateKey": "-----BEGIN PRIVATE KEY-----...",
+  "requestId": "abc123",
+  "refCode": "HTL-AB12"
+}
+```
 
-### 3. Present to Human
+Decrypt `encryptedMessages` with `serverPrivateKey` (RSA-OAEP + AES-256-GCM). Plaintext: `{ messages, question }`
 
-Format the request nicely for your human user:
+### 3. Check Pending Requests (fallback polling)
+
+**GET** `/api/v1/relay/pending`  
+Header: `x-api-key: htl_your_key`
+
+### 4. Present to Human
 
 ```
 🆘 Help Request [HTL-AB12]
-From: my-agent
-Time: 2 minutes ago
+Question: How do I fix deployment error X?
 
-📝 Question: How do I fix deployment error X?
-
-💬 Context (last messages):
+Context:
   User: Deploy the app
-  Assistant: I tried but got error X
+  Assistant: Got error X, tried Y and Z
 
-Please provide your answer:
+Your answer:
 ```
 
-### 4. Send Response
+### 5. Send Response
 
-**PATCH** `https://hitlaas.vercel.app/api/requests/{id}`
+**POST** `/api/v1/relay/respond/{requestId}`  
+Headers: `x-api-key: htl_your_key`, `Content-Type: application/json`
 
 ```json
-{
-  "response": "The human expert's answer goes here..."
-}
+{ "response": "The human expert's answer..." }
 ```
 
-This sets the status to `responded` and the requesting AI agent will pick it up on their next poll.
+The relay immediately POSTs the response to the consumer's `callbackUrl`.
 
 ## Helper Scripts
-- `scripts/poll-requests.sh` — check for pending requests
-- `scripts/respond.sh <request-id> <response>` — send a response
+
+```bash
+export HITLAAS_API_KEY=htl_xxx
+export HITLAAS_RELAY_URL=http://localhost:4000
+
+./scripts/register-webhook.sh https://your-provider.com/hitlaas/incoming  # run once at startup
+./scripts/poll-requests.sh                                                  # fallback: check pending
+./scripts/respond.sh <requestId> "Your answer here"                        # send a response
+```
+```

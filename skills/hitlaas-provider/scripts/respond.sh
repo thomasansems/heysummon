@@ -1,6 +1,13 @@
 #!/bin/bash
 # Usage: respond.sh <request-id> <response>
-# Sends a response to a HITLaaS help request.
+# Sends a response to a HITLaaS help request via the relay.
+# The relay will deliver the response to the consumer's callbackUrl.
+#
+# Required env vars:
+#   HITLAAS_API_KEY   — your provider API key (htl_...)
+#
+# Optional env vars:
+#   HITLAAS_RELAY_URL — relay base URL (default: http://localhost:4000)
 
 set -e
 
@@ -10,17 +17,23 @@ RESPONSE_TEXT="${2:-}"
 if [ -z "$REQUEST_ID" ] || [ -z "$RESPONSE_TEXT" ]; then
   echo "Usage: respond.sh <request-id> <response>"
   echo ""
-  echo "  request-id   The help request ID"
+  echo "  request-id   The requestId of the help request"
   echo "  response     Your answer to the AI agent's question"
+  echo ""
+  echo "Required env vars: HITLAAS_API_KEY"
   exit 1
 fi
 
-BASE_URL="${HITLAAS_BASE_URL:-https://hitlaas.vercel.app}"
-COOKIE="${HITLAAS_SESSION_COOKIE:-}"
+if [ -z "${HITLAAS_API_KEY:-}" ]; then
+  echo "Error: HITLAAS_API_KEY env var is required"
+  exit 1
+fi
+
+RELAY_URL="${HITLAAS_RELAY_URL:-http://localhost:4000}"
 
 PAYLOAD=$(jq -n --arg response "$RESPONSE_TEXT" '{ response: $response }')
 
-curl -s -X PATCH "${BASE_URL}/api/requests/${REQUEST_ID}" \
+curl -sf -X POST "${RELAY_URL}/api/v1/relay/respond/${REQUEST_ID}" \
   -H "Content-Type: application/json" \
-  -H "Cookie: ${COOKIE}" \
+  -H "x-api-key: ${HITLAAS_API_KEY}" \
   -d "$PAYLOAD" | jq .

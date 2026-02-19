@@ -24,9 +24,9 @@ const PLATFORM_URL = process.env.PLATFORM_URL || "http://localhost:3000";
 const RELAY_SECRET = process.env.RELAY_SECRET || "";
 
 async function validateApiKey(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const apiKey = req.headers["x-api-key"] as string || req.body?.apiKey;
+  const apiKey = req.headers["x-api-key"] as string;
   if (!apiKey) {
-    res.status(401).json({ error: "API key required (x-api-key header or apiKey body field)" });
+    res.status(401).json({ error: "API key required — pass as x-api-key header" });
     return;
   }
 

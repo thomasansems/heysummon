@@ -9,16 +9,18 @@
  *
  * Optional env vars:
  *   RELAY_URL     (default: http://localhost:4000)
+ *   PLATFORM_URL  (default: http://localhost:3000)
  *   WEBHOOK_PORT  (default: 4001)
  *   WEBHOOK_HOST  (default: http://localhost:4001)  — override if running in a container
  */
 
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
-import { generateKeyPair, decryptMessage, encryptMessage } from "../src/crypto";
+import { generateKeyPair, decryptMessage } from "../src/crypto";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const RELAY_URL = process.env.RELAY_URL || "http://localhost:4000";
+const PLATFORM_URL = process.env.PLATFORM_URL || "http://localhost:3000";
 const API_KEY = process.env.API_KEY;
 const WEBHOOK_PORT = parseInt(process.env.WEBHOOK_PORT || "4001", 10);
 const WEBHOOK_HOST = process.env.WEBHOOK_HOST || `http://localhost:${WEBHOOK_PORT}`;
@@ -146,17 +148,23 @@ server.listen(WEBHOOK_PORT, async () => {
   const health = await fetch(`${RELAY_URL}/health`).then((r) => r.json());
   console.log("❤️   Relay health:", health);
 
-  // 2. Register provider webhook URL on the API key
-  //    (In production this is done once via the platform dashboard.)
-  //    Here we call PATCH /api/keys/:id — but we only have the key string, not the ID.
-  //    So we skip this step and instead rely on it being pre-configured.
-  //    You can pre-configure with:
-  //      curl -X PATCH http://localhost:3000/api/keys/<KEY_ID> \
-  //        -H "Cookie: <session>" \
-  //        -d '{"providerWebhookUrl":"http://localhost:4001/provider-webhook"}'
-  console.log(`\nℹ️   Ensure your API key has providerWebhookUrl set to:`);
-  console.log(`    ${WEBHOOK_HOST}/provider-webhook`);
-  console.log(`    (Dashboard → API Keys → set Webhook URL, or PATCH /api/keys/:id)\n`);
+  // 2. Register provider webhook URL on the API key (self-service — no session needed)
+  console.log("🔗  Registering providerWebhookUrl on API key...");
+  const patchRes = await fetch(`${PLATFORM_URL}/api/keys`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": API_KEY!,
+    },
+    body: JSON.stringify({ providerWebhookUrl: `${WEBHOOK_HOST}/provider-webhook` }),
+  });
+  if (!patchRes.ok) {
+    const err = await patchRes.text();
+    console.error("❌  Failed to register providerWebhookUrl:", err);
+    process.exit(1);
+  }
+  const patchData = await patchRes.json() as { key: { providerWebhookUrl: string } };
+  console.log(`✅  providerWebhookUrl set: ${patchData.key.providerWebhookUrl}\n`);
 
   // 3. Consumer sends a help request
   console.log("📤  [Consumer] Sending help request...");

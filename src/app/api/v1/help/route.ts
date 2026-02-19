@@ -8,13 +8,21 @@ import { randomBytes, createHmac } from "node:crypto";
 
 export async function POST(request: Request) {
   try {
+    const apiKey = request.headers.get("x-api-key");
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "x-api-key header is required" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { apiKey, messages, question, publicKey, webhookUrl } = body;
+    const { messages, question, publicKey, webhookUrl } = body;
 
     // Validate required fields
-    if (!apiKey || !messages || !Array.isArray(messages) || messages.length === 0) {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
-        { error: "apiKey and messages array are required" },
+        { error: "messages array is required" },
         { status: 400 }
       );
     }

@@ -1,6 +1,10 @@
 #!/bin/bash
 # Usage: check-status.sh <request-id>
-# Polls a HITLaaS help request and prints its current status.
+# Polls the HITLaaS relay for the current status of a help request.
+# No authentication required.
+#
+# Optional env vars:
+#   HITLAAS_RELAY_URL — relay base URL (default: http://localhost:4000)
 
 set -e
 
@@ -9,12 +13,10 @@ REQUEST_ID="${1:-}"
 if [ -z "$REQUEST_ID" ]; then
   echo "Usage: check-status.sh <request-id>"
   echo ""
-  echo "  request-id   The ID returned from request-help.sh"
+  echo "  request-id   The requestId returned from request-help.sh"
   exit 1
 fi
 
-BASE_URL="${HITLAAS_BASE_URL:-https://hitlaas.vercel.app}"
+RELAY_URL="${HITLAAS_RELAY_URL:-http://localhost:4000}"
 
-RESPONSE=$(curl -s "${BASE_URL}/api/v1/help/${REQUEST_ID}")
-
-echo "$RESPONSE" | jq .
+curl -sf "${RELAY_URL}/api/v1/relay/status/${REQUEST_ID}" | jq .

@@ -1,34 +1,56 @@
 # HITLaaS Consumer Skill
 
 ## What is HITLaaS?
-Human-In-The-Loop as a Service. When you (an AI agent) get stuck on a problem, you can request help from a real human expert via the HITLaaS API. You'll get a response you can use to continue your work.
+Human-In-The-Loop as a Service. When you (an AI agent) get stuck, you request help from a human expert. The response is delivered to your webhook — no polling needed.
 
 ## Configuration
-- Set `HITLAAS_API_KEY` environment variable with your API key
-- API Base URL: `https://hitlaas.vercel.app`
+- `HITLAAS_API_KEY` — your API key
+- `HITLAAS_WEBHOOK_URL` — your webhook endpoint for receiving responses
+- API Base URL: `https://provider.hitlaas.thomasansems.nl` (or self-hosted)
 
-## When to Use
-Use HITLaaS when you are **truly stuck** — e.g. ambiguous requirements, need domain expertise, blocked by something you can't resolve autonomously. Don't use it for things you can figure out yourself.
+## Security
+All communication is **E2E encrypted**:
+- You generate an RSA key pair locally
+- Send your **public key** with the request
+- The response comes back encrypted with your public key
+- Only you can decrypt it with your private key
+- Webhook payloads are signed with HMAC-SHA256
 
 ## How It Works
 
-### 1. Request Help
+### 1. Generate Key Pair (once)
 
-**POST** `https://hitlaas.vercel.app/api/v1/help`
+```bash
+# Generate RSA-2048 key pair
+openssl genpkey -algorithm RSA -out hitlaas-private.pem -pkeyopt rsa_keygen_bits:2048
+openssl rsa -in hitlaas-private.pem -pubout -out hitlaas-public.pem
+```
+
+### 2. Request Help
+
+**POST** `/api/v1/help`
 
 ```json
 {
   "apiKey": "<your-api-key>",
+  "publicKey": "<your-RSA-public-key-PEM>",
+  "webhookUrl": "https://your-server.com/hitlaas/callback",
   "messages": [
-    { "role": "user", "content": "..." },
-    { "role": "assistant", "content": "..." }
+    { "role": "user", "content": "Deploy the app" },
+    { "role": "assistant", "content": "Got error X, tried Y and Z" }
   ],
-  "question": "What specific thing do you need help with?"
+  "question": "How do I fix deployment error X?"
 }
 ```
 
-- `messages`: Array of recent conversation messages (last 10 are kept). Each should have `role` and `content`.
-- `question`: A clear, specific question for the human expert.
+**Required fields:**
+- `apiKey` — your API key
+- `publicKey` — your RSA public key (PEM format)
+- `webhookUrl` — where to deliver the response
+- `messages` — array of conversation messages (last 10 kept)
+
+**Optional:**
+- `question` — specific question for the expert
 
 **Response:**
 ```json
@@ -36,48 +58,78 @@ Use HITLaaS when you are **truly stuck** — e.g. ambiguous requirements, need d
   "requestId": "clxyz...",
   "refCode": "HTL-AB12",
   "status": "pending",
-  "pollUrl": "/api/v1/help/clxyz..."
+  "webhookSecret": "abc123...",
+  "serverPublicKey": "-----BEGIN PUBLIC KEY-----..."
 }
 ```
 
-### 2. Poll for Response
+**Store the `webhookSecret`** — use it to verify webhook signatures.
 
-**GET** `https://hitlaas.vercel.app/api/v1/help/{requestId}`
+### 3. Receive Response via Webhook
 
-Poll every 10-30 seconds. Possible statuses:
-- `pending` — waiting for a human
-- `reviewing` — human is looking at it
-- `responded` — answer is ready (check `response` field)
-- `expired` — no one answered within 30 minutes
+When the expert responds, HITLaaS POSTs to your `webhookUrl`:
 
-**Response when answered:**
+```
+POST https://your-server.com/hitlaas/callback
+Content-Type: application/json
+X-HITLaaS-Event: response.delivered
+X-HITLaaS-Request-Id: clxyz...
+X-HITLaaS-Signature: sha256=<hmac-hex>
+```
+
 ```json
 {
   "requestId": "clxyz...",
+  "refCode": "HTL-AB12",
   "status": "responded",
-  "response": "The human expert's answer..."
+  "response": "<encrypted-with-your-public-key>",
+  "respondedAt": "2026-02-19T21:00:00.000Z"
 }
 ```
 
-### 3. Use the Response
-Once you get a `responded` status, use the `response` field to continue your work.
-
-## Example curl Commands
+### 4. Verify & Decrypt
 
 ```bash
-# Request help
-curl -X POST https://hitlaas.vercel.app/api/v1/help \
+# Verify HMAC signature
+echo -n '<raw-body>' | openssl dgst -sha256 -hmac '<webhookSecret>'
+
+# Decrypt response (the response field is: rsaEncryptedAesKey.iv.authTag.aesCiphertext)
+# Use your private key to decrypt the AES key, then AES-256-GCM to decrypt the message
+```
+
+### 5. Check Status (optional)
+
+**GET** `/api/v1/help/{requestId}`
+
+Returns status only (no response content — that's webhook-only):
+```json
+{
+  "requestId": "clxyz...",
+  "refCode": "HTL-AB12",
+  "status": "responded",
+  "webhookDelivered": true
+}
+```
+
+## Webhook Retry Policy
+- 3 attempts: immediate, +5s, +15s
+- 10s timeout per attempt
+- Check `webhookDelivered` via status endpoint if unsure
+
+## Example: Full Flow with curl
+
+```bash
+# 1. Request help
+curl -X POST https://provider.hitlaas.thomasansems.nl/api/v1/help \
   -H "Content-Type: application/json" \
   -d '{
     "apiKey": "'"$HITLAAS_API_KEY"'",
-    "messages": [{"role":"user","content":"Deploy the app"},{"role":"assistant","content":"I tried but got error X"}],
-    "question": "How do I fix deployment error X?"
+    "publicKey": "'"$(cat hitlaas-public.pem)"'",
+    "webhookUrl": "'"$HITLAAS_WEBHOOK_URL"'",
+    "messages": [{"role":"user","content":"Deploy the app"},{"role":"assistant","content":"Error X"}],
+    "question": "How to fix error X?"
   }'
 
-# Poll for response
-curl https://hitlaas.vercel.app/api/v1/help/REQUEST_ID_HERE
+# 2. Wait for webhook delivery to your endpoint
+# 3. Decrypt the response with your private key
 ```
-
-## Helper Scripts
-- `scripts/request-help.sh <api-key> <question> [messages-json-file]` — submit a help request
-- `scripts/check-status.sh <request-id>` — check the status of a request

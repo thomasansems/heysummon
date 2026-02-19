@@ -2,8 +2,12 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { encryptMessage } from "@/lib/crypto";
 
+/**
+ * GET /api/v1/help/:requestId — Check request status.
+ * Response is delivered via webhook, not here.
+ * This endpoint only returns status + metadata.
+ */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ requestId: string }> }
@@ -12,13 +16,19 @@ export async function GET(
 
   const helpRequest = await prisma.helpRequest.findUnique({
     where: { id: requestId },
+    select: {
+      id: true,
+      refCode: true,
+      status: true,
+      webhookDelivered: true,
+      createdAt: true,
+      respondedAt: true,
+      expiresAt: true,
+    },
   });
 
   if (!helpRequest) {
-    return NextResponse.json(
-      { error: "Request not found" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Request not found" }, { status: 404 });
   }
 
   // Check if expired
@@ -27,28 +37,19 @@ export async function GET(
       where: { id: requestId },
       data: { status: "expired" },
     });
-
     return NextResponse.json({
       requestId: helpRequest.id,
+      refCode: helpRequest.refCode,
       status: "expired",
     });
   }
 
-  const response: Record<string, unknown> = {
+  return NextResponse.json({
     requestId: helpRequest.id,
+    refCode: helpRequest.refCode,
     status: helpRequest.status,
-  };
-
-  if (helpRequest.status === "responded" && helpRequest.response) {
-    // If the request was encrypted and consumer provided a public key,
-    // encrypt the response with the consumer's public key
-    if (helpRequest.encrypted && helpRequest.consumerPublicKey) {
-      response.response = encryptMessage(helpRequest.response, helpRequest.consumerPublicKey);
-      response.encrypted = true;
-    } else {
-      response.response = helpRequest.response;
-    }
-  }
-
-  return NextResponse.json(response);
+    webhookDelivered: helpRequest.webhookDelivered,
+    createdAt: helpRequest.createdAt,
+    respondedAt: helpRequest.respondedAt,
+  });
 }

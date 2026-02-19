@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { randomBytes } from "crypto";
+import { randomBytes, generateKeyPairSync } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -47,6 +47,18 @@ async function main() {
       where: { expertId: user.id },
     });
     if (!existingReq) {
+      // Generate key pairs for the sample request
+      const serverKp = generateKeyPairSync("rsa", {
+        modulusLength: 2048,
+        publicKeyEncoding: { type: "spki", format: "pem" },
+        privateKeyEncoding: { type: "pkcs8", format: "pem" },
+      });
+      const consumerKp = generateKeyPairSync("rsa", {
+        modulusLength: 2048,
+        publicKeyEncoding: { type: "spki", format: "pem" },
+        privateKeyEncoding: { type: "pkcs8", format: "pem" },
+      });
+
       const req = await prisma.helpRequest.create({
         data: {
           refCode: "HTL-TEST",
@@ -58,6 +70,11 @@ async function main() {
           ]),
           question: "JWT verify fails with secretOrPublicKey error",
           status: "pending",
+          consumerPublicKey: consumerKp.publicKey as string,
+          serverPublicKey: serverKp.publicKey as string,
+          serverPrivateKey: serverKp.privateKey as string,
+          webhookUrl: "https://example.com/hitlaas/callback",
+          webhookSecret: randomBytes(32).toString("hex"),
           expiresAt: new Date(Date.now() + 30 * 60 * 1000),
         },
       });

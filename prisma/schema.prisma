@@ -73,22 +73,26 @@ model ApiKey {
 }
 
 model HelpRequest {
-  id          String    @id @default(cuid())
-  refCode     String?   @unique
-  apiKeyId    String
-  apiKey      ApiKey    @relation(fields: [apiKeyId], references: [id])
-  expertId    String
-  expert      User      @relation("ExpertRequests", fields: [expertId], references: [id])
-  messages    String
-  question    String?
-  status      String    @default("pending")
+  id                String    @id @default(cuid())
+  refCode           String?   @unique
+  apiKeyId          String
+  apiKey            ApiKey    @relation(fields: [apiKeyId], references: [id])
+  expertId          String
+  expert            User      @relation("ExpertRequests", fields: [expertId], references: [id])
+  messages          String    // Encrypted with server public key (at rest)
+  question          String?   // Encrypted with server public key (at rest)
+  status            String    @default("pending")
   response          String?
-  consumerPublicKey String?
-  serverPublicKey   String?
-  serverPrivateKey  String?
-  encrypted         Boolean   @default(false)
+  consumerPublicKey String    // Consumer's RSA public key (required)
+  serverPublicKey   String    // Server-generated RSA public key for this request
+  serverPrivateKey  String    // Server-generated RSA private key (decrypt at-rest data for provider view)
+  webhookUrl        String    // Consumer's webhook URL for response delivery
+  webhookSecret     String?   // HMAC secret for webhook signature verification
+  webhookDelivered  Boolean   @default(false)
+  webhookAttempts   Int       @default(0)
+  webhookLastError  String?
   createdAt         DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  respondedAt DateTime?
-  expiresAt   DateTime
+  updatedAt         DateTime  @updatedAt
+  respondedAt       DateTime?
+  expiresAt         DateTime
 }

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { decryptMessage } from "@/lib/crypto";
+import { deliverWebhook } from "@/lib/webhook";
 
 export async function GET(
   _request: Request,
@@ -31,10 +33,41 @@ export async function GET(
     helpRequest.status = "reviewing";
   }
 
+  // Decrypt messages and question for provider view using server private key
+  let decryptedMessages: unknown;
+  let decryptedQuestion: string | null = null;
+
+  try {
+    decryptedMessages = JSON.parse(
+      decryptMessage(helpRequest.messages, helpRequest.serverPrivateKey)
+    );
+  } catch {
+    decryptedMessages = [{ role: "system", content: "[Decryption failed]" }];
+  }
+
+  if (helpRequest.question) {
+    try {
+      decryptedQuestion = decryptMessage(helpRequest.question, helpRequest.serverPrivateKey);
+    } catch {
+      decryptedQuestion = "[Decryption failed]";
+    }
+  }
+
   return NextResponse.json({
     request: {
-      ...helpRequest,
-      messages: JSON.parse(helpRequest.messages as string),
+      id: helpRequest.id,
+      refCode: helpRequest.refCode,
+      status: helpRequest.status,
+      messages: decryptedMessages,
+      question: decryptedQuestion,
+      response: helpRequest.response,
+      webhookDelivered: helpRequest.webhookDelivered,
+      webhookAttempts: helpRequest.webhookAttempts,
+      createdAt: helpRequest.createdAt,
+      updatedAt: helpRequest.updatedAt,
+      respondedAt: helpRequest.respondedAt,
+      expiresAt: helpRequest.expiresAt,
+      apiKey: helpRequest.apiKey,
     },
   });
 }
@@ -64,22 +97,34 @@ export async function PATCH(
     return NextResponse.json({ error: "Already responded" }, { status: 400 });
   }
 
-  const updateData: Record<string, unknown> = {};
-
-  if (body.status) {
-    updateData.status = body.status;
+  if (!body.response) {
+    return NextResponse.json({ error: "response is required" }, { status: 400 });
   }
 
-  if (body.response) {
-    updateData.response = body.response;
-    updateData.status = "responded";
-    updateData.respondedAt = new Date();
-  }
-
+  // Store plaintext response (server-side), then deliver encrypted via webhook
   const updated = await prisma.helpRequest.update({
     where: { id },
-    data: updateData,
+    data: {
+      response: body.response,
+      status: "responded",
+      respondedAt: new Date(),
+    },
   });
 
-  return NextResponse.json({ request: updated });
+  // Deliver via webhook (async — don't block the response)
+  deliverWebhook(id).then((delivered) => {
+    if (!delivered) {
+      console.error(`Webhook delivery failed for request ${id} after all retries`);
+    }
+  });
+
+  return NextResponse.json({
+    request: {
+      id: updated.id,
+      refCode: updated.refCode,
+      status: updated.status,
+      respondedAt: updated.respondedAt,
+    },
+    webhookQueued: true,
+  });
 }

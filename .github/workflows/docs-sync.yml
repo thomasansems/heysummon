@@ -1,0 +1,38 @@
+name: Docs Sync
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - 'skills/**'
+      - 'relay/**'
+      - 'DEPLOYMENT.md'
+      - 'CHANGELOG.md'
+      - 'README.md'
+      - 'docker-compose*.yml'
+      - 'infra/**'
+
+jobs:
+  trigger-docs-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get commit info
+        id: commit
+        run: |
+          echo "message=$(git log -1 --pretty=%B | head -1)" >> $GITHUB_OUTPUT
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          git diff HEAD~1 --stat >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Trigger docs update
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DOCS_SYNC_TOKEN }}
+          repository: thomasansems/hitlaas-docs
+          event-type: platform-update
+          client-payload: '{"commit_message": "${{ steps.commit.outputs.message }}", "diff": "${{ steps.commit.outputs.diff }}", "sha": "${{ github.sha }}"}'

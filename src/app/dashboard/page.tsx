@@ -1,5 +1,6 @@
-import { copyToClipboard } from "@/lib/clipboard";
 "use client";
+
+import { copyToClipboard } from "@/lib/clipboard";
 
 import { useEffect, useState, useCallback } from "react";
 

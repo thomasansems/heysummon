@@ -67,6 +67,7 @@ model Provider {
   name      String
   key       String   @unique
   userId    String
+  isActive  Boolean  @default(true)
   user      User     @relation(fields: [userId], references: [id])
   apiKeys   ApiKey[]
   createdAt DateTime @default(now())

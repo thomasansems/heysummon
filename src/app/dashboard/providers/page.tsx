@@ -42,6 +42,17 @@ export default function ProvidersPage() {
     loadProviders();
   };
 
+  const toggleProvider = async (id: string, isActive: boolean) => {
+    await fetch(`/api/providers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive }) });
+    loadProviders();
+  };
+
+  const deleteProvider = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete provider "${name}"? All linked clients will be unlinked. This cannot be undone.`)) return;
+    await fetch(`/api/providers/${id}`, { method: "DELETE" });
+    loadProviders();
+  };
+
   const copyKey = (key: string) => {
     copyToClipboard(key);
     setCopied(key);
@@ -103,7 +114,9 @@ export default function ProvidersPage() {
                 <th className="px-4 py-2.5 font-medium">Name</th>
                 <th className="px-4 py-2.5 font-medium">Provider Key</th>
                 <th className="px-4 py-2.5 font-medium">Clients</th>
+                <th className="px-4 py-2.5 font-medium">Status</th>
                 <th className="px-4 py-2.5 font-medium">Created</th>
+                <th className="px-4 py-2.5 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -131,8 +144,23 @@ export default function ProvidersPage() {
                   <td className="px-4 py-2.5 text-[#666]">
                     {p._count.apiKeys}
                   </td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${p.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                      {p.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </td>
                   <td className="px-4 py-2.5 text-[#666]">
                     {new Date(p.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {p.isActive ? (
+                        <button onClick={() => toggleProvider(p.id, false)} className="text-xs text-red-500 hover:text-red-700">Deactivate</button>
+                      ) : (
+                        <button onClick={() => toggleProvider(p.id, true)} className="text-xs text-green-600 hover:text-green-800">Activate</button>
+                      )}
+                      <button onClick={() => deleteProvider(p.id, p.name)} className="text-xs text-red-400 hover:text-red-600" title="Delete">✕</button>
+                    </div>
                   </td>
                 </tr>
               ))}

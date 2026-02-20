@@ -62,6 +62,17 @@ export default function ClientsPage() {
   };
 
   const deactivate = async (id: string) => {
+    await fetch(`/api/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: false }) });
+    loadKeys();
+  };
+
+  const activate = async (id: string) => {
+    await fetch(`/api/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: true }) });
+    loadKeys();
+  };
+
+  const deleteKey = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${name}"? This cannot be undone.`)) return;
     await fetch(`/api/keys/${id}`, { method: "DELETE" });
     loadKeys();
   };
@@ -217,14 +228,28 @@ hitlaas:
                         >
                           Share
                         </button>
-                        {k.isActive && (
+                        {k.isActive ? (
                           <button
                             onClick={() => deactivate(k.id)}
                             className="text-xs text-red-500 hover:text-red-700"
                           >
                             Deactivate
                           </button>
+                        ) : (
+                          <button
+                            onClick={() => activate(k.id)}
+                            className="text-xs text-green-600 hover:text-green-800"
+                          >
+                            Activate
+                          </button>
                         )}
+                        <button
+                          onClick={() => deleteKey(k.id, k.name || "this client")}
+                          className="text-xs text-red-400 hover:text-red-600"
+                          title="Delete"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </td>
                   </tr>

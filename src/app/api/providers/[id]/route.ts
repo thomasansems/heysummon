@@ -13,9 +13,9 @@ export async function PATCH(
 
   const { id } = await params;
 
-  const key = await prisma.apiKey.findUnique({ where: { id } });
-  if (!key || key.userId !== user.id) {
-    return NextResponse.json({ error: "Key not found" }, { status: 404 });
+  const provider = await prisma.provider.findUnique({ where: { id } });
+  if (!provider || provider.userId !== user.id) {
+    return NextResponse.json({ error: "Provider not found" }, { status: 404 });
   }
 
   const body = await request.json();
@@ -23,13 +23,13 @@ export async function PATCH(
   if (body.name !== undefined) data.name = body.name;
   if (body.isActive !== undefined) data.isActive = body.isActive;
 
-  const updated = await prisma.apiKey.update({
+  const updated = await prisma.provider.update({
     where: { id },
     data,
     select: { id: true, name: true, isActive: true },
   });
 
-  return NextResponse.json({ key: updated });
+  return NextResponse.json({ provider: updated });
 }
 
 export async function DELETE(
@@ -43,12 +43,12 @@ export async function DELETE(
 
   const { id } = await params;
 
-  const key = await prisma.apiKey.findUnique({ where: { id } });
-  if (!key || key.userId !== user.id) {
-    return NextResponse.json({ error: "Key not found" }, { status: 404 });
+  const provider = await prisma.provider.findUnique({ where: { id } });
+  if (!provider || provider.userId !== user.id) {
+    return NextResponse.json({ error: "Provider not found" }, { status: 404 });
   }
 
-  await prisma.apiKey.delete({ where: { id } });
+  await prisma.provider.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }

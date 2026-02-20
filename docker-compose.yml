@@ -31,7 +31,7 @@ services:
       AUTH_GITHUB_ID: ""
       AUTH_GITHUB_SECRET: ""
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/auth/session"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 3

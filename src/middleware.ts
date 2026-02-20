@@ -56,6 +56,26 @@ export function middleware(request: NextRequest) {
     );
   }
 
+  // --- Auth redirects (merged from proxy.ts) ---
+  const hasSession =
+    request.cookies.get("authjs.session-token")?.value ||
+    request.cookies.get("__Secure-authjs.session-token")?.value ||
+    request.cookies.get("hitlaas_token")?.value;
+
+  if (pathname.startsWith("/dashboard")) {
+    if (!hasSession) {
+      const loginUrl = new URL("/auth/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  if (pathname.startsWith("/auth/")) {
+    if (hasSession && !pathname.startsWith("/api/")) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+
   // --- CORS for API routes ---
   if (pathname.startsWith("/api/")) {
     const response = NextResponse.next();

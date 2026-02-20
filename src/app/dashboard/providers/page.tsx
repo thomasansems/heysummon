@@ -159,7 +159,7 @@ export default function ProvidersPage() {
                       ) : (
                         <button onClick={() => toggleProvider(p.id, true)} className="text-xs text-green-600 hover:text-green-800">Activate</button>
                       )}
-                      <button onClick={() => deleteProvider(p.id, p.name)} className="text-xs text-red-400 hover:text-red-600" title="Delete">✕</button>
+                      <button onClick={() => deleteProvider(p.id, p.name)} className="text-base text-black hover:text-red-600" title="Delete">✕</button>
                     </div>
                   </td>
                 </tr>

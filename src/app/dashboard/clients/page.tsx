@@ -245,7 +245,7 @@ hitlaas:
                         )}
                         <button
                           onClick={() => deleteKey(k.id, k.name || "this client")}
-                          className="text-xs text-red-400 hover:text-red-600"
+                          className="text-base text-black hover:text-red-600"
                           title="Delete"
                         >
                           ✕

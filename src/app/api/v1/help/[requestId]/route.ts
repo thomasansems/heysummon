@@ -20,7 +20,14 @@ export async function GET(
 
   const helpRequest = await prisma.helpRequest.findUnique({
     where: { id: requestId },
+    include: { apiKey: { select: { key: true } } },
   });
+
+  // If x-api-key header provided, verify it matches the request's API key
+  const providedApiKey = _request.headers.get("x-api-key");
+  if (providedApiKey && helpRequest?.apiKey?.key !== providedApiKey) {
+    return NextResponse.json({ error: "Invalid API key for this request" }, { status: 403 });
+  }
 
   if (!helpRequest) {
     return NextResponse.json({ error: "Request not found" }, { status: 404 });

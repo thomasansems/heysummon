@@ -10,6 +10,7 @@ const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 60; // 60 req/min per IP
 const RATE_LIMIT_API_MAX = 30; // 30 req/min for /api/v1/*
+const RATE_LIMIT_POLLING_MAX = 20; // 20 req/min for /api/v1/help/* polling
 
 function getClientIp(req: NextRequest): string {
   return (
@@ -45,15 +46,35 @@ export function middleware(request: NextRequest) {
   const ip = getClientIp(request);
 
   // --- Rate Limiting ---
+  const isPolling = pathname.startsWith("/api/v1/help/") && request.method === "GET";
   const isApiV1 = pathname.startsWith("/api/v1");
+
+  // Stricter rate limit for polling endpoint (brute-force protection)
+  if (isPolling) {
+    if (isRateLimited(`poll:${ip}`, RATE_LIMIT_POLLING_MAX)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+  }
+
   const limitKey = isApiV1 ? `api:${ip}` : `page:${ip}`;
   const maxReqs = isApiV1 ? RATE_LIMIT_API_MAX : RATE_LIMIT_MAX_REQUESTS;
 
   if (isRateLimited(limitKey, maxReqs)) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
-      { status: 429 }
+      { status: 429, headers: { "Retry-After": "60" } }
     );
+  }
+
+  // --- API key validation on polling (optional, backward-compatible) ---
+  if (isPolling) {
+    const apiKey = request.headers.get("x-api-key");
+    if (!apiKey) {
+      console.warn(`[HITLaaS] Polling without API key from ${ip}: ${pathname}`);
+    }
   }
 
   // --- Auth redirects (merged from proxy.ts) ---

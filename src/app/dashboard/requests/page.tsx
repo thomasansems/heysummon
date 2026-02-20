@@ -130,7 +130,6 @@ export default function RequestsPage() {
               <tr className="border-b border-[#eaeaea] text-left text-[#666]">
                 <th className="px-4 py-2.5 font-medium">Ref Code</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Preview</th>
                 <th className="px-4 py-2.5 font-medium">Messages</th>
                 <th className="px-4 py-2.5 font-medium">Client</th>
                 <th className="px-4 py-2.5 font-medium">Created</th>
@@ -162,11 +161,6 @@ export default function RequestsPage() {
                       {req.status.charAt(0).toUpperCase() +
                         req.status.slice(1)}
                     </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-[#666] max-w-xs truncate">
-                    {req.question
-                      ? <span title={req.question}>{req.question.slice(0, 240)}</span>
-                      : <span className="italic text-[#999]">No question</span>}
                   </td>
                   <td className="px-4 py-2.5 text-[#666]">
                     {req.messageCount > 0

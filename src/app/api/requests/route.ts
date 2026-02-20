@@ -14,12 +14,25 @@ export async function GET() {
       id: true,
       refCode: true,
       status: true,
+      question: true,
       createdAt: true,
       respondedAt: true,
       apiKey: { select: { name: true } },
+      _count: { select: { messageHistory: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ requests });
+  const mapped = requests.map((r) => ({
+    id: r.id,
+    refCode: r.refCode,
+    status: r.status,
+    question: r.question,
+    messageCount: r._count.messageHistory,
+    createdAt: r.createdAt,
+    respondedAt: r.respondedAt,
+    apiKey: r.apiKey,
+  }));
+
+  return NextResponse.json({ requests: mapped });
 }

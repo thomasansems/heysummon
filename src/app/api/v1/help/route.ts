@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       messages, 
       question, 
       publicKey,         // v3: RSA public key
+      messageCount,      // Optional: limit number of history messages (0, 5, 10, 20)
     } = body;
 
     if (!apiKey) {
@@ -71,7 +72,8 @@ export async function POST(request: Request) {
     if (messages || question) {
       serverKeyPair = generateKeyPair();
       if (messages && Array.isArray(messages)) {
-        const trimmedMessages = messages.slice(-10);
+        const limit = typeof messageCount === 'number' ? messageCount : messages.length;
+        const trimmedMessages = limit === 0 ? [] : messages.slice(-Math.min(limit, messages.length));
         encryptedMessages = encryptMessage(
           JSON.stringify(trimmedMessages),
           serverKeyPair.publicKey
@@ -110,6 +112,13 @@ export async function POST(request: Request) {
           type: 'new_request',
           requestId: helpRequest.id,
           refCode: helpRequest.refCode,
+          question: question || null,
+          messageCount: Array.isArray(messages)
+            ? (typeof messageCount === 'number' ? Math.min(messageCount, messages.length) : messages.length)
+            : 0,
+          messagePreview: Array.isArray(messages) && messages.length > 0
+            ? messages[messages.length - 1]?.content?.slice(0, 240) || null
+            : null,
           consumerSignPubKey: signPublicKey || null,
           consumerEncryptPubKey: encryptPublicKey || null,
           createdAt: helpRequest.createdAt.toISOString(),

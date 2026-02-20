@@ -53,19 +53,31 @@ export async function GET() {
     );
   }
 
-  // Open requests with ref codes only (no message content)
+  // Open requests with message preview
   const openRequests = await prisma.helpRequest.findMany({
     where: { expertId: userId, status: "pending" },
     select: {
       id: true,
       refCode: true,
       status: true,
+      question: true,
       createdAt: true,
       apiKey: { select: { name: true } },
+      _count: { select: { messageHistory: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 10,
   });
+
+  const mappedOpenRequests = openRequests.map((r) => ({
+    id: r.id,
+    refCode: r.refCode,
+    status: r.status,
+    question: r.question,
+    messageCount: r._count.messageHistory,
+    createdAt: r.createdAt,
+    apiKey: r.apiKey,
+  }));
 
   return NextResponse.json({
     total,
@@ -74,6 +86,6 @@ export async function GET() {
     expired: total - open - resolved,
     avgResponseTime,
     activity,
-    openRequests,
+    openRequests: mappedOpenRequests,
   });
 }

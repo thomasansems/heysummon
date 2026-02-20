@@ -1,3 +1,4 @@
+import { copyToClipboard } from "@/lib/clipboard";
 "use client";
 
 import { useEffect, useState } from "react";
@@ -65,7 +66,7 @@ export default function ClientsPage() {
   };
 
   const copyKey = (key: string) => {
-    navigator.clipboard.writeText(key);
+    copyToClipboard(key);
     setCopied(key);
     setTimeout(() => setCopied(null), 2000);
   };
@@ -237,7 +238,7 @@ hitlaas:
                         </pre>
                         <button
                           onClick={() =>
-                            navigator.clipboard.writeText(configSnippet(k.key))
+                            copyToClipboard(configSnippet(k.key))
                           }
                           className="mt-2 text-xs text-violet-600 hover:text-violet-800"
                         >

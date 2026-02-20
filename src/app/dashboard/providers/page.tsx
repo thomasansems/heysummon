@@ -1,3 +1,4 @@
+import { copyToClipboard } from "@/lib/clipboard";
 "use client";
 
 import { useEffect, useState } from "react";
@@ -41,7 +42,7 @@ export default function ProvidersPage() {
   };
 
   const copyKey = (key: string) => {
-    navigator.clipboard.writeText(key);
+    copyToClipboard(key);
     setCopied(key);
     setTimeout(() => setCopied(null), 2000);
   };

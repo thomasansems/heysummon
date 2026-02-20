@@ -1,3 +1,4 @@
+import { copyToClipboard } from "@/lib/clipboard";
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -13,6 +14,8 @@ interface Stats {
     id: string;
     refCode: string | null;
     status: string;
+    question: string | null;
+    messageCount: number;
     createdAt: string;
     apiKey: { name: string | null };
   }[];
@@ -46,7 +49,7 @@ function CopyableRefCode({ code }: { code: string | null }) {
     <button
       onClick={(e) => {
         e.preventDefault();
-        navigator.clipboard.writeText(code);
+        copyToClipboard(code);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
@@ -123,6 +126,8 @@ export default function DashboardPage() {
                 <tr className="border-b border-[#eaeaea] text-left text-[#666]">
                   <th className="px-4 py-2.5 font-medium">Ref Code</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
+                  <th className="px-4 py-2.5 font-medium">Preview</th>
+                  <th className="px-4 py-2.5 font-medium">Messages</th>
                   <th className="px-4 py-2.5 font-medium">Client</th>
                   <th className="px-4 py-2.5 font-medium text-right">Time</th>
                 </tr>
@@ -141,6 +146,16 @@ export default function DashboardPage() {
                         <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
                         Pending
                       </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-[#666] max-w-xs truncate">
+                      {req.question
+                        ? <span title={req.question}>{req.question.slice(0, 240)}</span>
+                        : <span className="italic text-[#999]">No question</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-[#666]">
+                      {req.messageCount > 0
+                        ? `${req.messageCount} berichten`
+                        : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-[#666]">
                       {req.apiKey.name || "Unnamed"}

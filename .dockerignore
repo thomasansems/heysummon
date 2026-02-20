@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+relay/node_modules
+relay/dist
+.env*
+!.env.example

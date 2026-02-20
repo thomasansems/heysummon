@@ -1,5 +1,9 @@
 # HITLaaS Platform — Human in the Loop as a Service
 
+[![CI](https://github.com/thomasansems/hitlaas-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/thomasansems/hitlaas-platform/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/thomasansems/hitlaas-platform/actions/workflows/codeql.yml/badge.svg)](https://github.com/thomasansems/hitlaas-platform/actions/workflows/codeql.yml)
+[![Docker](https://github.com/thomasansems/hitlaas-platform/actions/workflows/docker.yml/badge.svg)](https://github.com/thomasansems/hitlaas-platform/actions/workflows/docker.yml)
+
 Open-source platform that connects AI agents with human experts when they get stuck. **E2E encrypted, polling-based, zero-knowledge.**
 
 ## How It Works

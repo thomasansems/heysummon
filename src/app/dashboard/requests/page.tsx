@@ -3,6 +3,30 @@
 import { useEffect, useState, useCallback } from "react";
 import { useProviderMercure } from "@/hooks/useMercure";
 
+function CopyableRefCode({ code }: { code: string | null }) {
+  const [copied, setCopied] = useState(false);
+  if (!code) return <span>—</span>;
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="font-mono text-xs text-black hover:text-violet-600 cursor-pointer relative"
+      title="Click to copy"
+    >
+      {code}
+      {copied && (
+        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-0.5 text-xs text-white whitespace-nowrap">
+          Copied!
+        </span>
+      )}
+    </button>
+  );
+}
+
 interface HelpRequest {
   id: string;
   refCode: string | null;
@@ -115,8 +139,8 @@ export default function RequestsPage() {
                   key={req.id}
                   className="border-b border-[#eaeaea] last:border-0"
                 >
-                  <td className="px-4 py-2.5 font-mono text-xs">
-                    {req.refCode || "—"}
+                  <td className="px-4 py-2.5">
+                    <CopyableRefCode code={req.refCode} />
                   </td>
                   <td className="px-4 py-2.5">
                     <span

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 interface Stats {
   total: number;
@@ -38,6 +38,30 @@ function formatTime(seconds: number) {
 }
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function CopyableRefCode({ code }: { code: string | null }) {
+  const [copied, setCopied] = useState(false);
+  if (!code) return <span>—</span>;
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="font-mono text-xs text-black hover:text-violet-600 cursor-pointer relative"
+      title="Click to copy"
+    >
+      {code}
+      {copied && (
+        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-0.5 text-xs text-white whitespace-nowrap">
+          Copied!
+        </span>
+      )}
+    </button>
+  );
+}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -109,8 +133,8 @@ export default function DashboardPage() {
                     key={req.id}
                     className="border-b border-[#eaeaea] last:border-0"
                   >
-                    <td className="px-4 py-2.5 font-mono text-xs">
-                      {req.refCode || "—"}
+                    <td className="px-4 py-2.5">
+                      <CopyableRefCode code={req.refCode} />
                     </td>
                     <td className="px-4 py-2.5">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-medium text-yellow-700">

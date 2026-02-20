@@ -21,7 +21,7 @@ export type MercureEvent = {
 export async function publishToMercure(
   topic: string,
   data: MercureEvent,
-  isPrivate = true
+  isPrivate = false
 ): Promise<void> {
   if (!MERCURE_JWT_SECRET) {
     console.warn(`⚠️  Skipping Mercure publish to ${topic} (no JWT secret)`);

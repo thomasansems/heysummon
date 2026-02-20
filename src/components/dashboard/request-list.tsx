@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { StatusBadge } from "./status-badge";
+import { useProviderMercure } from "@/hooks/useMercure";
 
 interface HelpRequestItem {
   id: string;
@@ -15,17 +16,19 @@ interface HelpRequestItem {
 const filterOptions = [
   { value: "", label: "All" },
   { value: "pending", label: "Pending" },
+  { value: "active", label: "Active" },
   { value: "reviewing", label: "Reviewing" },
   { value: "responded", label: "Responded" },
+  { value: "closed", label: "Closed" },
   { value: "expired", label: "Expired" },
 ];
 
-export function RequestList() {
+export function RequestList({ providerId }: { providerId?: string }) {
   const [requests, setRequests] = useState<HelpRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
 
-  useEffect(() => {
+  const fetchRequests = useCallback(() => {
     setLoading(true);
     const url = filter ? `/api/requests?status=${filter}` : "/api/requests";
     fetch(url)
@@ -34,6 +37,17 @@ export function RequestList() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [filter]);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  // Realtime updates via Mercure
+  useProviderMercure(providerId, useCallback((event) => {
+    if (event.type === "new_request" || event.type === "status_change" || event.type === "closed") {
+      fetchRequests();
+    }
+  }, [fetchRequests]));
 
   return (
     <div>

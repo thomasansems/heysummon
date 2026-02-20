@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decryptMessage } from "@/lib/crypto";
+import { publishToMercure } from "@/lib/mercure";
 
 export async function GET(
   _request: Request,
@@ -30,21 +31,33 @@ export async function GET(
       data: { status: "reviewing" },
     });
     helpRequest.status = "reviewing";
+    try {
+      await publishToMercure(`/hitlaas/providers/${user.id}`, {
+        type: "status_change",
+        requestId: helpRequest.id,
+        refCode: helpRequest.refCode,
+        status: "reviewing",
+      });
+    } catch { /* non-fatal */ }
   }
 
   // Decrypt messages and question for provider view using server private key
   let decryptedMessages: unknown;
   let decryptedQuestion: string | null = null;
 
-  try {
-    decryptedMessages = JSON.parse(
-      decryptMessage(helpRequest.messages, helpRequest.serverPrivateKey)
-    );
-  } catch {
-    decryptedMessages = [{ role: "system", content: "[Decryption failed]" }];
+  if (helpRequest.messages && helpRequest.serverPrivateKey) {
+    try {
+      decryptedMessages = JSON.parse(
+        decryptMessage(helpRequest.messages, helpRequest.serverPrivateKey)
+      );
+    } catch {
+      decryptedMessages = [{ role: "system", content: "[Decryption failed]" }];
+    }
+  } else {
+    decryptedMessages = [];
   }
 
-  if (helpRequest.question) {
+  if (helpRequest.question && helpRequest.serverPrivateKey) {
     try {
       decryptedQuestion = decryptMessage(helpRequest.question, helpRequest.serverPrivateKey);
     } catch {
@@ -107,6 +120,15 @@ export async function PATCH(
       respondedAt: new Date(),
     },
   });
+
+  try {
+    await publishToMercure(`/hitlaas/providers/${user.id}`, {
+      type: "status_change",
+      requestId: updated.id,
+      refCode: updated.refCode,
+      status: "responded",
+    });
+  } catch { /* non-fatal */ }
 
   return NextResponse.json({
     request: {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useProviderMercure } from "@/hooks/useMercure";
 
 interface HelpRequest {
   id: string;
@@ -47,11 +48,22 @@ export default function RequestsPage() {
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [filter, setFilter] = useState<string>("all");
 
-  useEffect(() => {
+  const fetchRequests = useCallback(() => {
     fetch("/api/requests")
       .then((r) => r.json())
       .then((data) => setRequests(data.requests || []));
   }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  // Realtime updates via Mercure
+  useProviderMercure(undefined, useCallback((event) => {
+    if (event.type === "new_request" || event.type === "status_change" || event.type === "closed") {
+      fetchRequests();
+    }
+  }, [fetchRequests]));
 
   const filtered =
     filter === "all"

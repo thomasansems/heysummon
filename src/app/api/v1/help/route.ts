@@ -4,33 +4,47 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
+import { publishToMercure } from "@/lib/mercure";
 
 /**
  * POST /api/v1/help — Submit a help request.
  *
- * Required: apiKey, messages[], publicKey
- * Optional: question
+ * v4 (Mercure + E2E):
+ * Required: apiKey, signPublicKey, encryptPublicKey
+ * Optional: messages[] (legacy), question (legacy), publicKey (legacy v3)
  *
- * Returns: requestId, refCode, status, serverPublicKey
- * Consumer then polls GET /api/v1/help/:requestId for the response.
+ * Returns: requestId, refCode, status, expiresAt
+ * Consumer subscribes to Mercure topic /hitlaas/requests/{requestId} for realtime updates.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { apiKey, messages, question, publicKey } = body;
+    const { 
+      apiKey, 
+      signPublicKey,     // v4: Ed25519 signing public key
+      encryptPublicKey,  // v4: X25519 encryption public key
+      // Legacy v3 fields (backward compatibility):
+      messages, 
+      question, 
+      publicKey,         // v3: RSA public key
+    } = body;
 
-    if (!apiKey || !messages || !Array.isArray(messages) || messages.length === 0) {
+    if (!apiKey) {
       return NextResponse.json(
-        { error: "apiKey and messages array are required" },
+        { error: "apiKey is required" },
         { status: 400 }
       );
     }
 
-    if (!publicKey) {
-      return NextResponse.json(
-        { error: "publicKey is required — E2E encryption is mandatory" },
-        { status: 400 }
-      );
+    // v4: Require E2E keys
+    if (!signPublicKey || !encryptPublicKey) {
+      // v3 fallback: allow old publicKey field
+      if (!publicKey) {
+        return NextResponse.json(
+          { error: "signPublicKey and encryptPublicKey are required (or publicKey for legacy v3)" },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate API key
@@ -46,41 +60,74 @@ export async function POST(request: Request) {
       );
     }
 
-    const trimmedMessages = messages.slice(-10);
     const refCode = await generateUniqueRefCode();
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
-    // Generate server key pair for at-rest encryption
-    const serverKeyPair = generateKeyPair();
+    // v3 legacy: encrypt messages at rest with server key
+    let encryptedMessages = null;
+    let encryptedQuestion = null;
+    let serverKeyPair = null;
 
-    // Encrypt messages and question at rest with server's public key
-    const encryptedMessages = encryptMessage(
-      JSON.stringify(trimmedMessages),
-      serverKeyPair.publicKey
-    );
-    const encryptedQuestion = question
-      ? encryptMessage(question, serverKeyPair.publicKey)
-      : null;
+    if (messages || question) {
+      serverKeyPair = generateKeyPair();
+      if (messages && Array.isArray(messages)) {
+        const trimmedMessages = messages.slice(-10);
+        encryptedMessages = encryptMessage(
+          JSON.stringify(trimmedMessages),
+          serverKeyPair.publicKey
+        );
+      }
+      if (question) {
+        encryptedQuestion = encryptMessage(question, serverKeyPair.publicKey);
+      }
+    }
 
     const helpRequest = await prisma.helpRequest.create({
       data: {
         refCode,
         apiKeyId: key.id,
         expertId: key.userId,
+        expiresAt,
+        
+        // v4 fields
+        consumerSignPubKey: signPublicKey || null,
+        consumerEncryptPubKey: encryptPublicKey || null,
+        
+        // v3 legacy fields (backward compatibility)
         messages: encryptedMessages,
         question: encryptedQuestion,
-        consumerPublicKey: publicKey,
-        serverPublicKey: serverKeyPair.publicKey,
-        serverPrivateKey: serverKeyPair.privateKey,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        consumerPublicKey: publicKey || null,
+        serverPublicKey: serverKeyPair?.publicKey || null,
+        serverPrivateKey: serverKeyPair?.privateKey || null,
       },
     });
+
+    // Publish to Mercure: notify provider of new request
+    try {
+      await publishToMercure(
+        `/hitlaas/providers/${key.userId}`,
+        {
+          type: 'new_request',
+          requestId: helpRequest.id,
+          refCode: helpRequest.refCode,
+          consumerSignPubKey: signPublicKey || null,
+          consumerEncryptPubKey: encryptPublicKey || null,
+          createdAt: helpRequest.createdAt.toISOString(),
+          expiresAt: helpRequest.expiresAt.toISOString(),
+        }
+      );
+    } catch (mercureError) {
+      console.error('Mercure publish failed (non-fatal):', mercureError);
+      // Continue — request is stored, provider can poll if Mercure is down
+    }
 
     return NextResponse.json({
       requestId: helpRequest.id,
       refCode: helpRequest.refCode,
       status: "pending",
-      serverPublicKey: serverKeyPair.publicKey,
       expiresAt: helpRequest.expiresAt.toISOString(),
+      // v3 legacy: return server public key if generated
+      ...(serverKeyPair && { serverPublicKey: serverKeyPair.publicKey }),
     });
   } catch (err) {
     console.error("Help request error:", err);

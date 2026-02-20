@@ -73,21 +73,54 @@ model ApiKey {
 }
 
 model HelpRequest {
-  id                String    @id @default(cuid())
-  refCode           String?   @unique
-  apiKeyId          String
-  apiKey            ApiKey    @relation(fields: [apiKeyId], references: [id])
-  expertId          String
-  expert            User      @relation("ExpertRequests", fields: [expertId], references: [id])
-  messages          String    // Encrypted with server public key (at rest)
-  question          String?   // Encrypted with server public key (at rest)
-  status            String    @default("pending") // pending | reviewing | responded | expired
-  response          String?   // Plaintext response (encrypted with consumer pubkey on GET)
-  consumerPublicKey String    // Consumer's RSA public key (required for E2E)
-  serverPublicKey   String    // Server-generated RSA public key for this request
-  serverPrivateKey  String    // Server-generated RSA private key (decrypt at-rest data)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  respondedAt       DateTime?
-  expiresAt         DateTime
+  id                     String    @id @default(cuid())
+  refCode                String?   @unique
+  apiKeyId               String
+  apiKey                 ApiKey    @relation(fields: [apiKeyId], references: [id])
+  expertId               String
+  expert                 User      @relation("ExpertRequests", fields: [expertId], references: [id])
+  
+  // Legacy fields (v3 - keep for backward compatibility)
+  messages               String?   // Deprecated: use Message model instead
+  question               String?   // Deprecated: use Message model instead
+  response               String?   // Deprecated: use Message model instead
+  consumerPublicKey      String?   // Deprecated: use consumerEncryptPubKey instead
+  serverPublicKey        String?   // Deprecated
+  serverPrivateKey       String?   // Deprecated
+  respondedAt            DateTime?
+  
+  // v4: E2E encryption keys (X25519 + Ed25519)
+  consumerSignPubKey     String?   // Consumer's Ed25519 signing public key
+  consumerEncryptPubKey  String?   // Consumer's X25519 encryption public key
+  providerSignPubKey     String?   // Provider's Ed25519 signing public key (after key exchange)
+  providerEncryptPubKey  String?   // Provider's X25519 encryption public key (after key exchange)
+  
+  status                 String    @default("pending") // pending | active | closed | expired
+  expiresAt              DateTime  // createdAt + 72 hours
+  closedAt               DateTime?
+  
+  // Relations
+  messageHistory         Message[]
+  
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
+model Message {
+  id          String      @id @default(cuid())
+  requestId   String
+  request     HelpRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  from        String      // "consumer" | "provider"
+  
+  // E2E encrypted message payload
+  ciphertext  String      // AES-256-GCM encrypted (base64)
+  iv          String      // Initialization vector (base64)
+  authTag     String      // GCM authentication tag (base64)
+  signature   String      // Ed25519 signature of ciphertext (base64)
+  messageId   String      @unique // For HKDF salt + deduplication
+  
+  createdAt   DateTime    @default(now())
+  
+  @@index([requestId])
+  @@index([messageId])
 }

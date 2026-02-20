@@ -30,11 +30,28 @@ services:
       NEXTAUTH_SECRET: dev-secret-change-me
       AUTH_GITHUB_ID: ""
       AUTH_GITHUB_SECRET: ""
+      MERCURE_HUB_URL: http://mercure:3000/.well-known/mercure
+      MERCURE_JWT_SECRET: dev-mercure-secret-change-me
+      NEXT_PUBLIC_MERCURE_HUB_URL: http://localhost:3100/.well-known/mercure
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 3
+
+  mercure:
+    image: dunglas/mercure
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ':3000'
+      MERCURE_PUBLISHER_JWT_KEY: 'dev-mercure-secret-change-me'
+      MERCURE_SUBSCRIBER_JWT_KEY: 'dev-mercure-secret-change-me'
+      MERCURE_EXTRA_DIRECTIVES: |
+        anonymous
+        cors_origins *
+        subscriptions
+    ports:
+      - "3100:3000"
 
 volumes:
   pgdata:

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { ChatDisplay } from "./chat-display";
 import { ResponseForm } from "./response-form";
 import { StatusBadge } from "./status-badge";
+import { useRequestMercure } from "@/hooks/useMercure";
 
 interface Message {
   role: "user" | "assistant";
@@ -28,7 +29,7 @@ export function RequestDetail({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  const fetchRequest = useCallback(() => {
     fetch(`/api/requests/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Not found");
@@ -38,6 +39,17 @@ export function RequestDetail({ id }: { id: string }) {
       .catch(() => setError("Request not found"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    fetchRequest();
+  }, [fetchRequest]);
+
+  // Realtime updates via Mercure (new messages, closed, etc.)
+  useRequestMercure(id, useCallback((event) => {
+    if (event.type === "new_message" || event.type === "closed" || event.type === "keys_exchanged") {
+      fetchRequest();
+    }
+  }, [fetchRequest]));
 
   if (loading) {
     return (

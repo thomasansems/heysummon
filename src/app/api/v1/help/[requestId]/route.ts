@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encryptMessage } from "@/lib/crypto";
+import { publishToMercure } from "@/lib/mercure";
 
 /**
  * GET /api/v1/help/:requestId — Poll for response.
@@ -39,6 +40,14 @@ export async function GET(
       where: { id: requestId },
       data: { status: "expired" },
     });
+    try {
+      await publishToMercure(`/hitlaas/providers/${helpRequest.expertId}`, {
+        type: "status_change",
+        requestId: helpRequest.id,
+        refCode: helpRequest.refCode,
+        status: "expired",
+      });
+    } catch { /* non-fatal */ }
     return NextResponse.json({
       requestId: helpRequest.id,
       refCode: helpRequest.refCode,
@@ -59,7 +68,7 @@ export async function GET(
   }
 
   // When responded, encrypt the response with consumer's public key
-  if (helpRequest.status === "responded" && helpRequest.response) {
+  if (helpRequest.status === "responded" && helpRequest.response && helpRequest.consumerPublicKey) {
     res.encryptedResponse = encryptMessage(
       helpRequest.response,
       helpRequest.consumerPublicKey

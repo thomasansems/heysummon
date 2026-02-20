@@ -40,18 +40,27 @@ interface HelpRequest {
   apiKey: { name: string | null };
 }
 
-const FILTERS = ["all", "pending", "responded", "expired"] as const;
+const FILTERS = ["all", "pending", "responded", "failed", "expired"] as const;
 
 const statusStyles: Record<string, string> = {
   pending: "bg-yellow-50 text-yellow-700",
   responded: "bg-green-50 text-green-700",
-  expired: "bg-red-50 text-red-700",
+  expired: "bg-gray-50 text-gray-700",
+  failed: "bg-red-50 text-red-700",
 };
 
 const dotStyles: Record<string, string> = {
   pending: "bg-yellow-500",
   responded: "bg-green-500",
   expired: "bg-red-500",
+  failed: "bg-red-500",
+};
+
+const statusLabels: Record<string, string> = {
+  pending: "Awaiting Response",
+  responded: "Responded",
+  expired: "Expired",
+  failed: "Failed",
 };
 
 function timeAgo(date: string) {
@@ -158,8 +167,7 @@ export default function RequestsPage() {
                           dotStyles[req.status] || ""
                         }`}
                       />
-                      {req.status.charAt(0).toUpperCase() +
-                        req.status.slice(1)}
+                      {statusLabels[req.status] || req.status}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 text-[#666]">

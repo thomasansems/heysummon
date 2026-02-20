@@ -144,7 +144,7 @@ export default function DashboardPage() {
                     <td className="px-4 py-2.5">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-medium text-yellow-700">
                         <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
-                        Pending
+                        Awaiting Response
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-[#666]">

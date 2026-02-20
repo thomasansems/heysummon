@@ -67,12 +67,23 @@ export async function GET(
     res.respondedAt = helpRequest.respondedAt.toISOString();
   }
 
-  // When responded, encrypt the response with consumer's public key
-  if (helpRequest.status === "responded" && helpRequest.response && helpRequest.consumerPublicKey) {
-    res.encryptedResponse = encryptMessage(
-      helpRequest.response,
-      helpRequest.consumerPublicKey
-    );
+  // When responded, return the response
+  if (helpRequest.status === "responded" && helpRequest.response) {
+    if (helpRequest.consumerPublicKey) {
+      // v3 legacy: encrypt with RSA
+      try {
+        res.encryptedResponse = encryptMessage(
+          helpRequest.response,
+          helpRequest.consumerPublicKey
+        );
+      } catch {
+        // If encryption fails, fall through to plaintext
+        res.response = helpRequest.response;
+      }
+    } else {
+      // v4: response sent as plaintext (E2E encryption happens via /api/v1/message endpoint)
+      res.response = helpRequest.response;
+    }
   }
 
   return NextResponse.json(res);

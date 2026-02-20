@@ -122,8 +122,16 @@ export async function PATCH(
   });
 
   try {
+    // Notify provider dashboard
     await publishToMercure(`/hitlaas/providers/${user.id}`, {
       type: "status_change",
+      requestId: updated.id,
+      refCode: updated.refCode,
+      status: "responded",
+    });
+    // Notify consumer (listening on request topic)
+    await publishToMercure(`/hitlaas/requests/${updated.id}`, {
+      type: "responded",
       requestId: updated.id,
       refCode: updated.refCode,
       status: "responded",

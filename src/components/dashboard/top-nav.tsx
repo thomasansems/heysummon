@@ -23,8 +23,7 @@ export function TopNav() {
           href="/dashboard"
           className="flex items-center gap-2 text-sm font-bold text-black"
         >
-          <img src="/lobster-icon.png" alt="HeySummon" className="h-7 w-7 rounded-md" />
-          HeySummon
+          <span style={{ fontFamily: 'var(--font-dm-sans)', fontWeight: 700, fontSize: '1.15rem' }}>heySummon</span>
         </Link>
 
         <nav className="flex items-center gap-1">

@@ -8,8 +8,8 @@ import type { NextRequest } from "next/server";
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 300; // 300 req/min per IP (pages + assets)
-const RATE_LIMIT_API_MAX = 120; // 120 req/min for /api/v1/*
+const RATE_LIMIT_MAX_REQUESTS = 120; // 120 req/min per IP (pages)
+const RATE_LIMIT_API_MAX = 60; // 60 req/min for /api/v1/*
 const RATE_LIMIT_POLLING_MAX = 30; // 30 req/min for /api/v1/help/* polling
 
 function getClientIp(req: NextRequest): string {
@@ -46,8 +46,12 @@ export function middleware(request: NextRequest) {
   const ip = getClientIp(request);
 
   // --- Rate Limiting ---
-  // Skip rate limiting for SSE stream endpoints (long-lived connections)
-  if (pathname.startsWith("/api/v1/events/stream") || pathname.startsWith("/api/internal/events/stream")) {
+  // Skip rate limiting for SSE streams and NextAuth internals
+  if (
+    pathname.startsWith("/api/v1/events/stream") ||
+    pathname.startsWith("/api/internal/events/stream") ||
+    pathname.startsWith("/api/auth/")
+  ) {
     return NextResponse.next();
   }
 
@@ -96,11 +100,8 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  if (pathname.startsWith("/auth/")) {
-    if (hasSession && !pathname.startsWith("/api/")) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-  }
+  // Don't redirect auth pages — let NextAuth handle session validation client-side.
+  // Redirecting based on cookie existence causes infinite loops with stale/invalid cookies.
 
   // --- CORS for API routes ---
   if (pathname.startsWith("/api/")) {

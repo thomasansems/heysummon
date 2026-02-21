@@ -148,6 +148,31 @@ The `relay/` directory contains a standalone Express server for self-hosted depl
 | `GET` | `/api/keys` | Session | List API keys |
 | `POST` | `/api/keys` | Session | Create API key |
 
+## Editions
+
+HeySummon is available in two editions:
+
+### 🏠 Community (Self-Hosted)
+Everything you need to run your own HeySummon instance. Free forever.
+- Full platform with dashboard
+- E2E encrypted messaging
+- SSE real-time events
+- Multi-provider support
+- Docker deployment
+- API + CLI skills
+
+### ☁️ Cloud
+Managed hosting at [cloud.heysummon.ai](https://cloud.heysummon.ai) with additional features:
+- Teams & multi-user management
+- Analytics dashboard
+- Usage insights
+- Priority support
+- And more coming soon
+
 ## License
 
-MIT
+This software is licensed under the [Sustainable Use License](LICENSE.md).
+
+Source code files containing `.cloud.` in their filename or `.cloud` in their dirname are licensed under the [HeySummon Cloud License](LICENSE_CLOUD.md) and require a valid cloud subscription for production use.
+
+All other code is available under the Sustainable Use License — free for personal and internal business use. See [LICENSE.md](LICENSE.md) for full terms.

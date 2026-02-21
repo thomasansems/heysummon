@@ -1,0 +1,101 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  E2E_MERCURE_JWT_SECRET: e2e-mercure-secret
+
+jobs:
+  e2e:
+    name: Full Circle E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hitlaas
+          POSTGRES_PASSWORD: hitlaas_e2e
+          POSTGRES_DB: hitlaas_e2e
+        ports:
+          - 15432:5432
+        options: >-
+          --health-cmd "pg_isready -U hitlaas"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+      mercure:
+        image: dunglas/mercure
+        env:
+          SERVER_NAME: ':3000'
+          MERCURE_PUBLISHER_JWT_KEY: e2e-mercure-secret
+          MERCURE_SUBSCRIBER_JWT_KEY: e2e-mercure-secret
+          MERCURE_EXTRA_DIRECTIVES: |
+            anonymous
+            cors_origins *
+            subscriptions
+        ports:
+          - 13100:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: npx prisma db push --force-reset
+        env:
+          DATABASE_URL: postgresql://hitlaas:hitlaas_e2e@localhost:15432/hitlaas_e2e
+
+      - name: Seed E2E data
+        id: seed
+        run: |
+          SEED_OUTPUT=$(bash e2e/seed-e2e.sh 2>/dev/null)
+          echo "seed_json=$SEED_OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "$SEED_OUTPUT" | jq .
+        env:
+          DATABASE_URL: postgresql://hitlaas:hitlaas_e2e@localhost:15432/hitlaas_e2e
+
+      - name: Build & start platform
+        run: |
+          npm run build
+          npm start &
+          # Wait for platform to be ready
+          for i in $(seq 1 30); do
+            curl -s http://localhost:3000/api/health && break || sleep 2
+          done
+        env:
+          DATABASE_URL: postgresql://hitlaas:hitlaas_e2e@localhost:15432/hitlaas_e2e
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: e2e-secret
+          MERCURE_HUB_URL: http://localhost:13100/.well-known/mercure
+          MERCURE_JWT_SECRET: e2e-mercure-secret
+          NEXT_PUBLIC_MERCURE_HUB_URL: http://localhost:13100/.well-known/mercure
+          PORT: 3000
+
+      - name: Run E2E tests
+        run: |
+          SEED='${{ steps.seed.outputs.seed_json }}'
+          export E2E_PROVIDER_ID=$(echo "$SEED" | jq -r .providerId)
+          export E2E_PROVIDER_KEY=$(echo "$SEED" | jq -r .providerKey)
+          export E2E_CLIENT_KEY=$(echo "$SEED" | jq -r .clientKey)
+          export E2E_USER_ID=$(echo "$SEED" | jq -r .userId)
+          export E2E_BASE_URL=http://localhost:3000
+          export E2E_MERCURE_HUB=http://localhost:13100/.well-known/mercure
+          bash e2e/e2e-test.sh --ci

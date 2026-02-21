@@ -1,9 +1,14 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+
+// Direct signIn call without SessionProvider dependency
+async function doSignIn(provider: string, options: Record<string, unknown>): Promise<{ error?: string; url?: string } | undefined> {
+  const { signIn } = await import("next-auth/react");
+  return signIn(provider, options) as Promise<{ error?: string; url?: string } | undefined>;
+}
 
 type AuthFlags = {
   formLogin: boolean;
@@ -38,8 +43,11 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [magicSent, setMagicSent] = useState(false);
+  const flagsFetched = useRef(false);
 
   useEffect(() => {
+    if (flagsFetched.current) return;
+    flagsFetched.current = true;
     fetch("/api/auth/flags")
       .then((r) => r.json())
       .then(setFlags)
@@ -57,7 +65,7 @@ function LoginForm() {
     setError("");
     setLoading(true);
 
-    const res = await signIn("credentials", {
+    const res = await doSignIn("credentials", {
       email,
       password,
       callbackUrl,
@@ -94,7 +102,7 @@ function LoginForm() {
       }
 
       // Auto-login after registration
-      const loginRes = await signIn("credentials", {
+      const loginRes = await doSignIn("credentials", {
         email,
         password,
         callbackUrl,
@@ -118,7 +126,7 @@ function LoginForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    await signIn("email", { email, callbackUrl, redirect: false });
+    await doSignIn("email", { email, callbackUrl, redirect: false });
     setMagicSent(true);
     setLoading(false);
   }
@@ -313,7 +321,7 @@ function LoginForm() {
                 <button
                   onClick={() => {
                     if (email) {
-                      signIn("email", { email, callbackUrl, redirect: false });
+                      doSignIn("email", { email, callbackUrl, redirect: false });
                       setMagicSent(true);
                     }
                   }}
@@ -329,7 +337,7 @@ function LoginForm() {
                 <div className="flex flex-col gap-3">
                   {flags.github && (
                     <button
-                      onClick={() => signIn("github", { callbackUrl })}
+                      onClick={() => doSignIn("github", { callbackUrl })}
                       className="flex w-full items-center justify-center gap-2 rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black/90"
                     >
                       <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -340,7 +348,7 @@ function LoginForm() {
                   )}
                   {flags.google && (
                     <button
-                      onClick={() => signIn("google", { callbackUrl })}
+                      onClick={() => doSignIn("google", { callbackUrl })}
                       className="flex w-full items-center justify-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#fafafa]"
                     >
                       <svg className="h-5 w-5" viewBox="0 0 24 24">

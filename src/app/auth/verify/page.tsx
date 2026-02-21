@@ -11,7 +11,7 @@ export default function VerifyPage() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-sm text-white">
             H
           </span>
-          HITLaaS
+          HeySummon
         </Link>
 
         <div className="mt-6 rounded-lg border border-[#eaeaea] bg-white p-8 shadow-sm">

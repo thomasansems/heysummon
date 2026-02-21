@@ -13,7 +13,7 @@ export async function getCurrentUser() {
   return user;
 }
 
-export function generateApiKey(prefix: "htl_cli_" | "htl_prov_" = "htl_cli_"): string {
+export function generateApiKey(prefix: "hs_cli_" | "hs_prov_" = "hs_cli_"): string {
   const chars = "0123456789abcdef";
   let key = prefix;
   for (let i = 0; i < 32; i++) {

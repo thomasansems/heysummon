@@ -40,7 +40,7 @@ async function main() {
     where: { userId: user.id, name: "test-key" },
   });
   if (!existingKey) {
-    const key = `htl_${randomBytes(24).toString("hex")}`;
+    const key = `hs_${randomBytes(24).toString("hex")}`;
     const apiKey = await prisma.apiKey.create({
       data: { key, name: "test-key", userId: user.id, isActive: true },
     });
@@ -71,7 +71,7 @@ async function main() {
 
       const req = await prisma.helpRequest.create({
         data: {
-          refCode: "HTL-TEST",
+          refCode: "HS-TEST",
           apiKeyId: apiKey.id,
           expertId: user.id,
           messages: encryptMessage(JSON.stringify(messages), serverKp.publicKey as string),

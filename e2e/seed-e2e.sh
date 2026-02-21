@@ -35,7 +35,7 @@ async function seed() {
   });
 
   // Create provider
-  const providerKey = 'htl_prov_' + crypto.randomBytes(24).toString('hex');
+  const providerKey = 'hs_prov_' + crypto.randomBytes(24).toString('hex');
   let provider = await prisma.provider.findFirst({ where: { userId: user.id } });
   if (!provider) {
     provider = await prisma.provider.create({
@@ -49,7 +49,7 @@ async function seed() {
   }
 
   // Create client API key
-  const clientKey = 'htl_cli_' + crypto.randomBytes(24).toString('hex');
+  const clientKey = 'hs_cli_' + crypto.randomBytes(24).toString('hex');
   const apiKey = await prisma.apiKey.create({
     data: {
       key: clientKey,

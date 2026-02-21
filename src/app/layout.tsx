@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "HITLaaS Provider Portal",
+  title: "HeySummon Provider Portal",
   description: "Human in the Loop as a Service — Provider Dashboard",
   icons: {
     icon: [

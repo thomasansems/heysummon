@@ -20,13 +20,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: hitlaas
-          POSTGRES_PASSWORD: hitlaas_e2e
-          POSTGRES_DB: hitlaas_e2e
+          POSTGRES_USER: heysummon
+          POSTGRES_PASSWORD: heysummon_e2e
+          POSTGRES_DB: heysummon_e2e
         ports:
           - 15432:5432
         options: >-
-          --health-cmd "pg_isready -U hitlaas"
+          --health-cmd "pg_isready -U heysummon"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -61,7 +61,7 @@ jobs:
       - name: Run migrations
         run: npx prisma db push --force-reset
         env:
-          DATABASE_URL: postgresql://hitlaas:hitlaas_e2e@localhost:15432/hitlaas_e2e
+          DATABASE_URL: postgresql://heysummon:heysummon_e2e@localhost:15432/heysummon_e2e
 
       - name: Seed E2E data
         id: seed
@@ -70,7 +70,7 @@ jobs:
           echo "seed_json=$SEED_OUTPUT" >> "$GITHUB_OUTPUT"
           echo "$SEED_OUTPUT" | jq .
         env:
-          DATABASE_URL: postgresql://hitlaas:hitlaas_e2e@localhost:15432/hitlaas_e2e
+          DATABASE_URL: postgresql://heysummon:heysummon_e2e@localhost:15432/heysummon_e2e
 
       - name: Build & start platform
         run: |
@@ -81,7 +81,7 @@ jobs:
             curl -s http://localhost:3000/api/health && break || sleep 2
           done
         env:
-          DATABASE_URL: postgresql://hitlaas:hitlaas_e2e@localhost:15432/hitlaas_e2e
+          DATABASE_URL: postgresql://heysummon:heysummon_e2e@localhost:15432/heysummon_e2e
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: e2e-secret
           MERCURE_HUB_URL: http://localhost:13100/.well-known/mercure

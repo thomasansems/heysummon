@@ -41,7 +41,7 @@ export async function GET(
       data: { status: "expired" },
     });
     try {
-      await publishToMercure(`/hitlaas/providers/${helpRequest.expertId}`, {
+      await publishToMercure(`/heysummon/providers/${helpRequest.expertId}`, {
         type: "status_change",
         requestId: helpRequest.id,
         refCode: helpRequest.refCode,

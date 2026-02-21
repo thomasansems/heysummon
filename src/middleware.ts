@@ -73,7 +73,7 @@ export function middleware(request: NextRequest) {
   if (isPolling) {
     const apiKey = request.headers.get("x-api-key");
     if (!apiKey) {
-      console.warn(`[HITLaaS] Polling without API key from ${ip}: ${pathname}`);
+      console.warn(`[HeySummon] Polling without API key from ${ip}: ${pathname}`);
     }
   }
 
@@ -81,7 +81,7 @@ export function middleware(request: NextRequest) {
   const hasSession =
     request.cookies.get("authjs.session-token")?.value ||
     request.cookies.get("__Secure-authjs.session-token")?.value ||
-    request.cookies.get("hitlaas_token")?.value;
+    request.cookies.get("heysummon_token")?.value;
 
   if (pathname.startsWith("/dashboard")) {
     if (!hasSession) {
@@ -103,8 +103,8 @@ export function middleware(request: NextRequest) {
     const origin = request.headers.get("origin") || "";
     const allowedOrigins = [
       process.env.NEXTAUTH_URL || "http://localhost:3000",
-      "https://hitlaas.vercel.app",
-      "https://provider.hitlaas.thomasansems.nl",
+      "https://cloud.heysummon.ai",
+      "https://heysummon.ai",
     ];
 
     if (allowedOrigins.includes(origin)) {

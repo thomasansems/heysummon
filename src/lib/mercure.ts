@@ -14,7 +14,7 @@ export type MercureEvent = {
 
 /**
  * Publish an event to Mercure hub
- * @param topic - Mercure topic (e.g., /hitlaas/providers/{id} or /hitlaas/requests/{id})
+ * @param topic - Mercure topic (e.g., /heysummon/providers/{id} or /heysummon/requests/{id})
  * @param data - Event data (will be JSON.stringify'd)
  * @param isPrivate - Whether this is a private update (default: true)
  */

@@ -132,7 +132,7 @@ export async function POST(
       await Promise.all([
         // Notify consumer (on request topic)
         publishToMercure(
-          `/hitlaas/requests/${requestId}`,
+          `/heysummon/requests/${requestId}`,
           {
             type: 'new_message',
             requestId,
@@ -143,7 +143,7 @@ export async function POST(
         ),
         // Notify provider (on provider topic)
         publishToMercure(
-          `/hitlaas/providers/${helpRequest.expertId}`,
+          `/heysummon/providers/${helpRequest.expertId}`,
           {
             type: 'new_message',
             requestId,

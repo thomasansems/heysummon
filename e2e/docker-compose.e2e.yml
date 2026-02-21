@@ -7,15 +7,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: hitlaas
-      POSTGRES_PASSWORD: hitlaas_e2e
-      POSTGRES_DB: hitlaas_e2e
+      POSTGRES_USER: heysummon
+      POSTGRES_PASSWORD: heysummon_e2e
+      POSTGRES_DB: heysummon_e2e
     ports:
       - "15432:5432"
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hitlaas"]
+      test: ["CMD-SHELL", "pg_isready -U heysummon"]
       interval: 2s
       timeout: 2s
       retries: 10

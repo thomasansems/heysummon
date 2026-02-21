@@ -68,7 +68,7 @@ export async function POST(
     // Publish to Mercure: notify consumer that keys are exchanged
     try {
       await publishToMercure(
-        `/hitlaas/requests/${requestId}`,
+        `/heysummon/requests/${requestId}`,
         {
           type: 'keys_exchanged',
           requestId,

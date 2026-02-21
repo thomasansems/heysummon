@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const provider = await prisma.provider.create({
     data: {
       name: name.trim(),
-      key: generateApiKey("htl_prov_"),
+      key: generateApiKey("hs_prov_"),
       userId: user.id,
     },
   });

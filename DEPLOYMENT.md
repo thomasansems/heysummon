@@ -1,4 +1,4 @@
-# HITLaaS Platform — Deployment Guide
+# HeySummon Platform — Deployment Guide
 
 ## Quick Start (Docker Compose)
 
@@ -16,14 +16,14 @@ docker compose exec app npx prisma migrate deploy
 
 ```bash
 # Build image
-docker build -t hitlaas-platform .
+docker build -t heysummon-platform .
 
 # Run standalone (needs DATABASE_URL)
 docker run -p 3000:3000 \
-  -e DATABASE_URL="postgresql://user:pass@host:5432/hitlaas" \
+  -e DATABASE_URL="postgresql://user:pass@host:5432/heysummon" \
   -e NEXTAUTH_URL="http://localhost:3000" \
   -e NEXTAUTH_SECRET="your-secret-here" \
-  hitlaas-platform
+  heysummon-platform
 ```
 
 ## Azure Deployment (Terraform)
@@ -51,10 +51,10 @@ terraform apply
 ### What gets created
 | Resource | Purpose |
 |----------|---------|
-| Resource Group | `rg-hitlaas-prod` |
+| Resource Group | `rg-heysummon-prod` |
 | Container Registry (ACR) | Store Docker images |
 | Container App Environment | Serverless container hosting |
-| Container App | The HITLaaS platform |
+| Container App | The HeySummon platform |
 | PostgreSQL Flexible Server | Database (Burstable B1ms) |
 | Log Analytics Workspace | Logging & monitoring |
 
@@ -62,11 +62,11 @@ terraform apply
 
 ```bash
 # Login to ACR
-az acr login --name hitlaasprod
+az acr login --name heysummonprod
 
 # Tag and push
-docker tag hitlaas-platform hitlaasprod.azurecr.io/hitlaas-platform:latest
-docker push hitlaasprod.azurecr.io/hitlaas-platform:latest
+docker tag heysummon-platform heysummonprod.azurecr.io/heysummon-platform:latest
+docker push heysummonprod.azurecr.io/heysummon-platform:latest
 ```
 
 ### Estimated cost

@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: hitlaas
-      POSTGRES_PASSWORD: hitlaas_dev
-      POSTGRES_DB: hitlaas
+      POSTGRES_USER: heysummon
+      POSTGRES_PASSWORD: heysummon_dev
+      POSTGRES_DB: heysummon
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hitlaas"]
+      test: ["CMD-SHELL", "pg_isready -U heysummon"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -25,7 +25,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://hitlaas:hitlaas_dev@db:5432/hitlaas
+      DATABASE_URL: postgresql://heysummon:heysummon_dev@db:5432/heysummon
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: dev-secret-change-me
       AUTH_GITHUB_ID: ""
@@ -67,7 +67,7 @@ services:
   #     db:
   #       condition: service_healthy
   #   environment:
-  #     DATABASE_URL: postgresql://hitlaas:hitlaas_dev@db:5432/hitlaas
+  #     DATABASE_URL: postgresql://heysummon:heysummon_dev@db:5432/heysummon
   #     NEXTAUTH_URL: http://localhost:3000
   #     NEXTAUTH_SECRET: dev-secret-change-me
   #     AUTH_GITHUB_ID: ""

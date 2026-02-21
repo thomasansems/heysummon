@@ -67,7 +67,7 @@ export function useProviderMercure(
   providerId: string | null | undefined,
   onEvent: MercureEventHandler
 ) {
-  const topics = providerId ? [`/hitlaas/providers/${providerId}`] : [];
+  const topics = providerId ? [`/heysummon/providers/${providerId}`] : [];
   useMercure(topics, onEvent, !!providerId);
 }
 
@@ -78,6 +78,6 @@ export function useRequestMercure(
   requestId: string | null | undefined,
   onEvent: MercureEventHandler
 ) {
-  const topics = requestId ? [`/hitlaas/requests/${requestId}`] : [];
+  const topics = requestId ? [`/heysummon/requests/${requestId}`] : [];
   useMercure(topics, onEvent, !!requestId);
 }

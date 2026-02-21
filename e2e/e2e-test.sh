@@ -1,5 +1,5 @@
 #!/bin/bash
-# HITLaaS E2E Test — Full Circle: consumer submit → provider receive → provider reply → consumer receive
+# HeySummon E2E Test — Full Circle: consumer submit → provider receive → provider reply → consumer receive
 #
 # Tests the actual API flow without requiring OpenClaw or skill scripts.
 # Uses direct curl + Mercure SSE listening.
@@ -41,7 +41,7 @@ trap CLEANUP EXIT
 
 echo ""
 echo "══════════════════════════════════════════"
-echo "  🧪 HITLaaS E2E Test — Full Circle"
+echo "  🧪 HeySummon E2E Test — Full Circle"
 echo "══════════════════════════════════════════"
 echo ""
 info "Platform: $BASE_URL"
@@ -72,7 +72,7 @@ QUESTION="E2E test $(date +%s): What is 2+2?"
 # Start Mercure listener for provider BEFORE submitting
 info "Starting provider Mercure listener..."
 # Mercure topic uses userId (API key owner), not provider model ID
-PROVIDER_TOPIC="/hitlaas/providers/${USER_ID}"
+PROVIDER_TOPIC="/heysummon/providers/${USER_ID}"
 curl -sN "${MERCURE_HUB}?topic=${PROVIDER_TOPIC}" > "$TMPDIR/provider-events.raw" 2>/dev/null &
 PIDS+=($!)
 sleep 1
@@ -137,7 +137,7 @@ echo "── Test 6: Provider Reply ──"
 ANSWER="E2E answer: The answer is 4"
 
 # Start consumer Mercure listener on request topic
-REQUEST_TOPIC="/hitlaas/requests/${REQUEST_ID}"
+REQUEST_TOPIC="/heysummon/requests/${REQUEST_ID}"
 curl -sN "${MERCURE_HUB}?topic=${REQUEST_TOPIC}" > "$TMPDIR/consumer-events.raw" 2>/dev/null &
 PIDS+=($!)
 sleep 1

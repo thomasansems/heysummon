@@ -56,7 +56,7 @@ export async function POST(
       await Promise.all([
         // Notify consumer
         publishToMercure(
-          `/hitlaas/requests/${requestId}`,
+          `/heysummon/requests/${requestId}`,
           {
             type: 'closed',
             requestId,
@@ -65,7 +65,7 @@ export async function POST(
         ),
         // Notify provider
         publishToMercure(
-          `/hitlaas/providers/${helpRequest.expertId}`,
+          `/heysummon/providers/${helpRequest.expertId}`,
           {
             type: 'closed',
             requestId,

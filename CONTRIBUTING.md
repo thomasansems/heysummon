@@ -1,12 +1,12 @@
-# Contributing to HITLaaS
+# Contributing to HeySummon
 
 Thanks for your interest in contributing! Here's how to get started.
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/thomasansems/hitlaas-platform.git
-cd hitlaas-platform
+git clone https://github.com/thomasansems/heysummon.git
+cd heysummon
 cp .env.example .env.local   # configure your environment
 npm install
 npx prisma generate

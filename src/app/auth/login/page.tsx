@@ -29,7 +29,7 @@ export default function LoginPage() {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-sm text-white">
               H
             </span>
-            HITLaaS
+            HeySummon
           </Link>
           <h1 className="mt-6 text-2xl font-semibold text-black">
             Welcome back

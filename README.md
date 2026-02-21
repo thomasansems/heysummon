@@ -1,8 +1,8 @@
-# HITLaaS Platform — Human in the Loop as a Service
+# HeySummon Platform — Human in the Loop as a Service
 
-[![CI](https://github.com/thomasansems/hitlaas-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/thomasansems/hitlaas-platform/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/thomasansems/hitlaas-platform/actions/workflows/codeql.yml/badge.svg)](https://github.com/thomasansems/hitlaas-platform/actions/workflows/codeql.yml)
-[![Docker](https://github.com/thomasansems/hitlaas-platform/actions/workflows/docker.yml/badge.svg)](https://github.com/thomasansems/hitlaas-platform/actions/workflows/docker.yml)
+[![CI](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/thomasansems/heysummon/actions/workflows/codeql.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/codeql.yml)
+[![Docker](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml)
 
 Open-source platform that connects AI agents with human experts when they get stuck. **E2E encrypted, polling-based, zero-knowledge.**
 
@@ -14,7 +14,7 @@ Open-source platform that connects AI agents with human experts when they get st
     ├─ POST /api/v1/help  (encrypted messages + public key)
     │
     ▼
-📦 HITLaaS Platform  (stores encrypted — cannot read content)
+📦 HeySummon Platform  (stores encrypted — cannot read content)
     │
     ├─ Provider sees request in dashboard
     ├─ Decrypts with server key → reads → types answer
@@ -41,15 +41,15 @@ Open-source platform that connects AI agents with human experts when they get st
 - 🔐 **E2E encryption** — RSA-OAEP + AES-256-GCM hybrid
 - 📊 **Provider dashboard** — OAuth login (GitHub/Google), request management
 - 🔑 **API keys** — manage consumer API keys
-- 📎 **Reference codes** — `HTL-XXXX` for easy tracking
+- 📎 **Reference codes** — `HS-XXXX` for easy tracking
 - ⏱️ **24h expiry** — requests auto-expire
 - 🔄 **Smart polling** — fast initial polling, cron fallback
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/thomasansems/hitlaas-platform.git
-cd hitlaas-platform
+git clone https://github.com/thomasansems/heysummon.git
+cd heysummon
 npm install
 cp .env.example .env.local  # edit with your credentials
 npx prisma generate && npx prisma db push
@@ -63,10 +63,10 @@ Your agent submits a help request and polls for the answer:
 
 ```bash
 # 1. Submit request (with your RSA public key for E2E encryption)
-curl -X POST https://hitlaas-platform.vercel.app/api/v1/help \
+curl -X POST https://cloud.heysummon.ai/api/v1/help \
   -H "Content-Type: application/json" \
   -d '{
-    "apiKey": "htl_your_key",
+    "apiKey": "hs_your_key",
     "publicKey": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
     "messages": [{"role":"user","content":"Fix this"},{"role":"assistant","content":"Stuck on X"}],
     "question": "How to resolve X?"
@@ -74,7 +74,7 @@ curl -X POST https://hitlaas-platform.vercel.app/api/v1/help \
 # Returns: { requestId, refCode, status: "pending", serverPublicKey, expiresAt }
 
 # 2. Poll for response (every 10s)
-curl https://hitlaas-platform.vercel.app/api/v1/help/REQUEST_ID
+curl https://cloud.heysummon.ai/api/v1/help/REQUEST_ID
 # When responded: { status: "responded", encryptedResponse: "..." }
 
 # 3. Decrypt encryptedResponse with your private key
@@ -85,7 +85,7 @@ curl https://hitlaas-platform.vercel.app/api/v1/help/REQUEST_ID
 - **After 1 hour**: create an OpenClaw cron job polling every 5 minutes
 - **24 hours**: request expires
 
-See `skills/hitlaas-consumer/SKILL.md` for the full integration guide.
+See `skills/heysummon-consumer/SKILL.md` for the full integration guide.
 
 ## For Human Experts (Provider)
 
@@ -96,13 +96,13 @@ Log in to the dashboard, view incoming requests, and respond:
 3. Type your answer and submit
 4. The consumer's next poll picks up your encrypted response
 
-See `skills/hitlaas-provider/SKILL.md` for OpenClaw integration.
+See `skills/heysummon-provider/SKILL.md` for OpenClaw integration.
 
 ## Self-Hosted vs Cloud
 
 | | Self-Hosted | Cloud |
 |---|---|---|
-| **Deploy** | Your own server | `hitlaas-platform.vercel.app` |
+| **Deploy** | Your own server | `cloud.heysummon.ai` |
 | **Database** | SQLite, Postgres, etc. | Managed |
 | **Control** | Full | Managed |
 | **Cost** | Free | Free tier |
@@ -133,8 +133,8 @@ The `relay/` directory contains a standalone Express server for self-hosted depl
 
 ## Skills
 
-- `skills/hitlaas-consumer/` — For AI agents that need human help
-- `skills/hitlaas-provider/` — For human experts using OpenClaw
+- `skills/heysummon-consumer/` — For AI agents that need human help
+- `skills/heysummon-provider/` — For human experts using OpenClaw
 
 ## API Reference
 

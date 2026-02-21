@@ -26,7 +26,7 @@ export function TopNav() {
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-600 text-xs text-white">
             H
           </span>
-          HITLaaS
+          HeySummon
         </Link>
 
         <nav className="flex items-center gap-1">

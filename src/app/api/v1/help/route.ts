@@ -14,7 +14,7 @@ import { publishToMercure } from "@/lib/mercure";
  * Optional: messages[] (legacy), question (legacy), publicKey (legacy v3)
  *
  * Returns: requestId, refCode, status, expiresAt
- * Consumer subscribes to Mercure topic /hitlaas/requests/{requestId} for realtime updates.
+ * Consumer subscribes to Mercure topic /heysummon/requests/{requestId} for realtime updates.
  */
 export async function POST(request: Request) {
   try {
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     // Publish to Mercure: notify provider of new request
     try {
       await publishToMercure(
-        `/hitlaas/providers/${key.userId}`,
+        `/heysummon/providers/${key.userId}`,
         {
           type: 'new_request',
           requestId: helpRequest.id,

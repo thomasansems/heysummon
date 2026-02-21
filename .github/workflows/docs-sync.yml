@@ -33,6 +33,6 @@ jobs:
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_SYNC_TOKEN }}
-          repository: thomasansems/hitlaas-docs
+          repository: thomasansems/heysummon-docs
           event-type: platform-update
           client-payload: '{"commit_message": "${{ steps.commit.outputs.message }}", "diff": "${{ steps.commit.outputs.diff }}", "sha": "${{ github.sha }}"}'

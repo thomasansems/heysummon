@@ -22,18 +22,18 @@ declare global {
   }
 }
 
-const HITLAAS_TOOLS: ModelContextTool[] = [
+const HEYSUMMON_TOOLS: ModelContextTool[] = [
   {
     name: "request-human-help",
     description:
-      "Request help from a human expert via HITLaaS. Send your recent conversation messages and a specific question. A human provider will review the context and respond with an answer. Requires a valid HITLaaS API key.",
+      "Request help from a human expert via HeySummon. Send your recent conversation messages and a specific question. A human provider will review the context and respond with an answer. Requires a valid HeySummon API key.",
     inputSchema: {
       type: "object",
       properties: {
         apiKey: {
           type: "string",
           description:
-            "Your HITLaaS API key (starts with htl_). Get one from a provider or create your own at hitlaas.vercel.app/auth/login.",
+            "Your HeySummon API key (starts with hs_). Get one from a provider or create your own at cloud.heysummon.ai/auth/login.",
         },
         messages: {
           type: "array",
@@ -114,7 +114,7 @@ const HITLAAS_TOOLS: ModelContextTool[] = [
   {
     name: "join-waitlist",
     description:
-      "Join the HITLaaS waitlist with an email address. You'll receive a verification email to confirm your signup.",
+      "Join the HeySummon waitlist with an email address. You'll receive a verification email to confirm your signup.",
     inputSchema: {
       type: "object",
       properties: {
@@ -150,8 +150,8 @@ export function WebMCPProvider() {
     }
 
     try {
-      mc.provideContext({ tools: HITLAAS_TOOLS });
-      console.log("[WebMCP] Registered HITLaaS tools:", HITLAAS_TOOLS.map((t) => t.name));
+      mc.provideContext({ tools: HEYSUMMON_TOOLS });
+      console.log("[WebMCP] Registered HeySummon tools:", HEYSUMMON_TOOLS.map((t) => t.name));
     } catch (e) {
       console.warn("[WebMCP] Failed to register tools:", e);
     }

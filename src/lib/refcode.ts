@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 export function generateRefCode(): string {
-  let code = "HTL-";
+  let code = "HS-";
   for (let i = 0; i < 4; i++) {
     code += CHARS[Math.floor(Math.random() * CHARS.length)];
   }

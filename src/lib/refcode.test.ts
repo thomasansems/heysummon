@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { generateRefCode } from "./refcode";
 
 describe("generateRefCode", () => {
-  it("returns HTL-XXXX format", () => {
+  it("returns HS-XXXX format", () => {
     const code = generateRefCode();
-    expect(code).toMatch(/^HTL-[A-Z0-9]{4}$/);
+    expect(code).toMatch(/^HS-[A-Z0-9]{4}$/);
   });
 
   it("generates codes with 4 uppercase alphanumeric chars", () => {

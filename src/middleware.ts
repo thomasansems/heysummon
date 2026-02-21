@@ -8,9 +8,9 @@ import type { NextRequest } from "next/server";
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 60; // 60 req/min per IP
-const RATE_LIMIT_API_MAX = 30; // 30 req/min for /api/v1/*
-const RATE_LIMIT_POLLING_MAX = 20; // 20 req/min for /api/v1/help/* polling
+const RATE_LIMIT_MAX_REQUESTS = 300; // 300 req/min per IP (pages + assets)
+const RATE_LIMIT_API_MAX = 120; // 120 req/min for /api/v1/*
+const RATE_LIMIT_POLLING_MAX = 30; // 30 req/min for /api/v1/help/* polling
 
 function getClientIp(req: NextRequest): string {
   return (
@@ -46,6 +46,11 @@ export function middleware(request: NextRequest) {
   const ip = getClientIp(request);
 
   // --- Rate Limiting ---
+  // Skip rate limiting for SSE stream endpoints (long-lived connections)
+  if (pathname.startsWith("/api/v1/events/stream") || pathname.startsWith("/api/internal/events/stream")) {
+    return NextResponse.next();
+  }
+
   const isPolling = pathname.startsWith("/api/v1/help/") && request.method === "GET";
   const isApiV1 = pathname.startsWith("/api/v1");
 

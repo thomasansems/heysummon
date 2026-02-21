@@ -1,3 +1,5 @@
+# HeySummon Mercure Hub — Development Configuration
+# Anonymous disabled; subscribers must use JWT from /api/v1/mercure-token
 {
     auto_https off
 }
@@ -5,20 +7,19 @@
 :3100 {
     route {
         mercure {
-            # Publisher/subscriber JWT key (must match MERCURE_JWT_SECRET)
             publisher_jwt {env.MERCURE_JWT_SECRET}
             subscriber_jwt {env.MERCURE_JWT_SECRET}
-            
-            # Allow anonymous subscribers in dev mode
-            anonymous
-            
-            # Enable subscriptions API for debugging
+
+            # No anonymous — even in dev, enforce JWT auth
+            # anonymous
+
+            # Subscriptions API for debugging
             subscriptions
-            
-            # CORS for local development
+
+            # Allow all origins in dev
             cors_origins *
         }
-        
+
         respond /healthz 200
     }
 }

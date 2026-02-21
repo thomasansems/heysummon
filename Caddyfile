@@ -1,0 +1,27 @@
+# HeySummon Mercure Hub — Production Configuration
+# Secure by default: no anonymous, localhost-only binding, strict CORS
+{
+    auto_https off
+}
+
+# Bind to localhost only — only the platform can reach Mercure
+# In Docker: use internal network instead of port exposure
+{$MERCURE_BIND_ADDRESS::3100} {
+    route {
+        mercure {
+            publisher_jwt {env.MERCURE_JWT_SECRET}
+            subscriber_jwt {env.MERCURE_JWT_SECRET}
+
+            # NO anonymous — all subscribers must have a valid JWT
+            # anonymous  ← disabled for security
+
+            # CORS: only allow the platform origin
+            cors_origins {$MERCURE_CORS_ORIGINS:https://cloud.heysummon.ai}
+
+            # Subscriptions API off in production
+            # subscriptions  ← disabled for security
+        }
+
+        respond /healthz 200
+    }
+}

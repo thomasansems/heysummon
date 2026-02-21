@@ -1,25 +1,90 @@
 export const runtime = "nodejs";
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
 
 /**
- * POST /api/v1/message/:requestId — Send an encrypted message
+ * POST /api/v1/message/:requestId — Send a message (encrypted or plaintext)
  *
- * Both consumer and provider can send messages after key exchange.
- * Messages are encrypted with AES-256-GCM (derived via X25519 DH + HKDF)
- * and signed with Ed25519.
+ * Authentication: x-api-key header required.
+ *   - Provider key (hs_prov_*) → can send as "provider"
+ *   - Client key (hs_cli_*)    → can send as "consumer"
  *
- * Required: from ("consumer"|"provider"), ciphertext, iv, authTag, signature, messageId
+ * The API validates that the key has access to this specific request.
+ *
+ * Required: from ("consumer"|"provider"), + either plaintext or encrypted fields
  * Returns: { success: true, messageId }
  */
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ requestId: string }> }
 ) {
   try {
     const { requestId } = await params;
+
+    // ── Auth: require x-api-key ──
+    const apiKey = request.headers.get("x-api-key");
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Missing x-api-key header" },
+        { status: 401 }
+      );
+    }
+
+    // Determine caller role from key type
+    let callerRole: "provider" | "consumer" | null = null;
+
+    // Check provider key
+    const provider = await prisma.provider.findFirst({
+      where: { key: apiKey, isActive: true },
+      select: { id: true, userId: true },
+    });
+
+    if (provider) {
+      // Verify this provider owns the request
+      const helpRequest = await prisma.helpRequest.findFirst({
+        where: { id: requestId, expertId: provider.userId },
+      });
+      if (!helpRequest) {
+        return NextResponse.json(
+          { error: "Request not found or not assigned to this provider" },
+          { status: 403 }
+        );
+      }
+      callerRole = "provider";
+    }
+
+    if (!callerRole) {
+      // Check client key
+      const clientKey = await prisma.apiKey.findFirst({
+        where: { key: apiKey, isActive: true },
+        select: { id: true, userId: true },
+      });
+
+      if (clientKey) {
+        // Verify this client owns the request
+        const helpRequest = await prisma.helpRequest.findFirst({
+          where: { id: requestId, apiKey: { userId: clientKey.userId } },
+        });
+        if (!helpRequest) {
+          return NextResponse.json(
+            { error: "Request not found or not owned by this client" },
+            { status: 403 }
+          );
+        }
+        callerRole = "consumer";
+      }
+    }
+
+    if (!callerRole) {
+      return NextResponse.json(
+        { error: "Invalid API key" },
+        { status: 401 }
+      );
+    }
+
+    // ── Parse body ──
     const body = await request.json();
     const { from, plaintext } = body;
     let { ciphertext, iv, authTag, signature, messageId } = body;
@@ -28,6 +93,21 @@ export async function POST(
       return NextResponse.json(
         { error: "from is required" },
         { status: 400 }
+      );
+    }
+
+    if (from !== "consumer" && from !== "provider") {
+      return NextResponse.json(
+        { error: "from must be 'consumer' or 'provider'" },
+        { status: 400 }
+      );
+    }
+
+    // Enforce: callerRole must match "from" claim
+    if (from !== callerRole) {
+      return NextResponse.json(
+        { error: `API key role (${callerRole}) does not match from (${from})` },
+        { status: 403 }
       );
     }
 
@@ -48,14 +128,7 @@ export async function POST(
       );
     }
 
-    if (from !== "consumer" && from !== "provider") {
-      return NextResponse.json(
-        { error: "from must be 'consumer' or 'provider'" },
-        { status: 400 }
-      );
-    }
-
-    // Find the help request
+    // ── Find request ──
     const helpRequest = await prisma.helpRequest.findUnique({
       where: { id: requestId },
     });
@@ -98,7 +171,6 @@ export async function POST(
     });
 
     if (existing) {
-      // Idempotent: return success if already stored
       return NextResponse.json({
         success: true,
         messageId,
@@ -130,7 +202,6 @@ export async function POST(
     // Publish to Mercure: notify both parties
     try {
       await Promise.all([
-        // Notify consumer (on request topic)
         publishToMercure(
           `/heysummon/requests/${requestId}`,
           {
@@ -141,7 +212,6 @@ export async function POST(
             createdAt: message.createdAt.toISOString(),
           }
         ),
-        // Notify provider (on provider topic)
         publishToMercure(
           `/heysummon/providers/${helpRequest.expertId}`,
           {

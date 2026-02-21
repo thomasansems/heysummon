@@ -69,11 +69,26 @@ PROV_NAME=$(echo "$WHOAMI" | jq -r '.providerName // .provider.name // empty' 2>
 echo "── Test 4: Submit Request ──"
 QUESTION="E2E test $(date +%s): What is 2+2?"
 
+# Get Mercure subscriber JWT for provider
+info "Getting Mercure JWT for provider..."
+PROVIDER_MERCURE_TOKEN=$(curl -s -X POST "${BASE_URL}/api/v1/mercure-token" \
+  -H "x-api-key: ${PROVIDER_KEY}" \
+  -H "Content-Type: application/json" -d '{}' | jq -r '.token // empty')
+if [ -n "$PROVIDER_MERCURE_TOKEN" ]; then
+  pass "Provider Mercure JWT obtained"
+else
+  info "No Mercure JWT — using anonymous (dev mode)"
+fi
+
 # Start Mercure listener for provider BEFORE submitting
 info "Starting provider Mercure listener..."
 # Mercure topic uses userId (API key owner), not provider model ID
 PROVIDER_TOPIC="/heysummon/providers/${USER_ID}"
-curl -sN "${MERCURE_HUB}?topic=${PROVIDER_TOPIC}" > "$TMPDIR/provider-events.raw" 2>/dev/null &
+if [ -n "$PROVIDER_MERCURE_TOKEN" ]; then
+  curl -sN -H "Authorization: Bearer ${PROVIDER_MERCURE_TOKEN}" "${MERCURE_HUB}?topic=${PROVIDER_TOPIC}" > "$TMPDIR/provider-events.raw" 2>/dev/null &
+else
+  curl -sN "${MERCURE_HUB}?topic=${PROVIDER_TOPIC}" > "$TMPDIR/provider-events.raw" 2>/dev/null &
+fi
 PIDS+=($!)
 sleep 1
 
@@ -136,9 +151,18 @@ done
 echo "── Test 6: Provider Reply ──"
 ANSWER="E2E answer: The answer is 4"
 
-# Start consumer Mercure listener on request topic
+# Get Mercure JWT for consumer and start listener
+CLIENT_MERCURE_TOKEN=$(curl -s -X POST "${BASE_URL}/api/v1/mercure-token" \
+  -H "x-api-key: ${CLIENT_KEY}" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg rid "$REQUEST_ID" '{requestId: $rid}')" | jq -r '.token // empty')
+
 REQUEST_TOPIC="/heysummon/requests/${REQUEST_ID}"
-curl -sN "${MERCURE_HUB}?topic=${REQUEST_TOPIC}" > "$TMPDIR/consumer-events.raw" 2>/dev/null &
+if [ -n "$CLIENT_MERCURE_TOKEN" ]; then
+  curl -sN -H "Authorization: Bearer ${CLIENT_MERCURE_TOKEN}" "${MERCURE_HUB}?topic=${REQUEST_TOPIC}" > "$TMPDIR/consumer-events.raw" 2>/dev/null &
+else
+  curl -sN "${MERCURE_HUB}?topic=${REQUEST_TOPIC}" > "$TMPDIR/consumer-events.raw" 2>/dev/null &
+fi
 PIDS+=($!)
 sleep 1
 

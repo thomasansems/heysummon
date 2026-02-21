@@ -19,6 +19,10 @@ export async function GET() {
       respondedAt: true,
       apiKey: { select: { name: true } },
       _count: { select: { messageHistory: true } },
+      messageHistory: {
+        where: { from: "provider" },
+        select: { id: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -29,6 +33,7 @@ export async function GET() {
     status: r.status,
     question: r.question,
     messageCount: r._count.messageHistory,
+    responseCount: r.messageHistory.length,
     createdAt: r.createdAt,
     respondedAt: r.respondedAt,
     apiKey: r.apiKey,

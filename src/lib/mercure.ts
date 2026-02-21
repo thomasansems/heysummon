@@ -8,7 +8,7 @@ if (!MERCURE_JWT_SECRET) {
 }
 
 export type MercureEvent = {
-  type: 'new_request' | 'keys_exchanged' | 'new_message' | 'closed' | 'status_change';
+  type: 'new_request' | 'keys_exchanged' | 'new_message' | 'closed' | 'status_change' | 'responded';
   [key: string]: unknown;
 };
 

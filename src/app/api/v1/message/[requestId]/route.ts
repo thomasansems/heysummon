@@ -21,11 +21,29 @@ export async function POST(
   try {
     const { requestId } = await params;
     const body = await request.json();
-    const { from, ciphertext, iv, authTag, signature, messageId } = body;
+    const { from, plaintext } = body;
+    let { ciphertext, iv, authTag, signature, messageId } = body;
 
-    if (!from || !ciphertext || !iv || !authTag || !signature || !messageId) {
+    if (!from) {
       return NextResponse.json(
-        { error: "from, ciphertext, iv, authTag, signature, and messageId are required" },
+        { error: "from is required" },
+        { status: 400 }
+      );
+    }
+
+    // Support plaintext messages (unencrypted, for simple reply flows)
+    if (plaintext && !ciphertext) {
+      const crypto = await import("node:crypto");
+      ciphertext = Buffer.from(plaintext).toString("base64");
+      iv = "plaintext";
+      authTag = "plaintext";
+      signature = "plaintext";
+      messageId = messageId || crypto.randomUUID();
+    }
+
+    if (!ciphertext || !iv || !authTag || !signature || !messageId) {
+      return NextResponse.json(
+        { error: "from + (plaintext | ciphertext+iv+authTag+signature+messageId) required" },
         { status: 400 }
       );
     }
@@ -56,19 +74,22 @@ export async function POST(
       );
     }
 
-    // Check that key exchange has happened (for v4)
-    if (from === "provider" && (!helpRequest.providerSignPubKey || !helpRequest.providerEncryptPubKey)) {
-      return NextResponse.json(
-        { error: "Provider must exchange keys first (POST /key-exchange)" },
-        { status: 400 }
-      );
-    }
+    // Check that key exchange has happened (for v4 encrypted messages)
+    const isPlaintext = iv === "plaintext";
+    if (!isPlaintext) {
+      if (from === "provider" && (!helpRequest.providerSignPubKey || !helpRequest.providerEncryptPubKey)) {
+        return NextResponse.json(
+          { error: "Provider must exchange keys first (POST /key-exchange)" },
+          { status: 400 }
+        );
+      }
 
-    if (from === "consumer" && (!helpRequest.consumerSignPubKey || !helpRequest.consumerEncryptPubKey)) {
-      return NextResponse.json(
-        { error: "Consumer keys not found — must be sent in POST /help" },
-        { status: 400 }
-      );
+      if (from === "consumer" && (!helpRequest.consumerSignPubKey || !helpRequest.consumerEncryptPubKey)) {
+        return NextResponse.json(
+          { error: "Consumer keys not found — must be sent in POST /help" },
+          { status: 400 }
+        );
+      }
     }
 
     // Check for duplicate messageId
@@ -85,7 +106,15 @@ export async function POST(
       });
     }
 
-    // Store the encrypted message
+    // Update status to responded when provider sends a message
+    if (from === "provider" && helpRequest.status !== "responded") {
+      await prisma.helpRequest.update({
+        where: { id: requestId },
+        data: { status: "responded", respondedAt: new Date() },
+      });
+    }
+
+    // Store the message
     const message = await prisma.message.create({
       data: {
         requestId,

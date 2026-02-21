@@ -8,6 +8,7 @@ interface Provider {
   id: string;
   name: string;
   key: string;
+  isActive: boolean;
   createdAt: string;
   _count: { apiKeys: number };
 }

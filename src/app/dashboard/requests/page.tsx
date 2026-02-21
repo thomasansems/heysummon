@@ -35,6 +35,7 @@ interface HelpRequest {
   status: string;
   question: string | null;
   messageCount: number;
+  responseCount: number;
   createdAt: string;
   respondedAt: string | null;
   apiKey: { name: string | null };
@@ -140,6 +141,7 @@ export default function RequestsPage() {
                 <th className="px-4 py-2.5 font-medium">Ref Code</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
                 <th className="px-4 py-2.5 font-medium">Messages</th>
+                <th className="px-4 py-2.5 font-medium">Responses</th>
                 <th className="px-4 py-2.5 font-medium">Client</th>
                 <th className="px-4 py-2.5 font-medium">Created</th>
                 <th className="px-4 py-2.5 font-medium text-right">
@@ -173,6 +175,11 @@ export default function RequestsPage() {
                   <td className="px-4 py-2.5 text-[#666]">
                     {req.messageCount > 0
                       ? `${req.messageCount} berichten`
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-[#666]">
+                    {req.responseCount > 0
+                      ? <span className="inline-flex items-center gap-1 text-green-600 font-medium">{req.responseCount}</span>
                       : "—"}
                   </td>
                   <td className="px-4 py-2.5 text-[#666]">

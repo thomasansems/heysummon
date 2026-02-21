@@ -23,9 +23,7 @@ export function Sidebar() {
     <aside className="flex h-screen w-64 flex-col border-r border-zinc-800 bg-zinc-950">
       <div className="flex items-center gap-2 border-b border-zinc-800 px-6 py-5">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold text-white">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-sm">
-            H
-          </span>
+          <img src="/lobster-icon.png" alt="HeySummon" className="h-8 w-8 rounded-lg" />
           HeySummon
         </Link>
       </div>

@@ -23,9 +23,7 @@ export function TopNav() {
           href="/dashboard"
           className="flex items-center gap-2 text-sm font-bold text-black"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-600 text-xs text-white">
-            H
-          </span>
+          <img src="/lobster-icon.png" alt="HeySummon" className="h-7 w-7 rounded-md" />
           HeySummon
         </Link>
 

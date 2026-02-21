@@ -53,5 +53,28 @@ services:
     ports:
       - "3100:3000"
 
+  # All-in-one alternative (Next.js + Mercure in one container)
+  # Uncomment below and comment out 'app' + 'mercure' services above to use
+  # app-allinone:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.allinone
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #     - "3100:3100"
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   environment:
+  #     DATABASE_URL: postgresql://hitlaas:hitlaas_dev@db:5432/hitlaas
+  #     NEXTAUTH_URL: http://localhost:3000
+  #     NEXTAUTH_SECRET: dev-secret-change-me
+  #     AUTH_GITHUB_ID: ""
+  #     AUTH_GITHUB_SECRET: ""
+  #     MERCURE_HUB_URL: http://localhost:3100/.well-known/mercure
+  #     MERCURE_JWT_SECRET: dev-mercure-secret-change-me
+  #     NEXT_PUBLIC_MERCURE_HUB_URL: http://localhost:3100/.well-known/mercure
+
 volumes:
   pgdata:

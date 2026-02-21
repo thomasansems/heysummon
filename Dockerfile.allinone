@@ -1,0 +1,107 @@
+# All-in-one Dockerfile: Next.js + Mercure Hub in a single container
+# Use this for simple deployments where you don't need separate scaling
+
+# Stage 1: Dependencies
+FROM node:22-alpine AS deps
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY prisma ./prisma/
+RUN npm ci --ignore-scripts
+RUN npx prisma generate
+
+# Stage 2: Build Next.js
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+# Stage 3: Download Mercure
+FROM alpine:3.19 AS mercure
+RUN apk add --no-cache curl tar
+ARG MERCURE_VERSION=0.16.3
+ARG TARGETARCH=amd64
+RUN curl -L "https://github.com/dunglas/mercure/releases/download/v${MERCURE_VERSION}/mercure_Linux_${TARGETARCH}.tar.gz" \
+    | tar xz -C /usr/local/bin mercure
+
+# Stage 4: Runner (Next.js + Mercure)
+FROM node:22-alpine AS runner
+RUN apk add --no-cache libc6-compat openssl supervisor
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy Next.js standalone build
+COPY --from=build /app/public ./public
+COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=deps /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=build /app/prisma ./prisma
+
+# Copy Mercure binary
+COPY --from=mercure /usr/local/bin/mercure /usr/local/bin/mercure
+
+# Supervisor config to run both processes
+RUN mkdir -p /etc/supervisor/conf.d /var/log/supervisor
+COPY <<'EOF' /etc/supervisor/conf.d/supervisord.conf
+[supervisord]
+nodaemon=true
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/var/run/supervisord.pid
+
+[program:nextjs]
+command=node server.js
+directory=/app
+user=nextjs
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+environment=PORT="3000",HOSTNAME="0.0.0.0"
+
+[program:mercure]
+command=/usr/local/bin/mercure run --config /app/Caddyfile.mercure
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+EOF
+
+# Mercure Caddyfile
+COPY <<'EOF' /app/Caddyfile.mercure
+{
+	{$MERCURE_SERVER_NAME :3100}
+
+	log {
+		output stderr
+	}
+}
+
+:3100 {
+	route {
+		mercure {
+			publisher_jwt_key {$MERCURE_JWT_SECRET:dev-mercure-secret-change-me}
+			subscriber_jwt_key {$MERCURE_JWT_SECRET:dev-mercure-secret-change-me}
+			anonymous
+			cors_origins {$MERCURE_CORS_ORIGINS:*}
+			subscriptions
+		}
+		respond "Not Found" 404
+	}
+}
+EOF
+
+EXPOSE 3000 3100
+
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

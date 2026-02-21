@@ -2,10 +2,10 @@
 # HeySummon E2E Test — Full Circle: consumer submit → provider receive → provider reply → consumer receive
 #
 # Tests the actual API flow without requiring OpenClaw or skill scripts.
-# Uses direct curl + Mercure SSE listening.
+# Uses /api/v1/events/stream SSE proxy (Mercure is internal-only).
 #
 # Required env vars: E2E_PROVIDER_ID, E2E_PROVIDER_KEY, E2E_CLIENT_KEY
-# Optional: E2E_BASE_URL (default: http://localhost:3456), E2E_MERCURE_HUB, E2E_TIMEOUT
+# Optional: E2E_BASE_URL (default: http://localhost:3456), E2E_TIMEOUT
 
 set -euo pipefail
 
@@ -21,12 +21,12 @@ info() { echo -e "${YELLOW}ℹ️  $1${NC}"; }
 
 # Config
 BASE_URL="${E2E_BASE_URL:-http://localhost:3456}"
-MERCURE_HUB="${E2E_MERCURE_HUB:-http://localhost:3100/.well-known/mercure}"
 PROVIDER_ID="${E2E_PROVIDER_ID:?Set E2E_PROVIDER_ID}"
 USER_ID="${E2E_USER_ID:-$PROVIDER_ID}"
 PROVIDER_KEY="${E2E_PROVIDER_KEY:?Set E2E_PROVIDER_KEY}"
 CLIENT_KEY="${E2E_CLIENT_KEY:?Set E2E_CLIENT_KEY}"
 TIMEOUT="${E2E_TIMEOUT:-30}"
+STREAM_URL="${BASE_URL}/api/v1/events/stream"
 
 TMPDIR=$(mktemp -d)
 PIDS=()
@@ -45,7 +45,7 @@ echo "  🧪 HeySummon E2E Test — Full Circle"
 echo "══════════════════════════════════════════"
 echo ""
 info "Platform: $BASE_URL"
-info "Mercure:  $MERCURE_HUB"
+info "Stream:   $STREAM_URL"
 info "Provider: $PROVIDER_ID"
 echo ""
 
@@ -54,10 +54,11 @@ echo "── Test 1: Platform Health ──"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${BASE_URL}/api/health" 2>/dev/null || echo "000")
 [ "$HTTP_CODE" = "200" ] && pass "Platform healthy" || fail "Platform not reachable (HTTP $HTTP_CODE)"
 
-# ─── Test 2: Mercure Health ───
-echo "── Test 2: Mercure Health ──"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${MERCURE_HUB}" 2>/dev/null || echo "000")
-[ "$HTTP_CODE" != "000" ] && pass "Mercure reachable" || fail "Mercure not reachable"
+# ─── Test 2: SSE Stream Endpoint ───
+echo "── Test 2: SSE Stream Endpoint ──"
+# Quick check that the endpoint requires auth
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${STREAM_URL}" 2>/dev/null || echo "000")
+[ "$HTTP_CODE" = "401" ] && pass "SSE stream requires auth (401)" || fail "SSE stream auth check unexpected (HTTP $HTTP_CODE)"
 
 # ─── Test 3: Whoami ───
 echo "── Test 3: Whoami (client key validation) ──"
@@ -69,38 +70,19 @@ PROV_NAME=$(echo "$WHOAMI" | jq -r '.providerName // .provider.name // empty' 2>
 echo "── Test 4: Submit Request ──"
 QUESTION="E2E test $(date +%s): What is 2+2?"
 
-# Get Mercure subscriber JWT for provider
-info "Getting Mercure JWT for provider..."
-PROVIDER_MERCURE_TOKEN=$(curl -s -X POST "${BASE_URL}/api/v1/mercure-token" \
-  -H "x-api-key: ${PROVIDER_KEY}" \
-  -H "Content-Type: application/json" -d '{}' | jq -r '.token // empty')
-if [ -n "$PROVIDER_MERCURE_TOKEN" ]; then
-  pass "Provider Mercure JWT obtained"
-else
-  info "No Mercure JWT — using anonymous (dev mode)"
-fi
-
-# Start Mercure listener for provider BEFORE submitting
-info "Starting provider Mercure listener..."
-# Mercure topic uses userId (API key owner), not provider model ID
-PROVIDER_TOPIC="/heysummon/providers/${USER_ID}"
-if [ -n "$PROVIDER_MERCURE_TOKEN" ]; then
-  curl -sN -H "Authorization: Bearer ${PROVIDER_MERCURE_TOKEN}" "${MERCURE_HUB}?topic=${PROVIDER_TOPIC}" > "$TMPDIR/provider-events.raw" 2>/dev/null &
-else
-  curl -sN "${MERCURE_HUB}?topic=${PROVIDER_TOPIC}" > "$TMPDIR/provider-events.raw" 2>/dev/null &
-fi
+# Start SSE listener for provider BEFORE submitting
+info "Starting provider SSE listener..."
+curl -sN -H "x-api-key: ${PROVIDER_KEY}" "${STREAM_URL}" > "$TMPDIR/provider-events.raw" 2>/dev/null &
 PIDS+=($!)
-sleep 1
+sleep 2
 
 # Generate ephemeral crypto keys for the request (Ed25519 + X25519)
 KEYS_JSON=$(node -e "
 const crypto = require('crypto');
-// Ed25519 for signing
 const sign = crypto.generateKeyPairSync('ed25519', {
   publicKeyEncoding: { type: 'spki', format: 'pem' },
   privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
 });
-// X25519 for encryption
 const enc = crypto.generateKeyPairSync('x25519', {
   publicKeyEncoding: { type: 'spki', format: 'pem' },
   privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
@@ -134,8 +116,8 @@ else
   fail "Submit failed: $SUBMIT_RESPONSE"
 fi
 
-# ─── Test 5: Provider receives Mercure event ───
-echo "── Test 5: Provider Mercure Notification ──"
+# ─── Test 5: Provider receives event via SSE proxy ───
+echo "── Test 5: Provider SSE Notification ──"
 RECEIVED=false
 for i in $(seq 1 $TIMEOUT); do
   if grep -q "$REF_CODE" "$TMPDIR/provider-events.raw" 2>/dev/null; then
@@ -145,24 +127,14 @@ for i in $(seq 1 $TIMEOUT); do
   sleep 1
 done
 
-[ "$RECEIVED" = true ] && pass "Provider received Mercure event" || fail "Provider did not receive event within ${TIMEOUT}s"
+[ "$RECEIVED" = true ] && pass "Provider received event via SSE proxy" || fail "Provider did not receive event within ${TIMEOUT}s"
 
-# ─── Test 6: Start consumer Mercure listener + Provider Reply ───
+# ─── Test 6: Start consumer SSE listener + Provider Reply ───
 echo "── Test 6: Provider Reply ──"
 ANSWER="E2E answer: The answer is 4"
 
-# Get Mercure JWT for consumer and start listener
-CLIENT_MERCURE_TOKEN=$(curl -s -X POST "${BASE_URL}/api/v1/mercure-token" \
-  -H "x-api-key: ${CLIENT_KEY}" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n --arg rid "$REQUEST_ID" '{requestId: $rid}')" | jq -r '.token // empty')
-
-REQUEST_TOPIC="/heysummon/requests/${REQUEST_ID}"
-if [ -n "$CLIENT_MERCURE_TOKEN" ]; then
-  curl -sN -H "Authorization: Bearer ${CLIENT_MERCURE_TOKEN}" "${MERCURE_HUB}?topic=${REQUEST_TOPIC}" > "$TMPDIR/consumer-events.raw" 2>/dev/null &
-else
-  curl -sN "${MERCURE_HUB}?topic=${REQUEST_TOPIC}" > "$TMPDIR/consumer-events.raw" 2>/dev/null &
-fi
+# Start consumer SSE listener
+curl -sN -H "x-api-key: ${CLIENT_KEY}" "${STREAM_URL}" > "$TMPDIR/consumer-events.raw" 2>/dev/null &
 PIDS+=($!)
 sleep 1
 
@@ -181,8 +153,8 @@ REPLY_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/message/${LOOKUP_ID}" \
 REPLY_OK=$(echo "$REPLY_RESPONSE" | jq -r 'if .success or .messageId or .id then "ok" else empty end' 2>/dev/null)
 [ "$REPLY_OK" = "ok" ] && pass "Provider replied: '$ANSWER'" || fail "Reply failed: $REPLY_RESPONSE"
 
-# ─── Test 7: Consumer receives response via Mercure ───
-echo "── Test 7: Consumer Mercure Response ──"
+# ─── Test 7: Consumer receives response via SSE proxy ───
+echo "── Test 7: Consumer SSE Response ──"
 RECEIVED=false
 for i in $(seq 1 $TIMEOUT); do
   if grep -q "answer" "$TMPDIR/consumer-events.raw" 2>/dev/null || \
@@ -193,7 +165,7 @@ for i in $(seq 1 $TIMEOUT); do
   sleep 1
 done
 
-[ "$RECEIVED" = true ] && pass "Consumer received response via Mercure" || fail "Consumer did not receive response within ${TIMEOUT}s"
+[ "$RECEIVED" = true ] && pass "Consumer received response via SSE proxy" || fail "Consumer did not receive response within ${TIMEOUT}s"
 
 # ─── Test 8: Verify via API ───
 echo "── Test 8: Request Status ──"

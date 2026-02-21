@@ -50,7 +50,6 @@ services:
       AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET:-}
       MERCURE_HUB_URL: http://mercure:3000/.well-known/mercure
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
-      NEXT_PUBLIC_MERCURE_HUB_URL: ${PUBLIC_MERCURE_URL:-http://localhost:3100/.well-known/mercure}
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
       interval: 10s

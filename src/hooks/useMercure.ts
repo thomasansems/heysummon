@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-
-const MERCURE_HUB_URL = process.env.NEXT_PUBLIC_MERCURE_HUB_URL || "http://localhost:3100/.well-known/mercure";
+import { useEffect, useRef } from "react";
 
 export type MercureEventHandler = (data: Record<string, unknown>) => void;
 
 /**
- * React hook for subscribing to Mercure topics via EventSource.
+ * React hook for subscribing to real-time events via the platform SSE proxy.
+ * Dashboard uses /api/v1/events/stream with session cookie auth,
+ * or an internal SSE route that wraps Mercure.
+ *
+ * For dashboard (same-origin), we use /api/internal/events/stream with
+ * topic query params — the server resolves the session user and subscribes
+ * to Mercure internally.
  *
  * @param topics - Array of topic URIs to subscribe to
  * @param onEvent - Callback when an event is received
@@ -26,12 +30,11 @@ export function useMercure(
   useEffect(() => {
     if (!enabled || topics.length === 0) return;
 
-    const url = new URL(MERCURE_HUB_URL);
+    const url = new URL("/api/internal/events/stream", window.location.origin);
     for (const topic of topics) {
       url.searchParams.append("topic", topic);
     }
 
-    // Reconnect with Last-Event-ID for missed events
     if (lastEventIdRef.current) {
       url.searchParams.set("Last-Event-ID", lastEventIdRef.current);
     }
@@ -51,7 +54,7 @@ export function useMercure(
     };
 
     es.onerror = () => {
-      // EventSource auto-reconnects; nothing to do
+      // EventSource auto-reconnects
     };
 
     return () => {

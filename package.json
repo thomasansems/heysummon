@@ -45,5 +45,6 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"
-  }
+  },
+  "license": "SEE LICENSE IN LICENSE.md"
 }

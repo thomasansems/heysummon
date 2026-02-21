@@ -19,6 +19,8 @@ export default function ProvidersPage() {
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   const loadProviders = () =>
     fetch("/api/providers")
@@ -45,6 +47,14 @@ export default function ProvidersPage() {
 
   const toggleProvider = async (id: string, isActive: boolean) => {
     await fetch(`/api/providers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive }) });
+    loadProviders();
+  };
+
+  const renameProvider = async (id: string) => {
+    if (!editName.trim()) return;
+    await fetch(`/api/providers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: editName.trim() }) });
+    setEditingId(null);
+    setEditName("");
     loadProviders();
   };
 
@@ -127,7 +137,27 @@ export default function ProvidersPage() {
                   className="border-b border-[#eaeaea] last:border-0"
                 >
                   <td className="px-4 py-2.5 font-medium text-black">
-                    {p.name}
+                    {editingId === p.id ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") renameProvider(p.id); if (e.key === "Escape") setEditingId(null); }}
+                          className="w-32 rounded border border-[#eaeaea] px-2 py-0.5 text-sm outline-none focus:border-black"
+                          autoFocus
+                        />
+                        <button onClick={() => renameProvider(p.id)} className="text-xs text-green-600">✓</button>
+                        <button onClick={() => setEditingId(null)} className="text-xs text-[#666]">✕</button>
+                      </div>
+                    ) : (
+                      <span
+                        className="cursor-pointer hover:underline"
+                        onClick={() => { setEditingId(p.id); setEditName(p.name); }}
+                        title="Click to rename"
+                      >
+                        {p.name}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">

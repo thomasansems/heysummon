@@ -1,15 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, generateApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-function generateProviderKey(): string {
-  const chars = "0123456789abcdef";
-  let key = "htl_prov_";
-  for (let i = 0; i < 32; i++) {
-    key += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return key;
-}
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -40,7 +31,7 @@ export async function POST(request: Request) {
   const provider = await prisma.provider.create({
     data: {
       name: name.trim(),
-      key: generateProviderKey(),
+      key: generateApiKey("htl_prov_"),
       userId: user.id,
     },
   });

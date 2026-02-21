@@ -48,6 +48,12 @@ export async function DELETE(
     return NextResponse.json({ error: "Provider not found" }, { status: 404 });
   }
 
+  // Unlink all API keys from this provider before deleting
+  await prisma.apiKey.updateMany({
+    where: { providerId: id },
+    data: { providerId: null },
+  });
+
   await prisma.provider.delete({ where: { id } });
 
   return NextResponse.json({ success: true });

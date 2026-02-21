@@ -28,6 +28,8 @@ export default function ClientsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   const loadKeys = () =>
     fetch("/api/keys")
@@ -61,6 +63,14 @@ export default function ClientsPage() {
     loadKeys();
   };
 
+  const renameKey = async (id: string) => {
+    if (!editName.trim()) return;
+    await fetch(`/api/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: editName.trim() }) });
+    setEditingId(null);
+    setEditName("");
+    loadKeys();
+  };
+
   const deactivate = async (id: string) => {
     await fetch(`/api/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: false }) });
     loadKeys();
@@ -72,7 +82,7 @@ export default function ClientsPage() {
   };
 
   const deleteKey = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to permanently delete "${name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Are you sure you want to permanently delete "${name}"?\n\n⚠️ This will also delete ALL help requests and messages linked to this key.\n\nThis cannot be undone.`)) return;
     await fetch(`/api/keys/${id}`, { method: "DELETE" });
     loadKeys();
   };
@@ -181,7 +191,27 @@ hitlaas:
                     className="border-b border-[#eaeaea] last:border-0"
                   >
                     <td className="px-4 py-2.5 font-medium text-black">
-                      {k.name || "Unnamed"}
+                      {editingId === k.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") renameKey(k.id); if (e.key === "Escape") setEditingId(null); }}
+                            className="w-32 rounded border border-[#eaeaea] px-2 py-0.5 text-sm outline-none focus:border-black"
+                            autoFocus
+                          />
+                          <button onClick={() => renameKey(k.id)} className="text-xs text-green-600">✓</button>
+                          <button onClick={() => setEditingId(null)} className="text-xs text-[#666]">✕</button>
+                        </div>
+                      ) : (
+                        <span
+                          className="cursor-pointer hover:underline"
+                          onClick={() => { setEditingId(k.id); setEditName(k.name || ""); }}
+                          title="Click to rename"
+                        >
+                          {k.name || "Unnamed"}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-[#666]">
                       {k.provider?.name || "—"}

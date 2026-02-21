@@ -48,7 +48,21 @@ export async function DELETE(
     return NextResponse.json({ error: "Key not found" }, { status: 404 });
   }
 
+  // Cascade delete: remove all linked messages and requests first
+  const requests = await prisma.helpRequest.findMany({
+    where: { apiKeyId: id },
+    select: { id: true },
+  });
+
+  if (requests.length > 0) {
+    const requestIds = requests.map((r) => r.id);
+    // Delete messages linked to these requests
+    await prisma.message.deleteMany({ where: { requestId: { in: requestIds } } });
+    // Delete the requests
+    await prisma.helpRequest.deleteMany({ where: { apiKeyId: id } });
+  }
+
   await prisma.apiKey.delete({ where: { id } });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, deletedRequests: requests.length });
 }

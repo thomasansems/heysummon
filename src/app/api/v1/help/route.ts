@@ -100,6 +100,9 @@ export async function POST(request: Request) {
           contentFlags = guardResult.flags;
         }
         guardEncryptedPayload = guardResult.encryptedPayload;
+      }
+    }
+
     // Validate device token if key has device binding
     if (key.deviceSecret) {
       const deviceToken = request.headers.get("x-device-token");

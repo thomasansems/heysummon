@@ -83,6 +83,7 @@ model ApiKey {
   provider     Provider?     @relation(fields: [providerId], references: [id])
   isActive     Boolean       @default(true)
   deviceSecret String?       // SHA-256 hash of device token (nullable for legacy keys)
+  machineId    String?       // SHA-256 hash of machine fingerprint (auto-bound on first valid request)
   requests     HelpRequest[]
   createdAt    DateTime      @default(now())
 }

@@ -68,5 +68,37 @@ export async function validateApiKeyRequest(
     }
   }
 
+  // Machine fingerprint validation (backward compatible)
+  const machineId = request.headers.get("x-machine-id");
+
+  if (keyRecord.machineId) {
+    // Key is already bound to a machine
+    if (!machineId) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: "Machine fingerprint mismatch. This key is bound to another device." },
+          { status: 403 }
+        ),
+      };
+    }
+    if (machineId !== keyRecord.machineId) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: "Machine fingerprint mismatch. This key is bound to another device." },
+          { status: 403 }
+        ),
+      };
+    }
+  } else if (machineId) {
+    // First request with machine ID — bind it
+    await prisma.apiKey.update({
+      where: { id: keyRecord.id },
+      data: { machineId },
+    });
+    keyRecord.machineId = machineId;
+  }
+
   return { ok: true, apiKey: keyRecord };
 }

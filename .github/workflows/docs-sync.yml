@@ -1,17 +1,7 @@
 name: Docs Sync
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'docs/**'
-      - 'skills/**'
-      - 'relay/**'
-      - 'DEPLOYMENT.md'
-      - 'CHANGELOG.md'
-      - 'README.md'
-      - 'docker-compose*.yml'
-      - 'infra/**'
+  release:
+    types: [published]
 
 jobs:
   trigger-docs-update:
@@ -19,20 +9,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
-      - name: Get commit info
-        id: commit
+      - name: Get release info and dispatch
+        env:
+          DOCS_TOKEN: ${{ secrets.DOCS_SYNC_TOKEN }}
         run: |
-          echo "message=$(git log -1 --pretty=%B | head -1)" >> $GITHUB_OUTPUT
-          echo "diff<<EOF" >> $GITHUB_OUTPUT
-          git diff HEAD~1 --stat >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Trigger docs update
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.DOCS_SYNC_TOKEN }}
-          repository: thomasansems/heysummon-docs
-          event-type: platform-update
-          client-payload: '{"commit_message": "${{ steps.commit.outputs.message }}", "diff": "${{ steps.commit.outputs.diff }}", "sha": "${{ github.sha }}"}'
+          VERSION="${{ github.event.release.tag_name }}"
+          BODY="${{ github.event.release.body }}"
+          
+          # Get full diff since previous tag
+          PREV_TAG=$(git tag --sort=-creatordate | sed -n '2p')
+          if [ -n "$PREV_TAG" ]; then
+            DIFF=$(git diff "$PREV_TAG"..HEAD --stat)
+          else
+            DIFF="Initial release"
+          fi
+          
+          # Build JSON safely with jq
+          PAYLOAD=$(jq -n \
+            --arg ver "$VERSION" \
+            --arg body "$BODY" \
+            --arg diff "$DIFF" \
+            --arg sha "${{ github.sha }}" \
+            '{version: $ver, release_notes: $body, diff: $diff, sha: $sha}')
+          
+          # Dispatch to docs repo
+          curl -s -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $DOCS_TOKEN" \
+            "https://api.github.com/repos/thomasansems/heysummon-docs/dispatches" \
+            -d "$(jq -n --argjson payload "$PAYLOAD" '{event_type: "platform-update", client_payload: $payload}')"

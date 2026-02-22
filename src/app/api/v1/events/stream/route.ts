@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
+import { hashDeviceToken } from "@/lib/api-key-auth";
 
 const MERCURE_HUB_URL =
   process.env.MERCURE_HUB_URL || "http://localhost:3100/.well-known/mercure";
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     // Check client key
     const clientKey = await prisma.apiKey.findFirst({
       where: { key: apiKey, isActive: true },
-      select: { id: true, userId: true },
+      select: { id: true, userId: true, deviceSecret: true },
     });
 
     if (!clientKey) {
@@ -52,6 +53,17 @@ export async function GET(request: NextRequest) {
         status: 401,
         headers: { "Content-Type": "application/json" },
       });
+    }
+
+    // Validate device token if key has device binding
+    if (clientKey.deviceSecret) {
+      const deviceToken = request.headers.get("x-device-token");
+      if (!deviceToken || hashDeviceToken(deviceToken) !== clientKey.deviceSecret) {
+        return new Response(JSON.stringify({ error: "Invalid or missing device token" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     }
 
     const requests = await prisma.helpRequest.findMany({
@@ -114,7 +126,7 @@ export async function GET(request: NextRequest) {
         }
 
         const reader = mercureRes.body.getReader();
-        const decoder = new TextDecoder();
+        const _decoder = new TextDecoder();
 
         while (true) {
           const { done, value } = await reader.read();

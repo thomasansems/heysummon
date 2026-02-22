@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
+import { hashDeviceToken } from "@/lib/api-key-auth";
 
 /**
  * POST /api/v1/message/:requestId — Send a message (encrypted or plaintext)
@@ -59,10 +60,20 @@ export async function POST(
       // Check client key
       const clientKey = await prisma.apiKey.findFirst({
         where: { key: apiKey, isActive: true },
-        select: { id: true, userId: true },
+        select: { id: true, userId: true, deviceSecret: true },
       });
 
       if (clientKey) {
+        // Validate device token if key has device binding
+        if (clientKey.deviceSecret) {
+          const deviceToken = request.headers.get("x-device-token");
+          if (!deviceToken || hashDeviceToken(deviceToken) !== clientKey.deviceSecret) {
+            return NextResponse.json(
+              { error: "Invalid or missing device token" },
+              { status: 403 }
+            );
+          }
+        }
         // Verify this client owns the request
         const helpRequest = await prisma.helpRequest.findFirst({
           where: { id: requestId, apiKey: { userId: clientKey.userId } },

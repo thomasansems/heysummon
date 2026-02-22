@@ -7,6 +7,7 @@ import { generateKeyPair, encryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
 import { validateContent as guardValidate } from "@/lib/guard-client";
 import { verifyValidationToken } from "@/lib/guard-crypto";
+import { hashDeviceToken } from "@/lib/api-key-auth";
 
 /**
  * POST /api/v1/help — Submit a help request.
@@ -99,6 +100,14 @@ export async function POST(request: Request) {
           contentFlags = guardResult.flags;
         }
         guardEncryptedPayload = guardResult.encryptedPayload;
+    // Validate device token if key has device binding
+    if (key.deviceSecret) {
+      const deviceToken = request.headers.get("x-device-token");
+      if (!deviceToken || hashDeviceToken(deviceToken) !== key.deviceSecret) {
+        return NextResponse.json(
+          { error: "Invalid or missing device token" },
+          { status: 403 }
+        );
       }
     }
 

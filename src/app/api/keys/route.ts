@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, generateApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { generateDeviceSecret, hashDeviceToken } from "@/lib/api-key-auth";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -28,10 +29,15 @@ export async function POST(request: Request) {
 
   const { name, providerId } = await request.json().catch(() => ({ name: null, providerId: null }));
 
+  // Generate device secret
+  const deviceSecretPlaintext = generateDeviceSecret();
+  const deviceSecretHash = hashDeviceToken(deviceSecretPlaintext);
+
   const data: any = {
     key: generateApiKey(),
     name: name || null,
     userId: user.id,
+    deviceSecret: deviceSecretHash,
   };
 
   if (providerId) {
@@ -47,5 +53,6 @@ export async function POST(request: Request) {
 
   const key = await prisma.apiKey.create({ data });
 
-  return NextResponse.json({ key });
+  // Return device_secret plaintext once (never stored or shown again)
+  return NextResponse.json({ key, deviceSecret: deviceSecretPlaintext });
 }

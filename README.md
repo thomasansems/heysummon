@@ -1,178 +1,154 @@
-# HeySummon Platform — Human in the Loop as a Service
+<div align="center">
+
+# 🦞 HeySummon
+
+**Human in the Loop as a Service**
+
+Connect AI agents with human experts — in real time, E2E encrypted, self-hostable.
 
 [![CI](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/thomasansems/heysummon/actions/workflows/codeql.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/codeql.yml)
 [![Docker](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml)
+[![License: SUL](https://img.shields.io/badge/license-Sustainable%20Use-blue)](LICENSE.md)
+[![Version](https://img.shields.io/badge/version-0.1.0--alpha.1-orange)](package.json)
 
-Open-source platform that connects AI agents with human experts when they get stuck. **E2E encrypted, polling-based, zero-knowledge.**
+[Documentation](https://docs.heysummon.ai) · [Cloud](https://cloud.heysummon.ai) · [Contributing](CONTRIBUTING.md)
 
-## How It Works
+</div>
 
-```
-🤖 AI Agent gets stuck
-    │
-    ├─ POST /api/v1/help  (encrypted messages + public key)
-    │
-    ▼
-📦 HeySummon Platform  (stores encrypted — cannot read content)
-    │
-    ├─ Provider sees request in dashboard
-    ├─ Decrypts with server key → reads → types answer
-    │
-    ▼
-🤖 AI Agent polls GET /api/v1/help/:id
-    │
-    ├─ Gets response encrypted with its public key
-    ├─ Decrypts with private key → continues work
-    ▼
-    ✅ Done
-```
+---
 
-### Key Design Decisions
+## What is HeySummon?
 
-- **Polling, not webhooks** — no public URLs needed. Works behind NAT, firewalls, localhost.
-- **E2E encrypted** — RSA-OAEP + AES-256-GCM. Messages encrypted at rest, responses encrypted in transit.
-- **Zero-knowledge relay** — platform cannot read message content.
-- **Smart two-phase polling** — 10s intervals for first hour, then cron every 5 min.
-- **Open source** — self-host or use the cloud version.
+HeySummon is an open-source platform that lets AI agents ask humans for help when they get stuck. An agent sends an encrypted help request, a human expert answers through the dashboard, and the agent picks up the response — all in real time via SSE.
+
+Think of it as **a pager for your AI agents**: when they hit a wall, they summon a human.
+
+### Why HeySummon?
+
+- **AI agents aren't perfect.** They get stuck on ambiguous tasks, need approvals, or lack context. HeySummon gives them a structured way to ask for help without breaking their workflow.
+- **E2E encrypted.** The platform never reads your messages — RSA-OAEP + AES-256-GCM hybrid encryption.
+- **Self-hostable.** Run it on your own infrastructure with full control, or use the managed cloud.
 
 ## Features
 
-- 🔐 **E2E encryption** — RSA-OAEP + AES-256-GCM hybrid
-- 📊 **Provider dashboard** — OAuth login (GitHub/Google), request management
-- 🔑 **API keys** — manage consumer API keys
-- 📎 **Reference codes** — `HS-XXXX` for easy tracking
-- ⏱️ **24h expiry** — requests auto-expire
-- 🔄 **Smart polling** — fast initial polling, cron fallback
+| | Feature | Description |
+|---|---|---|
+| 📡 | **Real-time SSE** | Instant push updates via Server-Sent Events (Mercure-powered internally) |
+| 🔐 | **E2E Encryption** | RSA-OAEP + AES-256-GCM — zero-knowledge relay |
+| 👥 | **Multi-Provider** | Multiple human experts can handle requests |
+| 🔑 | **API Keys** | Issue and manage consumer API keys from the dashboard |
+| 📊 | **Dashboard** | Review, decrypt, and respond to requests in a clean UI |
+| 📎 | **Reference Codes** | `HS-XXXX` codes for easy tracking |
+| ⏱️ | **Auto-Expiry** | Requests expire after 24 hours |
+| 🐳 | **Docker Ready** | One command to deploy with Postgres + Mercure |
 
 ## Quick Start
+
+### Docker (recommended)
+
+```bash
+git clone https://github.com/thomasansems/heysummon.git
+cd heysummon
+cp .env.example .env        # edit secrets
+docker compose up -d
+```
+
+The app is available at `http://localhost:3000`. Default auth is email + password (OAuth is opt-in).
+
+### Manual Setup
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
 cd heysummon
 npm install
-cp .env.example .env.local  # edit with your credentials
+cp .env.example .env.local   # edit with your credentials
 npx prisma generate && npx prisma db push
-npx prisma db seed  # optional: creates test user + sample data
+npx prisma db seed            # optional: sample data
 npm run dev
 ```
 
-## For AI Agents (Consumer)
+## Architecture
 
-Your agent submits a help request and polls for the answer:
-
-```bash
-# 1. Submit request (with your RSA public key for E2E encryption)
-curl -X POST https://cloud.heysummon.ai/api/v1/help \
-  -H "Content-Type: application/json" \
-  -d '{
-    "apiKey": "hs_your_key",
-    "publicKey": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
-    "messages": [{"role":"user","content":"Fix this"},{"role":"assistant","content":"Stuck on X"}],
-    "question": "How to resolve X?"
-  }'
-# Returns: { requestId, refCode, status: "pending", serverPublicKey, expiresAt }
-
-# 2. Poll for response (every 10s)
-curl https://cloud.heysummon.ai/api/v1/help/REQUEST_ID
-# When responded: { status: "responded", encryptedResponse: "..." }
-
-# 3. Decrypt encryptedResponse with your private key
+```
+┌─────────────┐         ┌──────────────────────────────────┐         ┌─────────────┐
+│  AI Agent   │         │        HeySummon Platform         │         │   Human     │
+│  (Consumer) │         │                                  │         │  (Provider) │
+├─────────────┤  HTTPS  ├──────────────────────────────────┤  HTTPS  ├─────────────┤
+│             │────────▶│  Next.js App Router              │◀────────│  Dashboard  │
+│ POST /v1/   │         │  ┌────────┐  ┌───────────────┐  │   SSE   │  /dashboard │
+│   help      │         │  │ Prisma │──│ Postgres/SQLite│  │◀───────▶│             │
+│             │         │  └────────┘  └───────────────┘  │         │             │
+│ GET /v1/    │         │  ┌─────────────────────────┐    │         │             │
+│   help/:id  │◀────────│  │  Mercure (internal SSE) │    │         │             │
+│             │   SSE   │  └─────────────────────────┘    │         │             │
+└─────────────┘  proxy  └──────────────────────────────────┘         └─────────────┘
 ```
 
-**Polling strategy:**
-- **First hour**: poll every 10 seconds (fast turnaround)
-- **After 1 hour**: create an OpenClaw cron job polling every 5 minutes
-- **24 hours**: request expires
+**Key points:**
+- Mercure is internal only — clients connect via the Next.js SSE proxy
+- E2E encryption means the platform stores ciphertext it cannot read
+- Polling fallback available for environments where SSE isn't viable
 
-See `skills/heysummon-consumer/SKILL.md` for the full integration guide.
+## API Overview
 
-## For Human Experts (Provider)
+### Consumer API (for AI agents)
 
-Log in to the dashboard, view incoming requests, and respond:
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/v1/help` | API key | Submit encrypted help request |
+| `GET` | `/api/v1/help/:id` | API key | Poll status / get encrypted response |
+| `POST` | `/api/v1/key-exchange` | API key | Exchange public keys for E2E |
+| `GET` | `/api/v1/events` | API key | SSE stream for real-time updates |
 
-1. Go to `/dashboard/requests`
-2. Click a pending request — messages are decrypted for viewing
-3. Type your answer and submit
-4. The consumer's next poll picks up your encrypted response
+### Provider API (dashboard)
 
-See `skills/heysummon-provider/SKILL.md` for OpenClaw integration.
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/api/requests` | Session | List help requests |
+| `GET` | `/api/requests/:id` | Session | View decrypted request |
+| `PATCH` | `/api/requests/:id` | Session | Submit response |
+| `GET` | `/api/keys` | Session | Manage API keys |
+| `POST` | `/api/keys` | Session | Create API key |
 
 ## Self-Hosted vs Cloud
 
 | | Self-Hosted | Cloud |
 |---|---|---|
-| **Deploy** | Your own server | `cloud.heysummon.ai` |
-| **Database** | SQLite, Postgres, etc. | Managed |
+| **Deploy** | Your infrastructure | [cloud.heysummon.ai](https://cloud.heysummon.ai) |
+| **Database** | SQLite or Postgres | Managed |
 | **Control** | Full | Managed |
-| **Cost** | Free | Free tier |
-
-## Environment Variables
-
-```env
-DATABASE_URL="file:./dev.db"
-NEXTAUTH_SECRET="your-secret"
-NEXTAUTH_URL="http://localhost:3000"
-GITHUB_ID="..."
-GITHUB_SECRET="..."
-GOOGLE_ID="..."
-GOOGLE_SECRET="..."
-```
+| **Features** | Core platform | Core + teams, analytics |
+| **Cost** | Free | Free tier available |
 
 ## Tech Stack
 
-- **Next.js 15** + App Router
-- **Prisma** + SQLite (swap to Postgres easily)
-- **NextAuth.js v5** — GitHub + Google OAuth
-- **Tailwind CSS** + shadcn/ui + Geist font
-- **RSA-OAEP + AES-256-GCM** — hybrid E2E encryption
+- **Next.js 15** — App Router, React Server Components
+- **Prisma** — SQLite (default) or Postgres
+- **NextAuth.js v5** — Email/password by default, GitHub + Google OAuth opt-in
+- **Mercure** — Internal real-time hub, proxied as SSE to clients
+- **Tailwind CSS** + shadcn/ui — Dashboard UI
+- **RSA-OAEP + AES-256-GCM** — Hybrid E2E encryption
 
-## Relay Service
+## Contributing
 
-The `relay/` directory contains a standalone Express server for self-hosted deployments. See `relay/README.md`.
-
-## Skills
-
-- `skills/heysummon-consumer/` — For AI agents that need human help
-- `skills/heysummon-provider/` — For human experts using OpenClaw
-
-## API Reference
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/help` | API key | Submit encrypted help request |
-| `GET` | `/api/v1/help/:id` | None | Poll status + get encrypted response |
-| `GET` | `/api/requests` | Session | List requests (provider dashboard) |
-| `GET` | `/api/requests/:id` | Session | View decrypted request (provider) |
-| `PATCH` | `/api/requests/:id` | Session | Submit response (provider) |
-| `GET` | `/api/keys` | Session | List API keys |
-| `POST` | `/api/keys` | Session | Create API key |
-
-## Editions
-
-HeySummon is available in two editions:
-
-### 🏠 Community (Self-Hosted)
-Everything you need to run your own HeySummon instance. Free forever.
-- Full platform with dashboard
-- E2E encrypted messaging
-- SSE real-time events
-- Multi-provider support
-- Docker deployment
-- API + CLI skills
-
-### ☁️ Cloud
-Managed hosting at [cloud.heysummon.ai](https://cloud.heysummon.ai) with additional features:
-- Teams & multi-user management
-- Analytics dashboard
-- Usage insights
-- Priority support
-- And more coming soon
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-This software is licensed under the [Sustainable Use License](LICENSE.md).
+HeySummon uses a dual license model (similar to n8n):
 
-Source code files containing `.cloud.` in their filename or `.cloud` in their dirname are licensed under the [HeySummon Cloud License](LICENSE_CLOUD.md) and require a valid cloud subscription for production use.
+- **Core** — [Sustainable Use License](LICENSE.md). Free for personal and internal business use.
+- **Cloud features** — Files containing `.cloud.` in their filename or `.cloud` in their dirname are under the [HeySummon Cloud License](LICENSE_CLOUD.md) and require a valid subscription for production use.
 
-All other code is available under the Sustainable Use License — free for personal and internal business use. See [LICENSE.md](LICENSE.md) for full terms.
+All other code is available under the Sustainable Use License. See [LICENSE.md](LICENSE.md) for full terms.
+
+---
+
+<div align="center">
+
+**[Documentation](https://docs.heysummon.ai)** · **[Cloud](https://cloud.heysummon.ai)** · **[GitHub](https://github.com/thomasansems/heysummon)**
+
+Made with 🦞 by the HeySummon team
+
+</div>

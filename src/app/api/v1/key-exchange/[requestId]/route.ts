@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
+import { keyExchangeSchema, validateBody } from "@/lib/validations";
 
 /**
  * POST /api/v1/key-exchange/:requestId — Provider sends their public keys
@@ -19,15 +20,11 @@ export async function POST(
 ) {
   try {
     const { requestId } = await params;
-    const body = await request.json();
-    const { signPublicKey, encryptPublicKey } = body;
+    const raw = await request.json();
+    const parsed = validateBody(keyExchangeSchema, raw);
+    if (!parsed.success) return parsed.response;
 
-    if (!signPublicKey || !encryptPublicKey) {
-      return NextResponse.json(
-        { error: "signPublicKey and encryptPublicKey are required" },
-        { status: 400 }
-      );
-    }
+    const { signPublicKey, encryptPublicKey } = parsed.data;
 
     // Find the help request
     const helpRequest = await prisma.helpRequest.findUnique({

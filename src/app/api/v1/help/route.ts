@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
+import { helpCreateSchema, validateBody } from "@/lib/validations";
+import { validateContent as guardValidate } from "@/lib/guard-client";
 import { verifyValidationToken } from "@/lib/guard-crypto";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 
@@ -23,7 +25,10 @@ const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const raw = await request.json();
+    const parsed = validateBody(helpCreateSchema, raw);
+    if (!parsed.success) return parsed.response;
+
     const { 
       apiKey, 
       signPublicKey,

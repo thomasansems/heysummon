@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
+import { requestPatchSchema, validateBody } from "@/lib/validations";
 
 export async function GET(
   _request: Request,
@@ -92,7 +93,11 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const raw = await request.json();
+  const parsed = validateBody(requestPatchSchema, raw);
+  if (!parsed.success) return parsed.response;
+
+  const body = parsed.data;
 
   const helpRequest = await prisma.helpRequest.findUnique({ where: { id } });
   if (!helpRequest || helpRequest.expertId !== user.id) {
@@ -105,10 +110,6 @@ export async function PATCH(
 
   if (helpRequest.status === "responded") {
     return NextResponse.json({ error: "Already responded" }, { status: 400 });
-  }
-
-  if (!body.response) {
-    return NextResponse.json({ error: "response is required" }, { status: 400 });
   }
 
   // Store plaintext response — consumer gets it encrypted via polling endpoint

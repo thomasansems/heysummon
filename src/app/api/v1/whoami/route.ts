@@ -1,39 +1,22 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { validateApiKeyRequest } from "@/lib/api-key-auth";
 
 /**
  * GET /api/v1/whoami — Get info about a client API key
  * 
  * Returns the provider name and basic info linked to this key.
  * Header: x-api-key (client key, htl_...)
+ * Header: X-Device-Token (device secret, if key has device binding)
  */
 export async function GET(request: Request) {
   try {
-    const apiKey = request.headers.get("x-api-key");
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "x-api-key header required" },
-        { status: 401 }
-      );
-    }
-
-    const key = await prisma.apiKey.findUnique({
-      where: { key: apiKey },
-      include: {
-        provider: true,
-        user: true,
-      },
+    const result = await validateApiKeyRequest(request, {
+      include: { provider: true, user: true },
     });
-
-    if (!key || !key.isActive) {
-      return NextResponse.json(
-        { error: "Invalid or inactive API key" },
-        { status: 401 }
-      );
-    }
+    if (!result.ok) return result.response;
+    const key = result.apiKey;
 
     return NextResponse.json({
       keyId: key.id,

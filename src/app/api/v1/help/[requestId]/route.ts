@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
+import { validateApiKeyRequest } from "@/lib/api-key-auth";
 
 /**
  * GET /api/v1/help/:requestId — Poll for response.
@@ -24,10 +25,14 @@ export async function GET(
     include: { apiKey: { select: { key: true } } },
   });
 
-  // If x-api-key header provided, verify it matches the request's API key
+  // If x-api-key header provided, verify it matches the request's API key + device token
   const providedApiKey = _request.headers.get("x-api-key");
-  if (providedApiKey && helpRequest?.apiKey?.key !== providedApiKey) {
-    return NextResponse.json({ error: "Invalid API key for this request" }, { status: 403 });
+  if (providedApiKey) {
+    const authResult = await validateApiKeyRequest(_request);
+    if (!authResult.ok) return authResult.response;
+    if (helpRequest?.apiKey?.key !== providedApiKey) {
+      return NextResponse.json({ error: "Invalid API key for this request" }, { status: 403 });
+    }
   }
 
   if (!helpRequest) {

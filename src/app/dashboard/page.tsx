@@ -2,7 +2,7 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 interface Stats {
   total: number;

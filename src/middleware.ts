@@ -41,18 +41,42 @@ setInterval(() => {
   }
 }, 300_000);
 
+/**
+ * Security headers applied to every response.
+ * Static headers (HSTS, X-Frame-Options, etc.) are in next.config.ts.
+ * CSP is set here because it may need dynamic adjustments per-request.
+ */
+const CSP_DIRECTIVES = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-inline/eval needed for Next.js
+  "style-src 'self' 'unsafe-inline'", // Next.js injects inline styles
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https:",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+].join("; ");
+
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set("Content-Security-Policy", CSP_DIRECTIVES);
+  return response;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ip = getClientIp(request);
 
   // --- Rate Limiting ---
   // Skip rate limiting for SSE streams and NextAuth internals
+  // but still apply security headers
   if (
     pathname.startsWith("/api/v1/events/stream") ||
     pathname.startsWith("/api/internal/events/stream") ||
     pathname.startsWith("/api/auth/")
   ) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const isPolling = pathname.startsWith("/api/v1/help/") && request.method === "GET";
@@ -117,15 +141,17 @@ export function middleware(request: NextRequest) {
       response.headers.set("Access-Control-Allow-Origin", origin);
     }
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key, x-device-token, x-machine-id");
     response.headers.set("Access-Control-Max-Age", "86400");
 
     // Handle preflight
     if (request.method === "OPTIONS") {
-      return new NextResponse(null, {
-        status: 204,
-        headers: response.headers,
-      });
+      return applySecurityHeaders(
+        new NextResponse(null, {
+          status: 204,
+          headers: response.headers,
+        })
+      );
     }
 
     // --- Request size guard (reject >1MB bodies) ---
@@ -137,10 +163,10 @@ export function middleware(request: NextRequest) {
       );
     }
 
-    return response;
+    return applySecurityHeaders(response);
   }
 
-  return NextResponse.next();
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {

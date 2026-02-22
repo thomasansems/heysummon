@@ -32,6 +32,22 @@ services:
     # No ports exposed — only accessible via internal network
     # Anonymous subscribers DISABLED by default (no MERCURE_EXTRA_DIRECTIVES: anonymous)
 
+  heysummon-guard:
+    build: ./guard
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      GUARD_HMAC_SECRET: ${GUARD_HMAC_SECRET:-}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3457/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    # NO external ports — internal only
+
   app:
     build: .
     restart: unless-stopped
@@ -42,6 +58,8 @@ services:
         condition: service_healthy
       mercure:
         condition: service_healthy
+      heysummon-guard:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
@@ -50,6 +68,8 @@ services:
       AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET:-}
       MERCURE_HUB_URL: http://mercure:3000/.well-known/mercure
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
+      GUARD_URL: http://heysummon-guard:3457
+      GUARD_HMAC_SECRET: ${GUARD_HMAC_SECRET:-}
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
       interval: 10s

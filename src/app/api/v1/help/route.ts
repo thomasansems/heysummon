@@ -10,15 +10,18 @@ import { validateContent as guardValidate } from "@/lib/guard-client";
 import { verifyValidationToken } from "@/lib/guard-crypto";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 
+const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
+
 /**
  * POST /api/v1/help — Submit a help request.
  *
- * v4 (Mercure + E2E):
- * Required: apiKey, signPublicKey, encryptPublicKey
- * Optional: messages[] (legacy), question (legacy), publicKey (legacy v3)
+ * Guard flow (pre-flight validation):
+ *   1. Skill calls Guard → gets signature
+ *   2. Skill calls this endpoint with guardSignature, guardTimestamp, guardNonce
+ *   3. Platform verifies HMAC(question + timestamp + nonce) matches signature
  *
- * Returns: requestId, refCode, status, expiresAt
- * Consumer subscribes to Mercure topic /heysummon/requests/{requestId} for realtime updates.
+ * If REQUIRE_GUARD=true, guard signature fields are mandatory.
+ * If not set, guard is optional (backward compatible).
  */
 export async function POST(request: Request) {
   try {
@@ -28,18 +31,26 @@ export async function POST(request: Request) {
 
     const { 
       apiKey, 
-      signPublicKey,     // v4: Ed25519 signing public key
-      encryptPublicKey,  // v4: X25519 encryption public key
-      // Legacy v3 fields (backward compatibility):
+      signPublicKey,
+      encryptPublicKey,
       messages, 
       question, 
-      publicKey,         // v3: RSA public key
-      messageCount,      // Optional: limit number of history messages (0, 5, 10, 20)
-    } = parsed.data;
+      publicKey,
+      messageCount,
+      // Guard pre-flight signature fields
+      guardSignature,
+      guardTimestamp,
+      guardNonce,
+    } = body;
 
-    // v4: Require E2E keys
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "apiKey is required" },
+        { status: 400 }
+      );
+    }
+
     if (!signPublicKey || !encryptPublicKey) {
-      // v3 fallback: allow old publicKey field
       if (!publicKey) {
         return NextResponse.json(
           { error: "signPublicKey and encryptPublicKey are required (or publicKey for legacy v3)" },
@@ -61,45 +72,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // ─── Content Safety Guard ───
-    let contentFlags = null;
-    let guardEncryptedPayload = null;
-    const rawQuestion = question || (Array.isArray(messages) && messages.length > 0
-      ? messages.map((m: { content?: string }) => m.content || "").join("\n")
-      : null);
-
-    if (rawQuestion) {
-      const guardResult = await guardValidate(rawQuestion);
-      if (guardResult) {
-        // Verify HMAC token
-        const hmacSecret = process.env.GUARD_HMAC_SECRET || "";
-        if (hmacSecret && !verifyValidationToken(
-          guardResult.validationToken,
-          guardResult.sanitizedText,
-          guardResult.timestamp,
-          guardResult.nonce,
-          hmacSecret
-        )) {
-          return NextResponse.json(
-            { error: "Content validation failed: invalid guard token" },
-            { status: 422 }
-          );
-        }
-
-        if (guardResult.blocked) {
-          return NextResponse.json(
-            { error: "Content blocked by safety filter", flags: guardResult.flags },
-            { status: 422 }
-          );
-        }
-
-        if (guardResult.flags.length > 0) {
-          contentFlags = guardResult.flags;
-        }
-        guardEncryptedPayload = guardResult.encryptedPayload;
-      }
-    }
-
     // Validate device token if key has device binding
     if (key.deviceSecret) {
       const deviceToken = request.headers.get("x-device-token");
@@ -111,8 +83,51 @@ export async function POST(request: Request) {
       }
     }
 
+    // ─── Guard Pre-flight Signature Verification ───
+    const rawQuestion = question || (Array.isArray(messages) && messages.length > 0
+      ? messages.map((m: { content?: string }) => m.content || "").join("\n")
+      : null);
+
+    const hasGuardFields = guardSignature && guardTimestamp && guardNonce;
+
+    if (REQUIRE_GUARD && rawQuestion && !hasGuardFields) {
+      return NextResponse.json(
+        { error: "Guard validation required. Call the guard service first and include guardSignature, guardTimestamp, guardNonce." },
+        { status: 422 }
+      );
+    }
+
+    let contentFlags = null;
+
+    if (hasGuardFields && rawQuestion) {
+      const hmacSecret = process.env.GUARD_HMAC_SECRET || "";
+      if (!hmacSecret) {
+        return NextResponse.json(
+          { error: "Guard HMAC secret not configured on server" },
+          { status: 500 }
+        );
+      }
+
+      if (!verifyValidationToken(
+        guardSignature,
+        rawQuestion,
+        guardTimestamp,
+        guardNonce,
+        hmacSecret
+      )) {
+        return NextResponse.json(
+          { error: "Invalid guard signature. Content may have been tampered with, or signature expired." },
+          { status: 422 }
+        );
+      }
+
+      // Guard signature verified — content passed through guard
+      // Flags would have been handled by the guard (blocked content never reaches here)
+      contentFlags = null; // Guard already filtered
+    }
+
     const refCode = await generateUniqueRefCode();
-    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
 
     // v3 legacy: encrypt messages at rest with server key
     let encryptedMessages = null;
@@ -141,24 +156,21 @@ export async function POST(request: Request) {
         expertId: key.userId,
         expiresAt,
         
-        // v4 fields
         consumerSignPubKey: signPublicKey || null,
         consumerEncryptPubKey: encryptPublicKey || null,
         
-        // v3 legacy fields (backward compatibility)
         messages: encryptedMessages,
         question: encryptedQuestion,
         consumerPublicKey: publicKey || null,
         serverPublicKey: serverKeyPair?.publicKey || null,
         serverPrivateKey: serverKeyPair?.privateKey || null,
         
-        // Content safety
         contentFlags: contentFlags ? JSON.stringify(contentFlags) : null,
-        guardEncryptedPayload: guardEncryptedPayload || null,
+        guardVerified: hasGuardFields ? true : false,
       },
     });
 
-    // Publish to Mercure: notify provider of new request
+    // Publish to Mercure
     try {
       await publishToMercure(
         `/heysummon/providers/${key.userId}`,
@@ -181,7 +193,6 @@ export async function POST(request: Request) {
       );
     } catch (mercureError) {
       console.error('Mercure publish failed (non-fatal):', mercureError);
-      // Continue — request is stored, provider can poll if Mercure is down
     }
 
     return NextResponse.json({
@@ -189,7 +200,6 @@ export async function POST(request: Request) {
       refCode: helpRequest.refCode,
       status: "pending",
       expiresAt: helpRequest.expiresAt.toISOString(),
-      // v3 legacy: return server public key if generated
       ...(serverKeyPair && { serverPublicKey: serverKeyPair.publicKey }),
     });
   } catch (err) {

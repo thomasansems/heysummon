@@ -1,29 +1,45 @@
 import express from "express";
 import { validateContent } from "./content-safety";
-import { encryptAndSign } from "./crypto";
+import { signContent } from "./crypto";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 
+/**
+ * POST /validate
+ *
+ * Pre-flight validation endpoint. Called by the SKILL before submitting to the platform.
+ * Validates content (sanitize HTML, defang URLs, detect PII) and returns a signature
+ * that the platform can verify to prove the content passed through the guard.
+ *
+ * Flow: Skill → Guard → Skill → Platform (with signature)
+ */
 app.post("/validate", (req, res) => {
   try {
-    const { content } = req.body;
-    if (typeof content !== "string") {
-      return res.status(400).json({ error: "content must be a string" });
+    const { text } = req.body;
+    if (typeof text !== "string") {
+      return res.status(400).json({ error: "text must be a string" });
     }
 
-    const safety = validateContent(content);
-    const { encryptedPayload, validationToken, timestamp, nonce } =
-      encryptAndSign(safety.sanitizedText);
+    const safety = validateContent(text);
+
+    if (safety.blocked) {
+      return res.json({
+        valid: false,
+        reason: "Content blocked by safety filter",
+        flags: safety.flags,
+      });
+    }
+
+    const { signature, timestamp, nonce } = signContent(safety.sanitizedText);
 
     return res.json({
-      encryptedPayload,
-      validationToken,
+      valid: true,
+      sanitizedText: safety.sanitizedText,
+      signature,
       timestamp,
       nonce,
       flags: safety.flags,
-      blocked: safety.blocked,
-      sanitizedText: safety.sanitizedText,
     });
   } catch (err) {
     console.error("Validation error:", err);

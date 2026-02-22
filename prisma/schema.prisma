@@ -24,6 +24,7 @@ model User {
   requests           HelpRequest[] @relation("ExpertRequests")
   accounts           Account[]
   sessions           Session[]
+  certificates       ClientCertificate[]
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 }
@@ -143,4 +144,21 @@ model Message {
   
   @@index([requestId])
   @@index([messageId])
+}
+
+model ClientCertificate {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  fingerprint  String    @unique
+  serialNumber String    @unique
+  notBefore    DateTime
+  notAfter     DateTime
+  revoked      Boolean   @default(false)
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([fingerprint])
 }

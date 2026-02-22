@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
+import { helpCreateSchema, validateBody } from "@/lib/validations";
 
 /**
  * POST /api/v1/help — Submit a help request.
@@ -18,7 +19,10 @@ import { publishToMercure } from "@/lib/mercure";
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const raw = await request.json();
+    const parsed = validateBody(helpCreateSchema, raw);
+    if (!parsed.success) return parsed.response;
+
     const { 
       apiKey, 
       signPublicKey,     // v4: Ed25519 signing public key
@@ -28,14 +32,7 @@ export async function POST(request: Request) {
       question, 
       publicKey,         // v3: RSA public key
       messageCount,      // Optional: limit number of history messages (0, 5, 10, 20)
-    } = body;
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "apiKey is required" },
-        { status: 400 }
-      );
-    }
+    } = parsed.data;
 
     // v4: Require E2E keys
     if (!signPublicKey || !encryptPublicKey) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { keyUpdateSchema, validateBody } from "@/lib/validations";
 
 export async function PATCH(
   request: Request,
@@ -18,7 +19,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Key not found" }, { status: 404 });
   }
 
-  const body = await request.json();
+  const raw = await request.json();
+  const parsed = validateBody(keyUpdateSchema, raw);
+  if (!parsed.success) return parsed.response;
+
+  const body = parsed.data;
   const data: Record<string, unknown> = {};
   if (body.name !== undefined) data.name = body.name;
   if (body.isActive !== undefined) data.isActive = body.isActive;

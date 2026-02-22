@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { relayRespondSchema, validateBody } from "@/lib/validations";
 
 /**
  * POST /api/relay/respond
@@ -10,14 +11,11 @@ import { prisma } from "@/lib/prisma";
  */
 export async function POST(request: Request) {
   try {
-    const { requestId, response } = await request.json();
+    const raw = await request.json();
+    const parsed = validateBody(relayRespondSchema, raw);
+    if (!parsed.success) return parsed.response;
 
-    if (!requestId || !response) {
-      return NextResponse.json(
-        { error: "requestId and response are required" },
-        { status: 400 }
-      );
-    }
+    const { requestId, response } = parsed.data;
 
     const helpRequest = await prisma.helpRequest.findUnique({
       where: { id: requestId },

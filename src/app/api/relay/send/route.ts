@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encryptMessage } from "@/lib/crypto";
+import { relaySendSchema, validateBody } from "@/lib/validations";
 
 /**
  * POST /api/relay/send
@@ -11,14 +12,11 @@ import { encryptMessage } from "@/lib/crypto";
  */
 export async function POST(request: Request) {
   try {
-    const { requestId, message, senderPublicKey } = await request.json();
+    const raw = await request.json();
+    const parsed = validateBody(relaySendSchema, raw);
+    if (!parsed.success) return parsed.response;
 
-    if (!requestId || !message) {
-      return NextResponse.json(
-        { error: "requestId and message are required" },
-        { status: 400 }
-      );
-    }
+    const { requestId, message, senderPublicKey } = parsed.data;
 
     const helpRequest = await prisma.helpRequest.findUnique({
       where: { id: requestId },

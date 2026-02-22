@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, generateApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { keyCreateSchema, validateBody } from "@/lib/validations";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -26,7 +27,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { name, providerId } = await request.json().catch(() => ({ name: null, providerId: null }));
+  const raw = await request.json().catch(() => ({}));
+  const parsed = validateBody(keyCreateSchema, raw);
+  if (!parsed.success) return parsed.response;
+
+  const { name, providerId } = parsed.data;
 
   const data: any = {
     key: generateApiKey(),

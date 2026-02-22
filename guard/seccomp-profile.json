@@ -1,0 +1,43 @@
+{
+  "defaultAction": "SCMP_ACT_ERRNO",
+  "archMap": [
+    { "architecture": "SCMP_ARCH_X86_64", "subArchitectures": ["SCMP_ARCH_X86", "SCMP_ARCH_X32"] },
+    { "architecture": "SCMP_ARCH_AARCH64", "subArchitectures": [] }
+  ],
+  "syscalls": [
+    {
+      "names": [
+        "accept", "accept4", "access", "arch_prctl", "bind", "brk",
+        "clock_getres", "clock_gettime", "clock_nanosleep", "clone", "clone3",
+        "close", "connect", "dup", "dup2", "dup3", "epoll_create", "epoll_create1",
+        "epoll_ctl", "epoll_wait", "epoll_pwait", "eventfd", "eventfd2",
+        "execve", "exit", "exit_group", "faccessat", "faccessat2",
+        "fadvise64", "fallocate", "fchmod", "fchmodat", "fchown", "fchownat",
+        "fcntl", "fdatasync", "fstat", "fstatfs", "fsync", "ftruncate",
+        "futex", "getcwd", "getdents", "getdents64", "getegid", "geteuid",
+        "getgid", "getgroups", "getpeername", "getpid", "getppid",
+        "getrandom", "getresgid", "getresuid", "getrlimit", "getsockname",
+        "getsockopt", "gettid", "gettimeofday", "getuid",
+        "ioctl", "kill", "listen", "lseek", "lstat",
+        "madvise", "memfd_create", "mincore", "mkdir", "mkdirat",
+        "mlock", "mmap", "mprotect", "mremap", "munmap",
+        "nanosleep", "newfstatat", "open", "openat",
+        "pipe", "pipe2", "poll", "ppoll", "prctl",
+        "pread64", "preadv", "prlimit64", "pwrite64", "pwritev",
+        "read", "readlink", "readlinkat", "readv", "recvfrom", "recvmsg",
+        "rename", "renameat", "renameat2", "restart_syscall",
+        "rseq", "rt_sigaction", "rt_sigprocmask", "rt_sigreturn",
+        "sched_getaffinity", "sched_yield",
+        "sendmsg", "sendto", "set_robust_list", "set_tid_address",
+        "setgroups", "setitimer", "setsockopt",
+        "shutdown", "sigaltstack", "socket", "socketpair",
+        "splice", "stat", "statfs", "statx",
+        "sysinfo", "tgkill", "timer_create", "timer_delete",
+        "timer_settime", "timerfd_create", "timerfd_settime",
+        "umask", "uname", "unlink", "unlinkat",
+        "wait4", "waitid", "write", "writev"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    }
+  ]
+}

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
+import { validateContent as guardValidate } from "@/lib/guard-client";
+import { verifyValidationToken } from "@/lib/guard-crypto";
 
 /**
  * POST /api/v1/help — Submit a help request.
@@ -61,6 +63,45 @@ export async function POST(request: Request) {
       );
     }
 
+    // ─── Content Safety Guard ───
+    let contentFlags = null;
+    let guardEncryptedPayload = null;
+    const rawQuestion = question || (Array.isArray(messages) && messages.length > 0
+      ? messages.map((m: { content?: string }) => m.content || "").join("\n")
+      : null);
+
+    if (rawQuestion) {
+      const guardResult = await guardValidate(rawQuestion);
+      if (guardResult) {
+        // Verify HMAC token
+        const hmacSecret = process.env.GUARD_HMAC_SECRET || "";
+        if (hmacSecret && !verifyValidationToken(
+          guardResult.validationToken,
+          guardResult.sanitizedText,
+          guardResult.timestamp,
+          guardResult.nonce,
+          hmacSecret
+        )) {
+          return NextResponse.json(
+            { error: "Content validation failed: invalid guard token" },
+            { status: 422 }
+          );
+        }
+
+        if (guardResult.blocked) {
+          return NextResponse.json(
+            { error: "Content blocked by safety filter", flags: guardResult.flags },
+            { status: 422 }
+          );
+        }
+
+        if (guardResult.flags.length > 0) {
+          contentFlags = guardResult.flags;
+        }
+        guardEncryptedPayload = guardResult.encryptedPayload;
+      }
+    }
+
     const refCode = await generateUniqueRefCode();
     const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
@@ -101,6 +142,10 @@ export async function POST(request: Request) {
         consumerPublicKey: publicKey || null,
         serverPublicKey: serverKeyPair?.publicKey || null,
         serverPrivateKey: serverKeyPair?.privateKey || null,
+        
+        // Content safety
+        contentFlags: contentFlags ? JSON.stringify(contentFlags) : null,
+        guardEncryptedPayload: guardEncryptedPayload || null,
       },
     });
 

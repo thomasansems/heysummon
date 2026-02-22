@@ -24,10 +24,11 @@ jobs:
       - name: Get commit info
         id: commit
         run: |
-          echo "message=$(git log -1 --pretty=%B | head -1)" >> $GITHUB_OUTPUT
-          echo "diff<<EOF" >> $GITHUB_OUTPUT
-          git diff HEAD~1 --stat >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Escape for JSON safety
+          MESSAGE=$(git log -1 --pretty=%B | head -1 | jq -Rs '.' | sed 's/^"//;s/"$//')
+          DIFF=$(git diff HEAD~1 --stat | jq -Rs '.' | sed 's/^"//;s/"$//')
+          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+          echo "diff=$DIFF" >> $GITHUB_OUTPUT
 
       - name: Trigger docs update
         uses: peter-evans/repository-dispatch@v3

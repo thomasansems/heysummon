@@ -92,6 +92,9 @@ export const helpCreateSchema = z.object({
   messages: z.array(z.any()).optional(),
   question: z.string().optional(),
   messageCount: z.number().int().min(0).optional(),
+  guardSignature: z.string().optional(),
+  guardTimestamp: z.number().optional(),
+  guardNonce: z.string().optional(),
 });
 
 // ── V1 Key Exchange schema ──

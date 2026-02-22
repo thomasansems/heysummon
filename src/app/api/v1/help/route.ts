@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       guardSignature,
       guardTimestamp,
       guardNonce,
-    } = body;
+    } = parsed.data;
 
     if (!apiKey) {
       return NextResponse.json(

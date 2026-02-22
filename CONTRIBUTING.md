@@ -1,6 +1,6 @@
 # Contributing to HeySummon
 
-Thanks for your interest in contributing! Here's how to get started.
+Thanks for your interest in contributing! This guide covers everything you need to get started.
 
 ## Development Setup
 
@@ -14,28 +14,68 @@ npx prisma db push
 npm run dev
 ```
 
-## Running Tests
-
-```bash
-npm run test          # unit tests (vitest)
-npm run test:watch    # watch mode
-npm run test:e2e      # end-to-end tests (Playwright)
-```
-
-## Pull Request Guidelines
-
-- Branch from `main`
-- Use descriptive commit messages
-- Keep PRs focused — one feature or fix per PR
-- Ensure `npm run test` and `npm run build` pass before submitting
-- Update documentation if applicable
+The app runs on [http://localhost:3000](http://localhost:3000) by default.
 
 ## Code Style
 
-- **TypeScript** throughout
-- **ESLint** for linting (`npm run lint`)
+- **TypeScript** throughout the codebase
+- **ESLint** for linting — run `npm run lint`
+- Uses `next/core-web-vitals` and `next/typescript` ESLint presets
 - Use `@/` path aliases for imports
 - Prefer functional components and server components where possible
+
+## Branch Naming Convention
+
+Use a prefix that describes the type of change:
+
+| Prefix   | Use for                        |
+| -------- | ------------------------------ |
+| `feat/`  | New features                   |
+| `fix/`   | Bug fixes                      |
+| `docs/`  | Documentation changes          |
+
+Examples: `feat/webhook-retry`, `fix/auth-redirect`, `docs/contributing`
+
+## Pull Request Process
+
+1. Branch from `main`
+2. Keep PRs focused — one feature or fix per PR
+3. Write a clear description of **what** changed and **why**
+4. Link related issues (e.g. `Closes #123`)
+5. Ensure all checks pass before requesting review:
+   ```bash
+   npm run lint
+   npm run test
+   npm run build
+   ```
+6. Update documentation if your change affects user-facing behavior
+
+## Testing
+
+### Unit Tests (Vitest)
+
+```bash
+npm run test          # single run
+npm run test:watch    # watch mode
+```
+
+### End-to-End Tests (Playwright)
+
+```bash
+npm run test:e2e      # requires the app to be running
+```
+
+There is also a self-contained E2E script that seeds test data and runs the suite locally:
+
+```bash
+bash e2e/run-local.sh
+```
+
+### Run Everything
+
+```bash
+npm run test:all      # unit + e2e
+```
 
 ## Security Vulnerabilities
 
@@ -44,3 +84,7 @@ npm run test:e2e      # end-to-end tests (Playwright)
 Please report security issues via email to: **security@thomasansems.nl**
 
 Include a description of the vulnerability, steps to reproduce, and any potential impact.
+
+## License
+
+By contributing to HeySummon you agree that your contributions will be licensed under the [Summon Use License (SUL)](LICENSE.md).

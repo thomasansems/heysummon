@@ -39,6 +39,9 @@
   "exclude": [
     "node_modules",
     "relay",
+    "guard",
+    "scripts",
+    "e2e",
     "prisma/seed.ts"
   ]
 }

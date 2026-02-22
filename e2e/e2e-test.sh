@@ -175,6 +175,56 @@ STATUS=$(echo "$STATUS_RESP" | jq -r '.status // "unknown"' 2>/dev/null)
 info "Request status: $STATUS"
 pass "Full circle verified"
 
+# ─── Test 9: Guard — XSS Stripped ───
+echo "── Test 9: Guard — XSS Stripped ──"
+GUARD_URL="${GUARD_URL:-http://localhost:3457}"
+XSS_RESP=$(curl -s -X POST "${GUARD_URL}/validate" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Hello <script>alert(1)</script> world"}' 2>/dev/null || echo "{}")
+XSS_SANITIZED=$(echo "$XSS_RESP" | jq -r '.sanitizedText // empty')
+if echo "$XSS_SANITIZED" | grep -q "script"; then
+  fail "XSS not stripped: $XSS_SANITIZED"
+else
+  [ -n "$XSS_SANITIZED" ] && pass "XSS stripped: '$XSS_SANITIZED'" || info "Guard not available, skipping"
+fi
+
+# ─── Test 10: Guard — URL Defanged ───
+echo "── Test 10: Guard — URL Defanged ──"
+URL_RESP=$(curl -s -X POST "${GUARD_URL}/validate" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Visit https://evil.com/phish for info"}' 2>/dev/null || echo "{}")
+URL_SANITIZED=$(echo "$URL_RESP" | jq -r '.sanitizedText // empty')
+if [ -n "$URL_SANITIZED" ]; then
+  echo "$URL_SANITIZED" | grep -q "hxxps" && pass "URL defanged: '$URL_SANITIZED'" || fail "URL not defanged: $URL_SANITIZED"
+else
+  info "Guard not available, skipping"
+fi
+
+# ─── Test 11: Guard — Credit Card Flagged ───
+echo "── Test 11: Guard — Credit Card Flagged ──"
+CC_RESP=$(curl -s -X POST "${GUARD_URL}/validate" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "My card is 4111111111111111"}' 2>/dev/null || echo "{}")
+CC_BLOCKED=$(echo "$CC_RESP" | jq -r '.blocked // empty')
+if [ -n "$CC_BLOCKED" ]; then
+  [ "$CC_BLOCKED" = "true" ] && pass "Credit card blocked" || fail "Credit card not blocked"
+else
+  info "Guard not available, skipping"
+fi
+
+# ─── Test 12: Guard — Clean Text Passes ───
+echo "── Test 12: Guard — Clean Text Passes ──"
+CLEAN_RESP=$(curl -s -X POST "${GUARD_URL}/validate" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Just a normal help request about coding"}' 2>/dev/null || echo "{}")
+CLEAN_BLOCKED=$(echo "$CLEAN_RESP" | jq -r '.blocked // empty')
+CLEAN_FLAGS=$(echo "$CLEAN_RESP" | jq -r '.flags | length' 2>/dev/null || echo "")
+if [ -n "$CLEAN_BLOCKED" ]; then
+  [ "$CLEAN_BLOCKED" = "false" ] && [ "$CLEAN_FLAGS" = "0" ] && pass "Clean text passes through" || fail "Clean text incorrectly flagged"
+else
+  info "Guard not available, skipping"
+fi
+
 echo ""
 echo "══════════════════════════════════════════"
 echo -e "  ${GREEN}🎉 ALL E2E TESTS PASSED${NC}"

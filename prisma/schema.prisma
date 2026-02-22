@@ -111,6 +111,10 @@ model HelpRequest {
   providerSignPubKey     String?   // Provider's Ed25519 signing public key (after key exchange)
   providerEncryptPubKey  String?   // Provider's X25519 encryption public key (after key exchange)
   
+  // Content safety (guard service)
+  contentFlags           String?   // JSON array of safety flags from guard
+  guardEncryptedPayload  String?   // AES-256-GCM encrypted content from guard (base64)
+  
   status                 String    @default("pending") // pending | active | closed | expired
   expiresAt              DateTime  // createdAt + 72 hours
   closedAt               DateTime?

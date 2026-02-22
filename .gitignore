@@ -7,3 +7,5 @@ tailscale-config/
 *.db
 *.db-journal
 .vercel
+guard/node_modules/
+guard/dist/

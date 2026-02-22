@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
+import { messageCreateSchema, validateBody } from "@/lib/validations";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 
 /**
@@ -96,23 +97,12 @@ export async function POST(
     }
 
     // ── Parse body ──
-    const body = await request.json();
-    const { from, plaintext } = body;
-    let { ciphertext, iv, authTag, signature, messageId } = body;
+    const raw = await request.json();
+    const parsed = validateBody(messageCreateSchema, raw);
+    if (!parsed.success) return parsed.response;
 
-    if (!from) {
-      return NextResponse.json(
-        { error: "from is required" },
-        { status: 400 }
-      );
-    }
-
-    if (from !== "consumer" && from !== "provider") {
-      return NextResponse.json(
-        { error: "from must be 'consumer' or 'provider'" },
-        { status: 400 }
-      );
-    }
+    const { from, plaintext } = parsed.data;
+    let { ciphertext, iv, authTag, signature, messageId } = parsed.data;
 
     // Enforce: callerRole must match "from" claim
     if (from !== callerRole) {

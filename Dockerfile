@@ -29,8 +29,16 @@ COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=deps /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=build /app/prisma ./prisma
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+
+# Create data directory for SQLite and set ownership
+RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
+
+ENV DATABASE_URL="file:/app/data/heysummon.db"
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["node", "server.js"]

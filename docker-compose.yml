@@ -1,20 +1,13 @@
-services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: heysummon
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-heysummon_dev}
-      POSTGRES_DB: heysummon
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U heysummon"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    # No ports exposed — only accessible via internal network
+# Volume backup instructions:
+#   # Create a backup of the SQLite database:
+#   docker run --rm -v heysummon_appdata:/data -v $(pwd):/backup alpine \
+#     cp /data/heysummon.db /backup/heysummon-backup-$(date +%Y%m%d).db
+#
+#   # Restore from backup:
+#   docker run --rm -v heysummon_appdata:/data -v $(pwd):/backup alpine \
+#     cp /backup/heysummon-backup.db /data/heysummon.db
 
+services:
   mercure:
     image: dunglas/mercure
     restart: unless-stopped
@@ -38,12 +31,12 @@ services:
     ports:
       - "${APP_PORT:-3000}:3000"
     depends_on:
-      db:
-        condition: service_healthy
       mercure:
         condition: service_healthy
+    volumes:
+      - appdata:/app/data
     environment:
-      DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
+      DATABASE_URL: file:/app/data/heysummon.db
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET}
       AUTH_GITHUB_ID: ${AUTH_GITHUB_ID:-}
@@ -57,4 +50,4 @@ services:
       retries: 3
 
 volumes:
-  pgdata:
+  appdata:

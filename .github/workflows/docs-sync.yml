@@ -21,19 +21,24 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Get commit info
-        id: commit
+      - name: Get commit info and dispatch
+        env:
+          DOCS_TOKEN: ${{ secrets.DOCS_SYNC_TOKEN }}
         run: |
-          # Escape for JSON safety
-          MESSAGE=$(git log -1 --pretty=%B | head -1 | jq -Rs '.' | sed 's/^"//;s/"$//')
-          DIFF=$(git diff HEAD~1 --stat | jq -Rs '.' | sed 's/^"//;s/"$//')
-          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
-          echo "diff=$DIFF" >> $GITHUB_OUTPUT
-
-      - name: Trigger docs update
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.DOCS_SYNC_TOKEN }}
-          repository: thomasansems/heysummon-docs
-          event-type: platform-update
-          client-payload: '{"commit_message": "${{ steps.commit.outputs.message }}", "diff": "${{ steps.commit.outputs.diff }}", "sha": "${{ github.sha }}"}'
+          MESSAGE=$(git log -1 --pretty=%B | head -1)
+          DIFF=$(git diff HEAD~1 --stat)
+          SHA="${{ github.sha }}"
+          
+          # Build JSON safely with jq
+          PAYLOAD=$(jq -n \
+            --arg msg "$MESSAGE" \
+            --arg diff "$DIFF" \
+            --arg sha "$SHA" \
+            '{commit_message: $msg, diff: $diff, sha: $sha}')
+          
+          # Dispatch via API
+          curl -s -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $DOCS_TOKEN" \
+            "https://api.github.com/repos/thomasansems/heysummon-docs/dispatches" \
+            -d "$(jq -n --argjson payload "$PAYLOAD" '{event_type: "platform-update", client_payload: $payload}')"

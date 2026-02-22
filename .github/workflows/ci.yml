@@ -27,7 +27,11 @@ jobs:
       - run: npm ci
 
       - run: npx prisma generate
+        env:
+          DATABASE_URL: file:./dev.db
 
       - run: npm run lint
 
       - run: npm run build
+        env:
+          DATABASE_URL: file:./dev.db

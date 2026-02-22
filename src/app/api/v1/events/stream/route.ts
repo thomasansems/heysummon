@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
         }
 
         const reader = mercureRes.body.getReader();
-        const decoder = new TextDecoder();
+        const _decoder = new TextDecoder();
 
         while (true) {
           const { done, value } = await reader.read();

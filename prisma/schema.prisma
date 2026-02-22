@@ -113,7 +113,7 @@ model HelpRequest {
   
   // Content safety (guard service)
   contentFlags           String?   // JSON array of safety flags from guard
-  guardEncryptedPayload  String?   // AES-256-GCM encrypted content from guard (base64)
+  guardVerified          Boolean   @default(false) // true if content was validated by guard sidecar
   
   status                 String    @default("pending") // pending | active | closed | expired
   expiresAt              DateTime  // createdAt + 72 hours

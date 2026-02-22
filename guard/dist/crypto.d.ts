@@ -1,10 +1,6 @@
-export interface EncryptedResult {
-    encryptedPayload: string;
-    validationToken: string;
+export interface SignedResult {
+    signature: string;
     timestamp: number;
     nonce: string;
 }
-/**
- * Encrypt content with AES-256-GCM and generate HMAC validation token
- */
-export declare function encryptAndSign(sanitizedText: string): EncryptedResult;
+export declare function signContent(sanitizedText: string): SignedResult;

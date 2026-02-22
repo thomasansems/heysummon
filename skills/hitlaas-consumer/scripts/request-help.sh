@@ -48,7 +48,13 @@ PAYLOAD=$(jq -n \
   --argjson messages "$MESSAGES" \
   '{ question: $question, callbackUrl: $callbackUrl, messages: $messages }')
 
+DEVICE_TOKEN_HEADER=""
+if [ -n "${HEYSUMMON_DEVICE_TOKEN:-}" ]; then
+  DEVICE_TOKEN_HEADER="-H x-device-token: ${HEYSUMMON_DEVICE_TOKEN}"
+fi
+
 curl -sf -X POST "${RELAY_URL}/api/v1/relay/send" \
   -H "Content-Type: application/json" \
   -H "x-api-key: ${HITLAAS_API_KEY}" \
+  ${DEVICE_TOKEN_HEADER:+$DEVICE_TOKEN_HEADER} \
   -d "$PAYLOAD" | jq .

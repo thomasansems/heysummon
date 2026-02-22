@@ -33,7 +33,13 @@ RELAY_URL="${HITLAAS_RELAY_URL:-http://localhost:4000}"
 
 PAYLOAD=$(jq -n --arg response "$RESPONSE_TEXT" '{ response: $response }')
 
+DEVICE_TOKEN_HEADER=""
+if [ -n "${HEYSUMMON_DEVICE_TOKEN:-}" ]; then
+  DEVICE_TOKEN_HEADER="-H x-device-token: ${HEYSUMMON_DEVICE_TOKEN}"
+fi
+
 curl -sf -X POST "${RELAY_URL}/api/v1/relay/respond/${REQUEST_ID}" \
   -H "Content-Type: application/json" \
   -H "x-api-key: ${HITLAAS_API_KEY}" \
+  ${DEVICE_TOKEN_HEADER:+$DEVICE_TOKEN_HEADER} \
   -d "$PAYLOAD" | jq .

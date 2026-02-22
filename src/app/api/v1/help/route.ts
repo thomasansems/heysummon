@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
+import { hashDeviceToken } from "@/lib/api-key-auth";
 
 /**
  * POST /api/v1/help — Submit a help request.
@@ -59,6 +60,17 @@ export async function POST(request: Request) {
         { error: "Invalid or inactive API key" },
         { status: 401 }
       );
+    }
+
+    // Validate device token if key has device binding
+    if (key.deviceSecret) {
+      const deviceToken = request.headers.get("x-device-token");
+      if (!deviceToken || hashDeviceToken(deviceToken) !== key.deviceSecret) {
+        return NextResponse.json(
+          { error: "Invalid or missing device token" },
+          { status: 403 }
+        );
+      }
     }
 
     const refCode = await generateUniqueRefCode();

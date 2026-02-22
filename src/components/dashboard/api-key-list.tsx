@@ -17,6 +17,8 @@ export function ApiKeyList() {
   const [newKeyName, setNewKeyName] = useState("");
   const [creating, setCreating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [newDeviceSecret, setNewDeviceSecret] = useState<string | null>(null);
+  const [copiedDeviceSecret, setCopiedDeviceSecret] = useState(false);
 
   async function loadKeys() {
     const res = await fetch("/api/keys");
@@ -32,11 +34,15 @@ export function ApiKeyList() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
-    await fetch("/api/keys", {
+    const res = await fetch("/api/keys", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newKeyName }),
     });
+    const data = await res.json();
+    if (data.deviceSecret) {
+      setNewDeviceSecret(data.deviceSecret);
+    }
     setNewKeyName("");
     setCreating(false);
     await loadKeys();
@@ -71,6 +77,43 @@ export function ApiKeyList() {
           {creating ? "Creating..." : "Create Key"}
         </button>
       </form>
+
+      {newDeviceSecret && (
+        <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-lg">⚠️</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-amber-300">
+                Device Token — Save this now!
+              </p>
+              <p className="mt-1 text-xs text-amber-400/80">
+                This token is shown only once and cannot be retrieved later. Store it securely.
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <code className="rounded bg-zinc-800 px-2.5 py-1 text-xs text-amber-200 break-all">
+                  {newDeviceSecret}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(newDeviceSecret);
+                    setCopiedDeviceSecret(true);
+                    setTimeout(() => setCopiedDeviceSecret(false), 2000);
+                  }}
+                  className="whitespace-nowrap text-xs text-amber-400 hover:text-amber-300"
+                >
+                  {copiedDeviceSecret ? "Copied!" : "Copy"}
+                </button>
+              </div>
+              <button
+                onClick={() => setNewDeviceSecret(null)}
+                className="mt-3 text-xs text-zinc-500 hover:text-zinc-400"
+              >
+                I&apos;ve saved it — dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">

@@ -34,9 +34,19 @@ jobs:
             --arg sha "${{ github.sha }}" \
             '{version: $ver, release_notes: $body, diff: $diff, sha: $sha}')
           
-          # Dispatch to docs repo
-          curl -s -X POST \
+          # Dispatch to docs repo — fail on error
+          HTTP_CODE=$(curl -s -o /tmp/response.json -w "%{http_code}" -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $DOCS_TOKEN" \
             "https://api.github.com/repos/thomasansems/heysummon-docs/dispatches" \
-            -d "$(jq -n --argjson payload "$PAYLOAD" '{event_type: "platform-update", client_payload: $payload}')"
+            -d "$(jq -n --argjson payload "$PAYLOAD" '{event_type: "platform-update", client_payload: $payload}')")
+          
+          echo "HTTP status: $HTTP_CODE"
+          cat /tmp/response.json
+          
+          if [ "$HTTP_CODE" != "204" ]; then
+            echo "::error::Dispatch failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+          
+          echo "✅ Dispatch successful"

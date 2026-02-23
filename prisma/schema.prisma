@@ -166,3 +166,18 @@ model ClientCertificate {
   @@index([userId])
   @@index([fingerprint])
 }
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  eventType String
+  userId    String?
+  apiKeyId  String?
+  ip        String?
+  userAgent String?
+  metadata  String?  // JSON string
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([eventType, createdAt])
+  @@index([userId])
+}

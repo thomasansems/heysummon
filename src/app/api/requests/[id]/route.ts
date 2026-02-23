@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { decryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
 import { requestPatchSchema, validateBody } from "@/lib/validations";
+import { logAuditEvent, AuditEventType } from "@/lib/audit";
 
 export async function GET(
   _request: Request,
@@ -138,6 +139,14 @@ export async function PATCH(
       status: "responded",
     });
   } catch { /* non-fatal */ }
+
+  logAuditEvent({
+    eventType: AuditEventType.PROVIDER_RESPONSE,
+    userId: user.id,
+    success: true,
+    metadata: { requestId: id, refCode: updated.refCode },
+    request,
+  });
 
   return NextResponse.json({
     request: {

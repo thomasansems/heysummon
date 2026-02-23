@@ -5,6 +5,7 @@ import Email from "next-auth/providers/email";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
+import { logAuditEvent, AuditEventType } from "./audit";
 import bcrypt from "bcryptjs";
 
 // Feature flags — control which login methods are available
@@ -36,10 +37,32 @@ if (AUTH_FLAGS.formLogin) {
         const password = credentials.password as string;
 
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user || !user.password) return null;
+        if (!user || !user.password) {
+          logAuditEvent({
+            eventType: AuditEventType.LOGIN_FAILURE,
+            success: false,
+            metadata: { email, reason: "user_not_found" },
+          });
+          return null;
+        }
 
         const valid = await bcrypt.compare(password, user.password);
-        if (!valid) return null;
+        if (!valid) {
+          logAuditEvent({
+            eventType: AuditEventType.LOGIN_FAILURE,
+            userId: user.id,
+            success: false,
+            metadata: { email, reason: "invalid_password" },
+          });
+          return null;
+        }
+
+        logAuditEvent({
+          eventType: AuditEventType.LOGIN_SUCCESS,
+          userId: user.id,
+          success: true,
+          metadata: { email, provider: "credentials" },
+        });
 
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },
@@ -111,6 +134,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     signIn: "/auth/login",
     verifyRequest: "/auth/verify",
+  },
+  events: {
+    async signIn({ user, account }) {
+      if (account?.provider && account.provider !== "credentials") {
+        logAuditEvent({
+          eventType: AuditEventType.LOGIN_SUCCESS,
+          userId: user?.id || null,
+          success: true,
+          metadata: { provider: account.provider, email: user?.email },
+        });
+      }
+    },
   },
   callbacks: {
     async jwt({ token, user }) {

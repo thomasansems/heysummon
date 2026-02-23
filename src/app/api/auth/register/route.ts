@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logAuditEvent, AuditEventType } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 
 /**
@@ -50,6 +51,14 @@ export async function POST(request: NextRequest) {
         name: name?.trim() || null,
         emailVerified: new Date(), // Auto-verified for self-hosted simplicity
       },
+    });
+
+    logAuditEvent({
+      eventType: AuditEventType.ACCOUNT_CREATED,
+      userId: user.id,
+      success: true,
+      metadata: { email: emailNorm },
+      request,
     });
 
     return NextResponse.json({

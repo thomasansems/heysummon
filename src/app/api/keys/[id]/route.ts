@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { keyUpdateSchema, validateBody } from "@/lib/validations";
+import { logAuditEvent, AuditEventType, redactApiKey } from "@/lib/audit";
 
 export async function PATCH(
   request: Request,
@@ -32,6 +33,15 @@ export async function PATCH(
     where: { id },
     data,
     select: { id: true, name: true, isActive: true },
+  });
+
+  logAuditEvent({
+    eventType: AuditEventType.API_KEY_ROTATED,
+    userId: user.id,
+    apiKeyId: id,
+    success: true,
+    metadata: { changes: body, keyHint: redactApiKey(key.key) },
+    request,
   });
 
   return NextResponse.json({ key: updated });
@@ -68,6 +78,15 @@ export async function DELETE(
   }
 
   await prisma.apiKey.delete({ where: { id } });
+
+  logAuditEvent({
+    eventType: AuditEventType.API_KEY_DELETED,
+    userId: user.id,
+    apiKeyId: id,
+    success: true,
+    metadata: { keyHint: redactApiKey(key.key), deletedRequests: requests.length },
+    request: _request,
+  });
 
   return NextResponse.json({ success: true, deletedRequests: requests.length });
 }

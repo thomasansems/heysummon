@@ -45,7 +45,7 @@ Think of it as **a pager for your AI agents**: when they hit a wall, they summon
 
 ## Quick Start
 
-### Docker (recommended)
+### Docker (Recommended)
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
@@ -54,9 +54,26 @@ cp .env.example .env        # edit secrets
 docker compose up -d
 ```
 
-The app is available at `http://localhost:3000`. Default auth is email + password (OAuth is opt-in).
+The app is available at `http://localhost:3000` via Guard. Ed25519 keys are auto-generated.
 
-### Manual Setup
+### Make it Public
+
+Add a tunnel to expose your instance to the internet:
+
+```bash
+# Cloudflare Tunnel (recommended for production)
+docker compose --profile cloudflare up -d
+
+# Tailscale Funnel (great for teams)
+docker compose --profile tailscale up -d
+
+# Ngrok (quick testing)
+docker compose --profile ngrok up -d
+```
+
+See **[Self-Hosting Guide](docs/SELF-HOSTING.md)** for setup instructions per provider.
+
+### Without Docker (Development)
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
@@ -71,24 +88,28 @@ npm run dev
 ## Architecture
 
 ```
-┌─────────────┐         ┌──────────────────────────────────┐         ┌─────────────┐
-│  AI Agent   │         │        HeySummon Platform         │         │   Human     │
-│  (Consumer) │         │                                  │         │  (Provider) │
-├─────────────┤  HTTPS  ├──────────────────────────────────┤  HTTPS  ├─────────────┤
-│             │────────▶│  Next.js App Router              │◀────────│  Dashboard  │
-│ POST /v1/   │         │  ┌────────┐  ┌───────────────┐  │   SSE   │  /dashboard │
-│   help      │         │  │ Prisma │──│ Postgres/SQLite│  │◀───────▶│             │
-│             │         │  └────────┘  └───────────────┘  │         │             │
-│ GET /v1/    │         │  ┌─────────────────────────┐    │         │             │
-│   help/:id  │◀────────│  │  Mercure (internal SSE) │    │         │             │
-│             │   SSE   │  └─────────────────────────┘    │         │             │
-└─────────────┘  proxy  └──────────────────────────────────┘         └─────────────┘
+                    ┌─────────────────────────────────────────────────────────┐
+                    │              Docker (internal network)                  │
+┌──────────┐       │  ┌─────────┐      ┌──────────┐      ┌──────────┐      │  ┌──────────┐
+│ AI Agent │──────▶│  │  Guard  │─────▶│ Platform │─────▶│ Postgres │      │  │  Human   │
+│(Consumer)│ HTTPS │  │  :3000  │      │(internal)│      └──────────┘      │  │(Provider)│
+└──────────┘       │  │Ed25519  │      │ Next.js  │      ┌──────────┐      │  │Dashboard │
+                   │  │signing  │      │          │─────▶│ Mercure  │──SSE─│─▶│          │
+                   │  └─────────┘      └──────────┘      │(internal)│      │  └──────────┘
+                   │       ▲                              └──────────┘      │
+                   │       │                                               │
+                   │  ┌─────────┐  (optional)                              │
+                   │  │ Tunnel  │  Cloudflare / Tailscale / Ngrok          │
+                   │  └─────────┘                                          │
+                   └─────────────────────────────────────────────────────────┘
 ```
 
 **Key points:**
+- **Guard** is the single entry point — validates requests, adds Ed25519 signatures
+- **Platform** runs on an internal network with no exposed ports
 - Mercure is internal only — clients connect via the Next.js SSE proxy
 - E2E encryption means the platform stores ciphertext it cannot read
-- Polling fallback available for environments where SSE isn't viable
+- Tunnel profiles (Cloudflare/Tailscale/Ngrok) route through Guard, never directly to Platform
 
 ## API Overview
 

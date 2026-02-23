@@ -61,6 +61,11 @@ app.use((req, res, next) => {
       const receipt = createReceipt("");
       req.headers["x-guard-receipt"] = receipt.token;
       req.headers["x-guard-receipt-sig"] = receipt.signature;
+      // Re-serialize body since express.json() consumed the raw stream
+      const serialized = JSON.stringify(body);
+      req.headers["content-length"] = Buffer.byteLength(serialized).toString();
+      (req as any)._body = true;
+      (req as any)._serializedBody = serialized;
       return next();
     }
 
@@ -78,7 +83,7 @@ app.use((req, res, next) => {
     req.headers["x-guard-receipt"] = receipt.token;
     req.headers["x-guard-receipt-sig"] = receipt.signature;
 
-    // If content was sanitized, update the body
+    // Update body if sanitized
     if (safety.sanitizedText !== text) {
       if (body.question) {
         body.question = safety.sanitizedText;
@@ -86,13 +91,15 @@ app.use((req, res, next) => {
       if (body.plaintext) {
         body.plaintext = safety.sanitizedText;
       }
-      // Re-serialize body so the proxy sends the sanitized version
-      const serialized = JSON.stringify(body);
-      req.headers["content-length"] = Buffer.byteLength(serialized).toString();
-      (req as any)._body = true;
-      (req as any).body = body;
-      (req as any)._serializedBody = serialized;
     }
+
+    // Always re-serialize body for proxying — express.json() consumes the
+    // raw stream so http-proxy-middleware can't re-stream it
+    const serialized = JSON.stringify(body);
+    req.headers["content-length"] = Buffer.byteLength(serialized).toString();
+    (req as any)._body = true;
+    (req as any).body = body;
+    (req as any)._serializedBody = serialized;
 
     next();
   } catch (err) {

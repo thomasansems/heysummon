@@ -8,7 +8,7 @@ import { publishToMercure } from "@/lib/mercure";
 import { helpCreateSchema, validateBody } from "@/lib/validations";
 import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { hashDeviceToken } from "@/lib/api-key-auth";
-import { logAuditEvent, AuditEventType, redactApiKey } from "@/lib/audit";
+import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 
 const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
 
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
     }
 
     logAuditEvent({
-      eventType: AuditEventType.HELP_REQUEST_SUBMITTED,
+      eventType: AuditEventTypes.HELP_REQUEST_SUBMITTED,
       userId: key.userId,
       apiKeyId: key.id,
       success: true,

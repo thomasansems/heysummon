@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 
-export const AuditEventType = {
+export const AuditEventTypes = {
   LOGIN_SUCCESS: "LOGIN_SUCCESS",
   LOGIN_FAILURE: "LOGIN_FAILURE",
   ACCOUNT_CREATED: "ACCOUNT_CREATED",
@@ -13,7 +13,7 @@ export const AuditEventType = {
   PROVIDER_RESPONSE: "PROVIDER_RESPONSE",
 } as const;
 
-export type AuditEventType = (typeof AuditEventType)[keyof typeof AuditEventType];
+export type AuditEventType = (typeof AuditEventTypes)[keyof typeof AuditEventTypes];
 
 export interface AuditEventDetails {
   eventType: AuditEventType;

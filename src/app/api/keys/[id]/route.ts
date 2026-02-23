@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { keyUpdateSchema, validateBody } from "@/lib/validations";
-import { logAuditEvent, AuditEventType, redactApiKey } from "@/lib/audit";
+import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 
 export async function PATCH(
   request: Request,
@@ -36,7 +36,7 @@ export async function PATCH(
   });
 
   logAuditEvent({
-    eventType: AuditEventType.API_KEY_ROTATED,
+    eventType: AuditEventTypes.API_KEY_ROTATED,
     userId: user.id,
     apiKeyId: id,
     success: true,
@@ -80,7 +80,7 @@ export async function DELETE(
   await prisma.apiKey.delete({ where: { id } });
 
   logAuditEvent({
-    eventType: AuditEventType.API_KEY_DELETED,
+    eventType: AuditEventTypes.API_KEY_DELETED,
     userId: user.id,
     apiKeyId: id,
     success: true,

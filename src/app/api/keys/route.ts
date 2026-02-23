@@ -3,7 +3,7 @@ import { getCurrentUser, generateApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { keyCreateSchema, validateBody } from "@/lib/validations";
 import { generateDeviceSecret, hashDeviceToken } from "@/lib/api-key-auth";
-import { logAuditEvent, AuditEventType, redactApiKey } from "@/lib/audit";
+import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   const key = await prisma.apiKey.create({ data });
 
   logAuditEvent({
-    eventType: AuditEventType.API_KEY_CREATED,
+    eventType: AuditEventTypes.API_KEY_CREATED,
     userId: user.id,
     apiKeyId: key.id,
     success: true,

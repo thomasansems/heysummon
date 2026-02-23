@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
 import { keyExchangeSchema, validateBody } from "@/lib/validations";
-import { logAuditEvent, AuditEventType } from "@/lib/audit";
+import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
 /**
  * POST /api/v1/key-exchange/:requestId — Provider sends their public keys
@@ -79,7 +79,7 @@ export async function POST(
     }
 
     logAuditEvent({
-      eventType: AuditEventType.KEY_EXCHANGE,
+      eventType: AuditEventTypes.KEY_EXCHANGE,
       userId: helpRequest.expertId,
       success: true,
       metadata: { requestId },

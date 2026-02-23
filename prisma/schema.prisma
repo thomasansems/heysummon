@@ -24,6 +24,7 @@ model User {
   requests           HelpRequest[] @relation("ExpertRequests")
   accounts           Account[]
   sessions           Session[]
+  certificates       ClientCertificate[]
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 }
@@ -63,14 +64,18 @@ model VerificationToken {
 }
 
 model Provider {
-  id        String   @id @default(cuid())
-  name      String
-  key       String   @unique
-  userId    String
-  isActive  Boolean  @default(true)
-  user      User     @relation(fields: [userId], references: [id])
-  apiKeys   ApiKey[]
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  name            String
+  key             String   @unique
+  userId          String
+  isActive        Boolean  @default(true)
+  timezone        String?
+  quietHoursStart String?
+  quietHoursEnd   String?
+  digestTime      String?
+  user            User     @relation(fields: [userId], references: [id])
+  apiKeys         ApiKey[]
+  createdAt       DateTime @default(now())
 }
 
 model ApiKey {
@@ -143,4 +148,21 @@ model Message {
   
   @@index([requestId])
   @@index([messageId])
+}
+
+model ClientCertificate {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  fingerprint   String    @unique
+  serialNumber  String    @unique
+  notBefore     DateTime
+  notAfter      DateTime
+  revoked       Boolean   @default(false)
+  revokedAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([fingerprint])
 }

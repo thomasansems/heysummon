@@ -49,6 +49,10 @@ export const providerCreateSchema = z.object({
 export const providerUpdateSchema = z.object({
   name: z.string().optional(),
   isActive: z.boolean().optional(),
+  timezone: z.string().optional(),
+  quietHoursStart: z.string().optional(),
+  quietHoursEnd: z.string().optional(),
+  digestTime: z.string().optional(),
 });
 
 // ── Key schemas ──
@@ -111,4 +115,11 @@ export const messageCreateSchema = z.object({
   authTag: z.string().optional(),
   signature: z.string().optional(),
   messageId: z.string().optional(),
+});
+
+// ── Certificate schemas (cloud-only) ──
+
+export const certificateCreateSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100).transform((s) => s.trim()),
+  validityDays: z.number().int().min(1).max(3650).optional(),
 });

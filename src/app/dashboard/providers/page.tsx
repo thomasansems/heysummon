@@ -185,6 +185,7 @@ export default function ProvidersPage() {
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <a href={`/dashboard/providers/${p.id}/settings`} className="text-xs text-violet-600 hover:text-violet-800">Settings</a>
                       {p.isActive ? (
                         <button onClick={() => toggleProvider(p.id, false)} className="text-xs text-red-500 hover:text-red-700">Deactivate</button>
                       ) : (

@@ -1,7 +1,31 @@
 services:
+  # ── Key Generation (runs once on first startup) ──
+  guard-keygen:
+    build: ./guard
+    entrypoint: ["sh", "-c", "
+      if [ ! -f /keys/.guard-keys-generated ]; then
+        node -e \"
+          const nacl = require('tweetnacl');
+          const kp = nacl.sign.keyPair();
+          const priv = Buffer.from(kp.secretKey).toString('hex');
+          const pub = Buffer.from(kp.publicKey).toString('hex');
+          require('fs').writeFileSync('/keys/guard-signing-key', priv);
+          require('fs').writeFileSync('/keys/guard-public-key', pub);
+          require('fs').writeFileSync('/keys/.guard-keys-generated', 'done');
+          console.log('Guard Ed25519 keys generated.');
+        \";
+      else
+        echo 'Guard keys already exist, skipping generation.';
+      fi
+    "]
+    volumes:
+      - guard-keys:/keys
+
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    networks:
+      - backend
     environment:
       POSTGRES_USER: heysummon
       POSTGRES_PASSWORD: ${DB_PASSWORD:-heysummon_dev}
@@ -13,11 +37,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-    # No ports exposed — only accessible via internal network
 
   mercure:
     image: dunglas/mercure
     restart: unless-stopped
+    networks:
+      - backend
     environment:
       SERVER_NAME: ':3000'
       MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:?Set MERCURE_JWT_SECRET}
@@ -29,9 +54,9 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-    # No ports exposed — only accessible via internal network
-    # Anonymous subscribers DISABLED by default (no MERCURE_EXTRA_DIRECTIVES: anonymous)
 
+  # ── Guard: Single entry point (reverse proxy) ──
+  # All external traffic goes through Guard first.
   heysummon-guard:
     build: ./guard
     restart: unless-stopped
@@ -39,26 +64,45 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    ports:
+      - "${GUARD_PORT:-3000}:3000"
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      guard-keygen:
+        condition: service_completed_successfully
+      app:
+        condition: service_healthy
     environment:
-      GUARD_HMAC_SECRET: ${GUARD_HMAC_SECRET:-}
+      PORT: "3000"
+      PLATFORM_URL: http://app:3000
+      GUARD_SIGNING_KEY_FILE: /keys/guard-signing-key
+    entrypoint: ["sh", "-c", "
+      export GUARD_SIGNING_KEY=$$(cat /keys/guard-signing-key);
+      exec node dist/index.js
+    "]
+    volumes:
+      - guard-keys:/keys:ro
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3457/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
       interval: 5s
       timeout: 3s
       retries: 5
-    # NO external ports — internal only
 
+  # ── Platform: Internal only (no exposed ports) ──
   app:
     build: .
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-3000}:3000"
+    # NO external ports — only reachable via Guard on the backend network
+    networks:
+      - backend
     depends_on:
+      guard-keygen:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       mercure:
-        condition: service_healthy
-      heysummon-guard:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
@@ -68,13 +112,27 @@ services:
       AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET:-}
       MERCURE_HUB_URL: http://mercure:3000/.well-known/mercure
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
-      GUARD_URL: http://heysummon-guard:3457
-      GUARD_HMAC_SECRET: ${GUARD_HMAC_SECRET:-}
+      GUARD_PUBLIC_KEY_FILE: /keys/guard-public-key
+      REQUIRE_GUARD: "true"
+    entrypoint: ["sh", "-c", "
+      export GUARD_PUBLIC_KEY=$$(cat /keys/guard-public-key);
+      exec node server.js
+    "]
+    volumes:
+      - guard-keys:/keys:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 3
 
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true  # No external access — Platform is isolated
+
 volumes:
   pgdata:
+  guard-keys:

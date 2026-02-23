@@ -89,8 +89,9 @@ if [ "$MSG_COUNT" -ge 4 ]; then
   fi
 
   # Verify chronological order (each createdAt >= previous)
-  TIMESTAMPS=$(echo "$MESSAGES" | jq '[.messages[].createdAt] | sort == [.messages[].createdAt]')
-  [ "$TIMESTAMPS" = "true" ] && pass "Messages in chronological order" || fail "Messages not in chronological order"
+  # Use reduce to check each timestamp is >= previous (handles equal timestamps from rapid sends)
+  ORDERED=$(echo "$MESSAGES" | jq '[.messages[].createdAt] | . as $ts | reduce range(1; length) as $i (true; . and ($ts[$i] >= $ts[$i-1]))')
+  [ "$ORDERED" = "true" ] && pass "Messages in chronological order" || fail "Messages not in chronological order"
 else
   fail "Expected at least 4 messages, got $MSG_COUNT"
 fi

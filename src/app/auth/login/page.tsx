@@ -156,7 +156,6 @@ function LoginForm() {
             href="/"
             className="mb-4 inline-flex items-center gap-2 text-lg font-bold text-black"
           >
-            <img src="/lobster-icon.png" alt="HeySummon" className="h-8 w-8 rounded-lg" />
             HeySummon
           </Link>
           <h1 className="mt-6 text-2xl font-semibold text-black">

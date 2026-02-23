@@ -13,5 +13,5 @@ COPY --from=builder /app/package.json /app/package-lock.json* ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 USER guard
-EXPOSE 3457
+EXPOSE 3000
 CMD ["node", "dist/index.js"]

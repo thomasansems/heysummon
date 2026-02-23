@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const parsed = validateBody(keyCreateSchema, raw);
   if (!parsed.success) return parsed.response;
 
-  const { name, providerId } = parsed.data;
+  const { name, providerId, scope, allowedIps, rateLimitPerMinute } = parsed.data;
 
   // Generate device secret
   const deviceSecretPlaintext = generateDeviceSecret();
@@ -43,6 +43,9 @@ export async function POST(request: Request) {
     name: name || null,
     userId: user.id,
     deviceSecret: deviceSecretHash,
+    ...(scope && { scope }),
+    ...(allowedIps !== undefined && { allowedIps: allowedIps || null }),
+    ...(rateLimitPerMinute && { rateLimitPerMinute }),
   };
 
   if (providerId) {

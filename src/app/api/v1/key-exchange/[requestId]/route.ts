@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
 import { keyExchangeSchema, validateBody } from "@/lib/validations";
+import { sanitizeError } from "@/lib/api-key-auth";
 
 /**
  * POST /api/v1/key-exchange/:requestId — Provider sends their public keys
@@ -82,7 +83,7 @@ export async function POST(
       status: "active",
     });
   } catch (err) {
-    console.error("Key exchange error:", err);
+    console.error("Key exchange error:", sanitizeError(err));
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

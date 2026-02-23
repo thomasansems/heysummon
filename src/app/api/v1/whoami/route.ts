@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { validateApiKeyRequest } from "@/lib/api-key-auth";
+import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 
 /**
  * GET /api/v1/whoami — Get info about a client API key
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (err) {
-    console.error("Whoami error:", err);
+    console.error("Whoami error:", sanitizeError(err));
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

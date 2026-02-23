@@ -79,18 +79,25 @@ model Provider {
 }
 
 model ApiKey {
-  id           String        @id @default(cuid())
-  key          String        @unique
-  name         String?
-  userId       String
-  user         User          @relation(fields: [userId], references: [id])
-  providerId   String?
-  provider     Provider?     @relation(fields: [providerId], references: [id])
-  isActive     Boolean       @default(true)
-  deviceSecret String?       // SHA-256 hash of device token (nullable for legacy keys)
-  machineId    String?       // SHA-256 hash of machine fingerprint (auto-bound on first valid request)
-  requests     HelpRequest[]
-  createdAt    DateTime      @default(now())
+  id                   String        @id @default(cuid())
+  key                  String        @unique
+  name                 String?
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id])
+  providerId           String?
+  provider             Provider?     @relation(fields: [providerId], references: [id])
+  isActive             Boolean       @default(true)
+  deviceSecret         String?       // SHA-256 hash of device token (nullable for legacy keys)
+  machineId            String?       // SHA-256 hash of machine fingerprint (auto-bound on first valid request)
+  scope                String        @default("full")    // full|read|write|admin
+  previousKeyHash      String?                            // SHA-256 of rotated-out key
+  previousKeyExpiresAt DateTime?                           // 24h grace window
+  allowedIps           String?                             // comma-separated CIDR/IPs
+  rateLimitPerMinute   Int           @default(100)
+  requests             HelpRequest[]
+  createdAt            DateTime      @default(now())
+
+  @@index([previousKeyHash])
 }
 
 model HelpRequest {

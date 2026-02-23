@@ -7,7 +7,7 @@ import { generateKeyPair, encryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
 import { helpCreateSchema, validateBody } from "@/lib/validations";
 import { verifyGuardReceipt } from "@/lib/guard-crypto";
-import { hashDeviceToken } from "@/lib/api-key-auth";
+import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 
 const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
 
@@ -55,29 +55,13 @@ export async function POST(request: Request) {
       }
     }
 
-    // Validate API key
-    const key = await prisma.apiKey.findUnique({
-      where: { key: apiKey },
+    // Validate API key (body apiKey or x-api-key header, with full enhanced checks)
+    const authResult = await validateApiKeyRequest(request, {
       include: { user: true },
+      apiKeyOverride: apiKey,
     });
-
-    if (!key || !key.isActive) {
-      return NextResponse.json(
-        { error: "Invalid or inactive API key" },
-        { status: 401 }
-      );
-    }
-
-    // Validate device token if key has device binding
-    if (key.deviceSecret) {
-      const deviceToken = request.headers.get("x-device-token");
-      if (!deviceToken || hashDeviceToken(deviceToken) !== key.deviceSecret) {
-        return NextResponse.json(
-          { error: "Invalid or missing device token" },
-          { status: 403 }
-        );
-      }
-    }
+    if (!authResult.ok) return authResult.response;
+    const key = authResult.apiKey;
 
     // ─── Guard Receipt Verification (Ed25519) ───
     const receiptB64 = request.headers.get("x-guard-receipt");
@@ -181,7 +165,7 @@ export async function POST(request: Request) {
       ...(serverKeyPair && { serverPublicKey: serverKeyPair.publicKey }),
     });
   } catch (err) {
-    console.error("Help request error:", err);
+    console.error("Help request error:", sanitizeError(err));
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

@@ -2,10 +2,12 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 
 /**
  * GET /api/v1/messages/:requestId — Fetch message history
  *
+ * Authentication: x-api-key header required.
  * Returns encrypted message blobs. Client must decrypt them locally
  * using the shared secret derived from X25519 DH + HKDF.
  *
@@ -17,6 +19,10 @@ export async function GET(
 ) {
   try {
     const { requestId } = await params;
+
+    // Authenticate via API key
+    const authResult = await validateApiKeyRequest(request);
+    if (!authResult.ok) return authResult.response;
 
     // Find the help request
     const helpRequest = await prisma.helpRequest.findUnique({
@@ -59,7 +65,7 @@ export async function GET(
       expiresAt: helpRequest.expiresAt.toISOString(),
     });
   } catch (err) {
-    console.error("Fetch messages error:", err);
+    console.error("Fetch messages error:", sanitizeError(err));
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

@@ -56,6 +56,11 @@ app.use((req, res, next) => {
             const receipt = (0, crypto_1.createReceipt)("");
             req.headers["x-guard-receipt"] = receipt.token;
             req.headers["x-guard-receipt-sig"] = receipt.signature;
+            // Re-serialize body since express.json() consumed the raw stream
+            const serialized = JSON.stringify(body);
+            req.headers["content-length"] = Buffer.byteLength(serialized).toString();
+            req._body = true;
+            req._serializedBody = serialized;
             return next();
         }
         const safety = (0, content_safety_1.validateContent)(text);
@@ -69,7 +74,7 @@ app.use((req, res, next) => {
         const receipt = (0, crypto_1.createReceipt)(safety.sanitizedText);
         req.headers["x-guard-receipt"] = receipt.token;
         req.headers["x-guard-receipt-sig"] = receipt.signature;
-        // If content was sanitized, update the body
+        // Update body if sanitized
         if (safety.sanitizedText !== text) {
             if (body.question) {
                 body.question = safety.sanitizedText;
@@ -77,13 +82,14 @@ app.use((req, res, next) => {
             if (body.plaintext) {
                 body.plaintext = safety.sanitizedText;
             }
-            // Re-serialize body so the proxy sends the sanitized version
-            const serialized = JSON.stringify(body);
-            req.headers["content-length"] = Buffer.byteLength(serialized).toString();
-            req._body = true;
-            req.body = body;
-            req._serializedBody = serialized;
         }
+        // Always re-serialize body for proxying — express.json() consumes the
+        // raw stream so http-proxy-middleware can't re-stream it
+        const serialized = JSON.stringify(body);
+        req.headers["content-length"] = Buffer.byteLength(serialized).toString();
+        req._body = true;
+        req.body = body;
+        req._serializedBody = serialized;
         next();
     }
     catch (err) {
@@ -110,13 +116,9 @@ const proxy = (0, http_proxy_middleware_1.createProxyMiddleware)({
         },
     },
 });
-app.use("/api", proxy);
-// ── Proxy everything else too (frontend assets, auth, etc.) ──
-const catchAllProxy = (0, http_proxy_middleware_1.createProxyMiddleware)({
-    target: PLATFORM_URL,
-    changeOrigin: true,
-});
-app.use(catchAllProxy);
+// Proxy all requests to Platform. Do NOT use app.use("/api", ...) because
+// Express strips the mount path — /api/v1/help would become /v1/help → 404.
+app.use(proxy);
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Guard reverse proxy listening on :${PORT}`);
     console.log(`Proxying to Platform at ${PLATFORM_URL}`);

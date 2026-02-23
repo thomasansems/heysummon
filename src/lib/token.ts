@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 
-const SECRET = process.env.VERIFY_SECRET || "hitlaas-default-secret-change-me";
+const SECRET = process.env.VERIFY_SECRET || "heysummon-default-secret-change-me";
 
 export function createVerifyToken(email: string): string {
   const payload = Buffer.from(JSON.stringify({ email, ts: Date.now() })).toString("base64url");

@@ -114,6 +114,7 @@ services:
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
       GUARD_PUBLIC_KEY_FILE: /keys/guard-public-key
       REQUIRE_GUARD: "true"
+      HEYSUMMON_PUBLIC_URL: ${HEYSUMMON_PUBLIC_URL:-}
     entrypoint: ["sh", "-c", "
       export GUARD_PUBLIC_KEY=$$(cat /keys/guard-public-key);
       exec node server.js
@@ -126,6 +127,81 @@ services:
       timeout: 5s
       retries: 3
 
+  # ── Tunnel Services (activate with --profile) ──
+
+  # Cloudflare Tunnel: docker compose --profile cloudflare up -d
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: ["cloudflare"]
+    command: tunnel --no-autoupdate run
+    networks:
+      - frontend
+    depends_on:
+      heysummon-guard:
+        condition: service_healthy
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN}
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # Tailscale Funnel: docker compose --profile tailscale up -d
+  tailscale:
+    image: tailscale/tailscale:latest
+    restart: unless-stopped
+    profiles: ["tailscale"]
+    hostname: heysummon
+    networks:
+      - frontend
+    depends_on:
+      heysummon-guard:
+        condition: service_healthy
+    environment:
+      TS_AUTHKEY: ${TAILSCALE_AUTHKEY:?Set TAILSCALE_AUTHKEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_EXTRA_ARGS: --advertise-tags=tag:heysummon
+      TS_SERVE_CONFIG: /config/serve.json
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - ./tailscale-config:/config:ro
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    healthcheck:
+      test: ["CMD", "tailscale", "status", "--json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Ngrok: docker compose --profile ngrok up -d
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    profiles: ["ngrok"]
+    command: http heysummon-guard:3000 --log stdout ${NGROK_DOMAIN:+--domain=${NGROK_DOMAIN}}
+    networks:
+      - frontend
+    depends_on:
+      heysummon-guard:
+        condition: service_healthy
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Set NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4040/status"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 networks:
   frontend:
     driver: bridge
@@ -136,3 +212,4 @@ networks:
 volumes:
   pgdata:
   guard-keys:
+  tailscale-state:

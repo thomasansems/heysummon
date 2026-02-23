@@ -6,8 +6,7 @@ import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
 import { helpCreateSchema, validateBody } from "@/lib/validations";
-import { validateContent as guardValidate } from "@/lib/guard-client";
-import { verifyValidationToken } from "@/lib/guard-crypto";
+import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 
 const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
@@ -15,13 +14,13 @@ const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
 /**
  * POST /api/v1/help — Submit a help request.
  *
- * Guard flow (pre-flight validation):
- *   1. Skill calls Guard → gets signature
- *   2. Skill calls this endpoint with guardSignature, guardTimestamp, guardNonce
- *   3. Platform verifies HMAC(question + timestamp + nonce) matches signature
+ * Guard reverse proxy flow:
+ *   1. SDK sends request to Guard (single entry point)
+ *   2. Guard validates content, signs Ed25519 receipt, proxies to Platform
+ *   3. Platform verifies X-Guard-Receipt header
  *
- * If REQUIRE_GUARD=true, guard signature fields are mandatory.
- * If not set, guard is optional (backward compatible).
+ * If REQUIRE_GUARD=true, a valid guard receipt is mandatory.
+ * If not set, guard is optional (backward compatible for dev without Guard).
  */
 export async function POST(request: Request) {
   try {
@@ -29,18 +28,15 @@ export async function POST(request: Request) {
     const parsed = validateBody(helpCreateSchema, raw);
     if (!parsed.success) return parsed.response;
 
-    const { 
-      apiKey, 
+    const body = parsed.data;
+    const {
+      apiKey,
       signPublicKey,
       encryptPublicKey,
-      messages, 
-      question, 
+      messages,
+      question,
       publicKey,
       messageCount,
-      // Guard pre-flight signature fields
-      guardSignature,
-      guardTimestamp,
-      guardNonce,
     } = body;
 
     if (!apiKey) {
@@ -83,47 +79,29 @@ export async function POST(request: Request) {
       }
     }
 
-    // ─── Guard Pre-flight Signature Verification ───
-    const rawQuestion = question || (Array.isArray(messages) && messages.length > 0
-      ? messages.map((m: { content?: string }) => m.content || "").join("\n")
-      : null);
+    // ─── Guard Receipt Verification (Ed25519) ───
+    const receiptB64 = request.headers.get("x-guard-receipt");
+    const signatureB64 = request.headers.get("x-guard-receipt-sig");
+    const hasReceipt = receiptB64 && signatureB64;
 
-    const hasGuardFields = guardSignature && guardTimestamp && guardNonce;
-
-    if (REQUIRE_GUARD && rawQuestion && !hasGuardFields) {
+    if (REQUIRE_GUARD && !hasReceipt) {
       return NextResponse.json(
-        { error: "Guard validation required. Call the guard service first and include guardSignature, guardTimestamp, guardNonce." },
-        { status: 422 }
+        { error: "Guard receipt required. All requests must go through the Guard reverse proxy." },
+        { status: 403 }
       );
     }
 
-    let contentFlags = null;
+    let guardVerified = false;
 
-    if (hasGuardFields && rawQuestion) {
-      const hmacSecret = process.env.GUARD_HMAC_SECRET || "";
-      if (!hmacSecret) {
+    if (hasReceipt) {
+      const receipt = verifyGuardReceipt(receiptB64, signatureB64);
+      if (!receipt) {
         return NextResponse.json(
-          { error: "Guard HMAC secret not configured on server" },
-          { status: 500 }
+          { error: "Invalid guard receipt. Signature verification failed, receipt expired, or replay detected." },
+          { status: 403 }
         );
       }
-
-      if (!verifyValidationToken(
-        guardSignature,
-        rawQuestion,
-        guardTimestamp,
-        guardNonce,
-        hmacSecret
-      )) {
-        return NextResponse.json(
-          { error: "Invalid guard signature. Content may have been tampered with, or signature expired." },
-          { status: 422 }
-        );
-      }
-
-      // Guard signature verified — content passed through guard
-      // Flags would have been handled by the guard (blocked content never reaches here)
-      contentFlags = null; // Guard already filtered
+      guardVerified = true;
     }
 
     const refCode = await generateUniqueRefCode();
@@ -155,18 +133,18 @@ export async function POST(request: Request) {
         apiKeyId: key.id,
         expertId: key.userId,
         expiresAt,
-        
+
         consumerSignPubKey: signPublicKey || null,
         consumerEncryptPubKey: encryptPublicKey || null,
-        
+
         messages: encryptedMessages,
         question: encryptedQuestion,
         consumerPublicKey: publicKey || null,
         serverPublicKey: serverKeyPair?.publicKey || null,
         serverPrivateKey: serverKeyPair?.privateKey || null,
-        
-        contentFlags: contentFlags ? JSON.stringify(contentFlags) : null,
-        guardVerified: hasGuardFields ? true : false,
+
+        contentFlags: null,
+        guardVerified,
       },
     });
 

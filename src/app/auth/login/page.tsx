@@ -34,7 +34,7 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const errorParam = searchParams.get("error");
 
-  const [flags, setFlags] = useState<AuthFlags | null>(null);
+  const [flags, setFlags] = useState<(AuthFlags & { hasUsers?: boolean }) | null>(null);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,7 +50,13 @@ function LoginForm() {
     flagsFetched.current = true;
     fetch("/api/auth/flags")
       .then((r) => r.json())
-      .then(setFlags)
+      .then((data) => {
+        setFlags(data);
+        // First-time setup: show register form when no users exist
+        if (data.hasUsers === false) {
+          setMode("register");
+        }
+      })
       .catch(() => setFlags({ formLogin: true, magicLink: false, google: false, github: false }));
   }, []);
 
@@ -154,12 +160,18 @@ function LoginForm() {
             HeySummon
           </Link>
           <h1 className="mt-6 text-2xl font-semibold text-black">
-            {mode === "login" ? "Welcome back" : "Create your account"}
+            {mode === "login"
+              ? "Welcome back"
+              : flags?.hasUsers === false
+                ? "Set up your account"
+                : "Create your account"}
           </h1>
           <p className="mt-1 text-sm text-[#666]">
             {mode === "login"
               ? "Sign in to your provider dashboard"
-              : "Get started with HeySummon"}
+              : flags?.hasUsers === false
+                ? "Create the first admin account to get started"
+                : "Get started with HeySummon"}
           </p>
         </div>
 

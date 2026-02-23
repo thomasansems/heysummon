@@ -49,6 +49,10 @@ export const providerCreateSchema = z.object({
 export const providerUpdateSchema = z.object({
   name: z.string().optional(),
   isActive: z.boolean().optional(),
+  timezone: z.string().optional(),
+  quietHoursStart: z.string().optional(),
+  quietHoursEnd: z.string().optional(),
+  digestTime: z.string().optional(),
 });
 
 // ── Key schemas ──

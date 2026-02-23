@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { randomBytes, generateKeyPairSync, publicEncrypt, createCipheriv, constants } from "crypto";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -22,6 +23,23 @@ function encryptMessage(plaintext: string, publicKey: string): string {
 }
 
 async function main() {
+  // Demo user (tijdelijk voor development)
+  const demoPassword = await bcrypt.hash("demo1234", 12);
+  const demoUser = await prisma.user.upsert({
+    where: { email: "demo@heysummon.com" },
+    update: {},
+    create: {
+      email: "demo@heysummon.com",
+      name: "Demo User",
+      password: demoPassword,
+      role: "expert",
+      onboardingComplete: true,
+      expertise: JSON.stringify(["debugging", "frontend"]),
+      notificationPref: "email",
+    },
+  });
+  console.log(`✅ Demo user: ${demoUser.email} / demo1234`);
+
   const user = await prisma.user.upsert({
     where: { email: "thomasansems@gmail.com" },
     update: {},

@@ -33,22 +33,11 @@ export async function PATCH(request: Request, { params }: Params) {
   const parsed = validateBody(channelUpdateSchema, raw);
   if (!parsed.success) return parsed.response;
 
-  const { config, isActive, isPrimary } = parsed.data;
+  const { config, isActive } = parsed.data;
   const data: Record<string, unknown> = {};
 
   if (config !== undefined) data.config = config;
   if (isActive !== undefined) data.isActive = isActive;
-
-  if (isPrimary === true) {
-    // Unset other primaries first
-    await prisma.channelProvider.updateMany({
-      where: { profileId: id, isPrimary: true },
-      data: { isPrimary: false },
-    });
-    data.isPrimary = true;
-  } else if (isPrimary === false) {
-    data.isPrimary = false;
-  }
 
   const updated = await prisma.channelProvider.update({
     where: { id: channelId },
@@ -72,20 +61,6 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 
   await prisma.channelProvider.delete({ where: { id: channelId } });
-
-  // If deleted channel was primary, promote the next one
-  if (channel.isPrimary) {
-    const next = await prisma.channelProvider.findFirst({
-      where: { profileId: id },
-      orderBy: { createdAt: "asc" },
-    });
-    if (next) {
-      await prisma.channelProvider.update({
-        where: { id: next.id },
-        data: { isPrimary: true },
-      });
-    }
-  }
 
   return NextResponse.json({ success: true });
 }

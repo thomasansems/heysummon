@@ -49,7 +49,7 @@ export async function POST(
   const parsed = validateBody(channelCreateSchema, raw);
   if (!parsed.success) return parsed.response;
 
-  const { type, config, isActive, isPrimary } = parsed.data;
+  const { type, config, isActive } = parsed.data;
 
   // Check for duplicate channel type
   const existing = await prisma.channelProvider.findUnique({
@@ -62,24 +62,13 @@ export async function POST(
     );
   }
 
-  // If this is the first channel or marked primary, ensure only one primary
-  const channelCount = await prisma.channelProvider.count({ where: { profileId: id } });
-  const shouldBePrimary = isPrimary ?? channelCount === 0;
-
-  if (shouldBePrimary) {
-    await prisma.channelProvider.updateMany({
-      where: { profileId: id, isPrimary: true },
-      data: { isPrimary: false },
-    });
-  }
-
   const channel = await prisma.channelProvider.create({
     data: {
       profileId: id,
       type,
-      config: config ?? null,
+      name: type,
+      config: config ? JSON.stringify(config) : "{}",
       isActive: isActive ?? true,
-      isPrimary: shouldBePrimary,
     },
   });
 

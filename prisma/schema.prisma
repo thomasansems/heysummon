@@ -20,7 +20,7 @@ model User {
   notificationPref   String    @default("email")
   telegramChatId     String?
   apiKeys            ApiKey[]
-  providers          Provider[]
+  providers          UserProfile[]
   requests           HelpRequest[] @relation("ExpertRequests")
   accounts           Account[]
   sessions           Session[]
@@ -63,34 +63,64 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model Provider {
-  id              String   @id @default(cuid())
+model UserProfile {
+  id               String            @id @default(cuid())
+  name             String
+  key              String            @unique
+  userId           String
+  isActive         Boolean           @default(true)
+  timezone         String?
+  quietHoursStart  String?
+  quietHoursEnd    String?
+  digestTime       String?
+  user             User              @relation(fields: [userId], references: [id])
+  apiKeys          ApiKey[]
+  channelProviders ChannelProvider[]
+  createdAt        DateTime          @default(now())
+}
+
+model ChannelProvider {
+  id              String       @id @default(cuid())
+  profileId       String
+  profile         UserProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  type            String       // "openclaw" | "telegram"
   name            String
-  key             String   @unique
-  userId          String
-  isActive        Boolean  @default(true)
-  timezone        String?
-  quietHoursStart String?
-  quietHoursEnd   String?
-  digestTime      String?
-  user            User     @relation(fields: [userId], references: [id])
-  apiKeys         ApiKey[]
-  createdAt       DateTime @default(now())
+  isActive        Boolean      @default(true)
+  config          String       @default("{}")  // JSON, type-specific
+  pairingCode     String?      @unique
+  pairingExpires  DateTime?
+  paired          Boolean      @default(false)
+  lastHeartbeat   DateTime?
+  status          String       @default("disconnected")
+  errorMessage    String?
+  requests        HelpRequest[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([profileId])
+  @@index([type])
 }
 
 model ApiKey {
-  id           String        @id @default(cuid())
-  key          String        @unique
-  name         String?
-  userId       String
-  user         User          @relation(fields: [userId], references: [id])
-  providerId   String?
-  provider     Provider?     @relation(fields: [providerId], references: [id])
-  isActive     Boolean       @default(true)
-  deviceSecret String?       // SHA-256 hash of device token (nullable for legacy keys)
-  machineId    String?       // SHA-256 hash of machine fingerprint (auto-bound on first valid request)
-  requests     HelpRequest[]
-  createdAt    DateTime      @default(now())
+  id                   String        @id @default(cuid())
+  key                  String        @unique
+  name                 String?
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id])
+  providerId           String?
+  provider             UserProfile?  @relation(fields: [providerId], references: [id])
+  isActive             Boolean       @default(true)
+  deviceSecret         String?       // SHA-256 hash of device token (nullable for legacy keys)
+  machineId            String?       // SHA-256 hash of machine fingerprint (auto-bound on first valid request)
+  scope                String        @default("full")    // full|read|write|admin
+  previousKeyHash      String?                            // SHA-256 of rotated-out key
+  previousKeyExpiresAt DateTime?                           // 24h grace window
+  allowedIps           String?                             // comma-separated CIDR/IPs
+  rateLimitPerMinute   Int           @default(100)
+  requests             HelpRequest[]
+  createdAt            DateTime      @default(now())
+
+  @@index([previousKeyHash])
 }
 
 model HelpRequest {
@@ -124,9 +154,15 @@ model HelpRequest {
   expiresAt              DateTime  // createdAt + 72 hours
   closedAt               DateTime?
   
+  // Channel adapter fields
+  channelProviderId      String?
+  channelProvider        ChannelProvider? @relation(fields: [channelProviderId], references: [id])
+  consumerChatId         String?   // External chat identifier (Telegram chat_id, etc.)
+  consumerName           String?   // Display name from external channel
+
   // Relations
   messageHistory         Message[]
-  
+
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 }
@@ -165,4 +201,19 @@ model ClientCertificate {
 
   @@index([userId])
   @@index([fingerprint])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  eventType String
+  userId    String?
+  apiKeyId  String?
+  ip        String?
+  userAgent String?
+  metadata  String?  // JSON string
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([eventType, createdAt])
+  @@index([userId])
 }

@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
-import { hashDeviceToken } from "@/lib/api-key-auth";
+import { validateApiKeyRequest } from "@/lib/api-key-auth";
 
 const MERCURE_HUB_URL =
   process.env.MERCURE_HUB_URL || "http://localhost:3100/.well-known/mercure";
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   let topics: string[] = [];
 
   // Check provider key
-  const provider = await prisma.provider.findFirst({
+  const provider = await prisma.userProfile.findFirst({
     where: { key: apiKey, isActive: true },
     select: { id: true, userId: true },
   });
@@ -42,29 +42,17 @@ export async function GET(request: NextRequest) {
   if (provider) {
     topics = [`/heysummon/providers/${provider.userId}`];
   } else {
-    // Check client key
-    const clientKey = await prisma.apiKey.findFirst({
-      where: { key: apiKey, isActive: true },
-      select: { id: true, userId: true, deviceSecret: true },
-    });
-
-    if (!clientKey) {
-      return new Response(JSON.stringify({ error: "Invalid API key" }), {
-        status: 401,
+    // Check client key via enhanced validation (scope, IP, rate limit, rotation, device token)
+    const authResult = await validateApiKeyRequest(request);
+    if (!authResult.ok) {
+      const res = authResult.response;
+      const body = await res.json();
+      return new Response(JSON.stringify(body), {
+        status: res.status,
         headers: { "Content-Type": "application/json" },
       });
     }
-
-    // Validate device token if key has device binding
-    if (clientKey.deviceSecret) {
-      const deviceToken = request.headers.get("x-device-token");
-      if (!deviceToken || hashDeviceToken(deviceToken) !== clientKey.deviceSecret) {
-        return new Response(JSON.stringify({ error: "Invalid or missing device token" }), {
-          status: 403,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-    }
+    const clientKey = authResult.apiKey;
 
     const requests = await prisma.helpRequest.findMany({
       where: {

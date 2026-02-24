@@ -14,22 +14,45 @@ interface ApiKey {
   key: string;
   name: string | null;
   isActive: boolean;
+  scope: string;
+  allowedIps: string | null;
+  rateLimitPerMinute: number;
+  previousKeyExpiresAt: string | null;
   createdAt: string;
   provider: { id: string; name: string } | null;
   _count: { requests: number };
 }
+
+const SCOPE_OPTIONS = ["full", "read", "write", "admin"] as const;
+
+const scopeBadgeColors: Record<string, string> = {
+  full: "bg-blue-50 text-blue-700",
+  read: "bg-green-50 text-green-700",
+  write: "bg-amber-50 text-amber-700",
+  admin: "bg-purple-50 text-purple-700",
+};
 
 export default function ClientsPage() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [newName, setNewName] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState("");
+  const [newScope, setNewScope] = useState<string>("full");
+  const [newAllowedIps, setNewAllowedIps] = useState("");
+  const [newRateLimit, setNewRateLimit] = useState(100);
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [settingsId, setSettingsId] = useState<string | null>(null);
+  const [editScope, setEditScope] = useState("full");
+  const [editAllowedIps, setEditAllowedIps] = useState("");
+  const [editRateLimit, setEditRateLimit] = useState(100);
+  const [saving, setSaving] = useState(false);
+  const [rotating, setRotating] = useState<string | null>(null);
+  const [rotationResult, setRotationResult] = useState<{ key: string; deviceSecret: string; expiresAt: string } | null>(null);
 
   const loadKeys = () =>
     fetch("/api/keys")
@@ -54,10 +77,19 @@ export default function ClientsPage() {
     await fetch("/api/keys", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName || undefined, providerId: selectedProviderId }),
+      body: JSON.stringify({
+        name: newName || undefined,
+        providerId: selectedProviderId,
+        scope: newScope,
+        allowedIps: newAllowedIps || undefined,
+        rateLimitPerMinute: newRateLimit,
+      }),
     });
     setNewName("");
     setSelectedProviderId("");
+    setNewScope("full");
+    setNewAllowedIps("");
+    setNewRateLimit(100);
     setShowCreate(false);
     setCreating(false);
     loadKeys();
@@ -87,6 +119,49 @@ export default function ClientsPage() {
     loadKeys();
   };
 
+  const rotateKey = async (id: string) => {
+    if (!window.confirm("Rotate this key?\n\nA new key and device secret will be generated. The old key will remain valid for 24 hours to allow seamless migration.")) return;
+    setRotating(id);
+    const res = await fetch(`/api/keys/${id}/rotate`, { method: "POST" });
+    const data = await res.json();
+    if (res.ok) {
+      setRotationResult({
+        key: data.key,
+        deviceSecret: data.deviceSecret,
+        expiresAt: data.previousKeyExpiresAt,
+      });
+      loadKeys();
+    }
+    setRotating(null);
+  };
+
+  const saveSettings = async (id: string) => {
+    setSaving(true);
+    await fetch(`/api/keys/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scope: editScope,
+        allowedIps: editAllowedIps || null,
+        rateLimitPerMinute: editRateLimit,
+      }),
+    });
+    setSaving(false);
+    setSettingsId(null);
+    loadKeys();
+  };
+
+  const openSettings = (k: ApiKey) => {
+    if (settingsId === k.id) {
+      setSettingsId(null);
+      return;
+    }
+    setSettingsId(k.id);
+    setEditScope(k.scope);
+    setEditAllowedIps(k.allowedIps || "");
+    setEditRateLimit(k.rateLimitPerMinute);
+  };
+
   const copyKey = (key: string) => {
     copyToClipboard(key);
     setCopied(key);
@@ -102,8 +177,44 @@ heysummon:
   api_key: "${key}"
   endpoint: "${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1/help"`;
 
+  const isInGracePeriod = (k: ApiKey) =>
+    k.previousKeyExpiresAt && new Date(k.previousKeyExpiresAt) > new Date();
+
   return (
     <div>
+      {/* Rotation result modal */}
+      {rotationResult && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <h3 className="mb-2 text-sm font-medium text-amber-900">Key Rotated Successfully</h3>
+          <p className="mb-3 text-xs text-amber-800">
+            Save these credentials now — the device secret will not be shown again.
+            The old key remains valid until {new Date(rotationResult.expiresAt).toLocaleString()}.
+          </p>
+          <div className="space-y-2">
+            <div>
+              <label className="text-xs font-medium text-amber-700">New API Key</label>
+              <div className="flex items-center gap-2">
+                <code className="block rounded bg-white px-2 py-1 font-mono text-xs text-black">{rotationResult.key}</code>
+                <button onClick={() => copyKey(rotationResult.key)} className="text-xs text-violet-600 hover:text-violet-800">Copy</button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-amber-700">New Device Secret</label>
+              <div className="flex items-center gap-2">
+                <code className="block rounded bg-white px-2 py-1 font-mono text-xs text-black">{rotationResult.deviceSecret}</code>
+                <button onClick={() => copyKey(rotationResult.deviceSecret)} className="text-xs text-violet-600 hover:text-violet-800">Copy</button>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setRotationResult(null)}
+            className="mt-3 rounded-md bg-amber-900 px-3 py-1 text-xs font-medium text-white"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-black">Clients</h1>
         <button
@@ -146,6 +257,34 @@ heysummon:
                   placeholder="Client name (optional)"
                   className="flex-1 rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
                 />
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={newScope}
+                  onChange={(e) => setNewScope(e.target.value)}
+                  className="rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                >
+                  {SCOPE_OPTIONS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <input
+                  value={newAllowedIps}
+                  onChange={(e) => setNewAllowedIps(e.target.value)}
+                  placeholder="IP allowlist (e.g. 10.0.0.0/8, 192.168.1.1)"
+                  className="flex-1 rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                />
+                <input
+                  type="number"
+                  value={newRateLimit}
+                  onChange={(e) => setNewRateLimit(parseInt(e.target.value) || 100)}
+                  min={1}
+                  max={10000}
+                  className="w-24 rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                  title="Rate limit (req/min)"
+                />
+              </div>
+              <div className="flex gap-2">
                 <button
                   onClick={createKey}
                   disabled={creating || !selectedProviderId}
@@ -177,6 +316,7 @@ heysummon:
                 <th className="px-4 py-2.5 font-medium">Name</th>
                 <th className="px-4 py-2.5 font-medium">Provider</th>
                 <th className="px-4 py-2.5 font-medium">Key</th>
+                <th className="px-4 py-2.5 font-medium">Scope</th>
                 <th className="px-4 py-2.5 font-medium">Requests</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
                 <th className="px-4 py-2.5 font-medium">Created</th>
@@ -200,8 +340,8 @@ heysummon:
                             className="w-32 rounded border border-[#eaeaea] px-2 py-0.5 text-sm outline-none focus:border-black"
                             autoFocus
                           />
-                          <button onClick={() => renameKey(k.id)} className="text-xs text-green-600">✓</button>
-                          <button onClick={() => setEditingId(null)} className="text-xs text-[#666]">✕</button>
+                          <button onClick={() => renameKey(k.id)} className="text-xs text-green-600">OK</button>
+                          <button onClick={() => setEditingId(null)} className="text-xs text-[#666]">X</button>
                         </div>
                       ) : (
                         <span
@@ -214,7 +354,7 @@ heysummon:
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-[#666]">
-                      {k.provider?.name || "—"}
+                      {k.provider?.name || "-"}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
@@ -229,25 +369,43 @@ heysummon:
                         </button>
                       </div>
                     </td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-gray-50 text-gray-700"}`}>
+                        {k.scope}
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5 text-[#666]">
                       {k._count.requests}
                     </td>
                     <td className="px-4 py-2.5">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                          k.isActive
-                            ? "bg-green-50 text-green-700"
-                            : "bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {k.isActive ? "Active" : "Inactive"}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            k.isActive
+                              ? "bg-green-50 text-green-700"
+                              : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {k.isActive ? "Active" : "Inactive"}
+                        </span>
+                        {isInGracePeriod(k) && (
+                          <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700" title={`Old key valid until ${new Date(k.previousKeyExpiresAt!).toLocaleString()}`}>
+                            Grace
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-[#666]">
                       {new Date(k.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openSettings(k)}
+                          className="text-xs text-[#666] hover:text-black"
+                        >
+                          Settings
+                        </button>
                         <button
                           onClick={() =>
                             setShowInstructions(
@@ -258,6 +416,15 @@ heysummon:
                         >
                           Share
                         </button>
+                        {k.isActive && (
+                          <button
+                            onClick={() => rotateKey(k.id)}
+                            disabled={rotating === k.id}
+                            className="text-xs text-violet-600 hover:text-violet-800 disabled:opacity-50"
+                          >
+                            {rotating === k.id ? "Rotating..." : "Rotate"}
+                          </button>
+                        )}
                         {k.isActive ? (
                           <button
                             onClick={() => deactivate(k.id)}
@@ -278,14 +445,69 @@ heysummon:
                           className="text-base text-black hover:text-red-600"
                           title="Delete"
                         >
-                          ✕
+                          X
                         </button>
                       </div>
                     </td>
                   </tr>
+                  {/* Settings row */}
+                  {settingsId === k.id && (
+                    <tr key={`${k.id}-settings`} className="border-b border-[#eaeaea]">
+                      <td colSpan={8} className="bg-[#fafafa] px-4 py-3">
+                        <p className="mb-2 text-xs font-medium text-[#666]">Key Settings</p>
+                        <div className="flex flex-wrap items-end gap-3">
+                          <div>
+                            <label className="mb-1 block text-xs text-[#666]">Scope</label>
+                            <select
+                              value={editScope}
+                              onChange={(e) => setEditScope(e.target.value)}
+                              className="rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                            >
+                              {SCOPE_OPTIONS.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex-1">
+                            <label className="mb-1 block text-xs text-[#666]">IP Allowlist</label>
+                            <input
+                              value={editAllowedIps}
+                              onChange={(e) => setEditAllowedIps(e.target.value)}
+                              placeholder="e.g. 10.0.0.0/8, 192.168.1.1"
+                              className="w-full rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-[#666]">Rate Limit (req/min)</label>
+                            <input
+                              type="number"
+                              value={editRateLimit}
+                              onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)}
+                              min={1}
+                              max={10000}
+                              className="w-24 rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                            />
+                          </div>
+                          <button
+                            onClick={() => saveSettings(k.id)}
+                            disabled={saving}
+                            className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                          >
+                            {saving ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            onClick={() => setSettingsId(null)}
+                            className="rounded-md border border-[#eaeaea] px-3 py-1.5 text-sm text-[#666]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                   {showInstructions === k.id && (
                     <tr key={`${k.id}-instructions`} className="border-b border-[#eaeaea]">
-                      <td colSpan={7} className="bg-[#fafafa] px-4 py-3">
+                      <td colSpan={8} className="bg-[#fafafa] px-4 py-3">
                         <p className="mb-2 text-xs font-medium text-[#666]">
                           OpenClaw Configuration
                         </p>

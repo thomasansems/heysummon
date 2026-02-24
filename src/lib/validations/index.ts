@@ -57,14 +57,22 @@ export const providerUpdateSchema = z.object({
 
 // ── Key schemas ──
 
+export const apiKeyScopeEnum = z.enum(["full", "read", "write", "admin"]);
+
 export const keyCreateSchema = z.object({
   name: z.string().nullable().optional(),
   providerId: z.string().optional(),
+  scope: apiKeyScopeEnum.optional(),
+  allowedIps: z.string().nullable().optional(),
+  rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
 });
 
 export const keyUpdateSchema = z.object({
   name: z.string().optional(),
   isActive: z.boolean().optional(),
+  scope: apiKeyScopeEnum.optional(),
+  allowedIps: z.string().nullable().optional(),
+  rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
 });
 
 // ── Relay schemas ──
@@ -115,6 +123,21 @@ export const messageCreateSchema = z.object({
   authTag: z.string().optional(),
   signature: z.string().optional(),
   messageId: z.string().optional(),
+});
+
+// ── Channel schemas ──
+
+export const channelCreateSchema = z.object({
+  profileId: z.string().min(1, "profileId is required"),
+  type: z.enum(["openclaw", "telegram"], { message: "type must be openclaw or telegram" }),
+  name: z.string().min(1, "Name is required").transform((s) => s.trim()),
+  config: z.record(z.string(), z.any()).default({}),
+});
+
+export const channelUpdateSchema = z.object({
+  name: z.string().optional(),
+  isActive: z.boolean().optional(),
+  config: z.record(z.string(), z.any()).optional(),
 });
 
 // ── Certificate schemas (cloud-only) ──

@@ -3,6 +3,7 @@ import { getCurrentUser, generateApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { keyCreateSchema, validateBody } from "@/lib/validations";
 import { generateDeviceSecret, hashDeviceToken } from "@/lib/api-key-auth";
+import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
   const parsed = validateBody(keyCreateSchema, raw);
   if (!parsed.success) return parsed.response;
 
-  const { name, providerId } = parsed.data;
+  const { name, providerId, scope, allowedIps, rateLimitPerMinute } = parsed.data;
 
   // Generate device secret
   const deviceSecretPlaintext = generateDeviceSecret();
@@ -43,11 +44,14 @@ export async function POST(request: Request) {
     name: name || null,
     userId: user.id,
     deviceSecret: deviceSecretHash,
+    ...(scope && { scope }),
+    ...(allowedIps !== undefined && { allowedIps: allowedIps || null }),
+    ...(rateLimitPerMinute && { rateLimitPerMinute }),
   };
 
   if (providerId) {
     // Verify provider belongs to user
-    const provider = await prisma.provider.findFirst({
+    const provider = await prisma.userProfile.findFirst({
       where: { id: providerId, userId: user.id },
     });
     if (!provider) {
@@ -57,6 +61,15 @@ export async function POST(request: Request) {
   }
 
   const key = await prisma.apiKey.create({ data });
+
+  logAuditEvent({
+    eventType: AuditEventTypes.API_KEY_CREATED,
+    userId: user.id,
+    apiKeyId: key.id,
+    success: true,
+    metadata: { name: name || null, providerId: providerId || null, keyHint: redactApiKey(key.key) },
+    request,
+  });
 
   // Return device_secret plaintext once (never stored or shown again)
   return NextResponse.json({ key, deviceSecret: deviceSecretPlaintext });

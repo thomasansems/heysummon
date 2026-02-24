@@ -86,23 +86,6 @@ export const requestPatchSchema = z.object({
   response: z.string().min(1, "response is required"),
 });
 
-// ── Channel schemas ──
-
-export const CHANNEL_TYPE_VALUES = ["telegram", "whatsapp", "signal", "discord", "email"] as const;
-
-export const channelCreateSchema = z.object({
-  type: z.enum(CHANNEL_TYPE_VALUES, { message: "Unsupported channel type" }),
-  config: z.string().nullable().optional(),
-  isActive: z.boolean().optional(),
-  isPrimary: z.boolean().optional(),
-});
-
-export const channelUpdateSchema = z.object({
-  config: z.string().nullable().optional(),
-  isActive: z.boolean().optional(),
-  isPrimary: z.boolean().optional(),
-});
-
 // ── V1 Help schema ──
 
 export const helpCreateSchema = z.object({

@@ -49,7 +49,7 @@ export async function POST(
   const parsed = validateBody(channelCreateSchema, raw);
   if (!parsed.success) return parsed.response;
 
-  const { type, config, isActive } = parsed.data;
+  const { type, config, name } = parsed.data;
 
   // Check for duplicate channel type
   const existing = await prisma.channelProvider.findUnique({
@@ -66,9 +66,8 @@ export async function POST(
     data: {
       profileId: id,
       type,
-      name: type,
+      name: name || type,
       config: config ? JSON.stringify(config) : "{}",
-      isActive: isActive ?? true,
     },
   });
 

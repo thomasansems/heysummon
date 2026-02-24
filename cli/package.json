@@ -1,0 +1,31 @@
+{
+  "name": "heysummon",
+  "version": "0.1.0",
+  "description": "HeySummon — Human-in-the-loop for AI agents. Install & run with one command.",
+  "bin": {
+    "heysummon": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/__tests__/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "heysummon",
+    "ai",
+    "human-in-the-loop",
+    "agents"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomasansems/heysummon.git",
+    "directory": "cli"
+  },
+  "license": "MIT"
+}

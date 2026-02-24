@@ -106,6 +106,60 @@ async function main() {
   }
 }
 
+  // Create a sample UserProfile
+  const existingProfile = await prisma.userProfile.findFirst({
+    where: { userId: user.id },
+  });
+  let profile;
+  if (!existingProfile) {
+    profile = await prisma.userProfile.create({
+      data: {
+        name: "My Workspace",
+        key: `hs_prov_${randomBytes(16).toString("hex")}`,
+        userId: user.id,
+        isActive: true,
+        timezone: "Europe/Amsterdam",
+      },
+    });
+    console.log(`✅ UserProfile: ${profile.name} (${profile.id})`);
+  } else {
+    profile = existingProfile;
+    console.log(`✅ UserProfile exists: ${profile.name}`);
+  }
+
+  // Create sample ChannelProviders
+  const existingChannel = await prisma.channelProvider.findFirst({
+    where: { profileId: profile.id },
+  });
+  if (!existingChannel) {
+    const openclawChannel = await prisma.channelProvider.create({
+      data: {
+        profileId: profile.id,
+        type: "openclaw",
+        name: "Dev OpenClaw",
+        isActive: true,
+        config: JSON.stringify({ apiKey: "oc_demo_key_123" }),
+        status: "connected",
+      },
+    });
+    console.log(`✅ ChannelProvider (OpenClaw): ${openclawChannel.name}`);
+
+    const telegramChannel = await prisma.channelProvider.create({
+      data: {
+        profileId: profile.id,
+        type: "telegram",
+        name: "Support Bot",
+        isActive: false,
+        config: JSON.stringify({ botToken: "123456:ABC-DEF", botUsername: "heysummon_bot" }),
+        status: "disconnected",
+      },
+    });
+    console.log(`✅ ChannelProvider (Telegram): ${telegramChannel.name}`);
+  } else {
+    console.log(`✅ ChannelProviders exist for profile`);
+  }
+}
+
 main()
   .then(() => prisma.$disconnect())
   .catch((e) => { console.error(e); prisma.$disconnect(); process.exit(1); });

@@ -28,4 +28,18 @@ test.describe("Dashboard", () => {
     await page.goto("/dashboard/settings");
     await expect(page).toHaveURL(/\/auth\/login/);
   });
+
+  test("channels page redirects to login when not authenticated", async ({
+    page,
+  }) => {
+    await page.goto("/dashboard/channels");
+    await expect(page).toHaveURL(/\/auth\/login/);
+  });
+
+  test("channels new page redirects to login when not authenticated", async ({
+    page,
+  }) => {
+    await page.goto("/dashboard/channels/new");
+    await expect(page).toHaveURL(/\/auth\/login/);
+  });
 });

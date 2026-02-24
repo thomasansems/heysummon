@@ -32,9 +32,9 @@ async function seed() {
   });
 
   const providerKeyA = 'hs_prov_' + crypto.randomBytes(24).toString('hex');
-  let providerA = await prisma.provider.findFirst({ where: { userId: userA.id } });
+  let providerA = await prisma.userProfile.findFirst({ where: { userId: userA.id } });
   if (!providerA) {
-    providerA = await prisma.provider.create({
+    providerA = await prisma.userProfile.create({
       data: {
         name: 'E2E Test Provider A',
         key: providerKeyA,
@@ -69,9 +69,9 @@ async function seed() {
   });
 
   const providerKeyB = 'hs_prov_' + crypto.randomBytes(24).toString('hex');
-  let providerB = await prisma.provider.findFirst({ where: { userId: userB.id } });
+  let providerB = await prisma.userProfile.findFirst({ where: { userId: userB.id } });
   if (!providerB) {
-    providerB = await prisma.provider.create({
+    providerB = await prisma.userProfile.create({
       data: {
         name: 'E2E Test Provider B',
         key: providerKeyB,

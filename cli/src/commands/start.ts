@@ -22,7 +22,7 @@ export function startForeground(port?: number): void {
   const appDir = getAppDir();
   copyEnvToApp();
 
-  const env: Record<string, string | undefined> = { ...process.env, NODE_ENV: "production" };
+  const env: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "production" };
   if (port) {
     env.PORT = String(port);
   }

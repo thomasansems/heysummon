@@ -117,6 +117,21 @@ export const messageCreateSchema = z.object({
   messageId: z.string().optional(),
 });
 
+// ── Channel schemas ──
+
+export const channelCreateSchema = z.object({
+  profileId: z.string().min(1, "profileId is required"),
+  type: z.enum(["openclaw", "telegram"], { message: "type must be openclaw or telegram" }),
+  name: z.string().min(1, "Name is required").transform((s) => s.trim()),
+  config: z.record(z.string(), z.any()).default({}),
+});
+
+export const channelUpdateSchema = z.object({
+  name: z.string().optional(),
+  isActive: z.boolean().optional(),
+  config: z.record(z.string(), z.any()).optional(),
+});
+
 // ── Certificate schemas (cloud-only) ──
 
 export const certificateCreateSchema = z.object({

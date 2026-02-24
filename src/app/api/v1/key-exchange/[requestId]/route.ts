@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
 import { keyExchangeSchema, validateBody } from "@/lib/validations";
 import { sanitizeError } from "@/lib/api-key-auth";
+import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
 /**
  * POST /api/v1/key-exchange/:requestId — Provider sends their public keys
@@ -77,6 +78,14 @@ export async function POST(
     } catch (mercureError) {
       console.error('Mercure publish failed (non-fatal):', mercureError);
     }
+
+    logAuditEvent({
+      eventType: AuditEventTypes.KEY_EXCHANGE,
+      userId: helpRequest.expertId,
+      success: true,
+      metadata: { requestId },
+      request,
+    });
 
     return NextResponse.json({
       success: true,

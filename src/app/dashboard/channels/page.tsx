@@ -44,7 +44,7 @@ export default function ChannelsPage() {
 
   const loadChannels = () =>
     fetch("/api/channels")
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
       .then((data) => {
         setChannels(data.channels || []);
         setLoading(false);

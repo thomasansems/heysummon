@@ -24,7 +24,7 @@ export default function ProvidersPage() {
 
   const loadProviders = () =>
     fetch("/api/providers")
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
       .then((data) => setProviders(data.providers || []));
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function ProvidersPage() {
   };
 
   const deleteProvider = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to permanently delete provider "${name}"? All linked clients will be unlinked. This cannot be undone.`)) return;
+    if (!window.confirm(`Are you sure you want to permanently delete user "${name}"? All linked clients will be unlinked. This cannot be undone.`)) return;
     await fetch(`/api/providers/${id}`, { method: "DELETE" });
     loadProviders();
   };
@@ -76,23 +76,23 @@ export default function ProvidersPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-black">Providers</h1>
+        <h1 className="text-2xl font-semibold text-black">Users</h1>
         <button
           onClick={() => setShowCreate(true)}
           className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black/90"
         >
-          Create Provider
+          Create User
         </button>
       </div>
 
       {showCreate && (
         <div className="mb-6 rounded-lg border border-[#eaeaea] bg-white p-4">
-          <h3 className="mb-3 text-sm font-medium text-black">New Provider</h3>
+          <h3 className="mb-3 text-sm font-medium text-black">New User</h3>
           <div className="flex gap-2">
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Provider name"
+              placeholder="User name"
               className="flex-1 rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
               onKeyDown={(e) => e.key === "Enter" && createProvider()}
             />
@@ -123,7 +123,7 @@ export default function ProvidersPage() {
             <thead>
               <tr className="border-b border-[#eaeaea] text-left text-[#666]">
                 <th className="px-4 py-2.5 font-medium">Name</th>
-                <th className="px-4 py-2.5 font-medium">Provider Key</th>
+                <th className="px-4 py-2.5 font-medium">User Key</th>
                 <th className="px-4 py-2.5 font-medium">Clients</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
                 <th className="px-4 py-2.5 font-medium">Created</th>

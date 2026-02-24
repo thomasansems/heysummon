@@ -104,7 +104,6 @@ async function main() {
       console.log(`✅ Sample request: ${req.refCode}`);
     }
   }
-}
 
   // Create a sample UserProfile
   const existingProfile = await prisma.userProfile.findFirst({

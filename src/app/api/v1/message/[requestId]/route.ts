@@ -38,7 +38,7 @@ export async function POST(
     let callerRole: "provider" | "consumer" | null = null;
 
     // Check provider key
-    const provider = await prisma.provider.findFirst({
+    const provider = await prisma.userProfile.findFirst({
       where: { key: apiKey, isActive: true },
       select: { id: true, userId: true },
     });

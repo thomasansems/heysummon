@@ -1,70 +1,137 @@
 #!/bin/bash
-# Seed E2E test data — creates provider, user, API keys
-# Outputs key values for the test script
+# Seed E2E test data — creates providers, users, API keys
+# Outputs JSON with all keys needed for the extended test suite
 set -euo pipefail
 
 BASE_URL="${E2E_BASE_URL:-http://localhost:3456}"
-MERCURE_JWT_SECRET="${E2E_MERCURE_JWT_SECRET:-e2e-mercure-secret}"
 
 echo "🌱 Seeding E2E test data..." >&2
 
-# 1. Create provider user + provider via API (use internal seed endpoint)
-# We'll use prisma directly via a small Node script
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLATFORM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PLATFORM_DIR"
 
-# Run seed script that outputs JSON with keys
+# Run seed script that outputs JSON with all keys
 node -e "
 const { PrismaClient } = require('@prisma/client');
 const crypto = require('crypto');
 const prisma = new PrismaClient();
 
 async function seed() {
-  // Create user
-  const user = await prisma.user.upsert({
+  // ── Provider A (primary test provider) ──
+  const userA = await prisma.user.upsert({
     where: { email: 'e2e-provider@test.local' },
     update: {},
     create: {
       email: 'e2e-provider@test.local',
-      name: 'E2E Provider',
+      name: 'E2E Provider A',
       role: 'expert',
       onboardingComplete: true,
     },
   });
 
-  // Create provider
-  const providerKey = 'hs_prov_' + crypto.randomBytes(24).toString('hex');
-  let provider = await prisma.provider.findFirst({ where: { userId: user.id } });
-  if (!provider) {
-    provider = await prisma.provider.create({
+  const providerKeyA = 'hs_prov_' + crypto.randomBytes(24).toString('hex');
+  let providerA = await prisma.userProfile.findFirst({ where: { userId: userA.id } });
+  if (!providerA) {
+    providerA = await prisma.userProfile.create({
       data: {
-        name: 'E2E Test Provider',
-        key: providerKey,
-        userId: user.id,
+        name: 'E2E Test Provider A',
+        key: providerKeyA,
+        userId: userA.id,
         isActive: true,
       },
     });
   }
 
-  // Create client API key
-  const clientKey = 'hs_cli_' + crypto.randomBytes(24).toString('hex');
-  const apiKey = await prisma.apiKey.create({
+  // Client key for provider A
+  const clientKeyA = 'hs_cli_' + crypto.randomBytes(24).toString('hex');
+  await prisma.apiKey.create({
     data: {
-      key: clientKey,
-      name: 'e2e-client',
-      userId: user.id,
-      providerId: provider.id,
+      key: clientKeyA,
+      name: 'e2e-client-a',
+      userId: userA.id,
+      providerId: providerA.id,
       isActive: true,
     },
   });
 
+  // ── Provider B (for wrong-provider tests) ──
+  const userB = await prisma.user.upsert({
+    where: { email: 'e2e-provider-b@test.local' },
+    update: {},
+    create: {
+      email: 'e2e-provider-b@test.local',
+      name: 'E2E Provider B',
+      role: 'expert',
+      onboardingComplete: true,
+    },
+  });
+
+  const providerKeyB = 'hs_prov_' + crypto.randomBytes(24).toString('hex');
+  let providerB = await prisma.userProfile.findFirst({ where: { userId: userB.id } });
+  if (!providerB) {
+    providerB = await prisma.userProfile.create({
+      data: {
+        name: 'E2E Test Provider B',
+        key: providerKeyB,
+        userId: userB.id,
+        isActive: true,
+      },
+    });
+  }
+
+  // Client key for provider B
+  const clientKeyB = 'hs_cli_' + crypto.randomBytes(24).toString('hex');
+  await prisma.apiKey.create({
+    data: {
+      key: clientKeyB,
+      name: 'e2e-client-b',
+      userId: userB.id,
+      providerId: providerB.id,
+      isActive: true,
+    },
+  });
+
+  // ── Deactivated key (for isActive=false test) ──
+  const inactiveKey = 'hs_cli_' + crypto.randomBytes(24).toString('hex');
+  await prisma.apiKey.create({
+    data: {
+      key: inactiveKey,
+      name: 'e2e-inactive',
+      userId: userA.id,
+      providerId: providerA.id,
+      isActive: false,
+    },
+  });
+
+  // ── Key with device secret (for device token binding test) ──
+  const deviceToken = 'e2e-device-token-' + crypto.randomBytes(8).toString('hex');
+  const deviceSecret = crypto.createHash('sha256').update(deviceToken).digest('hex');
+  const deviceKey = 'hs_cli_' + crypto.randomBytes(24).toString('hex');
+  await prisma.apiKey.create({
+    data: {
+      key: deviceKey,
+      name: 'e2e-device-bound',
+      userId: userA.id,
+      providerId: providerA.id,
+      isActive: true,
+      deviceSecret: deviceSecret,
+    },
+  });
+
   console.log(JSON.stringify({
-    providerId: provider.id,
-    providerKey: provider.key,
-    clientKey: clientKey,
-    userId: user.id,
+    providerId: providerA.id,
+    providerKey: providerA.key,
+    clientKey: clientKeyA,
+    userId: userA.id,
+    provider2Id: providerB.id,
+    provider2Key: providerB.key,
+    provider2ClientKey: clientKeyB,
+    user2Id: userB.id,
+    inactiveKey: inactiveKey,
+    deviceKey: deviceKey,
+    deviceToken: deviceToken,
   }));
 
   await prisma.\$disconnect();

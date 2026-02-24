@@ -10,6 +10,7 @@ import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 
 const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
+const REQUEST_TTL_MS = parseInt(process.env.HEYSUMMON_REQUEST_TTL_MS || String(72 * 60 * 60 * 1000), 10);
 
 /**
  * POST /api/v1/help — Submit a help request.
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
     }
 
     const refCode = await generateUniqueRefCode();
-    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + REQUEST_TTL_MS);
 
     // v3 legacy: encrypt messages at rest with server key
     let encryptedMessages = null;

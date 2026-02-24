@@ -11,8 +11,8 @@ test.describe("Landing Page", () => {
     await expect(page.locator("nav")).toBeVisible();
   });
 
-  test("has HITLaaS branding", async ({ page }) => {
+  test("has HeySummon branding", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("HITLaaS")).toBeVisible();
+    await expect(page.getByText("HeySummon")).toBeVisible();
   });
 });

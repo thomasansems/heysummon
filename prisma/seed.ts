@@ -26,10 +26,10 @@ async function main() {
   // Demo user (tijdelijk voor development)
   const demoPassword = await bcrypt.hash("demo1234", 12);
   const demoUser = await prisma.user.upsert({
-    where: { email: "demo@heysummon.com" },
+    where: { email: "demo@heysummon.ai" },
     update: {},
     create: {
-      email: "demo@heysummon.com",
+      email: "demo@heysummon.ai",
       name: "Demo User",
       password: demoPassword,
       role: "expert",

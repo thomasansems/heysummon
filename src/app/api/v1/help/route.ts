@@ -8,6 +8,7 @@ import { publishToMercure } from "@/lib/mercure";
 import { helpCreateSchema, validateBody } from "@/lib/validations";
 import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { hashDeviceToken } from "@/lib/api-key-auth";
+import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 
 const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
 const REQUEST_TTL_MS = parseInt(process.env.HEYSUMMON_REQUEST_TTL_MS || String(72 * 60 * 60 * 1000), 10);
@@ -173,6 +174,20 @@ export async function POST(request: Request) {
     } catch (mercureError) {
       console.error('Mercure publish failed (non-fatal):', mercureError);
     }
+
+    logAuditEvent({
+      eventType: AuditEventTypes.HELP_REQUEST_SUBMITTED,
+      userId: key.userId,
+      apiKeyId: key.id,
+      success: true,
+      metadata: {
+        requestId: helpRequest.id,
+        refCode: helpRequest.refCode,
+        apiKey: redactApiKey(apiKey),
+        guardVerified,
+      },
+      request,
+    });
 
     return NextResponse.json({
       requestId: helpRequest.id,

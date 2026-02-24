@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { decryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
 import { requestPatchSchema, validateBody } from "@/lib/validations";
+import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import { sendResponseToTelegram } from "@/lib/adapters/telegram";
 
 export async function GET(
@@ -139,6 +140,14 @@ export async function PATCH(
       status: "responded",
     });
   } catch { /* non-fatal */ }
+
+  logAuditEvent({
+    eventType: AuditEventTypes.PROVIDER_RESPONSE,
+    userId: user.id,
+    success: true,
+    metadata: { requestId: id, refCode: updated.refCode },
+    request,
+  });
 
   // Send response back via Telegram if the request came from that channel
   try {

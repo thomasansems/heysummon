@@ -97,10 +97,10 @@ export default function ClientsPage() {
     key.slice(0, 8) + "•".repeat(16) + key.slice(-4);
 
   const configSnippet = (key: string) =>
-    `# OpenClaw config for HITLaaS
-hitlaas:
+    `# HeySummon API configuration
+heysummon:
   api_key: "${key}"
-  endpoint: "https://hitlaas.vercel.app/api/v1/help"`;
+  endpoint: "${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1/help"`;
 
   return (
     <div>

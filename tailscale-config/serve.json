@@ -1,0 +1,16 @@
+{
+  "TCP": {
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "heysummon.ts.net:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://heysummon-guard:3000"
+        }
+      }
+    }
+  }
+}

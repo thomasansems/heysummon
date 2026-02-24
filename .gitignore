@@ -3,7 +3,7 @@ node_modules/
 .env.local
 .env
 docker-compose.override.yml
-tailscale-config/
+tailscale-config/state/
 *.db
 *.db-journal
 .vercel

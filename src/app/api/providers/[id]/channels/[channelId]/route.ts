@@ -7,10 +7,10 @@ type Params = { params: Promise<{ id: string; channelId: string }> };
 
 /** Helper: verify ownership chain user → provider → channel */
 async function getOwnedChannel(userId: string, providerId: string, channelId: string) {
-  const provider = await prisma.provider.findUnique({ where: { id: providerId } });
+  const provider = await prisma.userProfile.findUnique({ where: { id: providerId } });
   if (!provider || provider.userId !== userId) return null;
 
-  const channel = await prisma.providerChannel.findUnique({ where: { id: channelId } });
+  const channel = await prisma.channelProvider.findUnique({ where: { id: channelId } });
   if (!channel || channel.providerId !== providerId) return null;
 
   return channel;
@@ -41,8 +41,8 @@ export async function PATCH(request: Request, { params }: Params) {
 
   if (isPrimary === true) {
     // Unset other primaries first
-    await prisma.providerChannel.updateMany({
-      where: { providerId: id, isPrimary: true },
+    await prisma.channelProvider.updateMany({
+      where: { profileId: id, isPrimary: true },
       data: { isPrimary: false },
     });
     data.isPrimary = true;
@@ -50,7 +50,7 @@ export async function PATCH(request: Request, { params }: Params) {
     data.isPrimary = false;
   }
 
-  const updated = await prisma.providerChannel.update({
+  const updated = await prisma.channelProvider.update({
     where: { id: channelId },
     data,
   });
@@ -71,16 +71,16 @@ export async function DELETE(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Channel not found" }, { status: 404 });
   }
 
-  await prisma.providerChannel.delete({ where: { id: channelId } });
+  await prisma.channelProvider.delete({ where: { id: channelId } });
 
   // If deleted channel was primary, promote the next one
   if (channel.isPrimary) {
-    const next = await prisma.providerChannel.findFirst({
-      where: { providerId: id },
+    const next = await prisma.channelProvider.findFirst({
+      where: { profileId: id },
       orderBy: { createdAt: "asc" },
     });
     if (next) {
-      await prisma.providerChannel.update({
+      await prisma.channelProvider.update({
         where: { id: next.id },
         data: { isPrimary: true },
       });

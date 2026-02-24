@@ -9,12 +9,13 @@ on:
 
 env:
   E2E_MERCURE_JWT_SECRET: e2e-mercure-secret
+  DATABASE_URL: postgresql://heysummon:heysummon_e2e@localhost:15432/heysummon_e2e
 
 jobs:
   e2e:
-    name: Full Circle E2E
+    name: Extended E2E Suite
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -52,16 +53,31 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
+      - name: Install platform dependencies
         run: npm ci
+
+      - name: Install guard dependencies
+        run: cd guard && npm ci
+
+      - name: Generate Ed25519 keypair for Guard
+        id: guard-keys
+        run: |
+          KEYS=$(node -e "
+            const { sign } = require('tweetnacl');
+            const kp = sign.keyPair();
+            console.log(JSON.stringify({
+              signingKey: Buffer.from(kp.secretKey).toString('hex'),
+              publicKey: Buffer.from(kp.publicKey).toString('hex'),
+            }));
+          ")
+          echo "signing_key=$(echo "$KEYS" | jq -r .signingKey)" >> "$GITHUB_OUTPUT"
+          echo "public_key=$(echo "$KEYS" | jq -r .publicKey)" >> "$GITHUB_OUTPUT"
 
       - name: Generate Prisma client
         run: npx prisma generate
 
       - name: Run migrations
         run: npx prisma db push --force-reset
-        env:
-          DATABASE_URL: postgresql://heysummon:heysummon_e2e@localhost:15432/heysummon_e2e
 
       - name: Seed E2E data
         id: seed
@@ -69,25 +85,42 @@ jobs:
           SEED_OUTPUT=$(bash e2e/seed-e2e.sh 2>/dev/null)
           echo "seed_json=$SEED_OUTPUT" >> "$GITHUB_OUTPUT"
           echo "$SEED_OUTPUT" | jq .
-        env:
-          DATABASE_URL: postgresql://heysummon:heysummon_e2e@localhost:15432/heysummon_e2e
 
-      - name: Build & start platform
+      - name: Build platform
+        run: npm run build
+        env:
+          NEXTAUTH_SECRET: e2e-secret
+          MERCURE_JWT_SECRET: e2e-mercure-secret
+
+      - name: Build guard
+        run: cd guard && npm run build
+
+      - name: Start platform
         run: |
-          npm run build
           npm start &
-          # Wait for platform to be ready
           for i in $(seq 1 30); do
             curl -s http://localhost:3000/api/health && break || sleep 2
           done
         env:
-          DATABASE_URL: postgresql://heysummon:heysummon_e2e@localhost:15432/heysummon_e2e
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: e2e-secret
           MERCURE_HUB_URL: http://localhost:13100/.well-known/mercure
           MERCURE_JWT_SECRET: e2e-mercure-secret
           NEXT_PUBLIC_MERCURE_HUB_URL: http://localhost:13100/.well-known/mercure
           PORT: 3000
+          REQUIRE_GUARD: "true"
+          GUARD_PUBLIC_KEY: ${{ steps.guard-keys.outputs.public_key }}
+
+      - name: Start guard
+        run: |
+          cd guard && node dist/index.js &
+          for i in $(seq 1 15); do
+            curl -s http://localhost:3457/health && break || sleep 1
+          done
+        env:
+          PORT: 3457
+          PLATFORM_URL: http://localhost:3000
+          GUARD_SIGNING_KEY: ${{ steps.guard-keys.outputs.signing_key }}
 
       - name: Run E2E tests
         run: |
@@ -96,6 +129,13 @@ jobs:
           export E2E_PROVIDER_KEY=$(echo "$SEED" | jq -r .providerKey)
           export E2E_CLIENT_KEY=$(echo "$SEED" | jq -r .clientKey)
           export E2E_USER_ID=$(echo "$SEED" | jq -r .userId)
+          export E2E_PROVIDER2_KEY=$(echo "$SEED" | jq -r .provider2Key)
+          export E2E_PROVIDER2_CLIENT_KEY=$(echo "$SEED" | jq -r .provider2ClientKey)
+          export E2E_INACTIVE_KEY=$(echo "$SEED" | jq -r .inactiveKey)
+          export E2E_DEVICE_KEY=$(echo "$SEED" | jq -r .deviceKey)
+          export E2E_DEVICE_TOKEN=$(echo "$SEED" | jq -r .deviceToken)
           export E2E_BASE_URL=http://localhost:3000
+          export GUARD_URL=http://localhost:3457
+          export GUARD_SIGNING_KEY=${{ steps.guard-keys.outputs.signing_key }}
           export E2E_MERCURE_HUB=http://localhost:13100/.well-known/mercure
-          bash e2e/e2e-test.sh --ci
+          bash e2e/e2e-test.sh

@@ -15,13 +15,13 @@ export async function GET(
 
   const { id } = await params;
 
-  const provider = await prisma.provider.findUnique({ where: { id } });
+  const provider = await prisma.userProfile.findUnique({ where: { id } });
   if (!provider || provider.userId !== user.id) {
     return NextResponse.json({ error: "Provider not found" }, { status: 404 });
   }
 
-  const channels = await prisma.providerChannel.findMany({
-    where: { providerId: id },
+  const channels = await prisma.channelProvider.findMany({
+    where: { profileId: id },
     orderBy: { createdAt: "asc" },
   });
 
@@ -40,7 +40,7 @@ export async function POST(
 
   const { id } = await params;
 
-  const provider = await prisma.provider.findUnique({ where: { id } });
+  const provider = await prisma.userProfile.findUnique({ where: { id } });
   if (!provider || provider.userId !== user.id) {
     return NextResponse.json({ error: "Provider not found" }, { status: 404 });
   }
@@ -52,8 +52,8 @@ export async function POST(
   const { type, config, isActive, isPrimary } = parsed.data;
 
   // Check for duplicate channel type
-  const existing = await prisma.providerChannel.findUnique({
-    where: { providerId_type: { providerId: id, type } },
+  const existing = await prisma.channelProvider.findUnique({
+    where: { providerId_type: { profileId: id, type } },
   });
   if (existing) {
     return NextResponse.json(
@@ -63,19 +63,19 @@ export async function POST(
   }
 
   // If this is the first channel or marked primary, ensure only one primary
-  const channelCount = await prisma.providerChannel.count({ where: { providerId: id } });
+  const channelCount = await prisma.channelProvider.count({ where: { profileId: id } });
   const shouldBePrimary = isPrimary ?? channelCount === 0;
 
   if (shouldBePrimary) {
-    await prisma.providerChannel.updateMany({
-      where: { providerId: id, isPrimary: true },
+    await prisma.channelProvider.updateMany({
+      where: { profileId: id, isPrimary: true },
       data: { isPrimary: false },
     });
   }
 
-  const channel = await prisma.providerChannel.create({
+  const channel = await prisma.channelProvider.create({
     data: {
-      providerId: id,
+      profileId: id,
       type,
       config: config ?? null,
       isActive: isActive ?? true,

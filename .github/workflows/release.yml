@@ -1,0 +1,67 @@
+name: Release & Publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      # Build the main app
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build application
+        run: npm run build
+
+      # Create release tarball (exclude dev files)
+      - name: Create tarball
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          tar -czf heysummon-${VERSION}.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='tests' \
+            --exclude='e2e' \
+            --exclude='cli' \
+            --exclude='.env*' \
+            --exclude='prisma/*.db' \
+            --exclude='.github' \
+            --exclude='docs' \
+            --exclude='CLAUDE.md' \
+            -C . .
+
+      # GitHub Release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: heysummon-*.tar.gz
+          generate_release_notes: true
+
+      # Build and publish CLI to npm
+      - name: Build CLI
+        working-directory: cli
+        run: |
+          npm run build
+          VERSION=${GITHUB_REF#refs/tags/v}
+          npm version $VERSION --no-git-tag-version
+
+      - name: Publish to npm
+        working-directory: cli
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

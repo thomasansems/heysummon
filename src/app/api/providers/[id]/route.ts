@@ -15,7 +15,7 @@ export async function GET(
 
   const { id } = await params;
 
-  const provider = await prisma.provider.findUnique({
+  const provider = await prisma.userProfile.findUnique({
     where: { id },
     select: {
       id: true,
@@ -47,7 +47,7 @@ export async function PATCH(
 
   const { id } = await params;
 
-  const provider = await prisma.provider.findUnique({ where: { id } });
+  const provider = await prisma.userProfile.findUnique({ where: { id } });
   if (!provider || provider.userId !== user.id) {
     return NextResponse.json({ error: "Provider not found" }, { status: 404 });
   }
@@ -69,7 +69,7 @@ export async function PATCH(
     if (body.digestTime !== undefined) data.digestTime = body.digestTime;
   }
 
-  const updated = await prisma.provider.update({
+  const updated = await prisma.userProfile.update({
     where: { id },
     data,
     select: {
@@ -97,7 +97,7 @@ export async function DELETE(
 
   const { id } = await params;
 
-  const provider = await prisma.provider.findUnique({ where: { id } });
+  const provider = await prisma.userProfile.findUnique({ where: { id } });
   if (!provider || provider.userId !== user.id) {
     return NextResponse.json({ error: "Provider not found" }, { status: 404 });
   }
@@ -108,7 +108,7 @@ export async function DELETE(
     data: { providerId: null },
   });
 
-  await prisma.provider.delete({ where: { id } });
+  await prisma.userProfile.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }

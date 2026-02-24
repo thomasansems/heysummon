@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
   if (providerId) {
     // Verify provider belongs to user
-    const provider = await prisma.provider.findFirst({
+    const provider = await prisma.userProfile.findFirst({
       where: { id: providerId, userId: user.id },
     });
     if (!provider) {

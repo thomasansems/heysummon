@@ -5,6 +5,7 @@ import { decryptMessage } from "@/lib/crypto";
 import { publishToMercure } from "@/lib/mercure";
 import { requestPatchSchema, validateBody } from "@/lib/validations";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
+import { sendResponseToTelegram } from "@/lib/adapters/telegram";
 
 export async function GET(
   _request: Request,
@@ -147,6 +148,11 @@ export async function PATCH(
     metadata: { requestId: id, refCode: updated.refCode },
     request,
   });
+
+  // Send response back via Telegram if the request came from that channel
+  try {
+    await sendResponseToTelegram(updated.id, body.response);
+  } catch { /* non-fatal */ }
 
   return NextResponse.json({
     request: {

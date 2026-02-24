@@ -116,13 +116,9 @@ const proxy = (0, http_proxy_middleware_1.createProxyMiddleware)({
         },
     },
 });
-app.use("/api", proxy);
-// ── Proxy everything else too (frontend assets, auth, etc.) ──
-const catchAllProxy = (0, http_proxy_middleware_1.createProxyMiddleware)({
-    target: PLATFORM_URL,
-    changeOrigin: true,
-});
-app.use(catchAllProxy);
+// Proxy all requests to Platform. Do NOT use app.use("/api", ...) because
+// Express strips the mount path — /api/v1/help would become /v1/help → 404.
+app.use(proxy);
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Guard reverse proxy listening on :${PORT}`);
     console.log(`Proxying to Platform at ${PLATFORM_URL}`);

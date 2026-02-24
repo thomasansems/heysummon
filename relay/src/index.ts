@@ -15,7 +15,7 @@ app.use(express.json({ limit: "1mb" }));
 // ── Health ────────────────────────────────────────────────────────────────────
 
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", service: "hitlaas-relay", version: "1.0.0" });
+  res.json({ status: "ok", service: "heysummon-relay", version: "1.0.0" });
 });
 
 // ── Validate API Key middleware ───────────────────────────────────────────────
@@ -308,7 +308,7 @@ app.get("/api/v1/relay/stats", validateApiKey, (req, res) => {
 // ── Start server ─────────────────────────────────────────────────────────────
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🔐 HITLaaS Relay running on port ${PORT}`);
+  console.log(`🔐 HeySummon Relay running on port ${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/health`);
   // Ensure DB is initialized
   getDb();

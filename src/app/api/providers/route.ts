@@ -8,7 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const providers = await prisma.provider.findMany({
+  const providers = await prisma.userProfile.findMany({
     where: { userId: user.id },
     include: { _count: { select: { apiKeys: true } } },
     orderBy: { createdAt: "desc" },
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  const provider = await prisma.provider.create({
+  const provider = await prisma.userProfile.create({
     data: {
       name: name.trim(),
       key: generateApiKey("hs_prov_"),

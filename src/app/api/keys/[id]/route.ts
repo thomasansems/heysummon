@@ -28,11 +28,14 @@ export async function PATCH(
   const data: Record<string, unknown> = {};
   if (body.name !== undefined) data.name = body.name;
   if (body.isActive !== undefined) data.isActive = body.isActive;
+  if (body.scope !== undefined) data.scope = body.scope;
+  if (body.allowedIps !== undefined) data.allowedIps = body.allowedIps || null;
+  if (body.rateLimitPerMinute !== undefined) data.rateLimitPerMinute = body.rateLimitPerMinute;
 
   const updated = await prisma.apiKey.update({
     where: { id },
     data,
-    select: { id: true, name: true, isActive: true },
+    select: { id: true, name: true, isActive: true, scope: true, allowedIps: true, rateLimitPerMinute: true },
   });
 
   logAuditEvent({

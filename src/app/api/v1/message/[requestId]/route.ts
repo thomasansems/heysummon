@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
 import { messageCreateSchema, validateBody } from "@/lib/validations";
-import { hashDeviceToken } from "@/lib/api-key-auth";
+import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 
 /**
  * POST /api/v1/message/:requestId — Send a message (encrypted or plaintext)
@@ -58,23 +58,10 @@ export async function POST(
     }
 
     if (!callerRole) {
-      // Check client key
-      const clientKey = await prisma.apiKey.findFirst({
-        where: { key: apiKey, isActive: true },
-        select: { id: true, userId: true, deviceSecret: true },
-      });
-
-      if (clientKey) {
-        // Validate device token if key has device binding
-        if (clientKey.deviceSecret) {
-          const deviceToken = request.headers.get("x-device-token");
-          if (!deviceToken || hashDeviceToken(deviceToken) !== clientKey.deviceSecret) {
-            return NextResponse.json(
-              { error: "Invalid or missing device token" },
-              { status: 403 }
-            );
-          }
-        }
+      // Check client key via enhanced validation (scope, IP, rate limit, rotation, device token)
+      const authResult = await validateApiKeyRequest(request);
+      if (authResult.ok) {
+        const clientKey = authResult.apiKey;
         // Verify this client owns the request
         const helpRequest = await prisma.helpRequest.findFirst({
           where: { id: requestId, apiKey: { userId: clientKey.userId } },
@@ -235,7 +222,7 @@ export async function POST(
       createdAt: message.createdAt.toISOString(),
     });
   } catch (err) {
-    console.error("Message send error:", err);
+    console.error("Message send error:", sanitizeError(err));
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

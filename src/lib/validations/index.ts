@@ -57,14 +57,22 @@ export const providerUpdateSchema = z.object({
 
 // ── Key schemas ──
 
+export const apiKeyScopeEnum = z.enum(["full", "read", "write", "admin"]);
+
 export const keyCreateSchema = z.object({
   name: z.string().nullable().optional(),
   providerId: z.string().optional(),
+  scope: apiKeyScopeEnum.optional(),
+  allowedIps: z.string().nullable().optional(),
+  rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
 });
 
 export const keyUpdateSchema = z.object({
   name: z.string().optional(),
   isActive: z.boolean().optional(),
+  scope: apiKeyScopeEnum.optional(),
+  allowedIps: z.string().nullable().optional(),
+  rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
 });
 
 // ── Relay schemas ──

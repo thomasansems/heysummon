@@ -3,10 +3,12 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
+import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 
 /**
  * POST /api/v1/close/:requestId — Close a conversation
  *
+ * Authentication: x-api-key header required.
  * Either party (consumer or provider) can close the conversation.
  * Publishes a "closed" event to both Mercure topics.
  *
@@ -18,6 +20,10 @@ export async function POST(
 ) {
   try {
     const { requestId } = await params;
+
+    // Authenticate via API key
+    const authResult = await validateApiKeyRequest(request);
+    if (!authResult.ok) return authResult.response;
 
     // Find the help request
     const helpRequest = await prisma.helpRequest.findUnique({
@@ -84,7 +90,7 @@ export async function POST(
       closedAt: closedAt.toISOString(),
     });
   } catch (err) {
-    console.error("Close request error:", err);
+    console.error("Close request error:", sanitizeError(err));
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

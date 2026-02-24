@@ -11,7 +11,7 @@ async function getOwnedChannel(userId: string, providerId: string, channelId: st
   if (!provider || provider.userId !== userId) return null;
 
   const channel = await prisma.channelProvider.findUnique({ where: { id: channelId } });
-  if (!channel || channel.providerId !== providerId) return null;
+  if (!channel || channel.profileId !== providerId) return null;
 
   return channel;
 }

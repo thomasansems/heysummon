@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 10
 
     env:
-      DATABASE_URL: file:./test.db
+      DATABASE_URL: "file:./test.db"
       AUTH_SECRET: playwright-test-secret
       NEXTAUTH_SECRET: playwright-test-secret
       NEXTAUTH_URL: http://localhost:3456

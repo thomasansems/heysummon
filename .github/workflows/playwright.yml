@@ -55,11 +55,18 @@ jobs:
             sleep 2
           done
 
+      - name: Verify server responds
+        run: |
+          curl -v http://localhost:3456/auth/login 2>&1 | head -30
+          echo "---"
+          curl -s -o /dev/null -w "%{http_code}" http://localhost:3456/auth/login
+
       - name: Run Playwright tests
-        run: npx playwright test tests/e2e/dashboard-walkthrough.spec.ts --reporter=html
+        run: npx playwright test tests/e2e/dashboard-walkthrough.spec.ts --reporter=list --timeout=30000
         env:
           BASE_URL: http://localhost:3456
           CI: true
+          DEBUG: pw:api
 
       - name: Upload test results
         if: always()

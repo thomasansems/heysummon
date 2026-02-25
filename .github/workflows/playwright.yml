@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 10
 
     env:
-      DATABASE_URL: "file:./test.db"
+      DATABASE_URL: "file:./prisma/test.db"
       AUTH_SECRET: playwright-test-secret
       NEXTAUTH_SECRET: playwright-test-secret
       NEXTAUTH_URL: http://localhost:3456
@@ -53,7 +53,7 @@ jobs:
       - name: Start server and verify
         run: |
           # Create .env with correct DATABASE_URL (no .env.local in CI)
-          echo 'DATABASE_URL="file:./test.db"' > .env
+          echo 'DATABASE_URL="file:./prisma/test.db"' > .env
           npx next start -p 3456 &
           for i in $(seq 1 30); do
             if curl -s http://localhost:3456 > /dev/null 2>&1; then

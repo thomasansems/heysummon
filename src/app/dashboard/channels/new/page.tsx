@@ -14,19 +14,22 @@ const channelTypes = [
   {
     type: "openclaw" as const,
     label: "OpenClaw",
-    icon: "OC",
+    icon: "/icons/openclaw.svg",
+    fallback: "OC",
     description: "Connect an OpenClaw AI agent to receive help requests",
   },
   {
     type: "telegram" as const,
     label: "Telegram",
-    icon: "TG",
+    icon: "/icons/telegram.svg",
+    fallback: "TG",
     description: "Receive help requests via a Telegram bot",
   },
   {
     type: null,
     label: "WhatsApp",
-    icon: "WA",
+    icon: "/icons/whatsapp.svg",
+    fallback: "WA",
     description: "Coming soon",
     disabled: true,
   },
@@ -136,8 +139,17 @@ export default function NewChannelPage() {
                 }`}
               >
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-violet-50 text-xs font-bold text-violet-700">
-                    {ct.icon}
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-violet-50">
+                    <img
+                      src={ct.icon}
+                      alt={ct.label}
+                      className="h-5 w-5"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                        target.parentElement!.textContent = ct.fallback;
+                      }}
+                    />
                   </span>
                   <span className="text-sm font-medium text-black">{ct.label}</span>
                 </div>

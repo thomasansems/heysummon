@@ -15,9 +15,10 @@ interface ChannelProvider {
   profile: { id: string; name: string };
 }
 
-const typeIcons: Record<string, string> = {
-  openclaw: "OC",
-  telegram: "TG",
+const typeIcons: Record<string, { src: string; fallback: string }> = {
+  openclaw: { src: "/icons/openclaw.svg", fallback: "OC" },
+  telegram: { src: "/icons/telegram.svg", fallback: "TG" },
+  whatsapp: { src: "/icons/whatsapp.svg", fallback: "WA" },
 };
 
 const typeLabels: Record<string, string> = {
@@ -118,7 +119,9 @@ export default function ChannelsPage() {
                   <td className="px-4 py-2.5">
                     <span className="inline-flex items-center gap-1.5">
                       <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-violet-50 text-[10px] font-bold text-violet-700">
-                        {typeIcons[ch.type] || "?"}
+                        {typeIcons[ch.type] ? (
+                          <img src={typeIcons[ch.type].src} alt={ch.type} className="h-3.5 w-3.5" />
+                        ) : "?"}
                       </span>
                       <span className="text-[#666]">{typeLabels[ch.type] || ch.type}</span>
                     </span>

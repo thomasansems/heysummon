@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 10
 
     env:
-      DATABASE_URL: "file:${{ github.workspace }}/prisma/test.db"
+      DATABASE_URL: file:./test.db
       AUTH_SECRET: playwright-test-secret
       NEXTAUTH_SECRET: playwright-test-secret
       NEXTAUTH_URL: http://localhost:3456
@@ -34,8 +34,14 @@ jobs:
 
       - run: npx prisma generate
 
-      - name: Seed demo user
-        run: npx prisma db push --force-reset && npx prisma db seed
+      - name: Create and seed database
+        run: |
+          npx prisma db push --force-reset
+          echo "=== Checking DB location ==="
+          find . -name "*.db" -o -name "test.db" 2>/dev/null
+          npx prisma db seed
+          echo "=== DB after seed ==="
+          find . -name "*.db" 2>/dev/null
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium

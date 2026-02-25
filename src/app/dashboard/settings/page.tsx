@@ -1,12 +1,10 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect, KeyboardEvent } from "react";
+import { useState, useEffect } from "react";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const [expertiseTags, setExpertiseTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
   const [notificationPref, setNotificationPref] = useState("email");
   const [telegramChatId, setTelegramChatId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -16,49 +14,18 @@ export default function SettingsPage() {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((data) => {
-        if (data.expertise) {
-          // Parse comma-separated string into tags
-          const tags = data.expertise
-            .split(",")
-            .map((t: string) => t.trim())
-            .filter(Boolean);
-          setExpertiseTags(tags);
-        }
         if (data.notificationPref) setNotificationPref(data.notificationPref);
         if (data.telegramChatId) setTelegramChatId(data.telegramChatId);
       })
       .catch(() => {});
   }, []);
 
-  const addTag = (value: string) => {
-    const tag = value.trim();
-    if (tag && !expertiseTags.includes(tag)) {
-      setExpertiseTags([...expertiseTags, tag]);
-    }
-    setTagInput("");
-  };
-
-  const removeTag = (index: number) => {
-    setExpertiseTags(expertiseTags.filter((_, i) => i !== index));
-  };
-
-  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addTag(tagInput);
-    }
-    if (e.key === "Backspace" && !tagInput && expertiseTags.length > 0) {
-      removeTag(expertiseTags.length - 1);
-    }
-  };
-
   const save = async () => {
     setSaving(true);
-    const expertise = expertiseTags.join(", ");
     await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ expertise, notificationPref, telegramChatId }),
+      body: JSON.stringify({ notificationPref, telegramChatId }),
     });
     setSaving(false);
     setSaved(true);
@@ -128,47 +95,6 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Expertise */}
-      <div className="mb-6 rounded-lg border border-[#eaeaea] bg-white p-6">
-        <h2 className="mb-4 text-sm font-medium text-black">Expertise</h2>
-        <p className="mb-3 text-sm text-[#666]">
-          Add your areas of expertise. Requests will be matched to providers
-          based on these tags.
-        </p>
-        <div className="flex min-h-[42px] w-full max-w-md flex-wrap items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-3 py-2 focus-within:border-black">
-          {expertiseTags.map((tag, i) => (
-            <span
-              key={i}
-              className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2.5 py-0.5 text-sm text-black"
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(i)}
-                className="ml-0.5 text-[#999] transition-colors hover:text-black"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-          <input
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleTagKeyDown}
-            onBlur={() => tagInput && addTag(tagInput)}
-            placeholder={
-              expertiseTags.length === 0
-                ? "e.g. Python, DevOps, React, AWS"
-                : "Add more..."
-            }
-            className="min-w-[120px] flex-1 border-none bg-transparent text-sm text-black outline-none placeholder:text-[#999]"
-          />
-        </div>
-        <p className="mt-1.5 text-xs text-[#999]">
-          Press Enter or comma to add a tag. Backspace to remove the last one.
-        </p>
       </div>
 
       <button

@@ -2,7 +2,7 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 interface Provider {
   id: string;
@@ -332,9 +332,8 @@ heysummon:
             </thead>
             <tbody>
               {keys.map((k) => (
-                <>
+                <Fragment key={k.id}>
                   <tr
-                    key={k.id}
                     className="border-b border-[#eaeaea] last:border-0"
                   >
                     <td className="px-4 py-2.5 font-medium text-black">
@@ -632,7 +631,7 @@ heysummon:
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

@@ -22,6 +22,14 @@ interface Stats {
   }[];
 }
 
+interface MercureHealth {
+  status: "healthy" | "unhealthy";
+  mercureUrl: string;
+  lastCheck: string;
+  responseTime?: number;
+  error?: string;
+}
+
 function timeAgo(date: string) {
   const seconds = Math.floor(
     (Date.now() - new Date(date).getTime()) / 1000
@@ -69,11 +77,30 @@ function CopyableRefCode({ code }: { code: string | null }) {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [mercureHealth, setMercureHealth] = useState<MercureHealth | null>(null);
 
   useEffect(() => {
     fetch("/api/dashboard/stats")
       .then((r) => r.json())
       .then(setStats);
+
+    // Check Mercure health
+    const checkMercureHealth = () => {
+      fetch("/api/mercure/health")
+        .then((r) => r.json())
+        .then(setMercureHealth)
+        .catch(() => setMercureHealth({
+          status: "unhealthy",
+          mercureUrl: "unknown",
+          lastCheck: new Date().toISOString(),
+          error: "Failed to check health",
+        }));
+    };
+
+    checkMercureHealth();
+    // Poll every 30 seconds
+    const interval = setInterval(checkMercureHealth, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   if (!stats) {
@@ -89,6 +116,47 @@ export default function DashboardPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-black">Overview</h1>
+
+      {/* Mercure Health Status */}
+      {mercureHealth && mercureHealth.status === "unhealthy" && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-red-500" />
+            <p className="text-sm font-medium text-red-900">
+              Real-time server is down
+            </p>
+          </div>
+          <p className="mt-1 text-sm text-red-700">
+            SSE notifications are not being delivered. {mercureHealth.error || "Connection failed"}
+          </p>
+        </div>
+      )}
+
+      {mercureHealth && (
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-[#eaeaea] bg-white px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                mercureHealth.status === "healthy"
+                  ? "bg-green-500"
+                  : "bg-red-500"
+              }`}
+            />
+            <div>
+              <p className="text-sm font-medium text-black">
+                Real-time Server
+              </p>
+              <p className="text-xs text-[#666]">
+                {mercureHealth.status === "healthy" ? "Connected" : "Disconnected"}
+                {mercureHealth.responseTime && ` • ${mercureHealth.responseTime}ms`}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-[#666]">
+            Checked {timeAgo(mercureHealth.lastCheck)}
+          </p>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">

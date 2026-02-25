@@ -15,21 +15,32 @@ const channelTypes = [
     type: "openclaw" as const,
     label: "OpenClaw",
     icon: "/icons/openclaw.svg",
-    fallback: "OC",
     description: "Connect an OpenClaw AI agent to receive help requests",
   },
   {
     type: "telegram" as const,
     label: "Telegram",
     icon: "/icons/telegram.svg",
-    fallback: "TG",
     description: "Receive help requests via a Telegram bot",
+  },
+  {
+    type: null,
+    label: "Signal",
+    icon: "/icons/signal.svg",
+    description: "Coming soon",
+    disabled: true,
+  },
+  {
+    type: null,
+    label: "Slack",
+    icon: "/icons/slack.svg",
+    description: "Coming soon",
+    disabled: true,
   },
   {
     type: null,
     label: "WhatsApp",
     icon: "/icons/whatsapp.svg",
-    fallback: "WA",
     description: "Coming soon",
     disabled: true,
   },
@@ -72,14 +83,7 @@ export default function NewChannelPage() {
     setError("");
 
     const config: Record<string, string> = {};
-    if (selectedType === "openclaw") {
-      if (!apiKey.trim()) {
-        setError("API key is required");
-        setCreating(false);
-        return;
-      }
-      config.apiKey = apiKey.trim();
-    } else if (selectedType === "telegram") {
+    if (selectedType === "telegram") {
       if (!botToken.trim()) {
         setError("Bot token is required");
         setCreating(false);
@@ -126,7 +130,7 @@ export default function NewChannelPage() {
           <p className="mb-4 text-sm text-[#666]">
             Choose the type of channel you want to connect.
           </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {channelTypes.map((ct) => (
               <button
                 key={ct.label}
@@ -139,18 +143,7 @@ export default function NewChannelPage() {
                 }`}
               >
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded bg-violet-50">
-                    <img
-                      src={ct.icon}
-                      alt={ct.label}
-                      className="h-5 w-5"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = "none";
-                        target.parentElement!.textContent = ct.fallback;
-                      }}
-                    />
-                  </span>
+                  <img src={ct.icon} alt={ct.label} className="h-8 w-8 rounded" />
                   <span className="text-sm font-medium text-black">{ct.label}</span>
                 </div>
                 <p className="text-xs text-[#666]">{ct.description}</p>
@@ -160,11 +153,34 @@ export default function NewChannelPage() {
         </div>
       )}
 
-      {step === 2 && selectedType && (
+      {step === 2 && selectedType === "openclaw" && (
+        <div className="max-w-md space-y-4">
+          <div className="rounded-lg border border-[#eaeaea] bg-white p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <img src="/icons/openclaw.svg" alt="OpenClaw" className="h-8 w-8 rounded" />
+              <h2 className="text-sm font-medium text-black">OpenClaw Setup</h2>
+            </div>
+            <p className="mb-4 text-sm text-[#666]">
+              OpenClaw channels are configured through the OpenClaw agent itself — no manual setup needed here.
+              Follow the guide to connect your OpenClaw agent to HeySummon.
+            </p>
+            <a
+              href="https://docs.heysummon.ai/guides/openclaw"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-black px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black/90"
+            >
+              View Setup Guide →
+            </a>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && selectedType && selectedType !== "openclaw" && (
         <div className="max-w-md space-y-4">
           <div className="rounded-lg border border-[#eaeaea] bg-white p-5">
             <h2 className="mb-4 text-sm font-medium text-black">
-              Configure {selectedType === "openclaw" ? "OpenClaw" : "Telegram"} Channel
+              Configure {selectedType === "telegram" ? "Telegram" : selectedType} Channel
             </h2>
 
             {profiles.length === 0 ? (
@@ -202,24 +218,10 @@ export default function NewChannelPage() {
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder={selectedType === "openclaw" ? "My OpenClaw Agent" : "Support Bot"}
+                    placeholder="Support Bot"
                     className="w-full rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
                   />
                 </div>
-
-                {selectedType === "openclaw" && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-[#666]">
-                      API Key
-                    </label>
-                    <input
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="oc_..."
-                      className="w-full rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 font-mono text-sm text-black outline-none focus:border-black"
-                    />
-                  </div>
-                )}
 
                 {selectedType === "telegram" && (
                   <div>

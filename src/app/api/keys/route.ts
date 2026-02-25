@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, generateApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { keyCreateSchema, validateBody } from "@/lib/validations";
-import { generateDeviceSecret, hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 
 export async function GET() {
@@ -13,9 +12,29 @@ export async function GET() {
 
   const keys = await prisma.apiKey.findMany({
     where: { userId: user.id },
-    include: {
-      _count: { select: { requests: true } },
+    select: {
+      id: true,
+      key: true,
+      name: true,
+      isActive: true,
+      scope: true,
+      rateLimitPerMinute: true,
+      previousKeyExpiresAt: true,
+      createdAt: true,
+      machineId: true,
       provider: { select: { id: true, name: true } },
+      ipEvents: {
+        select: {
+          id: true,
+          ip: true,
+          status: true,
+          attempts: true,
+          firstSeen: true,
+          lastSeen: true,
+        },
+        orderBy: { firstSeen: "asc" },
+      },
+      _count: { select: { requests: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -33,34 +52,27 @@ export async function POST(request: Request) {
   const parsed = validateBody(keyCreateSchema, raw);
   if (!parsed.success) return parsed.response;
 
-  const { name, providerId, scope, allowedIps, rateLimitPerMinute } = parsed.data;
-
-  // Generate device secret
-  const deviceSecretPlaintext = generateDeviceSecret();
-  const deviceSecretHash = hashDeviceToken(deviceSecretPlaintext);
-
-  const data: any = {
-    key: generateApiKey(),
-    name: name || null,
-    userId: user.id,
-    deviceSecret: deviceSecretHash,
-    ...(scope && { scope }),
-    ...(allowedIps !== undefined && { allowedIps: allowedIps || null }),
-    ...(rateLimitPerMinute && { rateLimitPerMinute }),
-  };
+  const { name, providerId, scope, rateLimitPerMinute } = parsed.data;
 
   if (providerId) {
-    // Verify provider belongs to user
     const provider = await prisma.userProfile.findFirst({
       where: { id: providerId, userId: user.id },
     });
     if (!provider) {
       return NextResponse.json({ error: "Provider not found" }, { status: 400 });
     }
-    data.providerId = providerId;
   }
 
-  const key = await prisma.apiKey.create({ data });
+  const key = await prisma.apiKey.create({
+    data: {
+      key: generateApiKey(),
+      name: name || null,
+      user: { connect: { id: user.id } },
+      ...(scope && { scope }),
+      ...(rateLimitPerMinute && { rateLimitPerMinute }),
+      ...(providerId && { provider: { connect: { id: providerId } } }),
+    },
+  });
 
   logAuditEvent({
     eventType: AuditEventTypes.API_KEY_CREATED,
@@ -71,6 +83,5 @@ export async function POST(request: Request) {
     request,
   });
 
-  // Return device_secret plaintext once (never stored or shown again)
-  return NextResponse.json({ key, deviceSecret: deviceSecretPlaintext });
+  return NextResponse.json({ key });
 }

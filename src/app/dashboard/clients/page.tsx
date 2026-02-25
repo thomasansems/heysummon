@@ -9,17 +9,27 @@ interface Provider {
   name: string;
 }
 
+interface IpEvent {
+  id: string;
+  ip: string;
+  status: string;
+  attempts: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
 interface ApiKey {
   id: string;
   key: string;
   name: string | null;
   isActive: boolean;
   scope: string;
-  allowedIps: string | null;
   rateLimitPerMinute: number;
   previousKeyExpiresAt: string | null;
   createdAt: string;
+  machineId: string | null;
   provider: { id: string; name: string } | null;
+  ipEvents: IpEvent[];
   _count: { requests: number };
 }
 
@@ -38,7 +48,6 @@ export default function ClientsPage() {
   const [newName, setNewName] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [newScope, setNewScope] = useState<string>("full");
-  const [newAllowedIps, setNewAllowedIps] = useState("");
   const [newRateLimit, setNewRateLimit] = useState(100);
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -48,11 +57,11 @@ export default function ClientsPage() {
   const [editName, setEditName] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [editScope, setEditScope] = useState("full");
-  const [editAllowedIps, setEditAllowedIps] = useState("");
   const [editRateLimit, setEditRateLimit] = useState(100);
   const [saving, setSaving] = useState(false);
   const [rotating, setRotating] = useState<string | null>(null);
   const [rotationResult, setRotationResult] = useState<{ key: string; deviceSecret: string; expiresAt: string } | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const loadKeys = () =>
     fetch("/api/keys")
@@ -81,14 +90,12 @@ export default function ClientsPage() {
         name: newName || undefined,
         providerId: selectedProviderId,
         scope: newScope,
-        allowedIps: newAllowedIps || undefined,
         rateLimitPerMinute: newRateLimit,
       }),
     });
     setNewName("");
     setSelectedProviderId("");
     setNewScope("full");
-    setNewAllowedIps("");
     setNewRateLimit(100);
     setShowCreate(false);
     setCreating(false);
@@ -142,7 +149,6 @@ export default function ClientsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         scope: editScope,
-        allowedIps: editAllowedIps || null,
         rateLimitPerMinute: editRateLimit,
       }),
     });
@@ -158,7 +164,6 @@ export default function ClientsPage() {
     }
     setSettingsId(k.id);
     setEditScope(k.scope);
-    setEditAllowedIps(k.allowedIps || "");
     setEditRateLimit(k.rateLimitPerMinute);
   };
 
@@ -269,12 +274,6 @@ heysummon:
                   ))}
                 </select>
                 <input
-                  value={newAllowedIps}
-                  onChange={(e) => setNewAllowedIps(e.target.value)}
-                  placeholder="IP allowlist (e.g. 10.0.0.0/8, 192.168.1.1)"
-                  className="flex-1 rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
-                />
-                <input
                   type="number"
                   value={newRateLimit}
                   onChange={(e) => setNewRateLimit(parseInt(e.target.value) || 100)}
@@ -304,7 +303,7 @@ heysummon:
         </div>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
+      <div className="overflow-visible rounded-lg border border-[#eaeaea] bg-white">
         {keys.length === 0 ? (
           <div className="p-8 text-center text-sm text-[#666]">
             No client keys yet. Create one to get started.
@@ -381,12 +380,14 @@ heysummon:
                       <div className="flex items-center gap-1">
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            k.isActive
-                              ? "bg-green-50 text-green-700"
-                              : "bg-red-50 text-red-700"
+                            !k.isActive
+                              ? "bg-red-50 text-red-700"
+                              : k.ipEvents?.some((e) => e.status === "allowed")
+                                ? "bg-green-50 text-green-700"
+                                : "bg-orange-50 text-orange-700"
                           }`}
                         >
-                          {k.isActive ? "Active" : "Inactive"}
+                          {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
                         </span>
                         {isInGracePeriod(k) && (
                           <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700" title={`Old key valid until ${new Date(k.previousKeyExpiresAt!).toLocaleString()}`}>
@@ -399,54 +400,60 @@ heysummon:
                       {new Date(k.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="relative inline-block">
                         <button
-                          onClick={() => openSettings(k)}
-                          className="text-xs text-[#666] hover:text-black"
+                          onClick={() => setOpenMenuId(openMenuId === k.id ? null : k.id)}
+                          className="rounded-md border border-[#eaeaea] px-2 py-1 text-xs text-[#666] hover:bg-[#fafafa] hover:text-black"
                         >
-                          Settings
+                          ⋯
                         </button>
-                        <button
-                          onClick={() =>
-                            setShowInstructions(
-                              showInstructions === k.id ? null : k.id
-                            )
-                          }
-                          className="text-xs text-[#666] hover:text-black"
-                        >
-                          Share
-                        </button>
-                        {k.isActive && (
-                          <button
-                            onClick={() => rotateKey(k.id)}
-                            disabled={rotating === k.id}
-                            className="text-xs text-violet-600 hover:text-violet-800 disabled:opacity-50"
-                          >
-                            {rotating === k.id ? "Rotating..." : "Rotate"}
-                          </button>
+                        {openMenuId === k.id && (
+                          <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-[#eaeaea] bg-white py-1 shadow-lg">
+                            <button
+                              onClick={() => { openSettings(k); setOpenMenuId(null); }}
+                              className="block w-full px-3 py-1.5 text-left text-xs text-[#666] hover:bg-[#fafafa] hover:text-black"
+                            >
+                              Settings
+                            </button>
+                            <button
+                              onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }}
+                              className="block w-full px-3 py-1.5 text-left text-xs text-[#666] hover:bg-[#fafafa] hover:text-black"
+                            >
+                              Share
+                            </button>
+                            {k.isActive && (
+                              <button
+                                onClick={() => { rotateKey(k.id); setOpenMenuId(null); }}
+                                disabled={rotating === k.id}
+                                className="block w-full px-3 py-1.5 text-left text-xs text-violet-600 hover:bg-[#fafafa] hover:text-violet-800 disabled:opacity-50"
+                              >
+                                {rotating === k.id ? "Rotating..." : "Rotate"}
+                              </button>
+                            )}
+                            {k.isActive ? (
+                              <button
+                                onClick={() => { deactivate(k.id); setOpenMenuId(null); }}
+                                className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-[#fafafa] hover:text-red-700"
+                              >
+                                Deactivate
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => { activate(k.id); setOpenMenuId(null); }}
+                                className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-[#fafafa] hover:text-green-800"
+                              >
+                                Activate
+                              </button>
+                            )}
+                            <div className="my-1 border-t border-[#eaeaea]" />
+                            <button
+                              onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }}
+                              className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         )}
-                        {k.isActive ? (
-                          <button
-                            onClick={() => deactivate(k.id)}
-                            className="text-xs text-red-500 hover:text-red-700"
-                          >
-                            Deactivate
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => activate(k.id)}
-                            className="text-xs text-green-600 hover:text-green-800"
-                          >
-                            Activate
-                          </button>
-                        )}
-                        <button
-                          onClick={() => deleteKey(k.id, k.name || "this client")}
-                          className="text-base text-black hover:text-red-600"
-                          title="Delete"
-                        >
-                          X
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -467,15 +474,6 @@ heysummon:
                                 <option key={s} value={s}>{s}</option>
                               ))}
                             </select>
-                          </div>
-                          <div className="flex-1">
-                            <label className="mb-1 block text-xs text-[#666]">IP Allowlist</label>
-                            <input
-                              value={editAllowedIps}
-                              onChange={(e) => setEditAllowedIps(e.target.value)}
-                              placeholder="e.g. 10.0.0.0/8, 192.168.1.1"
-                              className="w-full rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
-                            />
                           </div>
                           <div>
                             <label className="mb-1 block text-xs text-[#666]">Rate Limit (req/min)</label>
@@ -501,6 +499,107 @@ heysummon:
                           >
                             Cancel
                           </button>
+                        </div>
+
+                        {/* IP Events Section */}
+                        <div className="mt-4 border-t border-[#eaeaea] pt-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <p className="text-xs font-medium text-[#666]">IP Bindings</p>
+                            {k.ipEvents?.length > 0 && (
+                              <button
+                                onClick={async () => {
+                                  if (!window.confirm("Reset all IP bindings? The next request will bind a new IP.")) return;
+                                  await fetch(`/api/keys/${k.id}/ip-events/reset`, { method: "POST" });
+                                  loadKeys();
+                                }}
+                                className="rounded-md border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                              >
+                                Reset All Bindings
+                              </button>
+                            )}
+                          </div>
+                          {!k.ipEvents || k.ipEvents.length === 0 ? (
+                            <p className="text-xs text-[#999]">No IP bindings yet. The first API request will automatically bind its IP.</p>
+                          ) : (
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="text-left text-[#999]">
+                                  <th className="pb-1 pr-4 font-medium">IP Address</th>
+                                  <th className="pb-1 pr-4 font-medium">Status</th>
+                                  <th className="pb-1 pr-4 font-medium">Attempts</th>
+                                  <th className="pb-1 pr-4 font-medium">First Seen</th>
+                                  <th className="pb-1 pr-4 font-medium">Last Seen</th>
+                                  <th className="pb-1 font-medium" />
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {k.ipEvents.map((evt) => (
+                                  <tr key={evt.id} className="border-t border-[#eaeaea]">
+                                    <td className="py-1.5 pr-4 font-mono">{evt.ip}</td>
+                                    <td className="py-1.5 pr-4">
+                                      <span
+                                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                          evt.status === "allowed"
+                                            ? "bg-green-50 text-green-700"
+                                            : evt.status === "pending"
+                                              ? "bg-amber-50 text-amber-700"
+                                              : "bg-red-50 text-red-700"
+                                        }`}
+                                      >
+                                        {evt.status}
+                                      </span>
+                                    </td>
+                                    <td className="py-1.5 pr-4 text-[#666]">{evt.attempts}</td>
+                                    <td className="py-1.5 pr-4 text-[#666]">{new Date(evt.firstSeen).toLocaleString()}</td>
+                                    <td className="py-1.5 pr-4 text-[#666]">{new Date(evt.lastSeen).toLocaleString()}</td>
+                                    <td className="py-1.5 text-right">
+                                      <div className="flex items-center justify-end gap-1">
+                                        {evt.status !== "allowed" && (
+                                          <button
+                                            onClick={async () => {
+                                              await fetch(`/api/keys/${k.id}/ip-events/${evt.id}`, {
+                                                method: "PATCH",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ status: "allowed" }),
+                                              });
+                                              loadKeys();
+                                            }}
+                                            className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50"
+                                          >
+                                            Allow
+                                          </button>
+                                        )}
+                                        {evt.status !== "blacklisted" && (
+                                          <button
+                                            onClick={async () => {
+                                              await fetch(`/api/keys/${k.id}/ip-events/${evt.id}`, {
+                                                method: "PATCH",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ status: "blacklisted" }),
+                                              });
+                                              loadKeys();
+                                            }}
+                                            className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                                          >
+                                            Blacklist
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={async () => {
+                                            await fetch(`/api/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" });
+                                            loadKeys();
+                                          }}
+                                          className="rounded px-1.5 py-0.5 text-xs text-[#999] hover:bg-[#f0f0f0] hover:text-[#666]"
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
                         </div>
                       </td>
                     </tr>

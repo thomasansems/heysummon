@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ipAllowed } from "@/lib/ip-match";
 import crypto from "crypto";
+
+const AUTO_BLACKLIST_THRESHOLD = 20;
 
 // ── Per-key rate limiting (in-memory sliding window) ──
 
@@ -179,17 +180,77 @@ export async function validateApiKeyRequest(
     };
   }
 
-  // 5. IP allowlist check
-  if (keyRecord.allowedIps) {
+  // 5. Auto IP-bind check
+  {
     const clientIp = getClientIp(request);
-    if (!ipAllowed(clientIp, keyRecord.allowedIps)) {
-      return {
-        ok: false,
-        response: NextResponse.json(
-          { error: "Request IP not in allowlist" },
-          { status: 403 }
-        ),
-      };
+    const existingEvents = await prisma.ipEvent.findMany({
+      where: { apiKeyId: keyRecord.id },
+    });
+
+    if (existingEvents.length === 0) {
+      // First ever request for this key — bind this IP as allowed
+      await prisma.ipEvent.create({
+        data: { apiKeyId: keyRecord.id, ip: clientIp, status: "allowed" },
+      });
+    } else {
+      const matchingEvent = existingEvents.find((e) => e.ip === clientIp);
+
+      if (matchingEvent) {
+        if (matchingEvent.status === "blacklisted") {
+          return {
+            ok: false,
+            response: NextResponse.json(
+              { error: "IP address is blacklisted" },
+              { status: 403 }
+            ),
+          };
+        }
+        if (matchingEvent.status === "pending") {
+          // Increment attempts, auto-blacklist at threshold
+          const newAttempts = matchingEvent.attempts + 1;
+          await prisma.ipEvent.update({
+            where: { id: matchingEvent.id },
+            data: {
+              attempts: newAttempts,
+              lastSeen: new Date(),
+              ...(newAttempts >= AUTO_BLACKLIST_THRESHOLD
+                ? { status: "blacklisted" }
+                : {}),
+            },
+          });
+          return {
+            ok: false,
+            response: NextResponse.json(
+              { error: "IP address not authorized for this key" },
+              { status: 403 }
+            ),
+          };
+        }
+        // status === "allowed" → pass through
+      } else {
+        // New unknown IP → upsert as pending
+        await prisma.ipEvent.upsert({
+          where: {
+            apiKeyId_ip: { apiKeyId: keyRecord.id, ip: clientIp },
+          },
+          create: {
+            apiKeyId: keyRecord.id,
+            ip: clientIp,
+            status: "pending",
+          },
+          update: {
+            attempts: { increment: 1 },
+            lastSeen: new Date(),
+          },
+        });
+        return {
+          ok: false,
+          response: NextResponse.json(
+            { error: "IP address not authorized for this key" },
+            { status: 403 }
+          ),
+        };
+      }
     }
   }
 

@@ -118,9 +118,24 @@ model ApiKey {
   allowedIps           String?                             // comma-separated CIDR/IPs
   rateLimitPerMinute   Int           @default(100)
   requests             HelpRequest[]
+  ipEvents             IpEvent[]
   createdAt            DateTime      @default(now())
 
   @@index([previousKeyHash])
+}
+
+model IpEvent {
+  id        String   @id @default(cuid())
+  apiKeyId  String
+  apiKey    ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  ip        String
+  status    String   @default("pending") // "allowed" | "pending" | "blacklisted"
+  attempts  Int      @default(1)
+  firstSeen DateTime @default(now())
+  lastSeen  DateTime @default(now())
+
+  @@unique([apiKeyId, ip])
+  @@index([apiKeyId])
 }
 
 model HelpRequest {

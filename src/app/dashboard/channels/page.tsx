@@ -15,10 +15,12 @@ interface ChannelProvider {
   profile: { id: string; name: string };
 }
 
-const typeIcons: Record<string, { src: string; fallback: string }> = {
-  openclaw: { src: "/icons/openclaw.svg", fallback: "OC" },
-  telegram: { src: "/icons/telegram.svg", fallback: "TG" },
-  whatsapp: { src: "/icons/whatsapp.svg", fallback: "WA" },
+const typeIcons: Record<string, string> = {
+  openclaw: "/icons/openclaw.svg",
+  telegram: "/icons/telegram.svg",
+  signal: "/icons/signal.svg",
+  slack: "/icons/slack.svg",
+  whatsapp: "/icons/whatsapp.svg",
 };
 
 const typeLabels: Record<string, string> = {
@@ -80,14 +82,37 @@ export default function ChannelsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6">
         <h1 className="text-2xl font-semibold text-black">Channels</h1>
-        <Link
-          href="/dashboard/channels/new"
-          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black/90"
-        >
-          New Channel
-        </Link>
+      </div>
+
+      {/* Connect a channel */}
+      <div className="mb-6">
+        <h2 className="mb-3 text-sm font-medium text-[#666]">Connect a channel</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {[
+            { type: "openclaw", icon: "/icons/openclaw.svg", label: "OpenClaw", enabled: true },
+            { type: "telegram", icon: "/icons/telegram.svg", label: "Telegram", enabled: true },
+            { type: "signal", icon: "/icons/signal.svg", label: "Signal", enabled: false },
+            { type: "slack", icon: "/icons/slack.svg", label: "Slack", enabled: false },
+            { type: "whatsapp", icon: "/icons/whatsapp.svg", label: "WhatsApp", enabled: false },
+          ].map((ch) => (
+            <Link
+              key={ch.type}
+              href={ch.enabled ? "/dashboard/channels/new" : "#"}
+              onClick={(e) => !ch.enabled && e.preventDefault()}
+              className={`flex items-center gap-2.5 rounded-lg border border-[#eaeaea] bg-white px-4 py-3 transition-colors ${
+                ch.enabled ? "hover:border-black" : "cursor-default opacity-50"
+              }`}
+            >
+              <img src={ch.icon} alt={ch.label} className="h-7 w-7 rounded" />
+              <div>
+                <span className="text-sm font-medium text-black">{ch.label}</span>
+                {!ch.enabled && <p className="text-[10px] text-[#999]">Coming soon</p>}
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
@@ -118,11 +143,7 @@ export default function ChannelsPage() {
                   </td>
                   <td className="px-4 py-2.5">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-violet-50 text-[10px] font-bold text-violet-700">
-                        {typeIcons[ch.type] ? (
-                          <img src={typeIcons[ch.type].src} alt={ch.type} className="h-3.5 w-3.5" />
-                        ) : "?"}
-                      </span>
+                      <img src={typeIcons[ch.type] || "/icons/openclaw.svg"} alt={ch.type} className="h-5 w-5 rounded" />
                       <span className="text-[#666]">{typeLabels[ch.type] || ch.type}</span>
                     </span>
                   </td>

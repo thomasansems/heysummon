@@ -1,7 +1,6 @@
 #!/bin/bash
-# Start Mercure hub for local development
-# Requires: ~/bin/mercure (download from https://github.com/dunglas/mercure/releases)
-
-export MERCURE_JWT_SECRET="${MERCURE_JWT_SECRET:-dev-mercure-secret-change-me-in-production}"
-
-exec ~/bin/mercure run --config dev.Caddyfile
+cd "$(dirname "$0")"
+set -a
+source .env.local
+set +a
+exec /home/thomasansems/bin/mercure run --config dev.Caddyfile

@@ -52,8 +52,8 @@ jobs:
 
       - name: Start server and verify
         run: |
-          # Ensure .env doesn't override our DATABASE_URL
-          sed -i 's|^DATABASE_URL=.*|DATABASE_URL="file:./test.db"|' .env
+          # Create .env with correct DATABASE_URL (no .env.local in CI)
+          echo 'DATABASE_URL="file:./test.db"' > .env
           npx next start -p 3456 &
           for i in $(seq 1 30); do
             if curl -s http://localhost:3456 > /dev/null 2>&1; then

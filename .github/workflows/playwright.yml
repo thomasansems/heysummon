@@ -40,6 +40,7 @@ jobs:
         run: npm run build
         env:
           DATABASE_URL: file:./test.db
+          NEXTAUTH_SECRET: playwright-test-secret
 
       - name: Run Playwright tests
         run: npx playwright test tests/e2e/dashboard-walkthrough.spec.ts --reporter=html
@@ -47,6 +48,8 @@ jobs:
           DATABASE_URL: file:./test.db
           BASE_URL: http://localhost:3456
           CI: true
+          NEXTAUTH_SECRET: playwright-test-secret
+          NEXTAUTH_URL: http://localhost:3456
 
       - name: Upload test results
         if: always()

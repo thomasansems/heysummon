@@ -65,15 +65,23 @@ export default function ClientsPage() {
 
   const loadKeys = () =>
     fetch("/api/keys")
-      .then((r) => r.json())
-      .then((data) => setKeys(data.keys || []));
+      .then((r) => {
+        if (!r.ok) return { keys: [] };
+        return r.json();
+      })
+      .then((data) => setKeys(data.keys || []))
+      .catch(() => setKeys([]));
 
   const loadProviders = () =>
     fetch("/api/providers")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) return { providers: [] };
+        return r.json();
+      })
       .then((data) => {
         setProviders(data.providers || []);
-      });
+      })
+      .catch(() => setProviders([]));
 
   useEffect(() => {
     loadKeys();

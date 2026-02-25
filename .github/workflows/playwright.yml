@@ -52,6 +52,8 @@ jobs:
 
       - name: Start server and verify
         run: |
+          # Ensure .env doesn't override our DATABASE_URL
+          sed -i 's|^DATABASE_URL=.*|DATABASE_URL="file:./test.db"|' .env
           npx next start -p 3456 &
           for i in $(seq 1 30); do
             if curl -s http://localhost:3456 > /dev/null 2>&1; then
@@ -61,6 +63,9 @@ jobs:
             echo "Waiting for server... ($i)"
             sleep 2
           done
+          # Verify flags API returns hasUsers: true
+          echo "=== Auth flags ==="
+          curl -s http://localhost:3456/api/auth/flags | jq .
 
       - name: Verify DB and server
         run: |

@@ -51,7 +51,7 @@ export function generateEnv(
     "# HeySummon Configuration",
     `# Generated on ${new Date().toISOString()}`,
     "",
-    `DATABASE_URL="file:./prisma/hitlaas.db"`,
+    `DATABASE_URL="file:./prisma/heysummon.db"`,
     "",
     "# Server",
     `PORT=${config.port}`,

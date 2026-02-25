@@ -5,7 +5,7 @@ services:
     depends_on:
       app:
         condition: service_healthy
-    hostname: hitlaas
+    hostname: heysummon
     environment:
       TS_AUTHKEY: ${TAILSCALE_AUTHKEY}
       TS_STATE_DIR: /var/lib/tailscale
@@ -23,3 +23,4 @@ services:
 
 volumes:
   tailscale-state:
+s

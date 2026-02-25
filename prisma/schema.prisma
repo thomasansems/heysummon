@@ -83,7 +83,7 @@ model ChannelProvider {
   id              String       @id @default(cuid())
   profileId       String
   profile         UserProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  type            String       // "openclaw" | "telegram"
+  type            String       // "openclaw" | "telegram" | "whatsapp"
   name            String
   isActive        Boolean      @default(true)
   config          String       @default("{}")  // JSON, type-specific

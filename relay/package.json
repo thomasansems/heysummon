@@ -1,7 +1,7 @@
 {
-  "name": "hitlaas-relay",
+  "name": "heysummon-relay",
   "version": "1.0.0",
-  "description": "HITLaaS E2E Encrypted Message Relay Service",
+  "description": "HeySummon E2E Encrypted Message Relay Service",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

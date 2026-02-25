@@ -1,0 +1,67 @@
+name: Playwright Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      - name: Seed demo user
+        run: npx prisma db push --force-reset && npx prisma db seed
+        env:
+          DATABASE_URL: file:./test.db
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build app
+        run: npm run build
+        env:
+          DATABASE_URL: file:./test.db
+
+      - name: Run Playwright tests
+        run: npx playwright test tests/e2e/dashboard-walkthrough.spec.ts --reporter=html
+        env:
+          DATABASE_URL: file:./test.db
+          BASE_URL: http://localhost:3456
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            /tmp/playwright-heysummon/
+            playwright-report/
+          retention-days: 7
+
+      - name: Upload test videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos
+          path: /tmp/playwright-heysummon/**/video.webm
+          retention-days: 7

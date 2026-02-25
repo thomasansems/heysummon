@@ -4,27 +4,30 @@ const TEST_EMAIL = "demo@heysummon.ai";
 const TEST_PASSWORD = "demo1234";
 
 async function login(page: Page) {
-  // Use NextAuth's CSRF token + credentials API directly to get a session cookie
   const baseUrl = process.env.BASE_URL || "http://localhost:3456";
 
-  // Get CSRF token
-  const csrfRes = await page.request.get(`${baseUrl}/api/auth/csrf`);
-  const { csrfToken } = await csrfRes.json();
+  // Use browser context to directly set session via fetch within page context
+  await page.goto("/auth/login");
+  await page.waitForSelector('#email', { state: 'visible', timeout: 10000 });
+  await page.waitForTimeout(2000); // Allow full React hydration
 
-  // Sign in via API
-  const signInRes = await page.request.post(`${baseUrl}/api/auth/callback/credentials`, {
-    form: {
-      email: TEST_EMAIL,
-      password: TEST_PASSWORD,
-      csrfToken,
-      callbackUrl: `${baseUrl}/dashboard`,
-      json: "true",
-    },
-  });
+  // Fill form
+  await page.locator('#email').fill(TEST_EMAIL);
+  await page.locator('#password').fill(TEST_PASSWORD);
 
-  // Navigate to dashboard with the session cookie now set
-  await page.goto("/dashboard");
-  await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+  // Click submit and wait for navigation
+  await Promise.all([
+    page.waitForURL(/\/dashboard|\/auth\/login/, { timeout: 15000 }),
+    page.locator('button[type="submit"]').click(),
+  ]);
+
+  // Check if we landed on dashboard or got an error
+  const url = page.url();
+  if (url.includes('/auth/login')) {
+    // Login failed - try to get error info
+    const errorText = await page.locator('[class*="error"], [role="alert"], .text-red').textContent().catch(() => 'unknown');
+    throw new Error(`Login failed. URL: ${url}, Error: ${errorText}`);
+  }
 }
 
 test.describe("Dashboard Walkthrough", () => {

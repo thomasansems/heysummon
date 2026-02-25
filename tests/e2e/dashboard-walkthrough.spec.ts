@@ -4,31 +4,27 @@ const TEST_EMAIL = "demo@heysummon.ai";
 const TEST_PASSWORD = "demo1234";
 
 async function login(page: Page) {
-  await page.goto("/auth/login");
-  // Wait for the form to be fully rendered (React hydration)
-  await page.waitForSelector('#email', { state: 'visible', timeout: 10000 });
-  await page.waitForTimeout(1000); // Allow React hydration
+  // Use NextAuth's CSRF token + credentials API directly to get a session cookie
+  const baseUrl = process.env.BASE_URL || "http://localhost:3456";
 
-  // Ensure we're in login mode (not register) by checking for "Sign in" button
-  const signInBtn = page.locator('button[type="submit"]:has-text("Sign in")');
-  const createBtn = page.locator('button[type="submit"]:has-text("Create account")');
+  // Get CSRF token
+  const csrfRes = await page.request.get(`${baseUrl}/api/auth/csrf`);
+  const { csrfToken } = await csrfRes.json();
 
-  // If we see "Create account", click "Sign in" link to switch to login mode
-  if (await createBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await page.locator('button:has-text("Sign in"), a:has-text("Sign in")').first().click();
-    await page.waitForTimeout(500);
-  }
+  // Sign in via API
+  const signInRes = await page.request.post(`${baseUrl}/api/auth/callback/credentials`, {
+    form: {
+      email: TEST_EMAIL,
+      password: TEST_PASSWORD,
+      csrfToken,
+      callbackUrl: `${baseUrl}/dashboard`,
+      json: "true",
+    },
+  });
 
-  await page.locator('#email').clear();
-  await page.locator('#email').fill(TEST_EMAIL);
-  await page.locator('#password').clear();
-  await page.locator('#password').fill(TEST_PASSWORD);
-
-  // Click the Sign in button specifically
-  await signInBtn.click();
-
-  // Wait for redirect to dashboard
-  await page.waitForURL(/\/dashboard/, { timeout: 20000 });
+  // Navigate to dashboard with the session cookie now set
+  await page.goto("/dashboard");
+  await page.waitForURL(/\/dashboard/, { timeout: 10000 });
 }
 
 test.describe("Dashboard Walkthrough", () => {

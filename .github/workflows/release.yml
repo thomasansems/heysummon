@@ -32,7 +32,7 @@ jobs:
       - name: Create tarball
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          tar -czf heysummon-${VERSION}.tar.gz \
+          tar -czf heysummon-v${VERSION}.tar.gz \
             --exclude='node_modules' \
             --exclude='.git' \
             --exclude='tests' \
@@ -53,15 +53,29 @@ jobs:
           generate_release_notes: true
 
       # Build and publish CLI to npm
-      - name: Build CLI
+      - name: Sync CLI version with tag
         working-directory: cli
         run: |
-          npm run build
           VERSION=${GITHUB_REF#refs/tags/v}
           npm version $VERSION --no-git-tag-version
+          # Update hardcoded VERSION constant in source
+          sed -i "s/const VERSION = \".*\"/const VERSION = \"$VERSION\"/" src/index.ts
+
+      - name: Build CLI
+        working-directory: cli
+        run: npm run build
 
       - name: Publish to npm
         working-directory: cli
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Smoke test: verify published package works
+      - name: Smoke test
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          # Wait briefly for npm registry propagation
+          sleep 10
+          npx --yes heysummon@${VERSION} --version | grep -q "$VERSION"
+          echo "✅ Smoke test passed: heysummon@${VERSION}"

@@ -8,6 +8,7 @@ Connect AI agents with human experts — in real time, E2E encrypted, self-hosta
 
 [![CI](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/thomasansems/heysummon/actions/workflows/codeql.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/codeql.yml)
+[![npm version](https://img.shields.io/npm/v/heysummon)](https://www.npmjs.com/package/heysummon)
 [![Docker](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml)
 [![License: SUL](https://img.shields.io/badge/license-Sustainable%20Use-blue)](LICENSE.md)
 [![Version](https://img.shields.io/badge/version-0.1.0--alpha.1-orange)](package.json)

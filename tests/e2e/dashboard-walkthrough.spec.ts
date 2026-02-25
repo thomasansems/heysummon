@@ -8,12 +8,26 @@ async function login(page: Page) {
   // Wait for the form to be fully rendered (React hydration)
   await page.waitForSelector('#email', { state: 'visible', timeout: 10000 });
   await page.waitForTimeout(1000); // Allow React hydration
+
+  // Ensure we're in login mode (not register) by checking for "Sign in" button
+  const signInBtn = page.locator('button[type="submit"]:has-text("Sign in")');
+  const createBtn = page.locator('button[type="submit"]:has-text("Create account")');
+
+  // If we see "Create account", click "Sign in" link to switch to login mode
+  if (await createBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await page.locator('button:has-text("Sign in"), a:has-text("Sign in")').first().click();
+    await page.waitForTimeout(500);
+  }
+
   await page.locator('#email').clear();
-  await page.locator('#email').type(TEST_EMAIL, { delay: 50 });
+  await page.locator('#email').fill(TEST_EMAIL);
   await page.locator('#password').clear();
-  await page.locator('#password').type(TEST_PASSWORD, { delay: 50 });
-  await page.click('button[type="submit"]');
-  // Wait for redirect — may go through Tailscale URL
+  await page.locator('#password').fill(TEST_PASSWORD);
+
+  // Click the Sign in button specifically
+  await signInBtn.click();
+
+  // Wait for redirect to dashboard
   await page.waitForURL(/\/dashboard/, { timeout: 20000 });
 }
 

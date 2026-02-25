@@ -16,6 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
+    env:
+      DATABASE_URL: file:./test.db
+      AUTH_SECRET: playwright-test-secret
+      NEXTAUTH_SECRET: playwright-test-secret
+      NEXTAUTH_URL: http://localhost:3456
+
     steps:
       - uses: actions/checkout@v4
 
@@ -30,26 +36,30 @@ jobs:
 
       - name: Seed demo user
         run: npx prisma db push --force-reset && npx prisma db seed
-        env:
-          DATABASE_URL: file:./test.db
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Build app
         run: npm run build
-        env:
-          DATABASE_URL: file:./test.db
-          NEXTAUTH_SECRET: playwright-test-secret
+
+      - name: Start server and verify
+        run: |
+          npx next start -p 3456 &
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:3456 > /dev/null 2>&1; then
+              echo "✅ Server is up"
+              break
+            fi
+            echo "Waiting for server... ($i)"
+            sleep 2
+          done
 
       - name: Run Playwright tests
         run: npx playwright test tests/e2e/dashboard-walkthrough.spec.ts --reporter=html
         env:
-          DATABASE_URL: file:./test.db
           BASE_URL: http://localhost:3456
           CI: true
-          NEXTAUTH_SECRET: playwright-test-secret
-          NEXTAUTH_URL: http://localhost:3456
 
       - name: Upload test results
         if: always()

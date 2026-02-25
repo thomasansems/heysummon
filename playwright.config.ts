@@ -22,14 +22,8 @@ export default defineConfig({
     ? {
         command: "npx next start -p 3456",
         url: "http://localhost:3456",
-        reuseExistingServer: false,
-        timeout: 30000,
-        env: {
-          ...process.env,
-          DATABASE_URL: process.env.DATABASE_URL || "file:./test.db",
-          NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || "playwright-test-secret",
-          NEXTAUTH_URL: "http://localhost:3456",
-        },
+        reuseExistingServer: true,
+        timeout: 5000,
       }
     : undefined,
 });

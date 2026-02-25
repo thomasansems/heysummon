@@ -45,6 +45,7 @@ const scopeBadgeColors: Record<string, string> = {
 export default function ClientsPage() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [newScope, setNewScope] = useState<string>("full");
@@ -69,8 +70,14 @@ export default function ClientsPage() {
         if (!r.ok) return { keys: [] };
         return r.json();
       })
-      .then((data) => setKeys(data.keys || []))
-      .catch(() => setKeys([]));
+      .then((data) => {
+        setKeys(data.keys || []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setKeys([]);
+        setLoading(false);
+      });
 
   const loadProviders = () =>
     fetch("/api/providers")
@@ -312,7 +319,52 @@ heysummon:
       )}
 
       <div className="overflow-visible rounded-lg border border-[#eaeaea] bg-white">
-        {keys.length === 0 ? (
+        {loading ? (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+                <th className="px-4 py-2.5 font-medium">Name</th>
+                <th className="px-4 py-2.5 font-medium">Provider</th>
+                <th className="px-4 py-2.5 font-medium">Key</th>
+                <th className="px-4 py-2.5 font-medium">Scope</th>
+                <th className="px-4 py-2.5 font-medium">Requests</th>
+                <th className="px-4 py-2.5 font-medium">Status</th>
+                <th className="px-4 py-2.5 font-medium">Created</th>
+                <th className="px-4 py-2.5 font-medium" />
+              </tr>
+            </thead>
+            <tbody>
+              {[1, 2, 3].map((i) => (
+                <tr key={i} className="border-b border-[#eaeaea] animate-pulse">
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-24 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-20 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-32 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-5 w-16 rounded-full bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-8 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-5 w-20 rounded-full bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-20 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="ml-auto h-6 w-8 rounded bg-[#eaeaea]"></div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : keys.length === 0 ? (
           <div className="p-8 text-center text-sm text-[#666]">
             No client keys yet. Create one to get started.
           </div>

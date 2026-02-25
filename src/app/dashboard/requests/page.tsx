@@ -84,12 +84,17 @@ function responseTime(created: string, responded: string | null) {
 
 export default function RequestsPage() {
   const [requests, setRequests] = useState<HelpRequest[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
 
   const fetchRequests = useCallback(() => {
     fetch("/api/requests")
       .then((r) => r.json())
-      .then((data) => setRequests(data.requests || []));
+      .then((data) => {
+        setRequests(data.requests || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -130,7 +135,50 @@ export default function RequestsPage() {
       </div>
 
       <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+                <th className="px-4 py-2.5 font-medium">Ref Code</th>
+                <th className="px-4 py-2.5 font-medium">Status</th>
+                <th className="px-4 py-2.5 font-medium">Messages</th>
+                <th className="px-4 py-2.5 font-medium">Responses</th>
+                <th className="px-4 py-2.5 font-medium">Client</th>
+                <th className="px-4 py-2.5 font-medium">Created</th>
+                <th className="px-4 py-2.5 font-medium text-right">
+                  Response Time
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[1, 2, 3, 4].map((i) => (
+                <tr key={i} className="border-b border-[#eaeaea] animate-pulse">
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-16 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-5 w-32 rounded-full bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-24 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-8 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-20 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-16 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="ml-auto h-4 w-16 rounded bg-[#eaeaea]"></div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-[#666]">
             No requests found
           </div>

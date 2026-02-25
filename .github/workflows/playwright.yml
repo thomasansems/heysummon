@@ -17,7 +17,6 @@ jobs:
     timeout-minutes: 10
 
     env:
-      DATABASE_URL: "file:./prisma/test.db"
       AUTH_SECRET: playwright-test-secret
       NEXTAUTH_SECRET: playwright-test-secret
       NEXTAUTH_URL: http://localhost:3456
@@ -33,26 +32,30 @@ jobs:
 
       - run: npm ci
 
-      - run: npx prisma generate
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "file:./test.db"
 
       - name: Create and seed database
         run: |
           npx prisma db push --force-reset
-          echo "=== Checking DB location ==="
-          find . -name "*.db" -o -name "test.db" 2>/dev/null
           npx prisma db seed
-          echo "=== DB after seed ==="
-          find . -name "*.db" 2>/dev/null
+          echo "✅ DB seeded at prisma/test.db"
+          ls -la prisma/test.db
+        env:
+          DATABASE_URL: "file:./test.db"
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Build app
         run: npm run build
+        env:
+          DATABASE_URL: "file:./prisma/test.db"
 
       - name: Start server and verify
         run: |
-          # Create .env with correct DATABASE_URL (no .env.local in CI)
           echo 'DATABASE_URL="file:./prisma/test.db"' > .env
           npx next start -p 3456 &
           for i in $(seq 1 30); do
@@ -63,32 +66,13 @@ jobs:
             echo "Waiting for server... ($i)"
             sleep 2
           done
-          # Verify flags API returns hasUsers: true
           echo "=== Auth flags ==="
           curl -s http://localhost:3456/api/auth/flags | jq .
-
-      - name: Verify DB and server
-        run: |
-          echo "=== DB file check ==="
-          ls -la prisma/test.db || echo "DB NOT FOUND at prisma/test.db"
-          ls -la ${{ github.workspace }}/prisma/test.db || echo "DB NOT FOUND at absolute path"
-          echo "=== Query demo user ==="
-          npx prisma db execute --stdin <<< "SELECT id, email, password FROM User WHERE email='demo@heysummon.ai';" 2>&1 || echo "Query failed"
-          echo "=== Try login via curl ==="
-          CSRF=$(curl -s http://localhost:3456/api/auth/csrf | jq -r '.csrfToken')
-          echo "CSRF: $CSRF"
-          COOKIES=$(curl -s -D - http://localhost:3456/api/auth/csrf | grep -i set-cookie | head -2)
-          echo "Cookies: $COOKIES"
-          curl -v -X POST http://localhost:3456/api/auth/callback/credentials \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -b "authjs.csrf-token=$(echo $CSRF | cut -d'|' -f1)%7C$(echo $CSRF | cut -d'|' -f2)" \
-            -d "email=demo@heysummon.ai&password=demo1234&csrfToken=$CSRF&json=true" 2>&1 | tail -20
-          echo "=== Server auth/login response ==="
-          curl -s -o /dev/null -w "%{http_code}" http://localhost:3456/auth/login
 
       - name: Run Playwright tests
         run: npx playwright test tests/e2e/dashboard-walkthrough.spec.ts --reporter=list --timeout=30000
         env:
+          DATABASE_URL: "file:./prisma/test.db"
           BASE_URL: http://localhost:3456
           CI: true
           DEBUG: pw:api

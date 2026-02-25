@@ -52,8 +52,8 @@ export async function POST(
   const { type, config, name } = parsed.data;
 
   // Check for duplicate channel type
-  const existing = await prisma.channelProvider.findUnique({
-    where: { providerId_type: { profileId: id, type } },
+  const existing = await prisma.channelProvider.findFirst({
+    where: { profileId: id, type },
   });
   if (existing) {
     return NextResponse.json(

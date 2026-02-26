@@ -61,9 +61,13 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+        env:
+          DATABASE_URL: "file:./e2e-test.db"
 
       - name: Run migrations
         run: npx prisma db push --force-reset
+        env:
+          DATABASE_URL: "file:./e2e-test.db"
 
       - name: Seed E2E data
         id: seed

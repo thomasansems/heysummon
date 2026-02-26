@@ -35,16 +35,16 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
         env:
-          DATABASE_URL: "file:./prisma/test.db"
+          DATABASE_URL: "file:./test.db"
 
       - name: Create and seed database
         run: |
           npx prisma db push --force-reset
           npx prisma db seed
-          echo "✅ DB seeded at prisma/test.db"
+          echo "✅ DB seeded"
           ls -la prisma/test.db
         env:
-          DATABASE_URL: "file:./prisma/test.db"
+          DATABASE_URL: "file:./test.db"
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium

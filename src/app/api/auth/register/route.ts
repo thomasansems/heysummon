@@ -15,6 +15,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Single-admin: only the first user can register unless ALLOW_REGISTRATION=true
+    if (process.env.ALLOW_REGISTRATION !== "true") {
+      const userCount = await prisma.user.count();
+      if (userCount > 0) {
+        return NextResponse.json(
+          { error: "Registration is closed. Contact the administrator." },
+          { status: 403 }
+        );
+      }
+    }
     const { email, password, name } = await request.json();
 
     if (!email || !password) {
@@ -43,13 +53,18 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user (auto-verified, no email confirmation needed)
+    // First user becomes admin, subsequent users are regular experts
+    const userCount = await prisma.user.count();
+    const isFirstUser = userCount === 0;
+
     const user = await prisma.user.create({
       data: {
         email: emailNorm,
         password: hashedPassword,
         name: name?.trim() || null,
+        role: isFirstUser ? "admin" : "expert",
         emailVerified: new Date(), // Auto-verified for self-hosted simplicity
+        onboardingComplete: isFirstUser, // Skip onboarding for admin
       },
     });
 

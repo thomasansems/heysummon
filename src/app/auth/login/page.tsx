@@ -15,6 +15,8 @@ type AuthFlags = {
   magicLink: boolean;
   google: boolean;
   github: boolean;
+  hasUsers?: boolean;
+  registrationOpen?: boolean;
 };
 
 export default function LoginPage() {
@@ -34,7 +36,7 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const errorParam = searchParams.get("error");
 
-  const [flags, setFlags] = useState<(AuthFlags & { hasUsers?: boolean }) | null>(null);
+  const [flags, setFlags] = useState<AuthFlags | null>(null);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -264,7 +266,7 @@ function LoginForm() {
                   </button>
 
                   <p className="mt-3 text-center text-sm text-[#666]">
-                    {mode === "login" ? (
+                    {mode === "login" && flags?.registrationOpen ? (
                       <>
                         Don&apos;t have an account?{" "}
                         <button
@@ -275,7 +277,7 @@ function LoginForm() {
                           Sign up
                         </button>
                       </>
-                    ) : (
+                    ) : mode === "register" ? (
                       <>
                         Already have an account?{" "}
                         <button

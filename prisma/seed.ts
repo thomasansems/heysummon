@@ -34,42 +34,27 @@ async function main() {
       password: demoPassword,
       role: "expert",
       onboardingComplete: true,
-      expertise: JSON.stringify(["debugging", "frontend"]),
       notificationPref: "email",
     },
   });
   console.log(`✅ Demo user: ${demoUser.email} / demo1234`);
 
-  const user = await prisma.user.upsert({
-    where: { email: "thomasansems@gmail.com" },
-    update: {},
-    create: {
-      email: "thomasansems@gmail.com",
-      name: "Thomas Ansems",
-      role: "expert",
-      onboardingComplete: true,
-      expertise: JSON.stringify(["debugging", "architecture", "devops", "frontend", "backend"]),
-      notificationPref: "telegram",
-    },
-  });
-  console.log(`✅ User: ${user.email} (${user.id})`);
-
   const existingKey = await prisma.apiKey.findFirst({
-    where: { userId: user.id, name: "test-key" },
+    where: { userId: demoUser.id, name: "test-key" },
   });
   if (!existingKey) {
     const key = `hs_${randomBytes(24).toString("hex")}`;
     const apiKey = await prisma.apiKey.create({
-      data: { key, name: "test-key", userId: user.id, isActive: true },
+      data: { key, name: "test-key", userId: demoUser.id, isActive: true },
     });
     console.log(`✅ API key: ${apiKey.key}`);
   } else {
     console.log(`✅ API key exists: ${existingKey.key}`);
   }
 
-  const apiKey = await prisma.apiKey.findFirst({ where: { userId: user.id } });
+  const apiKey = await prisma.apiKey.findFirst({ where: { userId: demoUser.id } });
   if (apiKey) {
-    const existingReq = await prisma.helpRequest.findFirst({ where: { expertId: user.id } });
+    const existingReq = await prisma.helpRequest.findFirst({ where: { expertId: demoUser.id } });
     if (!existingReq) {
       const serverKp = generateKeyPairSync("rsa", {
         modulusLength: 2048,
@@ -91,7 +76,7 @@ async function main() {
         data: {
           refCode: "HS-TEST",
           apiKeyId: apiKey.id,
-          expertId: user.id,
+          expertId: demoUser.id,
           messages: encryptMessage(JSON.stringify(messages), serverKp.publicKey as string),
           question: encryptMessage("JWT verify fails with secretOrPublicKey error", serverKp.publicKey as string),
           status: "pending",
@@ -107,7 +92,7 @@ async function main() {
 
   // Create a sample UserProfile
   const existingProfile = await prisma.userProfile.findFirst({
-    where: { userId: user.id },
+    where: { userId: demoUser.id },
   });
   let profile;
   if (!existingProfile) {
@@ -115,7 +100,7 @@ async function main() {
       data: {
         name: "My Workspace",
         key: `hs_prov_${randomBytes(16).toString("hex")}`,
-        userId: user.id,
+        userId: demoUser.id,
         isActive: true,
         timezone: "Europe/Amsterdam",
       },

@@ -4,7 +4,21 @@ Get HeySummon running locally and submit your first human-in-the-loop request.
 
 ---
 
-## 1. Prerequisites
+## Fastest Way: NPX Installer
+
+```bash
+npx heysummon
+```
+
+That's it. The interactive installer handles everything: download, secrets, config, database, and starts the server. Skip to **Step 6** below once it's running.
+
+Manage afterwards with: `heysummon start -d` · `heysummon stop` · `heysummon status` · `heysummon update`
+
+---
+
+## Manual Setup (Development)
+
+### 1. Prerequisites
 
 | Tool | Version | Required? |
 |------|---------|-----------|
@@ -16,7 +30,7 @@ Get HeySummon running locally and submit your first human-in-the-loop request.
 
 ---
 
-## 2. Clone & Install
+### 2. Clone & Install
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
@@ -26,7 +40,7 @@ npm install
 
 ---
 
-## 3. Environment Setup
+### 3. Environment Setup
 
 ```bash
 cp .env.example .env
@@ -53,7 +67,7 @@ The defaults handle everything else for local dev:
 
 ---
 
-## 4. Database Setup
+### 4. Database Setup
 
 ```bash
 npx prisma migrate dev
@@ -63,7 +77,7 @@ This creates the SQLite database and runs all migrations.
 
 ---
 
-## 5. Start the Dev Server
+### 5. Start the Dev Server
 
 ```bash
 npm run dev

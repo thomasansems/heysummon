@@ -81,7 +81,7 @@ npm run test:all      # unit + e2e
 
 **Do not open a public issue for security vulnerabilities.**
 
-Please report security issues via email to: **security@thomasansems.nl**
+Please report security issues via email to: **security@heysummon.ai**
 
 Include a description of the vulnerability, steps to reproduce, and any potential impact.
 

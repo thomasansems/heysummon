@@ -13,7 +13,7 @@ describe("encryptMessage / decryptMessage roundtrip", () => {
   const { publicKey, privateKey } = generateKeyPair();
 
   it("encrypts and decrypts a message", () => {
-    const msg = "Hello, HITLaaS!";
+    const msg = "Hello, HeySummon!";
     const encrypted = encryptMessage(msg, publicKey);
     expect(encrypted).not.toBe(msg);
     expect(decryptMessage(encrypted, privateKey)).toBe(msg);

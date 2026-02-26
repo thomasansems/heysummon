@@ -9,7 +9,7 @@ export default defineConfig({
   outputDir,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
@@ -18,12 +18,9 @@ export default defineConfig({
     video: "on",
     screenshot: "on",
   },
+  globalTimeout: process.env.CI ? 5 * 60 * 1000 : undefined, // 5 min max in CI
+  timeout: 30000, // 30s per test
   webServer: process.env.CI
-    ? {
-        command: "npx next start -p 3456",
-        url: "http://localhost:3456",
-        reuseExistingServer: false,
-        timeout: 30000,
-      }
+    ? undefined // server started manually in CI workflow
     : undefined,
 });

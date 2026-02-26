@@ -1,18 +1,3 @@
--- CreateTable
-CREATE TABLE "ClientCertificate" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "userId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "fingerprint" TEXT NOT NULL,
-    "serialNumber" TEXT NOT NULL,
-    "notBefore" DATETIME NOT NULL,
-    "notAfter" DATETIME NOT NULL,
-    "revoked" BOOLEAN NOT NULL DEFAULT false,
-    "revokedAt" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "ClientCertificate_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-);
-
 -- RedefineTables
 PRAGMA defer_foreign_keys=ON;
 PRAGMA foreign_keys=OFF;
@@ -58,15 +43,3 @@ ALTER TABLE "new_Provider" RENAME TO "Provider";
 CREATE UNIQUE INDEX "Provider_key_key" ON "Provider"("key");
 PRAGMA foreign_keys=ON;
 PRAGMA defer_foreign_keys=OFF;
-
--- CreateIndex
-CREATE UNIQUE INDEX "ClientCertificate_fingerprint_key" ON "ClientCertificate"("fingerprint");
-
--- CreateIndex
-CREATE UNIQUE INDEX "ClientCertificate_serialNumber_key" ON "ClientCertificate"("serialNumber");
-
--- CreateIndex
-CREATE INDEX "ClientCertificate_userId_idx" ON "ClientCertificate"("userId");
-
--- CreateIndex
-CREATE INDEX "ClientCertificate_fingerprint_idx" ON "ClientCertificate"("fingerprint");

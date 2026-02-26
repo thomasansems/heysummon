@@ -127,6 +127,8 @@ if (AUTH_FLAGS.magicLink && process.env.LOOPS_API_KEY) {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers,
+  trustHost: true,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   session: {
     // Credentials provider requires JWT strategy (no DB sessions)
     strategy: AUTH_FLAGS.formLogin ? "jwt" : "database",

@@ -72,14 +72,6 @@ export default function ChannelsPage() {
     loadChannels();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12 text-sm text-[#666]">
-        Loading...
-      </div>
-    );
-  }
-
   return (
     <div>
       <div className="mb-6">
@@ -116,7 +108,47 @@ export default function ChannelsPage() {
       </div>
 
       <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
-        {channels.length === 0 ? (
+        {loading ? (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+                <th className="px-4 py-2.5 font-medium">Name</th>
+                <th className="px-4 py-2.5 font-medium">Type</th>
+                <th className="px-4 py-2.5 font-medium">Status</th>
+                <th className="px-4 py-2.5 font-medium">Profile</th>
+                <th className="px-4 py-2.5 font-medium">Created</th>
+                <th className="px-4 py-2.5 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[1, 2, 3].map((i) => (
+                <tr key={i} className="border-b border-[#eaeaea] animate-pulse">
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-28 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-5 w-5 rounded bg-[#eaeaea]"></div>
+                      <div className="h-4 w-20 rounded bg-[#eaeaea]"></div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-5 w-24 rounded-full bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-24 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-4 w-20 rounded bg-[#eaeaea]"></div>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="ml-auto h-4 w-32 rounded bg-[#eaeaea]"></div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : channels.length === 0 ? (
           <div className="p-8 text-center text-sm text-[#666]">
             No channels yet. Create one to connect an external messaging platform.
           </div>

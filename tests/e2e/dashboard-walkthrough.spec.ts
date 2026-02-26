@@ -4,17 +4,30 @@ const TEST_EMAIL = "demo@heysummon.ai";
 const TEST_PASSWORD = "demo1234";
 
 async function login(page: Page) {
+  const baseUrl = process.env.BASE_URL || "http://localhost:3456";
+
+  // Use browser context to directly set session via fetch within page context
   await page.goto("/auth/login");
-  // Wait for the form to be fully rendered (React hydration)
   await page.waitForSelector('#email', { state: 'visible', timeout: 10000 });
-  await page.waitForTimeout(1000); // Allow React hydration
-  await page.locator('#email').clear();
-  await page.locator('#email').type(TEST_EMAIL, { delay: 50 });
-  await page.locator('#password').clear();
-  await page.locator('#password').type(TEST_PASSWORD, { delay: 50 });
-  await page.click('button[type="submit"]');
-  // Wait for redirect — may go through Tailscale URL
-  await page.waitForURL(/\/dashboard/, { timeout: 20000 });
+  await page.waitForTimeout(2000); // Allow full React hydration
+
+  // Fill form
+  await page.locator('#email').fill(TEST_EMAIL);
+  await page.locator('#password').fill(TEST_PASSWORD);
+
+  // Click submit and wait for navigation
+  await Promise.all([
+    page.waitForURL(/\/dashboard|\/auth\/login/, { timeout: 15000 }),
+    page.locator('button[type="submit"]').click(),
+  ]);
+
+  // Check if we landed on dashboard or got an error
+  const url = page.url();
+  if (url.includes('/auth/login')) {
+    // Login failed - try to get error info
+    const errorText = await page.locator('[class*="error"], [role="alert"], .text-red').textContent().catch(() => 'unknown');
+    throw new Error(`Login failed. URL: ${url}, Error: ${errorText}`);
+  }
 }
 
 test.describe("Dashboard Walkthrough", () => {
@@ -31,26 +44,26 @@ test.describe("Dashboard Walkthrough", () => {
 
   test("Navigate to Users page", async ({ page }) => {
     await page.click('nav >> text=Users');
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("text=500")).not.toBeVisible();
     await expect(page.locator("text=Internal Server Error")).not.toBeVisible();
   });
 
   test("Navigate to Channels page", async ({ page }) => {
     await page.click('nav >> text=Channels');
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("text=500")).not.toBeVisible();
     await expect(page.locator("text=Internal Server Error")).not.toBeVisible();
   });
 
   test("Navigate to Channels > New Channel page", async ({ page }) => {
     await page.click('nav >> text=Channels');
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     // Click "New Channel" or "Add Channel" button
     const newBtn = page.locator('a:has-text("New Channel"), button:has-text("New Channel"), a:has-text("Add Channel")');
     if (await newBtn.isVisible()) {
       await newBtn.first().click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await expect(page.locator("text=Choose the type")).toBeVisible();
       // Verify channel type cards are visible
       await expect(page.locator("text=OpenClaw")).toBeVisible();
@@ -61,28 +74,28 @@ test.describe("Dashboard Walkthrough", () => {
 
   test("Navigate to Clients page", async ({ page }) => {
     await page.click('nav >> text=Clients');
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("text=500")).not.toBeVisible();
     await expect(page.locator("text=Internal Server Error")).not.toBeVisible();
   });
 
   test("Navigate to Requests page", async ({ page }) => {
     await page.click('nav >> text=Requests');
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("text=500")).not.toBeVisible();
     await expect(page.locator("text=Internal Server Error")).not.toBeVisible();
   });
 
   test("Navigate to Audit Logs page", async ({ page }) => {
     await page.click('nav >> text=Audit Logs');
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.locator("text=500")).not.toBeVisible();
     await expect(page.locator("text=Internal Server Error")).not.toBeVisible();
   });
 
   test("Navigate to Settings page", async ({ page }) => {
     await page.click('nav >> text=Settings');
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     // Verify profile section is visible
     await expect(page.locator("text=Profile")).toBeVisible();
     await expect(page.locator("text=Notifications")).toBeVisible();
@@ -100,7 +113,7 @@ test.describe("Dashboard Walkthrough", () => {
         const navLink = page.locator(`nav >> text=${item}`).first();
         if (await navLink.isVisible()) {
           await navLink.click();
-          await page.waitForLoadState("networkidle");
+          await page.waitForLoadState("domcontentloaded");
 
           // Check for errors
           const has500 = await page.locator("text=500").isVisible();

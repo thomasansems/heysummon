@@ -99,7 +99,7 @@ export function startForeground(port?: number): void {
 
 export async function start(args: string[]): Promise<void> {
   if (!isInitialized()) {
-    console.log(`\n  HeySummon is not installed. Run ${color.cyan("npx heysummon")} first.\n`);
+    console.log(`\n  HeySummon is not installed. Run ${color.cyan("npm install -g heysummon")} first.\n`);
     process.exit(1);
   }
 

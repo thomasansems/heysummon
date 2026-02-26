@@ -3,6 +3,7 @@ import { start } from "./commands/start";
 import { stop } from "./commands/stop";
 import { status } from "./commands/status";
 import { update } from "./commands/update";
+import { uninstall } from "./commands/uninstall";
 
 const VERSION = "0.1.0";
 
@@ -20,6 +21,7 @@ function printHelp(): void {
     stop          Stop the HeySummon server
     status        Check server status
     update        Update to the latest version
+    uninstall     Remove all HeySummon data and stop the server
 
   Options:
     --help, -h    Show this help message
@@ -65,6 +67,9 @@ async function main(): Promise<void> {
         break;
       case "update":
         await update();
+        break;
+      case "uninstall":
+        await uninstall();
         break;
       default:
         console.log(`  Unknown command: ${command}`);

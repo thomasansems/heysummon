@@ -24,7 +24,7 @@ export async function publishToMercure(
   isPrivate = false
 ): Promise<void> {
   if (!MERCURE_JWT_SECRET) {
-    console.warn(`⚠️  Skipping Mercure publish to ${topic} (no JWT secret)`);
+    console.warn(`⚠️  Skipping Mercure publish (no JWT secret)`);
     return;
   }
 
@@ -58,9 +58,10 @@ export async function publishToMercure(
       throw new Error(`Mercure publish failed: ${response.status} ${text}`);
     }
 
-    console.log(`✅ Published to Mercure topic: ${topic}`, { type: data.type });
+    console.log(`✅ Mercure publish ok`, { type: data.type });
   } catch (error) {
-    console.error(`❌ Failed to publish to Mercure topic ${topic}:`, error);
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error(`❌ Mercure publish failed: ${message}`);
     throw error;
   }
 }

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const emailNorm = email.toLowerCase().trim();
 
     // Validate email format
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) {
+    if (!/^[^@\s]{1,64}@[^@\s]{1,255}\.[^@\s]{2,}$/.test(emailNorm)) {
       return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
     }
 

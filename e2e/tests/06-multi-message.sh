@@ -69,7 +69,7 @@ FOLLOWUP_OK=$(echo "$FOLLOWUP" | jq -r '.success // empty')
 
 # ── Test: Message ordering ──
 section "Message Ordering"
-MESSAGES=$(curl -s "${BASE_URL}/api/v1/messages/${REQUEST_ID}")
+MESSAGES=$(curl -s "${BASE_URL}/api/v1/messages/${REQUEST_ID}" -H "x-api-key: ${CLIENT_KEY}")
 MSG_COUNT=$(echo "$MESSAGES" | jq '.messages | length' 2>/dev/null || echo "0")
 
 if [ "$MSG_COUNT" -ge 4 ]; then

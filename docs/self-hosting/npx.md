@@ -1,0 +1,84 @@
+# NPX installer
+
+The fastest way to get HeySummon running. No Docker, no Git, no manual configuration.
+
+---
+
+## Install
+
+```bash
+npx heysummon
+```
+
+The interactive installer:
+1. Downloads the latest HeySummon release
+2. Generates `NEXTAUTH_SECRET` and `MERCURE_JWT_SECRET` automatically
+3. Sets up a SQLite database
+4. Starts the server on port 3000
+
+Total time: ~2 minutes.
+
+---
+
+## Managing the server
+
+```bash
+heysummon start       # start the server
+heysummon start -d    # start in background (daemon)
+heysummon stop        # stop the server
+heysummon status      # check if running + show URL
+heysummon update      # update to latest version
+heysummon logs        # tail the server logs
+```
+
+---
+
+## Where files are stored
+
+Everything lives in `~/.heysummon/`:
+
+```
+~/.heysummon/
+├── .env           # configuration and secrets
+├── heysummon.db   # SQLite database
+└── ...            # release files
+```
+
+---
+
+## Configuration
+
+Edit `~/.heysummon/.env` to customize:
+
+```bash
+PORT=3000
+NEXTAUTH_URL=http://localhost:3000
+ALLOW_REGISTRATION=false
+```
+
+Restart after changes:
+
+```bash
+heysummon stop && heysummon start -d
+```
+
+---
+
+## Limitations
+
+The NPX installer uses **SQLite** (not PostgreSQL) and runs without the Guard proxy. This is fine for:
+- Personal use
+- Testing and evaluation
+- Single-user setups
+
+For production or multi-user setups, use [Docker](./docker.md).
+
+---
+
+## Upgrading
+
+```bash
+heysummon update
+```
+
+This downloads the latest release and restarts the server. Your database and configuration are preserved.

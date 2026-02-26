@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { publishToMercure } from "@/lib/mercure";
 import { messageCreateSchema, validateBody } from "@/lib/validations";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
+import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
 /**
  * POST /api/v1/message/:requestId — Send a message (encrypted or plaintext)
@@ -186,6 +187,16 @@ export async function POST(
         messageId,
       },
     });
+
+    // Log audit event for provider responses
+    if (from === "provider") {
+      logAuditEvent({
+        eventType: AuditEventTypes.PROVIDER_RESPONSE,
+        success: true,
+        metadata: { requestId, refCode: helpRequest.refCode, via: "api" },
+        request,
+      });
+    }
 
     // Publish to Mercure: notify both parties
     try {

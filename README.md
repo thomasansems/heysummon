@@ -100,6 +100,22 @@ docker compose --profile ngrok up -d
 
 See **[Self-Hosting Guide](docs/SELF-HOSTING.md)** for setup instructions per provider.
 
+### User Registration
+
+By default, only the **first user** can create an account — they become the admin. After that, registration is closed.
+
+| Scenario | Behavior |
+|----------|----------|
+| First visit (0 users) | Signup screen, first user becomes **admin** |
+| After first user | Signup hidden, registration blocked (403) |
+| `ALLOW_REGISTRATION=true` | Anyone can register (multi-user mode) |
+
+To enable open registration, add to your `.env`:
+
+```bash
+ALLOW_REGISTRATION=true
+```
+
 ### Debug Tools
 
 ```bash

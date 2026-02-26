@@ -4,7 +4,7 @@ const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 export function generateRefCode(): string {
   let code = "HS-";
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 8; i++) {
     code += CHARS[Math.floor(Math.random() * CHARS.length)];
   }
   return code;

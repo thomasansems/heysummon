@@ -1,5 +1,6 @@
 import { spawn, execSync } from "child_process";
 import * as path from "path";
+import * as fs from "fs";
 import {
   getAppDir,
   getEnvFile,
@@ -8,7 +9,7 @@ import {
   readPid,
   isProcessRunning,
 } from "../lib/config";
-import * as fs from "fs";
+import { printSuccess, printInfo, printWarning, color } from "../lib/ui";
 
 function copyEnvToApp(): void {
   const envFile = getEnvFile();
@@ -16,35 +17,6 @@ function copyEnvToApp(): void {
   if (fs.existsSync(envFile)) {
     fs.copyFileSync(envFile, appEnv);
   }
-}
-
-export function startForeground(port?: number): void {
-  const appDir = getAppDir();
-  copyEnvToApp();
-
-  const env: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "production" };
-  if (port) {
-    env.PORT = String(port);
-  }
-
-  const child = spawn("npm", ["start"], {
-    cwd: appDir,
-    stdio: "inherit",
-    env,
-  });
-
-  writePid(child.pid!);
-
-  child.on("close", (code) => {
-    process.exit(code ?? 0);
-  });
-
-  process.on("SIGINT", () => {
-    child.kill("SIGINT");
-  });
-  process.on("SIGTERM", () => {
-    child.kill("SIGTERM");
-  });
 }
 
 function hasPm2(): boolean {
@@ -56,53 +28,92 @@ function hasPm2(): boolean {
   }
 }
 
-function startDaemon(): void {
+function getServerScript(appDir: string): { cmd: string; args: string[] } {
+  // Prefer standalone server (next build with output: standalone)
+  const standaloneServer = path.join(appDir, ".next", "standalone", "server.js");
+  if (fs.existsSync(standaloneServer)) {
+    return { cmd: "node", args: [standaloneServer] };
+  }
+  // Fallback: npm start
+  return { cmd: "npm", args: ["start"] };
+}
+
+export async function startDaemon(port?: number): Promise<void> {
   const appDir = getAppDir();
   copyEnvToApp();
 
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    NODE_ENV: "production",
+    ...(port ? { PORT: String(port) } : {}),
+  };
+
   if (hasPm2()) {
-    console.log("  Starting with pm2...");
-    execSync(`pm2 start npm --name heysummon -- start`, {
-      cwd: appDir,
-      stdio: "inherit",
-      env: { ...process.env, NODE_ENV: "production" },
-    });
-    console.log("  HeySummon started in background (pm2)");
-    console.log("  Use 'pm2 logs heysummon' to view logs");
+    const { cmd, args } = getServerScript(appDir);
+    const startCmd = `pm2 start ${cmd} --name heysummon -- ${args.join(" ")}`;
+    execSync(startCmd, { cwd: appDir, stdio: "pipe", env });
+    printSuccess(`Started with pm2 ${color.dim("(heysummon)")}`);
+    printInfo(`Logs:   ${color.cyan("pm2 logs heysummon")}`);
+    printInfo(`Stop:   ${color.cyan("heysummon stop")}`);
   } else {
-    console.log("  Starting in background...");
-    const child = spawn("npm", ["start"], {
+    // Fallback: detached process
+    const { cmd, args } = getServerScript(appDir);
+    const child = spawn(cmd, args, {
       cwd: appDir,
       stdio: "ignore",
       detached: true,
-      env: { ...process.env, NODE_ENV: "production" },
+      env,
     });
-
     child.unref();
     writePid(child.pid!);
-    console.log(`  HeySummon started (PID: ${child.pid})`);
+    printSuccess(`Started in background ${color.dim(`(PID: ${child.pid})`)}`);
+    printWarning(`Install pm2 for better process management: ${color.cyan("npm install -g pm2")}`);
   }
+}
+
+export function startForeground(port?: number): void {
+  const appDir = getAppDir();
+  copyEnvToApp();
+
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    NODE_ENV: "production",
+    ...(port ? { PORT: String(port) } : {}),
+  };
+
+  const { cmd, args } = getServerScript(appDir);
+  printInfo(`Starting ${color.cyan(`${cmd} ${args.join(" ")}`)}`);
+  printInfo("Press Ctrl+C to stop\n");
+
+  const child = spawn(cmd, args, {
+    cwd: appDir,
+    stdio: "inherit",
+    env,
+  });
+
+  writePid(child.pid!);
+  child.on("close", (code) => process.exit(code ?? 0));
+  process.on("SIGINT", () => child.kill("SIGINT"));
+  process.on("SIGTERM", () => child.kill("SIGTERM"));
 }
 
 export async function start(args: string[]): Promise<void> {
   if (!isInitialized()) {
-    console.log("  HeySummon is not initialized. Run 'heysummon init' first.");
+    console.log(`\n  HeySummon is not installed. Run ${color.cyan("npx heysummon")} first.\n`);
     process.exit(1);
   }
 
   const existingPid = readPid();
   if (existingPid && isProcessRunning(existingPid)) {
-    console.log(`  HeySummon is already running (PID: ${existingPid})`);
+    printInfo(`Already running (PID: ${existingPid})`);
     return;
   }
 
   const daemon = args.includes("--daemon") || args.includes("-d");
 
   if (daemon) {
-    startDaemon();
+    await startDaemon();
   } else {
-    console.log("  Starting HeySummon...");
-    console.log("  Press Ctrl+C to stop\n");
     startForeground();
   }
 }

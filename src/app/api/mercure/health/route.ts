@@ -13,7 +13,7 @@ interface MercureHealthResponse {
 export async function GET() {
   const mercureUrl = process.env.MERCURE_HUB_URL || "http://localhost:3100/.well-known/mercure";
   const mercureBaseUrl = mercureUrl.replace("/.well-known/mercure", "");
-  const healthEndpoint = `${mercureBaseUrl}/.well-known/mercure`;
+  const healthEndpoint = `${mercureBaseUrl}/healthz`;
 
   const startTime = Date.now();
 
@@ -29,8 +29,7 @@ export async function GET() {
     clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
 
-    if (response.ok || response.status === 405) {
-      // 405 is OK for Mercure (HEAD not allowed but server is up)
+    if (response.ok) {
       return NextResponse.json<MercureHealthResponse>({
         status: "healthy",
         mercureUrl: mercureBaseUrl,

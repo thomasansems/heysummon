@@ -120,14 +120,46 @@ export default function DashboardPage() {
       {/* Mercure Health Status */}
       {mercureHealth && mercureHealth.status === "unhealthy" && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-red-500" />
-            <p className="text-sm font-medium text-red-900">
-              Real-time server is down
-            </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-red-500" />
+              <p className="text-sm font-medium text-red-900">
+                Real-time server is down
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setMercureHealth(null);
+                  fetch("/api/mercure/health")
+                    .then((r) => r.json())
+                    .then(setMercureHealth)
+                    .catch(() => setMercureHealth({
+                      status: "unhealthy",
+                      mercureUrl: "unknown",
+                      lastCheck: new Date().toISOString(),
+                      error: "Failed to check health",
+                    }));
+                }}
+                className="rounded-md border border-red-300 bg-white px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+              >
+                ↻ Retry
+              </button>
+              <a
+                href="https://github.com/thomasansems/heysummon/blob/main/docs/TROUBLESHOOTING.md#real-time-server-mercure"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-red-300 bg-white px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
+              >
+                Troubleshooting ↗
+              </a>
+            </div>
           </div>
           <p className="mt-1 text-sm text-red-700">
             SSE notifications are not being delivered. {mercureHealth.error || "Connection failed"}
+          </p>
+          <p className="mt-2 text-xs text-red-600">
+            Common fix: <code className="rounded bg-red-100 px-1 py-0.5">docker compose restart mercure</code> or <code className="rounded bg-red-100 px-1 py-0.5">pm2 restart mercure</code>
           </p>
         </div>
       )}
@@ -148,7 +180,7 @@ export default function DashboardPage() {
               </p>
               <p className="text-xs text-[#666]">
                 {mercureHealth.status === "healthy" ? "Connected" : "Disconnected"}
-                {mercureHealth.responseTime && ` • ${mercureHealth.responseTime}ms`}
+                {mercureHealth.responseTime != null && ` • ${mercureHealth.responseTime}ms`}
               </p>
             </div>
           </div>

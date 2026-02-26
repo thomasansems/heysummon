@@ -288,7 +288,7 @@ function LoginForm() {
                           Sign in
                         </button>
                       </>
-                    )}
+                    ) : null}
                   </p>
                 </form>
               )}

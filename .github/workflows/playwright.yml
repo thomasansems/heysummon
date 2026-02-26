@@ -39,10 +39,16 @@ jobs:
 
       - name: Create and seed database
         run: |
+          mkdir -p prisma
           npx prisma db push --force-reset
           npx prisma db seed
           echo "✅ DB seeded"
-          ls -la prisma/test.db
+          if [ -f ./prisma/test.db ]; then
+            ls -lh ./prisma/test.db
+          else
+            echo "⚠️ DB file not found at expected location"
+            find . -name "test.db" -type f
+          fi
         env:
           DATABASE_URL: "file:./prisma/test.db"
 

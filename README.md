@@ -100,6 +100,13 @@ docker compose --profile ngrok up -d
 
 See **[Self-Hosting Guide](docs/SELF-HOSTING.md)** for setup instructions per provider.
 
+### Debug Tools
+
+```bash
+# Prisma Studio — browse/edit database at http://localhost:3447
+docker compose --profile debug up -d
+```
+
 ### Option 3: Development Setup
 
 ```bash

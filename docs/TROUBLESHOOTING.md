@@ -74,6 +74,22 @@ If you have both `.env` and `.env.local`, Next.js loads `.env` first. Make sure 
 
 ---
 
+## Debug Tools
+
+### Prisma Studio (Database Browser)
+
+Inspect and edit the database directly via a web UI:
+
+```bash
+docker compose --profile debug up -d
+```
+
+Opens Prisma Studio at `http://localhost:3447`. Only starts when you explicitly use the `debug` profile — never runs in production.
+
+To stop: `docker compose --profile debug down` or just `docker compose down`.
+
+---
+
 ## Need Help?
 
 - [GitHub Issues](https://github.com/thomasansems/heysummon/issues)

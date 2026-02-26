@@ -3,11 +3,10 @@ import { getAppDir, getEnvFile } from "./config";
 import * as fs from "fs";
 import * as path from "path";
 
-function runInAppDir(command: string): void {
+function runInAppDir(command: string, silent = true): void {
   const appDir = getAppDir();
   const envFile = getEnvFile();
 
-  // Symlink .env into app dir if not already there
   const appEnv = path.join(appDir, ".env");
   if (!fs.existsSync(appEnv)) {
     fs.copyFileSync(envFile, appEnv);
@@ -15,22 +14,26 @@ function runInAppDir(command: string): void {
 
   execSync(command, {
     cwd: appDir,
-    stdio: "inherit",
+    stdio: silent ? "pipe" : "inherit",
     env: { ...process.env, NODE_ENV: "production" },
   });
 }
 
 export function installDependencies(): void {
-  console.log("\n  Installing dependencies...");
-  runInAppDir("npm install --production");
+  runInAppDir("npm install --production --silent 2>/dev/null || npm install --production");
 }
 
 export function runMigrations(): void {
-  console.log("\n  Running database migrations...");
   runInAppDir("npx prisma migrate deploy");
 }
 
 export function buildApp(): void {
-  console.log("\n  Building application...");
-  runInAppDir("npm run build");
+  // Suppress noisy next build output — only show errors
+  try {
+    runInAppDir("npm run build");
+  } catch (err) {
+    // Re-run with output on failure so user sees what went wrong
+    runInAppDir("npm run build", false);
+    throw err;
+  }
 }

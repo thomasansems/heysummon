@@ -11,26 +11,32 @@ import {
 import { generateSecrets } from "../lib/secrets";
 import { downloadAndExtract } from "../lib/download";
 import { installDependencies, runMigrations, buildApp } from "../lib/database";
-import { ask, askYesNo, askSecret } from "../lib/prompts";
-import { startForeground } from "./start";
+import { ask, askYesNo } from "../lib/prompts";
+import { startDaemon } from "./start";
+import {
+  printBanner,
+  printStep,
+  printSuccess,
+  printInfo,
+  printDivider,
+  printWarning,
+  color,
+} from "../lib/ui";
+
+const TOTAL_STEPS = 5;
 
 export async function init(): Promise<void> {
-  console.log("");
-  console.log("  \\u{1F99E}  HeySummon Installer");
-  console.log("  ========================");
-  console.log("  Human-in-the-loop for AI agents");
-  console.log("");
+  printBanner();
 
   if (isInitialized()) {
     const reinit = await askYesNo(
-      "HeySummon is already installed. Reinitialize?",
+      `HeySummon is already installed. Reinstall from scratch?`,
       false
     );
     if (!reinit) {
-      console.log("\n  Cancelled. Use 'heysummon start' to run the server.");
+      console.log(`\n  ${color.dim("Tip: use")} ${color.cyan("heysummon start")} ${color.dim("to run the server.")}`);
       return;
     }
-    // Clean existing app directory
     const appDir = getAppDir();
     if (fs.existsSync(appDir)) {
       fs.rmSync(appDir, { recursive: true });
@@ -38,77 +44,82 @@ export async function init(): Promise<void> {
   }
 
   // Create directory structure
-  const hsDir = getHeysummonDir();
-  ensureDir(hsDir);
+  ensureDir(getHeysummonDir());
   ensureDir(getAppDir());
 
-  // Download latest release
-  console.log("\n  Step 1/6: Download");
+  // ── Step 1: Download ──────────────────────────────────────────────
+  printStep(1, TOTAL_STEPS, "Download");
+  printInfo("Fetching the latest release from GitHub...");
   const version = await downloadAndExtract();
-  console.log(`  Downloaded ${version}`);
+  printSuccess(`Downloaded HeySummon ${version}`);
 
-  // Generate secrets
-  console.log("\n  Step 2/6: Generate secrets");
+  // ── Step 2: Configuration ─────────────────────────────────────────
+  printStep(2, TOTAL_STEPS, "Configuration");
+  console.log(`  ${color.dim("Configure how HeySummon runs on your machine.")}`);
+  console.log("");
+
+  const port = parseInt(await ask("  Port to run on", "3000"), 10) || 3000;
+
+  console.log("");
+  printInfo(`HeySummon will be available at: ${color.cyan(`http://localhost:${port}`)}`);
+  printInfo("If you want it reachable from the internet, set your public URL below.");
+  const publicUrl = await ask("  Public URL", `http://localhost:${port}`);
+
+  printSuccess("Configuration saved");
+
+  // ── Step 3: Secrets ───────────────────────────────────────────────
+  printStep(3, TOTAL_STEPS, "Generate secrets");
+  printInfo("Creating secure random secrets for auth and encryption...");
   const secrets = generateSecrets();
-  console.log("  Secrets generated");
-
-  // Interactive configuration
-  console.log("\n  Step 3/6: Configuration\n");
-
-  const port = parseInt(await ask("Port", "3000"), 10) || 3000;
-  const publicUrl = await ask("Public URL", `http://localhost:${port}`);
-  const enableFormLogin = await askYesNo("Enable form login?", true);
-
-  const enableGithubOauth = await askYesNo("Enable GitHub OAuth?", false);
-  let githubId: string | undefined;
-  let githubSecret: string | undefined;
-  if (enableGithubOauth) {
-    githubId = await askSecret("GitHub Client ID");
-    githubSecret = await askSecret("GitHub Client Secret");
-  }
-
-  const enableGoogleOauth = await askYesNo("Enable Google OAuth?", false);
-  let googleId: string | undefined;
-  let googleSecret: string | undefined;
-  if (enableGoogleOauth) {
-    googleId = await askSecret("Google Client ID");
-    googleSecret = await askSecret("Google Client Secret");
-  }
 
   const config: HeysummonConfig = {
     port,
     publicUrl,
-    enableFormLogin,
-    enableGithubOauth,
-    githubId,
-    githubSecret,
-    enableGoogleOauth,
-    googleId,
-    googleSecret,
+    enableFormLogin: true,
+    enableGithubOauth: false,
+    enableGoogleOauth: false,
   };
 
-  // Write .env
   const envContent = generateEnv(config, secrets);
   writeEnv(envContent);
-  console.log("\n  Configuration saved");
+  printSuccess("Secrets generated and saved");
 
-  // Install dependencies
-  console.log("\n  Step 4/6: Install dependencies");
+  // ── Step 4: Database ──────────────────────────────────────────────
+  printStep(4, TOTAL_STEPS, "Database setup");
+  printInfo("Setting up SQLite database and running migrations...");
   installDependencies();
-
-  // Run migrations
-  console.log("\n  Step 5/6: Database setup");
   runMigrations();
+  printSuccess("Database ready");
 
-  // Build
-  console.log("\n  Step 6/6: Build");
+  // ── Step 5: Build ─────────────────────────────────────────────────
+  printStep(5, TOTAL_STEPS, "Build");
+  printInfo("Building the application (this takes ~30 seconds)...");
   buildApp();
+  printSuccess("Build complete");
 
-  // Start the server
-  console.log("\n  ========================");
-  console.log(`  HeySummon is ready!`);
-  console.log(`  Starting server on ${publicUrl}...`);
+  // ── Done ──────────────────────────────────────────────────────────
+  console.log("");
+  printDivider();
+  console.log("");
+  console.log(`  ${color.boldGreen("✓ HeySummon is ready!")}`);
+  console.log("");
+  printInfo(`Dashboard: ${color.cyan(publicUrl)}`);
+  printInfo(`Docs:      ${color.cyan("https://docs.heysummon.ai/getting-started/quickstart")}`);
+  console.log("");
+  printInfo("Starting HeySummon in the background...");
   console.log("");
 
-  startForeground(port);
+  try {
+    await startDaemon(port);
+    console.log("");
+    printSuccess("HeySummon is running!");
+    console.log("");
+    printInfo(`Open ${color.cyan(publicUrl)} to create your account.`);
+    printInfo(`Run ${color.cyan("heysummon status")} to check the server.`);
+    printInfo(`Run ${color.cyan("heysummon stop")} to stop the server.`);
+  } catch {
+    printWarning("Could not start automatically. Run: " + color.cyan("heysummon start -d"));
+  }
+
+  console.log("");
 }

@@ -228,9 +228,10 @@ services:
     profiles: ["debug"]
     entrypoint: ["sh", "-c", "npx prisma studio --port 3447 --browser none"]
     ports:
-      - "${PRISMA_STUDIO_PORT:-3447}:5555"
+      - "${PRISMA_STUDIO_PORT:-3447}:3447"
     networks:
       - backend
+      - frontend
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
     depends_on:

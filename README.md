@@ -45,7 +45,32 @@ Think of it as **a pager for your AI agents**: when they hit a wall, they summon
 
 ## Quick Start
 
-### Docker (Recommended)
+HeySummon offers three ways to get started, depending on your use case:
+
+| Method | Database | Best for | Time |
+|--------|----------|----------|------|
+| `npx heysummon` | SQLite | Quick install, trying it out | ~2 min |
+| `docker compose up` | PostgreSQL | Production, self-hosting | ~3 min |
+| `npm run dev` | SQLite | Contributing, development | ~5 min |
+
+### Option 1: NPX Installer (Quickest)
+
+```bash
+npx heysummon
+```
+
+Interactive setup — downloads the latest release, generates secrets, configures auth, and starts the server. No Docker or Git required.
+
+```bash
+heysummon start -d    # Start in background
+heysummon stop        # Stop the server
+heysummon status      # Check if running
+heysummon update      # Update to latest version
+```
+
+Installs to `~/.heysummon/` with SQLite — zero external dependencies.
+
+### Option 2: Docker (Recommended for Production)
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
@@ -55,6 +80,8 @@ docker compose up -d
 ```
 
 The app is available at `http://localhost:3000` via Guard. Ed25519 keys are auto-generated.
+
+Includes: **Guard** (reverse proxy with Ed25519 request signing) → **Next.js app** → **PostgreSQL** + **Mercure** (real-time SSE).
 
 ### Make it Public
 
@@ -73,7 +100,7 @@ docker compose --profile ngrok up -d
 
 See **[Self-Hosting Guide](docs/SELF-HOSTING.md)** for setup instructions per provider.
 
-### Without Docker (Development)
+### Option 3: Development Setup
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git

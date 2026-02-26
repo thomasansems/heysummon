@@ -9,7 +9,7 @@ on:
 
 env:
   E2E_MERCURE_JWT_SECRET: e2e-mercure-secret
-  DATABASE_URL: file:./prisma/e2e-test.db
+  DATABASE_URL: file:${{ github.workspace }}/prisma/e2e-test.db
 
 jobs:
   e2e:

@@ -52,11 +52,11 @@ jobs:
       - name: Build app
         run: npm run build
         env:
-          DATABASE_URL: "file:./prisma/test.db"
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/test.db"
 
       - name: Start server and verify
         run: |
-          echo 'DATABASE_URL="file:./prisma/test.db"' > .env
+          echo "DATABASE_URL=\"file:$PWD/prisma/test.db\"" > .env
           npx next start -p 3456 &
           for i in $(seq 1 30); do
             if curl -s http://localhost:3456 > /dev/null 2>&1; then
@@ -72,7 +72,7 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test tests/e2e/dashboard-walkthrough.spec.ts --reporter=list --timeout=30000
         env:
-          DATABASE_URL: "file:./prisma/test.db"
+          DATABASE_URL: "file:${{ github.workspace }}/prisma/test.db"
           BASE_URL: http://localhost:3456
           CI: true
           DEBUG: pw:api

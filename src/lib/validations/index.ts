@@ -75,19 +75,6 @@ export const keyUpdateSchema = z.object({
   rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
 });
 
-// ── Relay schemas ──
-
-export const relayRespondSchema = z.object({
-  requestId: z.string().min(1, "requestId is required"),
-  response: z.string().min(1, "response is required"),
-});
-
-export const relaySendSchema = z.object({
-  requestId: z.string().min(1, "requestId is required"),
-  message: z.string().min(1, "message is required"),
-  senderPublicKey: z.string().optional(),
-});
-
 // ── Request PATCH schema ──
 
 export const requestPatchSchema = z.object({

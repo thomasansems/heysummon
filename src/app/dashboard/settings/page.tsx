@@ -9,6 +9,13 @@ export default function SettingsPage() {
   const [telegramChatId, setTelegramChatId] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [retention, setRetention] = useState<{
+    retentionDays: number | null;
+    enabled: boolean;
+    stats: { totalRequests: number; expiredRequests: number; totalAuditLogs: number };
+  } | null>(null);
+  const [cleanupRunning, setCleanupRunning] = useState(false);
+  const [cleanupDone, setCleanupDone] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -18,7 +25,23 @@ export default function SettingsPage() {
         if (data.telegramChatId) setTelegramChatId(data.telegramChatId);
       })
       .catch(() => {});
+
+    fetch("/api/admin/retention")
+      .then((r) => r.json())
+      .then((data) => setRetention(data))
+      .catch(() => {});
   }, []);
+
+  const triggerCleanup = async () => {
+    setCleanupRunning(true);
+    setCleanupDone(false);
+    await fetch("/api/admin/retention", { method: "POST" });
+    const updated = await fetch("/api/admin/retention").then((r) => r.json());
+    setRetention(updated);
+    setCleanupRunning(false);
+    setCleanupDone(true);
+    setTimeout(() => setCleanupDone(false), 3000);
+  };
 
   const save = async () => {
     setSaving(true);
@@ -104,6 +127,43 @@ export default function SettingsPage() {
       >
         {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
       </button>
+
+      {/* Data Retention */}
+      {retention && (
+        <div className="mt-6 rounded-lg border border-[#eaeaea] bg-white p-6">
+          <h2 className="mb-1 text-sm font-medium text-black">Data Retention</h2>
+          <p className="mb-4 text-xs text-[#666]">
+            {retention.enabled
+              ? `Auto-cleanup enabled — records older than ${retention.retentionDays} days are removed.`
+              : "Auto-cleanup disabled. Set HEYSUMMON_RETENTION_DAYS in your environment to enable."}
+          </p>
+
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            <div className="rounded-md border border-[#eaeaea] p-3 text-center">
+              <p className="text-lg font-medium text-black">{retention.stats.totalRequests}</p>
+              <p className="text-xs text-[#666]">Total requests</p>
+            </div>
+            <div className="rounded-md border border-[#eaeaea] p-3 text-center">
+              <p className="text-lg font-medium text-black">{retention.stats.expiredRequests}</p>
+              <p className="text-xs text-[#666]">Expired / closed</p>
+            </div>
+            <div className="rounded-md border border-[#eaeaea] p-3 text-center">
+              <p className="text-lg font-medium text-black">{retention.stats.totalAuditLogs}</p>
+              <p className="text-xs text-[#666]">Audit log entries</p>
+            </div>
+          </div>
+
+          {retention.enabled && (
+            <button
+              onClick={triggerCleanup}
+              disabled={cleanupRunning}
+              className="rounded-md border border-[#eaeaea] px-3 py-1.5 text-sm text-black transition-colors hover:bg-[#fafafa] disabled:opacity-50"
+            >
+              {cleanupRunning ? "Cleaning up..." : cleanupDone ? "Done!" : "Run cleanup now"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

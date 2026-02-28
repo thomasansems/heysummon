@@ -44,7 +44,7 @@ services:
 
   db-migrate:
     image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
-    entrypoint: ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy"]
+    entrypoint: ["sh", "-c", "npx prisma migrate deploy"]
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
     networks:

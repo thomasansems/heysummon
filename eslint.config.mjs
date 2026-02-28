@@ -90,6 +90,6 @@ export default [
     },
   },
   {
-    ignores: ["node_modules/", ".next/", "prisma/", "e2e/", "guard/", "relay/", "scripts/", "*.config.*"],
+    ignores: ["node_modules/", ".next/", "prisma/", "e2e/", "guard/", "relay/", "scripts/", "skills/", "*.config.*", "**/*.mjs"],
   },
 ];

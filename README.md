@@ -79,7 +79,7 @@ cp .env.example .env        # edit secrets
 docker compose up -d
 ```
 
-The app is available at `http://localhost:3000` via Guard. Ed25519 keys are auto-generated.
+The app is available at `http://localhost:3445` via Guard. Ed25519 keys are auto-generated.
 
 Includes: **Guard** (reverse proxy with Ed25519 request signing) → **Next.js app** → **PostgreSQL** + **Mercure** (real-time SSE).
 
@@ -134,6 +134,18 @@ npx prisma generate && npx prisma db push
 npx prisma db seed            # optional: sample data
 npm run dev
 ```
+
+## Default Ports
+
+| Environment | Guard (app) | Mercure (realtime) | Prisma Studio | Ngrok dashboard |
+|-------------|-------------|-------------------|---------------|-----------------|
+| **Docker** | `3445` | `3446` | `3447` *(debug profile)* | `3448` *(ngrok profile)* |
+| **CLI** (`heysummon start`) | `3435` | `3436` | `3437` *(optional)* | — |
+| **Local dev** (`npm run dev`) | `3425` | `3426` | `3427` *(optional)* | — |
+
+> Internal container-to-container traffic always uses port `3000` (app) and the Mercure server name port. These are never exposed directly.
+
+---
 
 ## Architecture
 

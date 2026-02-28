@@ -5,8 +5,8 @@ import { generateEnv, HeysummonConfig } from "../lib/config";
 describe("config", () => {
   describe("generateEnv", () => {
     const baseConfig: HeysummonConfig = {
-      port: 3000,
-      publicUrl: "http://localhost:3000",
+      port: 3435,
+      publicUrl: "http://localhost:3435",
       enableFormLogin: true,
       enableGithubOauth: false,
       enableGoogleOauth: false,
@@ -21,8 +21,8 @@ describe("config", () => {
       const env = generateEnv(baseConfig, secrets);
 
       assert.ok(env.includes("DATABASE_URL="));
-      assert.ok(env.includes("PORT=3000"));
-      assert.ok(env.includes('NEXTAUTH_URL="http://localhost:3000"'));
+      assert.ok(env.includes("PORT=3435"));
+      assert.ok(env.includes('NEXTAUTH_URL="http://localhost:3435"'));
       assert.ok(env.includes('NEXTAUTH_SECRET="abc123"'));
       assert.ok(env.includes('MERCURE_JWT_SECRET="def456"'));
       assert.ok(env.includes('ENABLE_FORM_LOGIN="true"'));

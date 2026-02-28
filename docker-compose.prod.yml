@@ -204,7 +204,7 @@ services:
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
     ports:
-      - "4040:4040"
+      - "3448:4040"
 
 networks:
   frontend:

@@ -42,7 +42,7 @@ HeySummon uses two types of API keys with different access levels.
 Or via API:
 
 ```bash
-curl -X POST http://localhost:3000/api/keys/KEY_ID/rotate \
+curl -X POST http://localhost:3425/api/keys/KEY_ID/rotate \
   -H "Cookie: <session>"
 ```
 

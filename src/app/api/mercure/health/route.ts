@@ -11,7 +11,7 @@ interface MercureHealthResponse {
 }
 
 export async function GET() {
-  const mercureUrl = process.env.MERCURE_HUB_URL || "http://localhost:3100/.well-known/mercure";
+  const mercureUrl = process.env.MERCURE_HUB_URL || "http://localhost:3426/.well-known/mercure";
   const mercureBaseUrl = mercureUrl.replace("/.well-known/mercure", "");
   const healthEndpoint = `${mercureBaseUrl}/healthz`;
 

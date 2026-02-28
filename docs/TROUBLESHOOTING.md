@@ -11,9 +11,9 @@ The dashboard shows a red banner when it can't reach the Mercure hub.
 | Cause | Solution |
 |-------|----------|
 | Mercure process stopped/crashed | Restart it (see below) |
-| Wrong `MERCURE_HUB_URL` | Check `.env` / `.env.local` — default: `http://localhost:3100/.well-known/mercure` |
+| Wrong `MERCURE_HUB_URL` | Check `.env` / `.env.local` — default: `http://localhost:3426/.well-known/mercure` |
 | Port conflict | Another service using port 3100 |
-| Firewall blocking internal traffic | Ensure localhost:3100 is reachable from the app |
+| Firewall blocking internal traffic | Ensure localhost:3426 is reachable from the app |
 
 **Restart Mercure:**
 
@@ -31,7 +31,7 @@ pm2 restart mercure
 **Verify it's running:**
 
 ```bash
-curl http://localhost:3100/healthz
+curl http://localhost:3426/healthz
 # Expected: 200 OK
 ```
 
@@ -67,7 +67,7 @@ If you have both `.env` and `.env.local`, Next.js loads `.env` first. Make sure 
 
 ## SSE Notifications Not Delivered
 
-1. Check Mercure is running: `curl http://localhost:3100/healthz`
+1. Check Mercure is running: `curl http://localhost:3426/healthz`
 2. Check `MERCURE_JWT_SECRET` matches between app and Mercure config
 3. Check browser console for SSE connection errors
 4. For Docker: ensure Mercure is on the `backend` network

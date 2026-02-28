@@ -68,7 +68,7 @@ If the same `messageId` is sent twice, the second request returns:
 
 ```bash
 # Provider responds to a help request
-curl -X POST http://localhost:3000/api/v1/message/cmxxx... \
+curl -X POST http://localhost:3425/api/v1/message/cmxxx... \
   -H "Content-Type: application/json" \
   -H "x-api-key: hs_prov_abc123..." \
   -d '{

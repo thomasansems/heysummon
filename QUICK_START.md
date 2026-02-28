@@ -59,7 +59,7 @@ The defaults handle everything else for local dev:
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `DATABASE_URL` | `file:./prisma/heysummon.db` | SQLite, zero config |
-| `NEXTAUTH_URL` | `http://localhost:3000` | Local dev URL |
+| `NEXTAUTH_URL` | `http://localhost:3425` | Local dev URL |
 | `ENABLE_FORM_LOGIN` | `true` | Email + password login (no OAuth needed) |
 | `HEYSUMMON_EDITION` | `community` | Self-hosted edition |
 
@@ -83,13 +83,13 @@ This creates the SQLite database and runs all migrations.
 npm run dev
 ```
 
-Open **http://localhost:3000** — you should see the HeySummon login page. 🎉
+Open **http://localhost:3425** — you should see the HeySummon login page. 🎉
 
 ---
 
 ## 6. Create Your Account
 
-1. Go to **http://localhost:3000**
+1. Go to **http://localhost:3425**
 2. Click **Sign up** (or register)
 3. Enter your email and password
 4. You're in! You'll land on the provider dashboard.
@@ -115,7 +115,7 @@ Example key: hs_live_abc123...
 Open a terminal and send a help request:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/help \
+curl -X POST http://localhost:3425/api/v1/help \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -140,7 +140,7 @@ You'll get back a response with a request ID and reference code:
 
 ## 9. See It in the Dashboard
 
-1. Go back to **http://localhost:3000** in your browser
+1. Go back to **http://localhost:3425** in your browser
 2. You'll see your request with reference code **HS-XXXX**
 3. Click it to view details, decrypt the message, and type a response
 4. The AI agent can poll `GET /api/v1/help/:id` to pick up your answer

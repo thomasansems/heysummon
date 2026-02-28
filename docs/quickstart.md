@@ -59,13 +59,13 @@ npx prisma migrate dev
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3425`.
 
 ---
 
 ## 4. Create an API key
 
-1. Open the dashboard at `http://localhost:3000` (or `:3445` for Docker)
+1. Open the dashboard at `http://localhost:3425` (or `:3445` for Docker)
 2. **Sign up** — the first user becomes admin; registration closes after that
 3. Go to **API Keys** → **Create Key**
 4. Copy the key — it's only shown once
@@ -81,7 +81,7 @@ hs_prov_abc123...    # provider key (for watchers/integrations)
 ## 5. Send your first request
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/help \
+curl -X POST http://localhost:3425/api/v1/help \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -d '{
@@ -113,7 +113,7 @@ Response:
 ## 7. Poll for the response
 
 ```bash
-curl http://localhost:3000/api/v1/help/cmxxx... \
+curl http://localhost:3425/api/v1/help/cmxxx... \
   -H "x-api-key: YOUR_API_KEY"
 ```
 

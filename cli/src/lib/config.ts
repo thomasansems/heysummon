@@ -33,6 +33,7 @@ export function ensureDir(dir: string): void {
 
 export interface HeysummonConfig {
   port: number;
+  mercurePort: number;
   publicUrl: string;
   enableFormLogin: boolean;
   enableGithubOauth: boolean;
@@ -55,6 +56,8 @@ export function generateEnv(
     "",
     "# Server",
     `PORT=${config.port}`,
+    `MERCURE_PORT=${config.mercurePort}`,
+    `MERCURE_HUB_URL="http://localhost:${config.mercurePort}/.well-known/mercure"`,
     `NEXTAUTH_URL="${config.publicUrl}"`,
     `NEXTAUTH_SECRET="${secrets.nextauthSecret}"`,
     `MERCURE_JWT_SECRET="${secrets.mercureJwtSecret}"`,

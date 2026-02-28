@@ -41,7 +41,7 @@ export async function status(): Promise<void> {
 
   const pid = readPid();
   const running = pid !== null && isProcessRunning(pid);
-  const port = readPort() || 3000;
+  const port = readPort() || 3435;
 
   printDivider();
   console.log(`  ${color.bold("HeySummon Status")}`);

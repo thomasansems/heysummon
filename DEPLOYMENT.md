@@ -9,7 +9,7 @@ docker compose up -d
 # Run database migrations
 docker compose exec app npx prisma migrate deploy
 
-# Open http://localhost:3000
+# Open http://localhost:3425
 ```
 
 ## Docker Build
@@ -21,7 +21,7 @@ docker build -t heysummon-platform .
 # Run standalone (needs DATABASE_URL)
 docker run -p 3000:3000 \
   -e DATABASE_URL="postgresql://user:pass@host:5432/heysummon" \
-  -e NEXTAUTH_URL="http://localhost:3000" \
+  -e NEXTAUTH_URL="http://localhost:3425" \
   -e NEXTAUTH_SECRET="your-secret-here" \
   heysummon-platform
 ```

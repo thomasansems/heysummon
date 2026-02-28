@@ -4,7 +4,7 @@
     auto_https off
 }
 
-:3100 {
+:3426 {
     route {
         mercure {
             publisher_jwt {env.MERCURE_JWT_SECRET}

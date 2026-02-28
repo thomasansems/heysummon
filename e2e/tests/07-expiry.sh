@@ -92,7 +92,7 @@ fi
 # ── Test: New messages to expired request fail ──
 section "Message to Expired Request"
 if [ -n "${EXPIRED_REQUEST_ID:-}" ]; then
-  REPLY=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/message/${EXPIRED_REQUEST_ID}" \
+  REPLY=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/message/${EXPIRED_REQUEST_ID}" \
     -H "x-api-key: ${PROVIDER_KEY}" \
     -H "Content-Type: application/json" \
     -d '{"from": "provider", "plaintext": "Reply to expired request"}')

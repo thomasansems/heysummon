@@ -1,26 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { randomBytes, generateKeyPairSync, publicEncrypt, createCipheriv, constants } from "crypto";
+import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
-
-function encryptMessage(plaintext: string, publicKey: string): string {
-  const aesKey = randomBytes(32);
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", aesKey, iv);
-  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
-  const authTag = cipher.getAuthTag();
-  const encryptedKey = publicEncrypt(
-    { key: publicKey, padding: constants.RSA_PKCS1_OAEP_PADDING },
-    aesKey
-  );
-  return [
-    encryptedKey.toString("base64"),
-    iv.toString("base64"),
-    authTag.toString("base64"),
-    encrypted.toString("base64"),
-  ].join(".");
-}
 
 async function main() {
   // Demo user (tijdelijk voor development)
@@ -56,33 +38,12 @@ async function main() {
   if (apiKey) {
     const existingReq = await prisma.helpRequest.findFirst({ where: { expertId: demoUser.id } });
     if (!existingReq) {
-      const serverKp = generateKeyPairSync("rsa", {
-        modulusLength: 2048,
-        publicKeyEncoding: { type: "spki", format: "pem" },
-        privateKeyEncoding: { type: "pkcs8", format: "pem" },
-      });
-      const consumerKp = generateKeyPairSync("rsa", {
-        modulusLength: 2048,
-        publicKeyEncoding: { type: "spki", format: "pem" },
-        privateKeyEncoding: { type: "pkcs8", format: "pem" },
-      });
-
-      const messages = [
-        { role: "user", content: "Can you set up JWT auth for my Next.js API?" },
-        { role: "assistant", content: "Let me try... I'm getting an error with jwt.verify()" },
-      ];
-
       const req = await prisma.helpRequest.create({
         data: {
           refCode: "HS-TEST",
           apiKeyId: apiKey.id,
           expertId: demoUser.id,
-          messages: encryptMessage(JSON.stringify(messages), serverKp.publicKey as string),
-          question: encryptMessage("JWT verify fails with secretOrPublicKey error", serverKp.publicKey as string),
           status: "pending",
-          consumerPublicKey: consumerKp.publicKey as string,
-          serverPublicKey: serverKp.publicKey as string,
-          serverPrivateKey: serverKp.privateKey as string,
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
       });

@@ -23,7 +23,7 @@ KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
 
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
     --arg signPublicKey "$SIGN_PUB" \
@@ -36,7 +36,7 @@ CODE=$(parse_code "$RESULT")
 
 # ── Test: Missing crypto keys ──
 section "Missing Crypto Keys"
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
     --arg apiKey "$CLIENT_KEY" \
@@ -48,7 +48,7 @@ CODE=$(parse_code "$RESULT")
 
 # ── Test: Invalid/malformed PEM keys ──
 section "Invalid PEM Keys"
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
     --arg apiKey "$CLIENT_KEY" \
@@ -78,7 +78,7 @@ else
 
   if [ "$CODE" = "200" ] && [ -n "$REQUEST_ID" ]; then
     # Try to look up refCode with provider B's key — should fail
-    LOOKUP_RESULT=$(curl -s -w '\n%{http_code}' "${BASE_URL}/api/v1/requests/by-ref/${REF_CODE}" \
+    LOOKUP_RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' "${BASE_URL}/api/v1/requests/by-ref/${REF_CODE}" \
       -H "x-api-key: ${PROVIDER2_KEY}")
     LOOKUP_CODE=$(parse_code "$LOOKUP_RESULT")
 
@@ -90,7 +90,7 @@ fi
 
 # ── Test: Provider with no valid key ──
 section "No Valid Provider Key"
-RESULT=$(curl -s -w '\n%{http_code}' "${BASE_URL}/api/v1/requests/by-ref/HS-ZZZZ" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' "${BASE_URL}/api/v1/requests/by-ref/HS-ZZZZ" \
   -H "x-api-key: hs_prov_completely_fake_key_1234567890")
 CODE=$(parse_code "$RESULT")
 
@@ -103,7 +103,7 @@ fi
 
 # ── Test: Empty request body ──
 section "Empty Request Body"
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -d '{}')
 CODE=$(parse_code "$RESULT")
@@ -116,7 +116,7 @@ fi
 
 # ── Test: Missing x-api-key on message endpoint ──
 section "Missing x-api-key on Message Endpoint"
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/message/some-request-id" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/message/some-request-id" \
   -H "Content-Type: application/json" \
   -d '{"from": "provider", "plaintext": "no auth"}')
 CODE=$(parse_code "$RESULT")

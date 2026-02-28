@@ -33,11 +33,10 @@ interface HelpRequest {
   id: string;
   refCode: string | null;
   status: string;
-  question: string | null;
   messageCount: number;
   responseCount: number;
   createdAt: string;
-  respondedAt: string | null;
+  deliveredAt: string | null;
   apiKey: { name: string | null };
 }
 
@@ -74,9 +73,9 @@ function timeAgo(date: string) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function responseTime(created: string, responded: string | null) {
-  if (!responded) return "—";
-  const ms = new Date(responded).getTime() - new Date(created).getTime();
+function deliveryTime(created: string, delivered: string | null) {
+  if (!delivered) return "—";
+  const ms = new Date(delivered).getTime() - new Date(created).getTime();
   const m = Math.floor(ms / 60000);
   const s = Math.floor((ms % 60000) / 1000);
   return `${m}m ${s}s`;
@@ -146,7 +145,7 @@ export default function RequestsPage() {
                 <th className="px-4 py-2.5 font-medium">Client</th>
                 <th className="px-4 py-2.5 font-medium">Created</th>
                 <th className="px-4 py-2.5 font-medium text-right">
-                  Response Time
+                  Delivery Time
                 </th>
               </tr>
             </thead>
@@ -193,7 +192,7 @@ export default function RequestsPage() {
                 <th className="px-4 py-2.5 font-medium">Client</th>
                 <th className="px-4 py-2.5 font-medium">Created</th>
                 <th className="px-4 py-2.5 font-medium text-right">
-                  Response Time
+                  Delivery Time
                 </th>
               </tr>
             </thead>
@@ -237,7 +236,7 @@ export default function RequestsPage() {
                     {timeAgo(req.createdAt)}
                   </td>
                   <td className="px-4 py-2.5 text-right text-[#666]">
-                    {responseTime(req.createdAt, req.respondedAt)}
+                    {deliveryTime(req.createdAt, req.deliveredAt)}
                   </td>
                 </tr>
               ))}

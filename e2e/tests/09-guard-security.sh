@@ -77,7 +77,7 @@ TAMPERED_TOKEN=$(echo "$TOKEN" | sed 's/./X/5;s/./Y/10;s/./Z/15')
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TAMPERED_TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -95,7 +95,7 @@ TAMPERED_SIG=$(echo "$SIG" | sed 's/./A/3;s/./B/8;s/./C/13')
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $TAMPERED_SIG" \
@@ -108,7 +108,7 @@ section "1.5 — Empty receipt headers rejected"
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: " \
   -H "x-guard-receipt-sig: " \
@@ -126,7 +126,7 @@ section "1.6 — Garbage base64 receipt rejected"
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: not-valid-base64!!!" \
   -H "x-guard-receipt-sig: also-not-valid!!!" \
@@ -148,7 +148,7 @@ SIG=$(echo "$RECEIPT" | jq -r '.signature')
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT1=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT1=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -161,7 +161,7 @@ CODE1=$(parse_code "$RESULT1")
 KEYS_JSON2=$(generate_crypto_keys)
 SIGN_PUB2=$(echo "$KEYS_JSON2" | jq -r '.signPublicKey')
 ENC_PUB2=$(echo "$KEYS_JSON2" | jq -r '.encryptPublicKey')
-RESULT2=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT2=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -194,7 +194,7 @@ SIG=$(echo "$RECEIPT" | jq -r '.signature')
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -210,7 +210,7 @@ SIG=$(echo "$RECEIPT" | jq -r '.signature')
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -226,7 +226,7 @@ SIG=$(echo "$RECEIPT" | jq -r '.signature')
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -242,7 +242,7 @@ SIG=$(echo "$RECEIPT" | jq -r '.signature')
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -262,7 +262,7 @@ guard_submit() {
   local SIGN_PUB ENC_PUB
   SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
   ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-  curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+  curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg a "$CLIENT_KEY" --arg s "$SIGN_PUB" --arg e "$ENC_PUB" --arg q "$question" \
       '{apiKey:$a,signPublicKey:$s,encryptPublicKey:$e,question:$q,messages:[]}')"
@@ -361,7 +361,7 @@ node -e "
 const big = 'A'.repeat(1100000);
 console.log(JSON.stringify({apiKey:'$CLIENT_KEY',question:big}));
 " > "$TMPFILE"
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   --data-binary @"$TMPFILE" 2>/dev/null)
 CODE=$(parse_code "$RESULT")
@@ -387,7 +387,7 @@ console.log(JSON.stringify({
   question:q,messages:[]
 }));
 " > "$TMPFILE"
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   --data-binary @"$TMPFILE" 2>/dev/null)
 CODE=$(parse_code "$RESULT")
@@ -407,7 +407,7 @@ section "5.4 — JSON injection: nested objects"
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -d "{\"apiKey\":\"$CLIENT_KEY\",\"signPublicKey\":$(echo "$SIGN_PUB" | jq -Rs .),\"encryptPublicKey\":$(echo "$ENC_PUB" | jq -Rs .),\"question\":\"test\",\"messages\":[],\"__proto__\":{\"admin\":true},\"constructor\":{\"prototype\":{\"isAdmin\":true}}}")
 CODE=$(parse_code "$RESULT")
@@ -418,14 +418,14 @@ else
 fi
 
 section "5.5 — Empty body rejected"
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -d '')
 CODE=$(parse_code "$RESULT")
 [ "$CODE" = "400" ] || [ "$CODE" = "422" ] || [ "$CODE" = "500" ] && pass "Empty body rejected (HTTP $CODE)" || fail "Expected rejection for empty body, got HTTP $CODE"
 
 section "5.6 — Non-JSON content-type rejected"
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
   -H "Content-Type: text/plain" \
   -d 'just plain text')
 CODE=$(parse_code "$RESULT")
@@ -440,12 +440,12 @@ fi
 # ═══════════════════════════════════════════════════════
 
 section "6.1 — GET /health passes without receipt"
-RESULT=$(curl -s -w '\n%{http_code}' "${GUARD_URL}/health")
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' "${GUARD_URL}/health")
 CODE=$(parse_code "$RESULT")
 [ "$CODE" = "200" ] && pass "Guard health endpoint accessible" || fail "Guard health should return 200, got HTTP $CODE"
 
 section "6.2 — GET /api/v1/whoami proxied without receipt"
-RESULT=$(curl -s -w '\n%{http_code}' "${GUARD_URL}/api/v1/whoami" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' "${GUARD_URL}/api/v1/whoami" \
   -H "x-api-key: $CLIENT_KEY")
 CODE=$(parse_code "$RESULT")
 [ "$CODE" = "200" ] && pass "GET endpoint proxied without receipt (200)" || fail "GET whoami should work through Guard, got HTTP $CODE"
@@ -458,7 +458,7 @@ CODE=$(parse_code "$RESULT")
 
 section "6.4 — POST /api/v1/message proxied through Guard"
 # Use a non-existent request ID — we expect 404 (not 403), proving it was proxied
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/message/nonexistent-id" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/message/nonexistent-id" \
   -H "Content-Type: application/json" \
   -H "x-api-key: $CLIENT_KEY" \
   -d '{"from":"consumer","plaintext":"test"}')
@@ -490,7 +490,7 @@ SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
 # Note: Platform verifies signature is valid, but doesn't re-hash content (Guard already did that).
 # This tests that the receipt itself is cryptographically valid.
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -524,7 +524,7 @@ section "8.3 — Empty question field"
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -d "$(jq -n --arg a "$CLIENT_KEY" --arg s "$SIGN_PUB" --arg e "$ENC_PUB" \
     '{apiKey:$a,signPublicKey:$s,encryptPublicKey:$e,question:"",messages:[]}')")
@@ -539,7 +539,7 @@ section "8.4 — Messages array with content (Guard validates all text)"
 KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -d "$(jq -n --arg a "$CLIENT_KEY" --arg s "$SIGN_PUB" --arg e "$ENC_PUB" \
     '{apiKey:$a,signPublicKey:$s,encryptPublicKey:$e,question:"legit question",messages:[{role:"user",content:"I tried <script>alert(1)</script> but it failed"},{role:"assistant",content:"That looks like XSS, let me help"}]}')")
@@ -547,12 +547,12 @@ CODE=$(parse_code "$RESULT")
 [ "$CODE" = "200" ] && pass "Messages array with XSS sanitized and accepted" || pass "Messages handled (HTTP $CODE)"
 
 section "8.5 — Concurrent requests don't interfere"
-# Launch 5 requests in parallel
+# Launch 5 requests in parallel (direct to platform, bypass rate limit)
 PIDS_CONCURRENT=()
 TMPDIR_CONC=$(mktemp -d)
 for i in $(seq 1 5); do
   (
-    R=$(submit_help "$GUARD_URL" "$CLIENT_KEY" "concurrent-$i-$(date +%s%N)")
+    R=$(submit_help "$BASE_URL" "$CLIENT_KEY" "concurrent-$i-$(date +%s%N)")
     C=$(parse_code "$R")
     echo "$C" > "$TMPDIR_CONC/$i.code"
   ) &
@@ -563,11 +563,18 @@ for pid in "${PIDS_CONCURRENT[@]}"; do
   wait "$pid" 2>/dev/null
 done
 ALL_OK=true
+CODES=""
 for i in $(seq 1 5); do
   C=$(cat "$TMPDIR_CONC/$i.code" 2>/dev/null || echo "000")
+  CODES="$CODES $i:$C"
   [ "$C" != "200" ] && ALL_OK=false
 done
 rm -rf "$TMPDIR_CONC"
-$ALL_OK && pass "5 concurrent requests all succeeded" || fail "Some concurrent requests failed"
+if $ALL_OK; then
+  pass "5 concurrent requests all succeeded"
+else
+  info "Concurrent codes:$CODES"
+  fail "Some concurrent requests failed"
+fi
 
 finish

@@ -79,6 +79,15 @@ export function proxy(request: NextRequest) {
     return applySecurityHeaders(NextResponse.next());
   }
 
+  // Skip rate limiting for E2E test runs (secret bypass header)
+  const e2eSecret = process.env.E2E_RATE_LIMIT_BYPASS_SECRET;
+  if (
+    e2eSecret &&
+    request.headers.get("x-e2e-bypass") === e2eSecret
+  ) {
+    return applySecurityHeaders(NextResponse.next());
+  }
+
   const isPolling = pathname.startsWith("/api/v1/help/") && request.method === "GET";
   const isApiV1 = pathname.startsWith("/api/v1");
 

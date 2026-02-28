@@ -27,6 +27,15 @@ PROJECT_DIR="$(cd "$LIB_DIR/.." && pwd)"
 # ── Config (env vars with defaults) ──
 BASE_URL="${E2E_BASE_URL:-http://localhost:3000}"
 GUARD_URL="${GUARD_URL:-http://localhost:3457}"
+E2E_RATE_LIMIT_BYPASS_SECRET="${E2E_RATE_LIMIT_BYPASS_SECRET:-}"
+
+# Bypass header args for direct curl calls (empty array if no secret set)
+# Usage: curl ... "${E2E_BYPASS_ARGS[@]}" ...
+if [ -n "$E2E_RATE_LIMIT_BYPASS_SECRET" ]; then
+  E2E_BYPASS_ARGS=(-H "x-e2e-bypass: ${E2E_RATE_LIMIT_BYPASS_SECRET}")
+else
+  E2E_BYPASS_ARGS=()
+fi
 PROVIDER_ID="${E2E_PROVIDER_ID:?Set E2E_PROVIDER_ID}"
 USER_ID="${E2E_USER_ID:-$PROVIDER_ID}"
 PROVIDER_KEY="${E2E_PROVIDER_KEY:?Set E2E_PROVIDER_KEY}"
@@ -94,8 +103,12 @@ submit_help() {
     --arg question "$question" \
     '{apiKey: $apiKey, signPublicKey: $signPublicKey, encryptPublicKey: $encryptPublicKey, question: $question, messages: []}')
 
+  local bypass_header=()
+  [ -n "$E2E_RATE_LIMIT_BYPASS_SECRET" ] && bypass_header=(-H "x-e2e-bypass: ${E2E_RATE_LIMIT_BYPASS_SECRET}")
+
   curl -s -w '\n%{http_code}' -X POST "${url}/api/v1/help" \
     -H "Content-Type: application/json" \
+    "${bypass_header[@]}" \
     "${extra_curl_args[@]}" \
     -d "$BODY"
 }

@@ -100,6 +100,7 @@ jobs:
           PORT: 3000
           REQUIRE_GUARD: "true"
           GUARD_PUBLIC_KEY: ${{ steps.guard-keys.outputs.public_key }}
+          E2E_RATE_LIMIT_BYPASS_SECRET: e2e-bypass-secret-do-not-use-in-prod
 
       - name: Start guard
         run: |
@@ -128,4 +129,5 @@ jobs:
           export GUARD_URL=http://localhost:3457
           export GUARD_SIGNING_KEY=${{ steps.guard-keys.outputs.signing_key }}
           export E2E_MERCURE_HUB=http://localhost:13100/.well-known/mercure
+          export E2E_RATE_LIMIT_BYPASS_SECRET=e2e-bypass-secret-do-not-use-in-prod
           bash e2e/e2e-test.sh

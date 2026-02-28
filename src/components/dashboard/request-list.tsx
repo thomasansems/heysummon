@@ -10,6 +10,7 @@ interface HelpRequestItem {
   status: string;
   question: string | null;
   createdAt: string;
+  deliveredAt: string | null;
   apiKey: { name: string | null };
 }
 
@@ -92,7 +93,14 @@ export function RequestList({ providerId }: { providerId?: string }) {
                   {req.apiKey.name || "Unnamed key"}
                 </p>
               </div>
-              <StatusBadge status={req.status} />
+              <div className="flex items-center gap-2">
+                {!req.deliveredAt && req.status === "pending" && (
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                    ⏳
+                  </span>
+                )}
+                <StatusBadge status={req.status} />
+              </div>
             </Link>
           ))}
         </div>

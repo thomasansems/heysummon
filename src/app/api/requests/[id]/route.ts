@@ -79,6 +79,7 @@ export async function GET(
       createdAt: helpRequest.createdAt,
       updatedAt: helpRequest.updatedAt,
       respondedAt: helpRequest.respondedAt,
+      deliveredAt: helpRequest.deliveredAt,
       expiresAt: helpRequest.expiresAt,
       apiKey: helpRequest.apiKey,
     },

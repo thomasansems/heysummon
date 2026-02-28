@@ -10,7 +10,10 @@ export async function GET() {
 
   const providers = await prisma.userProfile.findMany({
     where: { userId: user.id },
-    include: { _count: { select: { apiKeys: true } } },
+    include: {
+      _count: { select: { apiKeys: true } },
+      ipEvents: { orderBy: { lastSeen: "desc" } },
+    },
     orderBy: { createdAt: "desc" },
   });
 

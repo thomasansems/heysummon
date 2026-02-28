@@ -3,7 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3442",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
@@ -11,7 +11,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:webmcp": "vitest run webmcp",
-    "db:seed": "tsx prisma/seed.ts",
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test"
   },

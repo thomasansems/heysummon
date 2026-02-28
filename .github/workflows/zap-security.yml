@@ -153,13 +153,11 @@ jobs:
         with:
           target: heysummon-openapi.json
           format: openapi
-          rules_file_name: .github/zap/zap-rules.tsv
-          cmd_options: >
+          cmd_options: >-
             -J zap-report.json
             -w zap-report.md
             -r zap-report.html
-            -z "-config network.localServers.servers(0).address=0.0.0.0
-                -config network.localServers.servers(0).port=8080"
+            -I
           allow_issue_writing: true
           fail_action: false
 

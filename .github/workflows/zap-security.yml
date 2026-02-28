@@ -119,6 +119,7 @@ jobs:
           PORT: ${{ env.APP_PORT }}
           REQUIRE_GUARD: "false"
           GUARD_PUBLIC_KEY: ${{ steps.guard-keys.outputs.public_key }}
+          E2E_RATE_LIMIT_BYPASS_SECRET: zap-bypass-secret-do-not-use-in-prod
 
       - name: Start guard
         run: |
@@ -146,6 +147,16 @@ jobs:
 
           echo "✅ OpenAPI spec generated:"
           jq '.paths | keys[]' ${{ github.workspace }}/heysummon-openapi.json
+
+      # ── Malicious content check (fails CI if Guard lets bad payloads through) ──
+      - name: Run malicious content check
+        run: |
+          SEED='${{ steps.seed.outputs.seed_json }}'
+          export E2E_CLIENT_KEY=$(echo "$SEED" | jq -r .clientKey)
+          export E2E_PROVIDER_KEY=$(echo "$SEED" | jq -r .providerKey)
+          export E2E_BASE_URL=http://localhost:${{ env.APP_PORT }}
+          export GUARD_URL=http://localhost:${{ env.GUARD_PORT }}
+          bash e2e/zap-malicious-check.sh
 
       # ── OWASP ZAP API Scan ────────────────────────────────────────────────
       - name: Run OWASP ZAP API Scan

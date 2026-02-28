@@ -40,6 +40,7 @@ const spec = {
         in: 'header',
         name: 'x-api-key',
       },
+
     },
     schemas: {
       Error: {

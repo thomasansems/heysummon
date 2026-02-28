@@ -139,6 +139,12 @@ export function proxy(request: NextRequest) {
   // --- CORS for API routes ---
   if (pathname.startsWith("/api/")) {
     const response = NextResponse.next();
+
+    // Prevent caching of API responses (security: no sensitive data in proxy caches)
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+
     const origin = request.headers.get("origin") || "";
     const allowedOrigins = [
       process.env.NEXTAUTH_URL || "http://localhost:3000",

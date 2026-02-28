@@ -39,10 +39,11 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Create database
+      - name: Create and seed database
         run: |
           npx prisma db push --force-reset
-          echo "✅ DB created"
+          npx prisma db seed
+          echo "✅ DB seeded"
           ls -lh prisma/test.db
 
       - name: Install Playwright browsers

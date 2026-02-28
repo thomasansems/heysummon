@@ -52,7 +52,7 @@ Edit `~/.heysummon/.env` to customize:
 
 ```bash
 PORT=3000
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=http://localhost:3425
 ALLOW_REGISTRATION=false
 ```
 

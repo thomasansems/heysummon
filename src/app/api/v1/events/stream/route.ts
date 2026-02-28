@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import { validateApiKeyRequest } from "@/lib/api-key-auth";
 
 const MERCURE_HUB_URL =
-  process.env.MERCURE_HUB_URL || "http://localhost:3100/.well-known/mercure";
+  process.env.MERCURE_HUB_URL || "http://localhost:3426/.well-known/mercure";
 const MERCURE_JWT_SECRET = process.env.MERCURE_JWT_SECRET!;
 
 /**

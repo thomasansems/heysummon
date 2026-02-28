@@ -1,6 +1,7 @@
 import { spawn, execSync } from "child_process";
 import * as path from "path";
 import * as fs from "fs";
+import * as os from "os";
 import {
   getAppDir,
   getEnvFile,
@@ -10,6 +11,66 @@ import {
   isProcessRunning,
 } from "../lib/config";
 import { printSuccess, printInfo, printWarning, color } from "../lib/ui";
+
+const MERCURE_PID_FILE = path.join(os.homedir(), ".heysummon", "mercure.pid");
+
+function readMercurePid(): number | null {
+  try {
+    const pid = parseInt(fs.readFileSync(MERCURE_PID_FILE, "utf-8").trim(), 10);
+    return isNaN(pid) ? null : pid;
+  } catch { return null; }
+}
+
+function findMercureBinary(): string | null {
+  const candidates = [
+    path.join(os.homedir(), "bin", "mercure"),
+    "/usr/local/bin/mercure",
+    "/usr/bin/mercure",
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  try { execSync("which mercure", { stdio: "pipe" }); return "mercure"; } catch { return null; }
+}
+
+function startMercure(appDir: string, env: NodeJS.ProcessEnv): void {
+  const binary = findMercureBinary();
+  if (!binary) {
+    printWarning("Mercure binary not found — realtime features disabled. See docs for install instructions.");
+    return;
+  }
+
+  const mercurePort = env.MERCURE_PORT || "3436";
+  const caddyfile = path.join(appDir, "mercure.Caddyfile");
+
+  // Write a minimal Caddyfile for Mercure
+  fs.writeFileSync(caddyfile, `{
+    auto_https off
+}
+
+:${mercurePort} {
+    route {
+        mercure {
+            publisher_jwt {env.MERCURE_JWT_SECRET}
+            subscriber_jwt {env.MERCURE_JWT_SECRET}
+            subscriptions
+            cors_origins *
+        }
+        respond /healthz 200
+    }
+}
+`);
+
+  const child = spawn(binary, ["run", "--config", caddyfile], {
+    cwd: appDir,
+    stdio: "ignore",
+    detached: true,
+    env,
+  });
+  child.unref();
+  fs.writeFileSync(MERCURE_PID_FILE, String(child.pid!), "utf-8");
+  printSuccess(`Mercure hub started ${color.dim(`(PID: ${child.pid}, port: ${mercurePort})`)}`);
+}
 
 function copyEnvToApp(): void {
   const envFile = getEnvFile();
@@ -48,6 +109,8 @@ export async function startDaemon(port?: number): Promise<void> {
     ...(port ? { PORT: String(port) } : {}),
   };
 
+  startMercure(appDir, env);
+
   if (hasPm2()) {
     const { cmd, args } = getServerScript(appDir);
     const startCmd = `pm2 start ${cmd} --name heysummon -- ${args.join(" ")}`;
@@ -80,6 +143,8 @@ export function startForeground(port?: number): void {
     NODE_ENV: "production",
     ...(port ? { PORT: String(port) } : {}),
   };
+
+  startMercure(appDir, env);
 
   const { cmd, args } = getServerScript(appDir);
   printInfo(`Starting ${color.cyan(`${cmd} ${args.join(" ")}`)}`);

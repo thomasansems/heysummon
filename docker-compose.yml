@@ -211,9 +211,9 @@ services:
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
     ports:
-      - "4040:4040"
+      - "3448:4040"
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4040/status"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3448/status"]
       interval: 15s
       timeout: 5s
       retries: 3

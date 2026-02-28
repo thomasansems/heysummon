@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const MERCURE_HUB_URL = process.env.MERCURE_HUB_URL || 'http://localhost:3100/.well-known/mercure';
+const MERCURE_HUB_URL = process.env.MERCURE_HUB_URL || 'http://localhost:3426/.well-known/mercure';
 const MERCURE_JWT_SECRET = process.env.MERCURE_JWT_SECRET!;
 
 if (!MERCURE_JWT_SECRET) {

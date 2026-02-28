@@ -14,7 +14,7 @@ npx prisma db push
 npm run dev
 ```
 
-The app runs on [http://localhost:3000](http://localhost:3000) by default.
+The app runs on [http://localhost:3425](http://localhost:3425) by default.
 
 ## Code Style
 

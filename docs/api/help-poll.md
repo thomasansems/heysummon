@@ -60,7 +60,7 @@ x-api-key: hs_live_abc123...
 ```bash
 # Poll until responded
 while true; do
-  RESULT=$(curl -s http://localhost:3000/api/v1/help/cmxxx... \
+  RESULT=$(curl -s http://localhost:3425/api/v1/help/cmxxx... \
     -H "x-api-key: hs_live_abc123...")
 
   STATUS=$(echo $RESULT | jq -r '.status')

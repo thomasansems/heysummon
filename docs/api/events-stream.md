@@ -51,7 +51,7 @@ Heartbeat (`:`) lines are sent periodically to keep the connection alive.
 ## Example (curl)
 
 ```bash
-curl -N http://localhost:3000/api/v1/events/stream \
+curl -N http://localhost:3425/api/v1/events/stream \
   -H "x-api-key: hs_prov_abc123..."
 ```
 

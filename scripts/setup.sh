@@ -113,7 +113,7 @@ generate_env() {
   local secret="${existing_secret:-$(openssl rand -hex 32)}"
   local mercure_secret="${existing_mercure_secret:-$(openssl rand -hex 32)}"
 
-  prompt NEXTAUTH_URL "Public URL for your HeySummon instance" "${PUBLIC_URL:-http://localhost:3000}"
+  prompt NEXTAUTH_URL "Public URL for your HeySummon instance" "${PUBLIC_URL:-http://localhost:3425}"
 
   cat > "$env_file" <<EOF
 # HeySummon Environment Configuration
@@ -244,7 +244,7 @@ setup_ngrok() {
 
 setup_direct() {
   CONNECTIVITY_METHOD="direct"
-  PUBLIC_URL="http://localhost:3000"
+  PUBLIC_URL="http://localhost:3425"
   warn "No tunnel configured. Guard is still the entry point on port 3000."
   info "You can add a reverse proxy (Nginx/Caddy) in front of Guard."
 }

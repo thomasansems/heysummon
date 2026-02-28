@@ -15,7 +15,8 @@ All requests go through the **Guard proxy** in production, which adds Ed25519 si
 
 ```
 http://localhost:3445     # Docker (behind Guard)
-http://localhost:3000     # Dev server (direct)
+http://localhost:3435     # CLI install (behind Guard)
+http://localhost:3425     # Local development (npm run dev)
 ```
 
 ---

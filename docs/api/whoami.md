@@ -33,6 +33,6 @@ x-api-key: hs_live_abc123...
 ## Example
 
 ```bash
-curl http://localhost:3000/api/v1/whoami \
+curl http://localhost:3425/api/v1/whoami \
   -H "x-api-key: hs_live_abc123..."
 ```

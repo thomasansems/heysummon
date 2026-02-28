@@ -142,16 +142,16 @@ jobs:
             --base-url http://localhost:${{ env.APP_PORT }} \
             --provider-key "$PROVIDER_KEY" \
             --client-key "$CLIENT_KEY" \
-            --output /tmp/heysummon-openapi.json
+            --output ${{ github.workspace }}/heysummon-openapi.json
 
           echo "✅ OpenAPI spec generated:"
-          jq '.paths | keys[]' /tmp/heysummon-openapi.json
+          jq '.paths | keys[]' ${{ github.workspace }}/heysummon-openapi.json
 
       # ── OWASP ZAP API Scan ────────────────────────────────────────────────
       - name: Run OWASP ZAP API Scan
         uses: zaproxy/action-api-scan@v0.9.0
         with:
-          target: /tmp/heysummon-openapi.json
+          target: heysummon-openapi.json
           format: openapi
           rules_file_name: .github/zap/zap-rules.tsv
           cmd_options: >

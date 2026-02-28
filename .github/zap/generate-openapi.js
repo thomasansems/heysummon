@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/* eslint-env node */
+/* eslint-disable no-undef */
 /**
  * HeySummon OpenAPI spec generator for OWASP ZAP
  * Generates a spec describing all public API endpoints

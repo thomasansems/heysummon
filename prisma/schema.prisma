@@ -152,7 +152,17 @@ model HelpRequest {
   apiKey                 ApiKey    @relation(fields: [apiKeyId], references: [id])
   expertId               String
   expert                 User      @relation("ExpertRequests", fields: [expertId], references: [id])
-  
+
+  // Legacy fields (v3 - keep for backward compatibility)
+  // Deprecated: use Message model instead, but still accepted for backward compat
+  messages               String?   // Deprecated
+  question               String?   // Deprecated
+  response               String?   // Deprecated
+  consumerPublicKey      String?   // Deprecated: use consumerEncryptPubKey instead
+  serverPublicKey        String?   // Deprecated
+  serverPrivateKey       String?   // Deprecated
+  respondedAt            DateTime?
+
   // v4: E2E encryption keys (X25519 + Ed25519)
   consumerSignPubKey     String?   // Consumer's Ed25519 signing public key
   consumerEncryptPubKey  String?   // Consumer's X25519 encryption public key

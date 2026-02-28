@@ -1,0 +1,7 @@
+.env
+*.jsonl
+providers.json
+profile.json
+watcher.log
+watcher.pid
+seen-events.txt

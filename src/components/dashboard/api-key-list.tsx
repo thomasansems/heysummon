@@ -168,18 +168,16 @@ export function ApiKeyList() {
                     {new Date(k.createdAt).toLocaleDateString()}
                   </p>
                   {k.isActive && (
-                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2">
-                      <span className="text-xs text-violet-400">🔌 Install in OpenClaw:</span>
-                      <code className="flex-1 truncate rounded bg-zinc-800 px-2 py-0.5 text-xs text-violet-300">
-                        {typeof window !== "undefined"
-                          ? `${window.location.origin}/api/v1/skill-install/${k.id}`
-                          : `/api/v1/skill-install/${k.id}`}
-                      </code>
+                    <div className="mt-2">
                       <button
                         onClick={() => handleCopyInstallUrl(k.id)}
-                        className="whitespace-nowrap text-xs text-violet-400 hover:text-violet-300"
+                        className="inline-flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors"
                       >
-                        {copiedInstallId === k.id ? "Copied!" : "Copy URL"}
+                        {copiedInstallId === k.id ? (
+                          <>✅ Link gekopieerd!</>
+                        ) : (
+                          <>🔌 Install in OpenClaw</>
+                        )}
                       </button>
                     </div>
                   )}

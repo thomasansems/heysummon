@@ -10,24 +10,21 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [total, open, resolved, requests] = await Promise.all([
+  const [total, open, requests] = await Promise.all([
     prisma.helpRequest.count({ where: { expertId: userId } }),
     prisma.helpRequest.count({
       where: { expertId: userId, status: "pending" },
     }),
-    prisma.helpRequest.count({
-      where: { expertId: userId, status: "responded" },
-    }),
     prisma.helpRequest.findMany({
-      where: { expertId: userId, respondedAt: { not: null } },
-      select: { createdAt: true, respondedAt: true },
+      where: { expertId: userId, deliveredAt: { not: null } },
+      select: { createdAt: true, deliveredAt: true },
     }),
   ]);
 
   let avgResponseTime = 0;
   if (requests.length > 0) {
     const totalMs = requests.reduce((sum, r) => {
-      return sum + (r.respondedAt!.getTime() - r.createdAt.getTime());
+      return sum + (r.deliveredAt!.getTime() - r.createdAt.getTime());
     }, 0);
     avgResponseTime = Math.round(totalMs / requests.length / 1000);
   }
@@ -60,8 +57,8 @@ export async function GET() {
       id: true,
       refCode: true,
       status: true,
-      question: true,
       createdAt: true,
+      deliveredAt: true,
       apiKey: { select: { name: true } },
       _count: { select: { messageHistory: true } },
     },
@@ -73,8 +70,8 @@ export async function GET() {
     id: r.id,
     refCode: r.refCode,
     status: r.status,
-    question: r.question,
     messageCount: r._count.messageHistory,
+    deliveredAt: r.deliveredAt,
     createdAt: r.createdAt,
     apiKey: r.apiKey,
   }));
@@ -82,8 +79,7 @@ export async function GET() {
   return NextResponse.json({
     total,
     open,
-    resolved,
-    expired: total - open - resolved,
+    delivered: requests.length,
     avgResponseTime,
     activity,
     openRequests: mappedOpenRequests,

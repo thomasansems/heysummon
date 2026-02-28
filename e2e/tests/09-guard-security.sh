@@ -563,11 +563,18 @@ for pid in "${PIDS_CONCURRENT[@]}"; do
   wait "$pid" 2>/dev/null
 done
 ALL_OK=true
+CODES=""
 for i in $(seq 1 5); do
   C=$(cat "$TMPDIR_CONC/$i.code" 2>/dev/null || echo "000")
+  CODES="$CODES $i:$C"
   [ "$C" != "200" ] && ALL_OK=false
 done
 rm -rf "$TMPDIR_CONC"
-$ALL_OK && pass "5 concurrent requests all succeeded" || fail "Some concurrent requests failed"
+if $ALL_OK; then
+  pass "5 concurrent requests all succeeded"
+else
+  info "Concurrent codes:$CODES"
+  fail "Some concurrent requests failed"
+fi
 
 finish

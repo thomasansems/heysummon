@@ -1,77 +1,20 @@
-# ZAP Alert Filter Rules for HeySummon
-# Format: alertId	ACTION	PARAMETER	EVIDENCE	URL	METHOD	ATTACK	CONFIDENCE	RISK
-# Actions: IGNORE, WARN, FAIL
-# Risk codes: 0=Info, 1=Low, 2=Medium, 3=High
-
-# ── False positives we accept ───────────────────────────────────────────────
-
-# 10015: Incomplete or No Cache-Control Header Set
-# SSE endpoints intentionally have no caching
-10015	IGNORE	x-api-key		/api/v1/events/stream	GET
-
-# 10027: Information Disclosure - Suspicious Comments
-# Next.js injects build IDs in HTML comments — acceptable
+10015	IGNORE
 10027	IGNORE
-
-# 10036: Server Leaks Version Information via "Server" HTTP Response Header Field
-# Acceptable for self-hosted deployments
 10036	WARN
-
-# 10038: Content Security Policy (CSP) Header Not Set
-# Dashboard pages — track as warning only
 10038	WARN
-
-# 10049: Storable and Cacheable Content
-# API health endpoint is fine to cache
-10049	IGNORE		/api/health
-
-# 10054: Cookie Without SameSite Attribute
-# NextAuth session cookies — tracked upstream
+10049	IGNORE
 10054	WARN
-
-# 10096: Timestamp Disclosure - Unix
-# Not a concern for our JSON API
 10096	IGNORE
-
-# 10109: Modern Web Application
-# ZAP info alert about SPA detection — not a vulnerability
 10109	IGNORE
-
-# 90022: Application Error Disclosure
-# Track but don't fail — we handle 500s gracefully
 90022	WARN
-
-# ── Must FAIL on HIGH risk ──────────────────────────────────────────────────
-
-# 40012: Cross Site Scripting (Reflected) — must fail
 40012	FAIL
-
-# 40014: Cross Site Scripting (Persistent) — must fail
 40014	FAIL
-
-# 40018: SQL Injection — must fail
 40018	FAIL
-
-# 40019: SQL Injection - MySQL — must fail
 40019	FAIL
-
-# 40020: SQL Injection - Hypersonic SQL — must fail
 40020	FAIL
-
-# 40021: SQL Injection - Oracle — must fail
 40021	FAIL
-
-# 40022: SQL Injection - SQLite — must fail
 40022	FAIL
-
-# 90019: Server Side Include — must fail
 90019	FAIL
-
-# 90020: Remote OS Command Injection — must fail
 90020	FAIL
-
-# 6: Path Traversal — must fail
 6	FAIL
-
-# 7: Remote File Inclusion — must fail
 7	FAIL

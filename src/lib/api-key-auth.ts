@@ -160,7 +160,8 @@ export async function validateApiKeyRequest(
 
   // 3. Rotation fallback: hash incoming key, check previousKeyHash within grace period
   if (!keyRecord) {
-    // nosemgrep: codeql:js/insufficient-password-hash — API keys are random tokens, not passwords
+    // lgtm[js/insufficient-password-hash] — SHA256 is appropriate here: API keys are random 192-bit tokens, not passwords
+    // CodeQL-suppress js/insufficient-password-hash: not a password hash, random token comparison
     const hashedKey = crypto.createHash("sha256").update(apiKeyValue).digest("hex");
     keyRecord = await prisma.apiKey.findFirst({
       where: {

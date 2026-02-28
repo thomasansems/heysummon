@@ -63,7 +63,7 @@ KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
 
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TAMPERED_TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -88,7 +88,7 @@ KEYS_JSON=$(generate_crypto_keys)
 SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
 
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -120,7 +120,7 @@ REQUEST_BODY=$(jq -n \
   '{apiKey: $apiKey, signPublicKey: $signPublicKey, encryptPublicKey: $encryptPublicKey, question: "replay test", messages: []}')
 
 # First use — should succeed
-RESULT1=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT1=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \
@@ -144,7 +144,7 @@ REQUEST_BODY2=$(jq -n \
   --arg encryptPublicKey "$ENC_PUB2" \
   '{apiKey: $apiKey, signPublicKey: $signPublicKey, encryptPublicKey: $encryptPublicKey, question: "replay test 2", messages: []}')
 
-RESULT2=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
+RESULT2=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -H "x-guard-receipt: $TOKEN" \
   -H "x-guard-receipt-sig: $SIG" \

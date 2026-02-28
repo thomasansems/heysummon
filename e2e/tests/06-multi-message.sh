@@ -103,7 +103,7 @@ SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
 ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
 
 # Submit with 5 messages but messageCount=2 — should only store last 2
-TRIM_RESULT=$(curl -s -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
+TRIM_RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${TEST_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
     --arg apiKey "$CLIENT_KEY" \

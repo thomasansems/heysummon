@@ -27,7 +27,7 @@ guard_submit() {
   SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
   ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
 
-  curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+  curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
     -H "Content-Type: application/json" \
     -d "$(jq -n \
       --arg apiKey "$CLIENT_KEY" \
@@ -139,7 +139,7 @@ const body = JSON.stringify({ apiKey: '$CLIENT_KEY', question: big });
 process.stdout.write(body);
 " > "$TMPFILE"
 
-RESULT=$(curl -s -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
+RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${GUARD_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
   --data-binary @"$TMPFILE" 2>/dev/null)
 CODE=$(parse_code "$RESULT")

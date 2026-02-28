@@ -138,7 +138,7 @@ jobs:
           PROVIDER_KEY=$(echo "$SEED" | jq -r .providerKey)
           CLIENT_KEY=$(echo "$SEED" | jq -r .clientKey)
 
-          node .github/zap/generate-openapi.js \
+          node .github/zap/generate-api-spec.js \
             --base-url http://localhost:${{ env.APP_PORT }} \
             --provider-key "$PROVIDER_KEY" \
             --client-key "$CLIENT_KEY" \

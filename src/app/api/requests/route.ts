@@ -17,6 +17,7 @@ export async function GET() {
       question: true,
       createdAt: true,
       respondedAt: true,
+      deliveredAt: true,
       apiKey: { select: { name: true } },
       _count: { select: { messageHistory: true } },
       messageHistory: {
@@ -36,6 +37,7 @@ export async function GET() {
     responseCount: r.messageHistory.length,
     createdAt: r.createdAt,
     respondedAt: r.respondedAt,
+    deliveredAt: r.deliveredAt,
     apiKey: r.apiKey,
   }));
 

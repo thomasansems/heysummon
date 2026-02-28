@@ -24,6 +24,8 @@ const EVENT_TYPES = [
   "KEY_EXCHANGE",
   "PERMISSION_CHANGED",
   "HELP_REQUEST_SUBMITTED",
+  "NOTIFICATION_DELIVERED",
+  "NOTIFICATION_RESENT",
   "PROVIDER_RESPONSE",
 ] as const;
 
@@ -48,6 +50,8 @@ function EventTypeBadge({ type }: { type: string }) {
     KEY_EXCHANGE: "bg-cyan-50 text-cyan-700",
     PERMISSION_CHANGED: "bg-orange-50 text-orange-700",
     HELP_REQUEST_SUBMITTED: "bg-indigo-50 text-indigo-700",
+    NOTIFICATION_DELIVERED: "bg-emerald-50 text-emerald-700",
+    NOTIFICATION_RESENT: "bg-amber-50 text-amber-700",
     PROVIDER_RESPONSE: "bg-emerald-50 text-emerald-700",
   };
 

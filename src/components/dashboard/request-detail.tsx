@@ -21,6 +21,7 @@ interface HelpRequestDetail {
   createdAt: string;
   expiresAt: string;
   respondedAt: string | null;
+  deliveredAt: string | null;
   apiKey: { name: string | null };
 }
 
@@ -28,6 +29,8 @@ export function RequestDetail({ id }: { id: string }) {
   const [request, setRequest] = useState<HelpRequestDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
 
   const fetchRequest = useCallback(() => {
     fetch(`/api/requests/${id}`)
@@ -70,6 +73,25 @@ export function RequestDetail({ id }: { id: string }) {
     );
   }
 
+  const handleResend = async () => {
+    setResending(true);
+    setResendMessage("");
+    try {
+      const res = await fetch(`/api/requests/${id}/resend`, { method: "POST" });
+      if (res.ok) {
+        setResendMessage("✅ Notification resent");
+        fetchRequest();
+      } else {
+        const data = await res.json();
+        setResendMessage(`❌ ${data.error || "Failed to resend"}`);
+      }
+    } catch {
+      setResendMessage("❌ Network error");
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -83,13 +105,39 @@ export function RequestDetail({ id }: { id: string }) {
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-white">Help Request</h1>
             <StatusBadge status={request.status} />
+            {request.deliveredAt ? (
+              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
+                ✓ Delivered
+              </span>
+            ) : request.status !== "closed" && request.status !== "expired" ? (
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                ⏳ Not delivered
+              </span>
+            ) : null}
           </div>
           <p className="mt-1 text-xs text-zinc-500">
             {new Date(request.createdAt).toLocaleString()} · via{" "}
             {request.apiKey.name || "Unnamed key"} · Expires{" "}
             {new Date(request.expiresAt).toLocaleString()}
+            {request.deliveredAt && (
+              <> · Delivered {new Date(request.deliveredAt).toLocaleString()}</>
+            )}
           </p>
         </div>
+        {!request.deliveredAt && request.status !== "closed" && request.status !== "expired" && (
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+            >
+              {resending ? "Resending..." : "🔔 Resend Notification"}
+            </button>
+            {resendMessage && (
+              <span className="text-xs text-zinc-400">{resendMessage}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {request.question && (

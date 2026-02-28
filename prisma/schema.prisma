@@ -166,6 +166,7 @@ model HelpRequest {
   guardVerified          Boolean   @default(false) // true if content was validated by guard sidecar
   
   status                 String    @default("pending") // pending | active | closed | expired
+  deliveredAt            DateTime? // When provider watcher acknowledged receipt
   expiresAt              DateTime  // createdAt + 72 hours
   closedAt               DateTime?
   

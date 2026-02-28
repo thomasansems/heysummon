@@ -73,9 +73,12 @@ model UserProfile {
   quietHoursStart  String?
   quietHoursEnd    String?
   digestTime       String?
+  deviceSecret     String?
+  machineId        String?
   user             User              @relation(fields: [userId], references: [id])
   apiKeys          ApiKey[]
   channelProviders ChannelProvider[]
+  ipEvents         IpEvent[]
   createdAt        DateTime          @default(now())
 }
 
@@ -126,8 +129,10 @@ model ApiKey {
 
 model IpEvent {
   id        String   @id @default(cuid())
-  apiKeyId  String
-  apiKey    ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  apiKeyId  String?
+  apiKey    ApiKey?  @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  profileId String?
+  profile   UserProfile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
   ip        String
   status    String   @default("pending") // "allowed" | "pending" | "blacklisted"
   attempts  Int      @default(1)
@@ -135,7 +140,9 @@ model IpEvent {
   lastSeen  DateTime @default(now())
 
   @@unique([apiKeyId, ip])
+  @@unique([profileId, ip])
   @@index([apiKeyId])
+  @@index([profileId])
 }
 
 model HelpRequest {
@@ -166,6 +173,7 @@ model HelpRequest {
   guardVerified          Boolean   @default(false) // true if content was validated by guard sidecar
   
   status                 String    @default("pending") // pending | active | closed | expired
+  deliveredAt            DateTime? // When provider watcher acknowledged receipt
   expiresAt              DateTime  // createdAt + 72 hours
   closedAt               DateTime?
   

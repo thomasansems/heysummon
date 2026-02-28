@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3425",
+    "dev:mercure": "bash start-mercure.sh",
+    "dev:all": "concurrently --names \"next,mercure\" --prefix-colors \"cyan,magenta\" \"npm run dev\" \"npm run dev:mercure\"",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
@@ -13,9 +15,7 @@
     "test:webmcp": "vitest run webmcp",
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
-    "db:seed": "tsx prisma/seed.ts",
-    "dev:mercure": "bash start-mercure.sh",
-    "dev:all": "concurrently --names \"next,mercure\" --prefix-colors \"cyan,magenta\" \"npm run dev\" \"npm run dev:mercure\""
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

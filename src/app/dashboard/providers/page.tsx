@@ -3,6 +3,40 @@
 import { copyToClipboard } from "@/lib/clipboard";
 import { Fragment, useEffect, useState } from "react";
 
+const COMMON_TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Sao_Paulo",
+  "Europe/London",
+  "Europe/Berlin",
+  "Europe/Paris",
+  "Europe/Amsterdam",
+  "Europe/Moscow",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Shanghai",
+  "Asia/Tokyo",
+  "Asia/Seoul",
+  "Australia/Sydney",
+  "Pacific/Auckland",
+];
+
+function getTimezones(): string[] {
+  if (typeof Intl !== "undefined" && "supportedValuesOf" in Intl) {
+    try {
+      return (
+        Intl as unknown as { supportedValuesOf: (key: string) => string[] }
+      ).supportedValuesOf("timeZone");
+    } catch {
+      // fallback
+    }
+  }
+  return COMMON_TIMEZONES;
+}
+
 interface IpEvent {
   id: string;
   ip: string;
@@ -18,6 +52,7 @@ interface Provider {
   key: string;
   isActive: boolean;
   createdAt: string;
+  timezone: string;
   ipEvents: IpEvent[];
   _count: { apiKeys: number };
 }
@@ -33,6 +68,11 @@ export default function ProvidersPage() {
   const [editName, setEditName] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [editTimezone, setEditTimezone] = useState("");
+  const [timezoneFilter, setTimezoneFilter] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const timezones = getTimezones();
 
   const loadProviders = () =>
     fetch("/api/providers")
@@ -94,6 +134,21 @@ export default function ProvidersPage() {
 
   const openSettings = (p: Provider) => {
     setSettingsId(settingsId === p.id ? null : p.id);
+    if (settingsId !== p.id) {
+      setEditTimezone(p.timezone || "UTC");
+    }
+    setTimezoneFilter("");
+  };
+
+  const saveProviderSettings = async (id: string) => {
+    setSaving(true);
+    await fetch(`/api/providers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ timezone: editTimezone }),
+    });
+    setSaving(false);
+    loadProviders();
   };
 
   return (
@@ -259,15 +314,8 @@ export default function ProvidersPage() {
                               onClick={() => { openSettings(p); setOpenMenuId(null); }}
                               className="block w-full px-3 py-1.5 text-left text-xs text-[#666] hover:bg-[#fafafa] hover:text-black"
                             >
-                              IP Security
-                            </button>
-                            <a
-                              href={`/dashboard/providers/${p.id}/settings`}
-                              className="block w-full px-3 py-1.5 text-left text-xs text-[#666] hover:bg-[#fafafa] hover:text-black"
-                              onClick={() => setOpenMenuId(null)}
-                            >
                               Settings
-                            </a>
+                            </button>
                             {p.isActive ? (
                               <button
                                 onClick={() => { toggleProvider(p.id, false); setOpenMenuId(null); }}
@@ -296,114 +344,154 @@ export default function ProvidersPage() {
                     </td>
                   </tr>
 
-                  {/* IP Security inline panel */}
+                  {/* Settings inline panel */}
                   {settingsId === p.id && (
                     <tr key={`${p.id}-settings`} className="border-b border-[#eaeaea]">
                       <td colSpan={6} className="bg-[#fafafa] px-4 py-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs font-medium text-[#666]">IP Security</p>
-                          {p.ipEvents?.length > 0 && (
-                            <button
-                              onClick={async () => {
-                                if (!window.confirm("Reset all IP bindings for this provider? The next request will bind a new IP.")) return;
-                                await Promise.all(
-                                  p.ipEvents.map((evt) =>
-                                    fetch(`/api/providers/ip-events/${evt.id}`, { method: "DELETE" })
-                                  )
-                                );
-                                loadProviders();
-                              }}
-                              className="rounded-md border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                        {/* Timezone Section */}
+                        <div className="mb-4">
+                          <p className="mb-2 text-xs font-medium text-[#666]">Timezone</p>
+                          <div className="flex flex-col gap-2">
+                            <input
+                              type="text"
+                              placeholder="Filter timezones…"
+                              value={timezoneFilter}
+                              onChange={(e) => setTimezoneFilter(e.target.value)}
+                              className="max-w-xs rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                            />
+                            <select
+                              value={editTimezone}
+                              onChange={(e) => setEditTimezone(e.target.value)}
+                              className="max-w-xs rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
                             >
-                              Reset All Bindings
+                              {(timezoneFilter
+                                ? timezones.filter((tz) =>
+                                    tz.toLowerCase().includes(timezoneFilter.toLowerCase())
+                                  )
+                                : timezones
+                              ).map((tz) => (
+                                <option key={tz} value={tz}>
+                                  {tz}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => saveProviderSettings(p.id)}
+                              disabled={saving}
+                              className="max-w-xs rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                            >
+                              {saving ? "Saving..." : "Save"}
                             </button>
-                          )}
+                          </div>
                         </div>
 
-                        {!p.ipEvents || p.ipEvents.length === 0 ? (
-                          <p className="text-xs text-[#999]">
-                            No IP bindings yet. The first API request from this provider will automatically bind its IP.
-                          </p>
-                        ) : (
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="text-left text-[#999]">
-                                <th className="pb-1 pr-4 font-medium">IP Address</th>
-                                <th className="pb-1 pr-4 font-medium">Status</th>
-                                <th className="pb-1 pr-4 font-medium">Attempts</th>
-                                <th className="pb-1 pr-4 font-medium">First Seen</th>
-                                <th className="pb-1 pr-4 font-medium">Last Seen</th>
-                                <th className="pb-1 font-medium" />
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {p.ipEvents.map((evt) => (
-                                <tr key={evt.id} className="border-t border-[#eaeaea]">
-                                  <td className="py-1.5 pr-4 font-mono text-[#666]">{evt.ip}</td>
-                                  <td className="py-1.5 pr-4">
-                                    <span
-                                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                                        evt.status === "allowed"
-                                          ? "bg-green-50 text-green-700"
-                                          : evt.status === "pending"
-                                            ? "bg-amber-50 text-amber-700"
-                                            : "bg-red-50 text-red-700"
-                                      }`}
-                                    >
-                                      {evt.status}
-                                    </span>
-                                  </td>
-                                  <td className="py-1.5 pr-4 text-[#666]">{evt.attempts}</td>
-                                  <td className="py-1.5 pr-4 text-[#666]">{new Date(evt.firstSeen).toLocaleString()}</td>
-                                  <td className="py-1.5 pr-4 text-[#666]">{new Date(evt.lastSeen).toLocaleString()}</td>
-                                  <td className="py-1.5 text-right">
-                                    <div className="flex items-center justify-end gap-1">
-                                      {evt.status !== "allowed" && (
-                                        <button
-                                          onClick={async () => {
-                                            await fetch(`/api/providers/ip-events/${evt.id}`, {
-                                              method: "PATCH",
-                                              headers: { "Content-Type": "application/json" },
-                                              body: JSON.stringify({ status: "allowed" }),
-                                            });
-                                            loadProviders();
-                                          }}
-                                          className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50"
-                                        >
-                                          Allow
-                                        </button>
-                                      )}
-                                      {evt.status !== "blacklisted" && (
-                                        <button
-                                          onClick={async () => {
-                                            await fetch(`/api/providers/ip-events/${evt.id}`, {
-                                              method: "PATCH",
-                                              headers: { "Content-Type": "application/json" },
-                                              body: JSON.stringify({ status: "blacklisted" }),
-                                            });
-                                            loadProviders();
-                                          }}
-                                          className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
-                                        >
-                                          Blacklist
-                                        </button>
-                                      )}
-                                      <button
-                                        onClick={async () => {
-                                          await fetch(`/api/providers/ip-events/${evt.id}`, { method: "DELETE" });
-                                          loadProviders();
-                                        }}
-                                        className="rounded px-1.5 py-0.5 text-xs text-[#999] hover:bg-[#f0f0f0] hover:text-[#666]"
-                                      >
-                                        Remove
-                                      </button>
-                                    </div>
-                                  </td>
+                        {/* IP Security Section */}
+                        <div className="border-t border-[#eaeaea] pt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-medium text-[#666]">IP Security</p>
+                            {p.ipEvents?.length > 0 && (
+                              <button
+                                onClick={async () => {
+                                  if (!window.confirm("Reset all IP bindings for this provider? The next request will bind a new IP.")) return;
+                                  await Promise.all(
+                                    p.ipEvents.map((evt) =>
+                                      fetch(`/api/providers/ip-events/${evt.id}`, { method: "DELETE" })
+                                    )
+                                  );
+                                  loadProviders();
+                                }}
+                                className="rounded-md border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                              >
+                                Reset All Bindings
+                              </button>
+                            )}
+                          </div>
+
+                          {!p.ipEvents || p.ipEvents.length === 0 ? (
+                            <p className="text-xs text-[#999]">
+                              No IP bindings yet. The first API request from this provider will automatically bind its IP.
+                            </p>
+                          ) : (
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="text-left text-[#999]">
+                                  <th className="pb-1 pr-4 font-medium">IP Address</th>
+                                  <th className="pb-1 pr-4 font-medium">Status</th>
+                                  <th className="pb-1 pr-4 font-medium">Attempts</th>
+                                  <th className="pb-1 pr-4 font-medium">First Seen</th>
+                                  <th className="pb-1 pr-4 font-medium">Last Seen</th>
+                                  <th className="pb-1 font-medium" />
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
+                              </thead>
+                              <tbody>
+                                {p.ipEvents.map((evt) => (
+                                  <tr key={evt.id} className="border-t border-[#eaeaea]">
+                                    <td className="py-1.5 pr-4 font-mono text-[#666]">{evt.ip}</td>
+                                    <td className="py-1.5 pr-4">
+                                      <span
+                                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                          evt.status === "allowed"
+                                            ? "bg-green-50 text-green-700"
+                                            : evt.status === "pending"
+                                              ? "bg-amber-50 text-amber-700"
+                                              : "bg-red-50 text-red-700"
+                                        }`}
+                                      >
+                                        {evt.status}
+                                      </span>
+                                    </td>
+                                    <td className="py-1.5 pr-4 text-[#666]">{evt.attempts}</td>
+                                    <td className="py-1.5 pr-4 text-[#666]">{new Date(evt.firstSeen).toLocaleString()}</td>
+                                    <td className="py-1.5 pr-4 text-[#666]">{new Date(evt.lastSeen).toLocaleString()}</td>
+                                    <td className="py-1.5 text-right">
+                                      <div className="flex items-center justify-end gap-1">
+                                        {evt.status !== "allowed" && (
+                                          <button
+                                            onClick={async () => {
+                                              await fetch(`/api/providers/ip-events/${evt.id}`, {
+                                                method: "PATCH",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ status: "allowed" }),
+                                              });
+                                              loadProviders();
+                                            }}
+                                            className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50"
+                                          >
+                                            Allow
+                                          </button>
+                                        )}
+                                        {evt.status !== "blacklisted" && (
+                                          <button
+                                            onClick={async () => {
+                                              await fetch(`/api/providers/ip-events/${evt.id}`, {
+                                                method: "PATCH",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ status: "blacklisted" }),
+                                              });
+                                              loadProviders();
+                                            }}
+                                            className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                                          >
+                                            Blacklist
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={async () => {
+                                            await fetch(`/api/providers/ip-events/${evt.id}`, { method: "DELETE" });
+                                            loadProviders();
+                                          }}
+                                          className="rounded px-1.5 py-0.5 text-xs text-[#999] hover:bg-[#f0f0f0] hover:text-[#666]"
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )}

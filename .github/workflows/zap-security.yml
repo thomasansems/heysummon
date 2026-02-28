@@ -161,6 +161,10 @@ jobs:
       # ── OWASP ZAP API Scan ────────────────────────────────────────────────
       - name: Run OWASP ZAP API Scan
         uses: zaproxy/action-api-scan@v0.9.0
+        env:
+          # ZAP sends this header with every request → bypasses rate limiter
+          ZAP_AUTH_HEADER: x-e2e-bypass
+          ZAP_AUTH_HEADER_VALUE: zap-bypass-secret-do-not-use-in-prod
         with:
           target: heysummon-openapi.json
           format: openapi

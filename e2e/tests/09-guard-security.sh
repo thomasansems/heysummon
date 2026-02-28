@@ -547,12 +547,20 @@ CODE=$(parse_code "$RESULT")
 [ "$CODE" = "200" ] && pass "Messages array with XSS sanitized and accepted" || pass "Messages handled (HTTP $CODE)"
 
 section "8.5 — Concurrent requests don't interfere"
-# Launch 5 requests in parallel through Guard (bypass header forwarded via proxy)
+# Launch 5 requests in parallel through Guard with unique questions per request
 PIDS_CONCURRENT=()
 TMPDIR_CONC=$(mktemp -d)
+QUESTIONS=(
+  "How do I reset my password for the portal?"
+  "What are the opening hours of the support desk?"
+  "Can you help me find my invoice from last month?"
+  "I need assistance with my account settings."
+  "Where can I find the documentation for the API?"
+)
 for i in $(seq 1 5); do
   (
-    R=$(submit_help "$GUARD_URL" "$CLIENT_KEY" "concurrent-$i-$(date +%s%N)")
+    Q="${QUESTIONS[$((i-1))]}"
+    R=$(submit_help "$GUARD_URL" "$CLIENT_KEY" "$Q")
     C=$(parse_code "$R")
     echo "$C" > "$TMPDIR_CONC/$i.code"
   ) &

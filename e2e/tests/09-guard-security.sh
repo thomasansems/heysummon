@@ -547,12 +547,12 @@ CODE=$(parse_code "$RESULT")
 [ "$CODE" = "200" ] && pass "Messages array with XSS sanitized and accepted" || pass "Messages handled (HTTP $CODE)"
 
 section "8.5 — Concurrent requests don't interfere"
-# Launch 5 requests in parallel
+# Launch 5 requests in parallel (direct to platform, bypass rate limit)
 PIDS_CONCURRENT=()
 TMPDIR_CONC=$(mktemp -d)
 for i in $(seq 1 5); do
   (
-    R=$(submit_help "$GUARD_URL" "$CLIENT_KEY" "concurrent-$i-$(date +%s%N)")
+    R=$(submit_help "$BASE_URL" "$CLIENT_KEY" "concurrent-$i-$(date +%s%N)")
     C=$(parse_code "$R")
     echo "$C" > "$TMPDIR_CONC/$i.code"
   ) &

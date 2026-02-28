@@ -44,9 +44,11 @@ jobs:
           echo "HTTP status: $HTTP_CODE"
           cat /tmp/response.json
           
-          if [ "$HTTP_CODE" != "204" ]; then
+          if [ "$HTTP_CODE" = "204" ]; then
+            echo "✅ Dispatch successful"
+          elif [ "$HTTP_CODE" = "403" ]; then
+            echo "::warning::Docs dispatch skipped — DOCS_SYNC_TOKEN lacks repo scope. Create a new PAT with 'repo' scope and update the secret."
+          else
             echo "::error::Dispatch failed with HTTP $HTTP_CODE"
             exit 1
           fi
-          
-          echo "✅ Dispatch successful"

@@ -17,6 +17,7 @@ export function ApiKeyList() {
   const [newKeyName, setNewKeyName] = useState("");
   const [creating, setCreating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedInstallId, setCopiedInstallId] = useState<string | null>(null);
   const [newDeviceSecret, setNewDeviceSecret] = useState<string | null>(null);
   const [copiedDeviceSecret, setCopiedDeviceSecret] = useState(false);
 
@@ -57,6 +58,13 @@ export function ApiKeyList() {
     navigator.clipboard.writeText(key);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  }
+
+  function handleCopyInstallUrl(id: string) {
+    const url = `${window.location.origin}/api/v1/skill-install/${id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedInstallId(id);
+    setTimeout(() => setCopiedInstallId(null), 2000);
   }
 
   return (
@@ -159,6 +167,22 @@ export function ApiKeyList() {
                     {k._count.requests} requests · Created{" "}
                     {new Date(k.createdAt).toLocaleDateString()}
                   </p>
+                  {k.isActive && (
+                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2">
+                      <span className="text-xs text-violet-400">🔌 Install in OpenClaw:</span>
+                      <code className="flex-1 truncate rounded bg-zinc-800 px-2 py-0.5 text-xs text-violet-300">
+                        {typeof window !== "undefined"
+                          ? `${window.location.origin}/api/v1/skill-install/${k.id}`
+                          : `/api/v1/skill-install/${k.id}`}
+                      </code>
+                      <button
+                        onClick={() => handleCopyInstallUrl(k.id)}
+                        className="whitespace-nowrap text-xs text-violet-400 hover:text-violet-300"
+                      >
+                        {copiedInstallId === k.id ? "Copied!" : "Copy URL"}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 {k.isActive && (
                   <button

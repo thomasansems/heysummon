@@ -16,6 +16,7 @@ const get = (flag) => {
 };
 
 const BASE_URL = get('--base-url') || 'http://localhost:3000';
+const BYPASS_SECRET = 'zap-bypass-secret-do-not-use-in-prod';
 const PROVIDER_KEY = get('--provider-key') || 'hs_prov_test';
 const CLIENT_KEY = get('--client-key') || 'hs_cli_test';
 const OUTPUT = get('--output') || '/tmp/heysummon-openapi.json';
@@ -39,6 +40,11 @@ const spec = {
         type: 'apiKey',
         in: 'header',
         name: 'x-api-key',
+      },
+      zapBypass: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'x-e2e-bypass',
       },
     },
     schemas: {

@@ -3,7 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3442",
+    "dev": "next dev --port 3425",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
@@ -13,7 +13,9 @@
     "test:webmcp": "vitest run webmcp",
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "dev:mercure": "bash start-mercure.sh",
+    "dev:all": "concurrently --names \"next,mercure\" --prefix-colors \"cyan,magenta\" \"npm run dev\" \"npm run dev:mercure\""
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
@@ -47,6 +49,7 @@
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "^16.1.6",
     "eslint-plugin-react": "^7.37.5",

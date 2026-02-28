@@ -594,7 +594,7 @@ heysummon:
                               <tbody>
                                 {k.ipEvents.map((evt) => (
                                   <tr key={evt.id} className="border-t border-[#eaeaea]">
-                                    <td className="py-1.5 pr-4 font-mono">{evt.ip}</td>
+                                    <td className="py-1.5 pr-4 font-mono text-[#666]">{evt.ip}</td>
                                     <td className="py-1.5 pr-4">
                                       <span
                                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${

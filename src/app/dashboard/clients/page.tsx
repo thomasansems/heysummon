@@ -191,11 +191,8 @@ export default function ClientsPage() {
   const masked = (key: string) =>
     key.slice(0, 8) + "•".repeat(16) + key.slice(-4);
 
-  const configSnippet = (key: string) =>
-    `# HeySummon API configuration
-heysummon:
-  api_key: "${key}"
-  endpoint: "${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1/help"`;
+  const installUrl = (id: string) =>
+    `${typeof window !== "undefined" ? window.location.origin : ""}/api/v1/skill-install/${id}`;
 
   const isInGracePeriod = (k: ApiKey) =>
     k.previousKeyExpiresAt && new Date(k.previousKeyExpiresAt) > new Date();
@@ -666,20 +663,23 @@ heysummon:
                   {showInstructions === k.id && (
                     <tr key={`${k.id}-instructions`} className="border-b border-[#eaeaea]">
                       <td colSpan={8} className="bg-[#fafafa] px-4 py-3">
-                        <p className="mb-2 text-xs font-medium text-[#666]">
-                          OpenClaw Configuration
-                        </p>
-                        <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400">
-                          {configSnippet(k.key)}
-                        </pre>
-                        <button
-                          onClick={() =>
-                            copyToClipboard(configSnippet(k.key))
-                          }
-                          className="mt-2 text-xs text-violet-600 hover:text-violet-800"
-                        >
-                          Copy snippet
-                        </button>
+                        <p className="mb-1 text-xs font-medium text-[#666]">Install in OpenClaw</p>
+                        <p className="mb-2 text-xs text-[#999]">Share this link with your client. One click installs the skill with the API key pre-configured.</p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 truncate rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 font-mono text-xs text-[#444]">
+                            {installUrl(k.id)}
+                          </code>
+                          <button
+                            onClick={() => {
+                              copyToClipboard(installUrl(k.id));
+                              setCopied(k.id);
+                              setTimeout(() => setCopied(null), 2000);
+                            }}
+                            className="whitespace-nowrap rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-black/80"
+                          >
+                            {copied === k.id ? "Copied!" : "Copy link"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )}

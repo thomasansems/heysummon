@@ -1,0 +1,173 @@
+import { Callout } from 'nextra/components'
+
+# API Reference
+
+Base URL: `http://your-instance:3445` (Docker) or `http://localhost:3000` (NPX)
+
+All endpoints require `x-api-key` authentication unless noted.
+
+---
+
+## Help Requests
+
+### Submit a request
+`POST /api/v1/help`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `apiKey` | string | ✅ | Client key (`hs_live_*`) |
+| `question` | string | ✅ | Question for the human expert |
+| `signPublicKey` | string | ❌ | Ed25519 public key (enables E2E) |
+| `encryptPublicKey` | string | ❌ | X25519 public key (enables E2E) |
+| `messages` | string | ❌ | Encrypted conversation history |
+| `messageCount` | number | ❌ | Count of messages in history |
+
+**Response `200`:**
+```json
+{ "requestId": "cm...", "refCode": "HS-A1B2C3D4", "status": "pending" }
+```
+
+---
+
+### Get request status
+`GET /api/v1/help/:requestId`
+
+**Header:** `x-api-key: hs_live_*`
+
+**Response `200`:**
+```json
+{
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "responded",
+  "response": "No, do not delete it.",
+  "respondedAt": "2026-02-28T14:00:00Z"
+}
+```
+
+---
+
+### Get request by ref code
+`GET /api/v1/requests/by-ref/:refCode`
+
+**Header:** `x-api-key`
+
+Look up any request using its `HS-XXXXXXXX` reference code.
+
+---
+
+## Messages
+
+### Send a message
+`POST /api/v1/message/:requestId`
+
+**Header:** `x-api-key`
+
+```json
+{
+  "from": "consumer",
+  "plaintext": "Follow-up question here"
+}
+```
+
+Or encrypted:
+
+```json
+{
+  "from": "consumer",
+  "ciphertext": "...",
+  "iv": "...",
+  "authTag": "...",
+  "signature": "..."
+}
+```
+
+---
+
+### List messages
+`GET /api/v1/messages/:requestId`
+
+**Header:** `x-api-key`
+
+Returns all messages in the conversation, ordered by creation time.
+
+---
+
+## Conversations
+
+### Close a request
+`POST /api/v1/close/:requestId`
+
+**Header:** `x-api-key: hs_prov_*`
+
+Closes the request. Provider key required.
+
+---
+
+## Events
+
+### SSE stream
+`GET /api/v1/events/stream`
+
+**Header:** `x-api-key`
+
+Opens a persistent SSE connection. Streams events for all topics the key has access to.
+
+Events:
+```
+data: {"type":"new_request","requestId":"...","refCode":"HS-..."}
+
+data: {"type":"status_change","requestId":"...","status":"responded"}
+
+data: {"type":"new_message","requestId":"...","messageId":"...","from":"provider"}
+```
+
+---
+
+### Pending events
+`GET /api/v1/events/pending`
+
+**Header:** `x-api-key`
+
+Returns undelivered events (up to 50). Use after reconnecting to catch up.
+
+---
+
+### Acknowledge an event
+`POST /api/v1/events/ack/:requestId`
+
+**Header:** `x-api-key`
+
+Mark an event as delivered.
+
+---
+
+## Identity
+
+### Verify your key
+`GET /api/v1/whoami`
+
+**Header:** `x-api-key`
+
+```json
+{
+  "keyId": "cm...",
+  "name": "My Key",
+  "type": "client"
+}
+```
+
+---
+
+## Error codes
+
+| Code | Meaning |
+|------|---------|
+| `400` | Validation error |
+| `401` | Missing or invalid API key |
+| `403` | Key not authorized for this resource |
+| `404` | Not found |
+| `413` | Payload too large (>1MB) |
+| `422` | Content blocked by Guard (PII, XSS) |
+| `429` | Rate limited |
+| `500` | Internal server error |

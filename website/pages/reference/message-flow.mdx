@@ -1,0 +1,119 @@
+import { Callout } from 'nextra/components'
+
+# Message Flow
+
+How messages travel from an AI agent to a human expert and back.
+
+---
+
+## Flow 1: Simple request/response
+
+```
+AI Agent                     HeySummon                    Human
+    │                            │                            │
+    │── POST /api/v1/help ──────▶│                            │
+    │   { question, apiKey }     │                            │
+    │                            │── SSE event ──────────────▶│
+    │                            │   [HS-A1B2C3D4] New request│
+    │                            │                            │
+    │                            │◀── POST /api/v1/message ───│
+    │                            │    { response }            │
+    │                            │                            │
+    │◀── GET /api/v1/help/:id ───│                            │
+    │    { status: responded }   │                            │
+```
+
+---
+
+## Flow 2: Multi-turn conversation
+
+```
+AI Agent              HeySummon               Human
+
+── POST /help ──────▶                ── SSE: new_request ──▶
+                     ◀── POST /message (provider) ──
+── GET /help/:id ──▶
+   { response: "..." }
+
+── POST /message (consumer) ──▶      ── SSE: new_message ──▶
+                     ◀── POST /message (provider) ──
+── GET /messages/:id ──▶
+   [all messages...]
+```
+
+---
+
+## Flow 3: Real-time with SSE
+
+```
+AI Agent              HeySummon               Human
+
+── GET /events/stream ──▶ (open persistent connection)
+
+── POST /help ──────────▶               ── SSE event ──▶
+
+                         ◀── provider responds ──
+         ◀── SSE: status_change (status: responded) ──
+── GET /help/:id ──▶ { response: "..." }
+```
+
+---
+
+## Mercure topics
+
+| Topic | Who subscribes | Events |
+|-------|---------------|--------|
+| `/heysummon/providers/{userId}` | Provider watcher, dashboard | `new_request`, `new_message` |
+| `/heysummon/requests/{requestId}` | Consumer watcher | `status_change`, `new_message` |
+
+The platform resolves which topics a key can subscribe to based on its type and ownership.
+
+---
+
+## Event format
+
+All Mercure events are JSON:
+
+```json
+{
+  "type": "new_request",
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "question": "Should I delete it?",
+  "status": "pending",
+  "createdAt": "2026-02-28T10:00:00Z"
+}
+```
+
+```json
+{
+  "type": "status_change",
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "responded",
+  "respondedAt": "2026-02-28T10:05:00Z"
+}
+```
+
+```json
+{
+  "type": "new_message",
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "messageId": "uuid...",
+  "from": "provider"
+}
+```
+
+---
+
+## Delivery guarantees
+
+- Events are published to Mercure **synchronously** as part of the API response
+- If the consumer is offline, events are available via `GET /api/v1/events/pending`
+- Pending events are stored for **24 hours** after the last activity on the request
+- Acknowledge with `POST /api/v1/events/ack/:requestId`
+
+<Callout type="info">
+  The SSE stream may disconnect — browsers reconnect automatically. Always call `GET /api/v1/events/pending` after a reconnect to catch up on missed events.
+</Callout>

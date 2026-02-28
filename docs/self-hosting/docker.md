@@ -13,27 +13,38 @@ The recommended way to self-host HeySummon. Includes the Guard proxy, Next.js pl
 
 ## Quick start
 
-```bash
-git clone https://github.com/thomasansems/heysummon.git
-cd heysummon
-cp .env.example .env
-```
-
-Edit `.env` — the only required values are:
+One command — no source code, no manual secret generation:
 
 ```bash
-NEXTAUTH_SECRET=        # openssl rand -hex 32
-NEXTAUTH_URL=           # http://localhost:3445
-MERCURE_JWT_SECRET=     # openssl rand -hex 32
+curl -fsSL https://raw.githubusercontent.com/thomasansems/heysummon/main/install.sh | bash
 ```
 
-Start:
+This script:
+1. Creates `~/.heysummon-docker/`
+2. Downloads `docker-compose.yml`
+3. Generates `NEXTAUTH_SECRET`, `MERCURE_JWT_SECRET`, and `DB_PASSWORD` automatically
+4. Writes a ready-to-use `.env`
+5. Runs `docker compose up -d`
+
+Open `http://localhost:3445` when done.
+
+To pin a specific release, set `HEYSUMMON_VERSION=0.1.0` in your `.env` before running the script, or after the fact with:
 
 ```bash
-docker compose up -d
+cd ~/.heysummon-docker
+HEYSUMMON_VERSION=0.1.0 docker compose up -d
 ```
 
-HeySummon is running at `http://localhost:3445`.
+Images:
+- `ghcr.io/thomasansems/heysummon` — main platform
+- `ghcr.io/thomasansems/heysummon-guard` — guard proxy
+
+> **Contributing or want to build from source?** Use `docker-compose.dev.yml` instead:
+> ```bash
+> git clone https://github.com/thomasansems/heysummon.git && cd heysummon
+> cp .env.example .env
+> docker compose -f docker-compose.dev.yml up -d
+> ```
 
 ---
 
@@ -53,26 +64,6 @@ Platform (Next.js)     — API, dashboard, auth
 ```
 
 **Guard** is the single entry point. Platform has no exposed ports — it's only reachable from Guard on the internal Docker network.
-
----
-
-## Using pre-built images
-
-Use `docker-compose.prod.yml` to pull images from GHCR instead of building locally:
-
-```bash
-docker compose -f docker-compose.prod.yml up -d
-```
-
-Pin a specific version:
-
-```bash
-HEYSUMMON_VERSION=0.1.0 docker compose -f docker-compose.prod.yml up -d
-```
-
-Images:
-- `ghcr.io/thomasansems/heysummon` — main platform
-- `ghcr.io/thomasansems/heysummon-guard` — guard proxy
 
 ---
 
@@ -104,7 +95,8 @@ NGROK_AUTHTOKEN=your-token docker compose --profile ngrok up -d
 
 ```bash
 # Prisma Studio — browse the database at http://localhost:3447
-docker compose --profile debug up -d
+# (requires source checkout + docker-compose.dev.yml)
+docker compose -f docker-compose.dev.yml --profile debug up -d
 ```
 
 ---
@@ -130,16 +122,16 @@ docker compose --profile debug up -d
 
 ```bash
 # Pull latest images and restart
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
+docker compose pull
+docker compose up -d
 ```
 
-For local builds:
+For source builds:
 
 ```bash
 git pull
-docker compose build
-docker compose up -d
+docker compose -f docker-compose.dev.yml build
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 ---

@@ -1,0 +1,132 @@
+import { Callout } from 'nextra/components'
+
+# End-to-End Encryption
+
+HeySummon uses **X25519 Diffie-Hellman + AES-256-GCM + Ed25519** for true end-to-end encryption. The platform stores ciphertext it cannot read.
+
+---
+
+## How it works
+
+```
+Consumer                    Platform (blind relay)              Provider
+
+Generate Ed25519 keypair
+Generate X25519 keypair
+         │
+         │  POST /api/v1/help
+         │  { signPublicKey, encryptPublicKey, encryptedQuestion }
+         ├──────────────────────────────▶
+         │                                        ──SSE event──▶
+         │  ◀── serverPublicKey ─────────
+         │                                                      Generate keypairs
+         │                              ◀── POST /key-exchange ──
+         │  ◀──────────────── encrypted response ───────────────
+Decrypt with private key
+```
+
+---
+
+## Crypto primitives
+
+| Component | Algorithm | Purpose |
+|-----------|-----------|---------|
+| Key exchange | X25519 (Curve25519) | Derive shared secret — never transmitted |
+| Signing | Ed25519 | Authenticate every message |
+| Encryption | AES-256-GCM | Symmetric message encryption |
+| Key derivation | HKDF-SHA256 | Per-message unique keys |
+
+---
+
+## Step-by-step
+
+### 1. Generate keypairs
+
+```bash
+node skills/openclaw/heysummon/scripts/crypto.mjs keygen ~/.heysummon
+```
+
+Creates 4 files:
+
+| File | Use |
+|------|-----|
+| `sign_public.pem` | Share with platform |
+| `sign_private.pem` | Keep secret — sign outgoing messages |
+| `encrypt_public.pem` | Share with platform |
+| `encrypt_private.pem` | Keep secret — derive shared secret |
+
+### 2. Submit request with public keys
+
+```json
+{
+  "apiKey": "hs_live_abc123...",
+  "question": "<encrypted ciphertext>",
+  "signPublicKey": "<base64 Ed25519 pubkey>",
+  "encryptPublicKey": "<base64 X25519 pubkey>"
+}
+```
+
+### 3. Key exchange
+
+After submitting, the provider performs key exchange:
+
+```
+POST /api/v1/key-exchange/:requestId
+```
+
+Both sides now have each other's X25519 public keys.
+
+### 4. Derive shared secret
+
+```
+sharedSecret = X25519(myPrivateKey, theirPublicKey)
+```
+
+Computed independently by both sides — **never transmitted**.
+
+### 5. Per-message encryption
+
+```
+messageKey = HKDF(sharedSecret, salt=messageId)
+ciphertext = AES-256-GCM(message, messageKey, iv)
+signature  = Ed25519.sign(ciphertext, signingPrivateKey)
+```
+
+---
+
+## Encrypting a message
+
+```bash
+node scripts/crypto.mjs encrypt \
+  "Your message text" \
+  /path/to/recipient/encrypt_public.pem \
+  /path/to/your/sign_private.pem \
+  /path/to/your/encrypt_private.pem
+```
+
+## Decrypting a message
+
+```bash
+node scripts/crypto.mjs decrypt \
+  '<payload JSON>' \
+  /path/to/sender/encrypt_public.pem \
+  /path/to/sender/sign_public.pem \
+  /path/to/your/encrypt_private.pem
+```
+
+---
+
+## What the platform stores
+
+| Data | Stored as | Platform can read? |
+|------|-----------|-------------------|
+| Question | Ciphertext | ❌ No |
+| Response | Ciphertext | ❌ No |
+| Messages | Ciphertext | ❌ No |
+| Reference code | Plaintext | ✅ Yes — by design |
+| Status | Plaintext | ✅ Yes — by design |
+| Timestamps | Plaintext | ✅ Yes — by design |
+
+<Callout type="info">
+  In **simple mode** (no public keys provided), messages are stored as plaintext and the platform can read them. Use simple mode for testing and low-sensitivity requests only.
+</Callout>

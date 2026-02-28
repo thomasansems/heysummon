@@ -1,0 +1,37 @@
+import { Callout } from 'nextra/components'
+
+# Self-Hosting Overview
+
+HeySummon is designed to be self-hosted. Your data never leaves your infrastructure.
+
+## Installation options
+
+| Method | Best for | Setup time |
+|--------|----------|------------|
+| [NPX](/self-hosting/npx) | Personal use, evaluation | ~2 minutes |
+| [Docker](/self-hosting/docker) | Production, teams | ~5 minutes |
+| [From source](/getting-started/quickstart#option-3-local-development) | Development, contributing | ~10 minutes |
+
+## Components
+
+| Component | Description | Port |
+|-----------|-------------|------|
+| **Guard** | Entry point — validates keys, signs requests | 3445 (Docker) |
+| **Platform** | Next.js app — API, dashboard, auth | Internal only |
+| **PostgreSQL** | Database (Docker) or SQLite (NPX) | Internal only |
+| **Mercure** | Real-time SSE hub | Internal only |
+
+<Callout type="warning">
+  The Platform has no exposed ports in Docker — only Guard is reachable from outside. Never expose the Platform or Mercure directly to the internet.
+</Callout>
+
+## Making it public
+
+To expose HeySummon to the internet, use a tunnel or reverse proxy:
+
+- **Cloudflare Tunnel** — recommended, free
+- **Tailscale Funnel** — good for team setups
+- **Ngrok** — good for development
+- **Nginx / Caddy** — for VPS deployments
+
+See [Docker](/self-hosting/docker#making-it-public) for tunnel configuration.

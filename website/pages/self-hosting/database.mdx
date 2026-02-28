@@ -1,0 +1,80 @@
+import { Callout } from 'nextra/components'
+
+# Database
+
+HeySummon supports two database backends:
+
+| Backend | Used by | Use case |
+|---------|---------|----------|
+| **SQLite** | NPX installer | Personal use, evaluation |
+| **PostgreSQL** | Docker deployment | Production, teams |
+
+---
+
+## Schema
+
+Key models:
+
+| Model | Description |
+|-------|-------------|
+| `User` | Dashboard users (providers) |
+| `UserProfile` | Provider profiles — one user can have multiple profiles |
+| `ApiKey` | Client and provider keys |
+| `HelpRequest` | Incoming help requests |
+| `Message` | Messages in a conversation |
+| `IpEvent` | IP binding events per key / profile |
+| `AuditLog` | Action history |
+
+---
+
+## Migrations
+
+HeySummon uses [Prisma Migrate](https://www.prisma.io/docs/concepts/components/prisma-migrate).
+
+### Apply pending migrations (production)
+
+```bash
+npx prisma migrate deploy
+```
+
+Use this after every update. Docker's entrypoint runs this automatically.
+
+### Create a new migration (development)
+
+```bash
+npx prisma migrate dev --name "your-migration-name"
+```
+
+### Reset the database (development only)
+
+<Callout type="error">
+  Never use `prisma db push --force-reset` or `prisma migrate reset` on a production database. This will delete all data.
+</Callout>
+
+```bash
+npx prisma migrate reset   # development only
+```
+
+---
+
+## Backups (PostgreSQL)
+
+```bash
+# Backup
+docker exec heysummon-db-1 pg_dump -U heysummon heysummon > backup-$(date +%Y%m%d).sql
+
+# Restore
+cat backup-20260228.sql | docker exec -i heysummon-db-1 psql -U heysummon heysummon
+```
+
+---
+
+## Prisma Studio
+
+A visual database browser for development:
+
+```bash
+cd ~/Code/heysummon
+npx prisma studio
+# Opens at http://localhost:5555
+```

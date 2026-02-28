@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Quickstart
 
 Get HeySummon running and send your first help request in under 5 minutes.
@@ -13,10 +15,11 @@ npx heysummon
 The interactive installer handles everything: download, secrets, database, and starts the server on port 3000.
 
 ```bash
-heysummon start -d   # start in background
-heysummon stop       # stop the server
-heysummon status     # check if running
-heysummon update     # update to latest version
+heysummon start       # start the server
+heysummon start -d    # start in background (daemon)
+heysummon stop        # stop the server
+heysummon status      # check if running + show URL
+heysummon update      # update to latest version
 ```
 
 Jump to [step 4](#4-create-an-api-key) once it's running.
@@ -47,13 +50,6 @@ npm run dev
 ```
 
 Open `http://localhost:3425`.
-
-> **Docker-based dev (builds from source):**
-> ```bash
-> git clone https://github.com/thomasansems/heysummon.git && cd heysummon
-> cp .env.example .env
-> docker compose -f docker-compose.dev.yml up -d
-> ```
 
 ---
 
@@ -99,7 +95,7 @@ Response:
 ## 6. Respond in the dashboard
 
 1. Open the dashboard — you'll see the request with reference code `HS-A1B2C3D4`
-2. Click it, read the decrypted message, type your response
+2. Click it, read the message, type your response
 3. Click **Respond**
 
 ---
@@ -122,7 +118,7 @@ curl http://localhost:3425/api/v1/help/cmxxx... \
 
 ## Next steps
 
-- [API Reference](./api/overview.md) — All endpoints
-- [E2E Encryption](./guides/encryption.md) — How keys and ciphertext work
-- [Real-time SSE](./guides/sse.md) — Stream responses instead of polling
-- [Provider Conversations](./guides/provider-conversations.md) — Reply via Telegram
+- [API Reference](/reference/api) — All endpoints
+- [E2E Encryption](/security/encryption) — How keys and ciphertext work
+- [Real-time SSE](/reference/events-stream) — Stream responses instead of polling
+- [Provider Conversations](/provider/conversations) — Reply via Telegram

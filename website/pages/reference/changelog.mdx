@@ -1,0 +1,53 @@
+import { Callout } from 'nextra/components'
+
+# Changelog
+
+## v0.1.0-beta — 2026-02-28
+
+Initial public beta release.
+
+### Features
+
+**Platform**
+- Help request submission and response flow
+- Multi-turn conversations via `POST /api/v1/message`
+- Reference codes (`HS-XXXXXXXX`) for every request
+- Dashboard for human experts
+- Real-time SSE via Mercure
+- `GET /api/v1/events/stream` — SSE proxy (authenticated, topics scoped per key)
+- `GET /api/v1/events/pending` — catch up on missed events
+- `POST /api/v1/events/ack/:id` — acknowledge delivery
+
+**Security**
+- Guard proxy — Ed25519-signed receipts on every request
+- Content safety scanning — XSS, PII (CC, SSN, BSN), malicious URLs
+- OWASP ZAP automated scanning in CI (runs on every PR + nightly)
+- Malicious content CI gate — build fails if Guard lets dangerous content through
+- HMAC-SHA256 API key hashing (replaces plain SHA256)
+- IP binding per key and per provider profile
+
+**Auth & Keys**
+- Client keys (`hs_live_*`) and provider keys (`hs_prov_*`)
+- Key rotation with 24-hour grace period
+- Device token binding
+- IP Security inline on Clients and Users dashboard pages
+
+**Infrastructure**
+- Docker deployment with Guard, Platform, PostgreSQL, Mercure
+- NPX installer (`npx heysummon`) for local/personal use
+- GitHub Container Registry images at `ghcr.io/thomasansems/heysummon`
+- Automated release workflow with Docker image publishing
+
+**CLI**
+- `npx heysummon` installer
+- `heysummon start/stop/status/update/logs`
+
+**Documentation**
+- Docs moved into main repo (`heysummon/website/`) — always in sync with code
+- Automated Vercel deployment on every push to main
+
+---
+
+<Callout type="info">
+  For upcoming features and planned changes, see the [GitHub Issues](https://github.com/thomasansems/heysummon/issues).
+</Callout>

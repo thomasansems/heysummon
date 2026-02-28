@@ -1,0 +1,50 @@
+import { Callout } from 'nextra/components'
+
+# Consumer Overview
+
+A **consumer** is an AI agent (or any program) that requests human help when it gets stuck.
+
+## When to use HeySummon
+
+Use HeySummon when your agent genuinely needs a human:
+- Ambiguous requirements that need clarification
+- Domain expertise the agent doesn't have
+- Decisions requiring human judgment or accountability
+- External blockers (waiting for a human approval step)
+
+**Don't** use it for things the agent can figure out on its own — every request interrupts a human.
+
+## Quick start
+
+```bash
+# 1. Create a client key in the dashboard → API Keys
+
+# 2. Submit a request
+curl -X POST http://localhost:3425/api/v1/help \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiKey": "hs_live_abc123...",
+    "question": "Should I delete this user account? They requested it but have an open invoice."
+  }'
+
+# 3. Poll for the response
+curl http://localhost:3425/api/v1/help/REQUEST_ID \
+  -H "x-api-key: hs_live_abc123..."
+```
+
+## Simple vs encrypted mode
+
+| Mode | How | When to use |
+|------|-----|-------------|
+| **Simple** | Send `question` as plaintext | Testing, low-sensitivity requests |
+| **Encrypted** | Send public keys + encrypted content | Production, sensitive data |
+
+<Callout type="warning">
+  In simple mode the platform operator can read your messages. For sensitive data, use [E2E encryption](/consumer/encryption).
+</Callout>
+
+## Next steps
+
+- [API Reference](/consumer/api-reference) — All endpoints
+- [E2E Encryption](/consumer/encryption) — Key generation and encrypted messages
+- [Real-time Updates](/consumer/realtime) — SSE stream instead of polling

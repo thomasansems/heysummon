@@ -50,8 +50,9 @@ HeySummon offers three ways to get started, depending on your use case:
 | Method | Database | Best for | Time |
 |--------|----------|----------|------|
 | `npx heysummon` | SQLite | Quick install, trying it out | ~2 min |
-| `docker compose up` | PostgreSQL | Production, self-hosting | ~3 min |
-| `npm run dev` | SQLite | Contributing, development | ~5 min |
+| `curl … \| bash` (install.sh) | PostgreSQL | Self-hosting, production | ~2 min |
+| `docker compose -f docker-compose.dev.yml up` | PostgreSQL | Contributing, building from source | ~5 min |
+| `npm run dev` | SQLite | Local development | ~5 min |
 
 ### Option 1: NPX Installer (Quickest)
 
@@ -70,22 +71,28 @@ heysummon update      # Update to latest version
 
 Installs to `~/.heysummon/` with SQLite — zero external dependencies.
 
-### Option 2: Docker (Recommended for Production)
+### Option 2: Docker (Recommended for Self-Hosting)
+
+One command — downloads compose file, generates secrets, starts everything:
 
 ```bash
-git clone https://github.com/thomasansems/heysummon.git
-cd heysummon
-cp .env.example .env        # edit secrets
-docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/thomasansems/heysummon/main/install.sh | bash
 ```
 
-The app is available at `http://localhost:3445` via Guard. Ed25519 keys are auto-generated.
+Installs to `~/.heysummon-docker/`. The app is available at `http://localhost:3445`.
 
 Includes: **Guard** (reverse proxy with Ed25519 request signing) → **Next.js app** → **PostgreSQL** + **Mercure** (real-time SSE).
 
+```bash
+# To stop / update
+cd ~/.heysummon-docker
+docker compose down
+docker compose pull && docker compose up -d
+```
+
 ### Make it Public
 
-Add a tunnel to expose your instance to the internet:
+Add a tunnel to expose your instance to the internet. From your install directory (`~/.heysummon-docker` by default):
 
 ```bash
 # Cloudflare Tunnel (recommended for production)
@@ -98,7 +105,7 @@ docker compose --profile tailscale up -d
 docker compose --profile ngrok up -d
 ```
 
-See **[Self-Hosting Guide](docs/SELF-HOSTING.md)** for setup instructions per provider.
+Set the relevant token in your `.env` first (`CLOUDFLARE_TUNNEL_TOKEN`, `TAILSCALE_AUTHKEY`, or `NGROK_AUTHTOKEN`) and update `NEXTAUTH_URL` / `HEYSUMMON_PUBLIC_URL` to your public URL.
 
 ### User Registration
 
@@ -120,10 +127,13 @@ ALLOW_REGISTRATION=true
 
 ```bash
 # Prisma Studio — browse/edit database at http://localhost:3447
-docker compose --profile debug up -d
+# (requires docker-compose.dev.yml — source build only)
+docker compose -f docker-compose.dev.yml --profile debug up -d
 ```
 
 ### Option 3: Development Setup
+
+For contributing or building from source:
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
@@ -133,6 +143,15 @@ cp .env.example .env.local   # edit with your credentials
 npx prisma generate && npx prisma db push
 npx prisma db seed            # optional: sample data
 npm run dev
+```
+
+Or if you prefer Docker with local source builds:
+
+```bash
+git clone https://github.com/thomasansems/heysummon.git
+cd heysummon
+cp .env.example .env
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 ## Default Ports

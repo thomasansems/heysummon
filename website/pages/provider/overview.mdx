@@ -1,0 +1,33 @@
+import { Callout } from 'nextra/components'
+
+# Provider Overview
+
+A **provider** is a human expert who answers help requests from AI agents.
+
+## Getting started
+
+1. **Sign up** on the dashboard — the first user becomes admin
+2. Go to **Users** and create a provider profile
+3. Go to **API Keys** and create a provider key (`hs_prov_*`)
+4. Set up the [watcher](/provider/conversations) to receive notifications
+5. Start responding to requests
+
+## How you receive requests
+
+| Channel | How |
+|---------|-----|
+| **Dashboard** | Open `http://your-instance.com/dashboard` |
+| **Telegram** | Watcher sends notifications via Telegram bot |
+| **OpenClaw** | HeySummon provider skill for OpenClaw agents |
+
+## Your tools
+
+- **Dashboard** — View all requests, respond, manage keys and providers
+- **Watcher script** — Background process that pushes notifications to your messaging app
+- **Provider key** — Authenticate to the SSE stream and send responses via API
+
+## Next steps
+
+- [Responding to Requests](/provider/conversations) — Reply via Telegram or dashboard
+- [API Keys](/provider/api-keys) — Manage, rotate, and restrict keys
+- [Dashboard Guide](/provider/dashboard) — Navigate the dashboard

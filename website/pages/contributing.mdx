@@ -1,0 +1,78 @@
+import { Callout } from 'nextra/components'
+
+# Contributing
+
+Thanks for your interest in contributing to HeySummon!
+
+## Development setup
+
+```bash
+git clone https://github.com/thomasansems/heysummon.git
+cd heysummon
+npm install
+cp .env.example .env.local
+npx prisma migrate dev
+npm run dev
+```
+
+Open `http://localhost:3425`.
+
+## Project structure
+
+```
+heysummon/
+├── src/
+│   ├── app/             # Next.js App Router (API routes + dashboard)
+│   ├── components/      # React components
+│   ├── lib/             # Core utilities (auth, crypto, rate limiting)
+│   └── middleware.ts    # Request pipeline (proxy.ts)
+├── guard/               # Guard proxy (standalone Express)
+├── cli/                 # NPX installer and heysummon CLI
+├── prisma/              # Database schema and migrations
+├── e2e/                 # End-to-end test suite (bash + Playwright)
+├── skills/              # OpenClaw skills (provider watcher, consumer)
+├── docs/                # Developer reference docs (inline with code)
+└── website/             # Public documentation site (this site)
+```
+
+## Running tests
+
+```bash
+npm run test            # unit tests (vitest)
+npm run lint            # ESLint
+npm run build           # production build
+
+# E2E tests (requires running instance)
+bash e2e/e2e-test.sh
+```
+
+## Pull request guidelines
+
+- **Always work on a feature branch** — never push directly to `main`
+- One PR per feature or fix
+- Include tests — especially Playwright E2E tests for user-facing changes
+- Monitor CI after push — fix failures before marking PR ready
+- Update docs in `website/` if the change affects user-facing behaviour
+
+## Updating the docs
+
+The docs live in `website/pages/` in this repo. Edit the `.mdx` files directly — Vercel deploys automatically on every merge to `main`.
+
+```bash
+# Preview locally
+cd website
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Security vulnerabilities
+
+<Callout type="error">
+  Do not open a public GitHub issue for security vulnerabilities.
+</Callout>
+
+Report via email: **security@thomasansems.nl**
+
+Include a description, steps to reproduce, and potential impact.

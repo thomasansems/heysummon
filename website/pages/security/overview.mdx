@@ -1,0 +1,53 @@
+import { Callout } from 'nextra/components'
+
+# Security Overview
+
+HeySummon is built with a **security-first, zero-knowledge** architecture. The platform acts as a blind relay — it can route and store messages, but cannot read them.
+
+---
+
+## Layers of defense
+
+| Layer | What it does |
+|-------|-------------|
+| **Guard proxy** | All traffic passes through Guard — validates keys, scans content, signs requests |
+| **Ed25519 receipts** | Every request is signed — Platform rejects anything that bypassed Guard |
+| **E2E encryption** | Messages are encrypted before reaching the server — only consumer/provider can read them |
+| **HMAC-SHA256 key hashing** | API keys are hashed with a server secret — not reversible from the database |
+| **IP binding** | Keys can be restricted to specific IP addresses |
+| **Device tokens** | Keys can be bound to specific devices |
+| **Rate limiting** | 60 req/min per IP on all API routes |
+
+---
+
+## What the platform can see
+
+| Data | Accessible to platform? |
+|------|------------------------|
+| Reference codes | ✅ Yes — by design |
+| Request status | ✅ Yes — by design |
+| Timestamps | ✅ Yes — by design |
+| Message content (E2E mode) | ❌ No — stored as ciphertext |
+| Message content (simple mode) | ✅ Yes — stored as plaintext |
+| API key values | ❌ No — HMAC-SHA256 hashed |
+
+---
+
+## Security checks (automated)
+
+Every pull request runs:
+
+- **OWASP ZAP API scan** — tests for SQLi, XSS, path traversal, RCE, IDOR
+- **Malicious content Guard check** — CI fails if Guard lets CC/SSN/BSN/XSS through
+- **CodeQL** — static analysis for insecure patterns
+- **E2E security tests** — auth bypass, rate limiting, IDOR, concurrent requests
+
+---
+
+## Reporting vulnerabilities
+
+**Do not open a public GitHub issue for security vulnerabilities.**
+
+Report via email: **security@thomasansems.nl**
+
+Include a description, steps to reproduce, and potential impact.

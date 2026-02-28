@@ -1,0 +1,85 @@
+import { Callout } from 'nextra/components'
+
+# Encryption
+
+HeySummon uses a **zero-knowledge** hybrid encryption scheme. The server stores ciphertext it cannot read.
+
+## Algorithms
+
+| Component | Algorithm | Purpose |
+|-----------|-----------|---------|
+| Key exchange | **X25519** (Curve25519) | Derive shared secret — never transmitted |
+| Signing | **Ed25519** | Authenticate every message, prevent tampering |
+| Encryption | **AES-256-GCM** | Symmetric message encryption |
+| Key derivation | **HKDF-SHA256** | Per-message unique keys from shared secret |
+| API key hashing | **HMAC-SHA256** | Store keys safely — requires server secret to reverse |
+| Guard signing | **Ed25519** | Authenticate requests from Guard to Platform |
+
+---
+
+## Why X25519, not RSA?
+
+HeySummon v1–v3 used RSA-OAEP + AES-GCM. v4 switched to X25519 Diffie-Hellman because:
+
+- **Both sides compute the shared secret independently** — it's never transmitted across the network
+- **Smaller keys** — 32 bytes vs 2048+ bits
+- **Forward secrecy potential** with ephemeral keys
+- **Signal-protocol-inspired** design — proven in secure messaging
+
+## Why not full Signal/Olm?
+
+Signal's Double Ratchet and one-time prekeys are designed for async multi-device messaging. HeySummon conversations are short-lived (72h) and synchronous — the extra complexity isn't worth it. We took the best parts:
+
+- ✅ X25519 DH key exchange
+- ✅ Ed25519 signatures on every message
+- ✅ Per-message key derivation (HKDF)
+- ❌ Double Ratchet (overkill for 72h sessions)
+- ❌ One-time prekeys (not needed without async messaging)
+
+---
+
+## Key storage
+
+| Key | Where | Accessible to? |
+|-----|-------|----------------|
+| Consumer signing private key | Consumer device only | Consumer only |
+| Consumer encryption private key | Consumer device only | Consumer only |
+| Provider signing private key | Provider device only | Provider only |
+| Provider encryption private key | Provider device only | Provider only |
+| Public keys | Platform database | Platform (routing only) |
+| Shared secret | Never stored | Derived locally, never leaves device |
+
+---
+
+## API key security
+
+API keys are hashed with **HMAC-SHA256** using `NEXTAUTH_SECRET` as the MAC key:
+
+```
+storedHash = HMAC-SHA256(apiKeyValue, NEXTAUTH_SECRET)
+```
+
+**Why HMAC, not plain SHA256?**
+An attacker with only database access cannot brute-force the original key value — they also need the server secret. Plain SHA256 (fast, no secret) is vulnerable to precomputation attacks.
+
+<Callout type="info">
+  Device tokens (for device-bound keys) use the same HMAC-SHA256 approach.
+</Callout>
+
+---
+
+## What encrypted storage looks like
+
+```json
+{
+  "requestId": "cmxxx...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "responded",
+  "question": "AqP3Kj...base64ciphertext...==",
+  "consumerSignPubKey": "MCo...base64pubkey...=",
+  "consumerEncryptPubKey": "MCo...base64pubkey...=",
+  "serverPublicKey": "MCo...base64pubkey...="
+}
+```
+
+The `question` field is ciphertext — the platform cannot read it.

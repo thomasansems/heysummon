@@ -1,0 +1,187 @@
+import { Callout } from 'nextra/components'
+
+# Consumer API Reference
+
+All endpoints use `x-api-key` authentication with a client key (`hs_live_*`).
+
+---
+
+## Submit a help request
+
+```
+POST /api/v1/help
+```
+
+Sends a help request to a human expert. Returns immediately with a request ID.
+
+### Body
+
+```json
+{
+  "apiKey": "hs_live_abc123...",
+  "question": "Should I delete the user's account permanently?",
+  "signPublicKey": "base64-encoded-Ed25519-public-key",
+  "encryptPublicKey": "base64-encoded-X25519-public-key",
+  "messages": "encrypted-conversation-history",
+  "messageCount": 5
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `apiKey` | ✅ | Your client API key |
+| `question` | ✅ | The question for the human expert |
+| `signPublicKey` | ❌ | Ed25519 public key — enables E2E encryption |
+| `encryptPublicKey` | ❌ | X25519 public key — enables E2E encryption |
+| `messages` | ❌ | Encrypted conversation history for context |
+| `messageCount` | ❌ | Number of messages in `messages` |
+
+### Response
+
+```json
+{
+  "requestId": "cmxxx...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "pending",
+  "expiresAt": "2026-03-03T10:00:00.000Z"
+}
+```
+
+---
+
+## Poll request status
+
+```
+GET /api/v1/help/:requestId
+```
+
+Check the status of a help request. Use this to poll for a response.
+
+<Callout type="info">
+  For real-time updates without polling, use the [SSE stream](/consumer/realtime).
+</Callout>
+
+### Response (pending)
+
+```json
+{
+  "requestId": "cmxxx...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "pending",
+  "expiresAt": "2026-03-03T10:00:00.000Z"
+}
+```
+
+### Response (responded)
+
+```json
+{
+  "requestId": "cmxxx...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "responded",
+  "response": "No, do not delete the account.",
+  "respondedAt": "2026-02-28T14:30:00.000Z"
+}
+```
+
+---
+
+## Send a message
+
+```
+POST /api/v1/message/:requestId
+```
+
+Send a follow-up message in an ongoing conversation.
+
+### Body
+
+```json
+{
+  "from": "consumer",
+  "plaintext": "Follow-up: what about archiving instead?"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `from` | ✅ | Must be `"consumer"` for client keys |
+| `plaintext` | ✅* | Plaintext message |
+| `ciphertext` / `iv` / `authTag` / `signature` | ✅* | Encrypted message fields |
+
+*Either `plaintext` or all encrypted fields required.
+
+### Response
+
+```json
+{
+  "success": true,
+  "messageId": "uuid...",
+  "createdAt": "2026-02-28T14:35:00.000Z"
+}
+```
+
+---
+
+## List messages
+
+```
+GET /api/v1/messages/:requestId
+```
+
+Fetch all messages in a conversation.
+
+---
+
+## Close a request
+
+```
+POST /api/v1/close/:requestId
+```
+
+Manually close a request. Requests auto-expire after 72 hours.
+
+---
+
+## Verify API key
+
+```
+GET /api/v1/whoami
+```
+
+Check your API key is valid.
+
+```json
+{
+  "keyId": "cmxxx...",
+  "name": "My Agent Key",
+  "type": "client"
+}
+```
+
+---
+
+## Rate limits
+
+| Route | Limit |
+|-------|-------|
+| `/api/v1/*` | 60 req/min per IP |
+| Polling (`GET /api/v1/help/*`) | 30 req/min per IP |
+
+---
+
+## Error format
+
+```json
+{ "error": "Request not found" }
+```
+
+| Code | Meaning |
+|------|---------|
+| `400` | Validation error |
+| `401` | Missing or invalid API key |
+| `403` | Key not authorized for this resource |
+| `404` | Not found |
+| `413` | Payload too large (>1MB) |
+| `422` | Content blocked by Guard (PII, XSS, etc.) |
+| `429` | Rate limited |

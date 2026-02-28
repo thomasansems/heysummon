@@ -1,0 +1,92 @@
+import { Callout } from 'nextra/components'
+
+# API Security
+
+## Authentication
+
+All API requests must include an API key in the `x-api-key` header:
+
+```bash
+curl http://localhost:3445/api/v1/whoami \
+  -H "x-api-key: hs_live_abc123..."
+```
+
+Keys are validated using timing-safe comparison (resistant to timing attacks).
+
+## Authorization
+
+| Operation | Allowed key type |
+|-----------|-----------------|
+| Submit help request | Client key (`hs_live_*`) |
+| Poll request status | Client key — only the submitting key |
+| Send consumer message | Client key — only the submitting key |
+| Subscribe to SSE | Client or provider key |
+| Send provider response | Provider key (`hs_prov_*`) |
+| Close a request | Provider key — only assigned provider |
+| Key management | Dashboard session only |
+
+**IDOR protection** — Clients can only access their own requests. Providers can only respond to requests assigned to their profile.
+
+## Rate limiting
+
+| Route | Limit |
+|-------|-------|
+| All `/api/v1/*` routes | 60 req/min per IP |
+| Legacy polling (`GET /api/v1/help/*`) | 30 req/min per IP |
+
+Rate limiting is applied by Guard at the edge. Responses return `429 Too Many Requests` when exceeded.
+
+## Key features
+
+### IP binding
+
+Keys can be restricted to specific IPs. Configure in the dashboard:
+
+```
+Clients → Select key → ⋯ → Settings → IP Security
+```
+
+The first request from a new key automatically binds its IP. Subsequent requests from a different IP are rejected with `403`.
+
+### Device tokens
+
+Keys can be paired with a device token for additional security:
+
+```json
+{ "x-device-token": "your-device-token" }
+```
+
+Device tokens are hashed with HMAC-SHA256 before storage.
+
+### Key rotation
+
+Rotate a key without downtime:
+1. Dashboard → API Keys → ⋯ → Rotate
+2. New key is issued immediately
+3. Old key remains valid for **24 hours** (grace period)
+4. Update your agent's configuration within 24 hours
+
+## Security headers
+
+The platform sets these headers on all API responses:
+
+```
+Cache-Control: no-store, no-cache, must-revalidate, private
+Pragma: no-cache
+Expires: 0
+X-Content-Type-Options: nosniff
+```
+
+## OWASP ZAP results
+
+Latest automated security scan results (run on every release):
+
+| Risk | Count |
+|------|-------|
+| 🔴 High | 0 |
+| 🟡 Medium | 0 |
+| 🔵 Low | 0 |
+
+<Callout type="info">
+  Security scans run automatically on every pull request and nightly at 02:00 UTC. Results are uploaded as build artifacts.
+</Callout>

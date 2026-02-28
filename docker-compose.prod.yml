@@ -1,5 +1,9 @@
-# Production Docker Compose — uses pre-built images from GHCR
+# Production Docker Compose — alias for docker-compose.yml
+# Uses pre-built images from GHCR. No source code required.
 # Images: ghcr.io/thomasansems/heysummon (app) + ghcr.io/thomasansems/heysummon-guard (guard)
+#
+# This file is kept for backwards compatibility.
+# The default docker-compose.yml is identical and preferred for new setups.
 #
 # Usage:
 #   docker compose -f docker-compose.prod.yml up -d

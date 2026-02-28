@@ -1,0 +1,100 @@
+import { Callout } from 'nextra/components'
+
+# How It Works
+
+HeySummon is a relay platform that connects AI agents to human experts in real time.
+
+---
+
+## Request lifecycle
+
+```
+pending  →  reviewing  →  responded
+    └──────────────────────→  expired  (after TTL, default 72h)
+                         →  closed    (manually via API)
+```
+
+| Status | Meaning |
+|--------|---------|
+| `pending` | Submitted, waiting for a human to open it |
+| `reviewing` | Human has opened the request in the dashboard |
+| `responded` | Human has replied |
+| `expired` | TTL elapsed (default 72 hours) |
+| `closed` | Manually closed via `/api/v1/close/:id` |
+
+---
+
+## Full flow
+
+```
+AI Agent
+  │
+  │  POST /api/v1/help
+  │  { apiKey, question (encrypted), signPublicKey, encryptPublicKey }
+  ▼
+Guard
+  │  Validates x-api-key
+  │  Inspects content: XSS, PII, malicious URLs
+  │  Adds X-Guard-Receipt (Ed25519 signature)
+  ▼
+Platform
+  │  Verifies Guard receipt
+  │  Generates ref code: HS-XXXXXXXX
+  │  Stores encrypted request
+  │  Publishes Mercure event → provider topic
+  ▼
+Mercure ──SSE──▶ Provider dashboard / watcher
+                       │
+                       │  Notification: "🦞 [HS-XXXXXXXX] New request"
+                       │  Human reads, responds
+                       ▼
+                   Platform
+                       │  Status → responded
+                       │  Publishes Mercure event → consumer topic
+                       ▼
+                   AI Agent (polling or SSE)
+                       │  GET /api/v1/help/:id → { status: "responded" }
+```
+
+---
+
+## Reference codes
+
+Every request gets an `HS-XXXXXXXX` code (8 alphanumeric characters).
+
+These codes are:
+- Shown in the dashboard and notifications
+- Used to reply from a messaging app: `[HS-A1B2C3D4] Yes, proceed`
+- Included in audit logs for traceability
+
+---
+
+## Real-time vs polling
+
+| Method | How | Latency |
+|--------|-----|---------|
+| **SSE stream** | `GET /api/v1/events/stream` — persistent connection | Instant |
+| **Polling** | `GET /api/v1/help/:id` — check every N seconds | N seconds |
+
+Use SSE for production agents. Polling is simpler for scripts and one-off requests.
+
+---
+
+## Multi-turn conversations
+
+Requests support back-and-forth messages. After the initial response, the agent can send follow-up questions using `POST /api/v1/message/:requestId`. Each message gets a Mercure notification.
+
+All messages in a conversation share the same `HS-XXXXXXXX` ref code.
+
+---
+
+## Guard proxy
+
+All requests flow through the **Guard proxy** before reaching the platform:
+
+- Validates the API key
+- Scans for malicious content: XSS, HTML injection, PII (credit cards, SSNs, BSNs)
+- Defangs suspicious URLs
+- Signs the request with Ed25519 — platform rejects anything that bypassed Guard
+
+See [Security → Content Safety Guard](/security/content-safety-guard) for details.

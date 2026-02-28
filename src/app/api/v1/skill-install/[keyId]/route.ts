@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { readFileSync } from "fs";
-import { join } from "path";
 
 export async function GET(
   request: Request,
@@ -24,44 +22,91 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Only client keys (hs_live_ or hs_cli_) should be used for skill installs
+  // Only client keys should be used for skill installs
   if (apiKey.scope === "provider") {
     return NextResponse.json({ error: "Invalid key type" }, { status: 400 });
-  }
-
-  // Read the SKILL.md template from the skills directory
-  const skillPath = join(process.cwd(), "skills", "openclaw", "heysummon", "SKILL.md");
-  let skillContent: string;
-  try {
-    skillContent = readFileSync(skillPath, "utf-8");
-  } catch {
-    return NextResponse.json({ error: "Skill template not found" }, { status: 500 });
   }
 
   // Detect the base URL from the incoming request
   const requestUrl = new URL(request.url);
   const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
 
-  // Inject pre-filled config into the SKILL.md
-  const injectedConfig = `\`\`\`env
+  // Return a shell script that installs the skill via ClawHub and configures the env
+  const script = `#!/bin/bash
+# HeySummon Skill Installer
+# Generated for: ${baseUrl}
+# Run with: curl -sL <this-url> | bash
+
+set -e
+
+echo ""
+echo "🦞 HeySummon Skill Installer"
+echo "================================"
+echo ""
+
+# Step 1: Install skill via ClawHub
+echo "📦 Installing HeySummon skill via ClawHub..."
+npx clawhub@latest install heysummon
+
+# Step 2: Find the installed skill directory
+SKILL_DIR=""
+SEARCH_PATHS=(
+  "$HOME/clawd/skills/heysummon"
+  "$HOME/.openclaw/skills/heysummon"
+  "$(pwd)/skills/heysummon"
+)
+
+for p in "\${SEARCH_PATHS[@]}"; do
+  if [ -d "$p" ]; then
+    SKILL_DIR="$p"
+    break
+  fi
+done
+
+if [ -z "$SKILL_DIR" ]; then
+  # Try to find it dynamically
+  SKILL_DIR=$(find "$HOME" -maxdepth 5 -type d -name "heysummon" 2>/dev/null | grep -v node_modules | head -1)
+fi
+
+if [ -z "$SKILL_DIR" ]; then
+  echo ""
+  echo "⚠️  Could not locate skill directory automatically."
+  echo "   Please create the .env file manually in your HeySummon skill folder:"
+  echo ""
+  echo "   HEYSUMMON_BASE_URL=${baseUrl}"
+  echo "   HEYSUMMON_API_KEY=${apiKey.key}"
+  echo "   HEYSUMMON_NOTIFY_MODE=message"
+  echo "   HEYSUMMON_NOTIFY_TARGET=<your_chat_id>"
+  echo ""
+  exit 0
+fi
+
+# Step 3: Write .env with pre-configured values
+echo ""
+echo "⚙️  Configuring skill at: $SKILL_DIR"
+echo ""
+
+cat > "$SKILL_DIR/.env" <<EOF
 HEYSUMMON_BASE_URL=${baseUrl}
 HEYSUMMON_API_KEY=${apiKey.key}
 HEYSUMMON_NOTIFY_MODE=message
-HEYSUMMON_NOTIFY_TARGET=your_chat_id
-\`\`\``;
+HEYSUMMON_NOTIFY_TARGET=
+EOF
 
-  // Replace the placeholder config block in SKILL.md
-  const configRegex = new RegExp(
-    "```env\\nHEYSUMMON_BASE_URL=.*?\\nHEYSUMMON_API_KEY=.*?\\nHEYSUMMON_NOTIFY_MODE=.*?\\nHEYSUMMON_NOTIFY_TARGET=.*?\\n```",
-    "s"
-  );
-  const patched = skillContent.replace(configRegex, injectedConfig);
+echo "✅ Skill installed and configured!"
+echo ""
+echo "   One last step: set your HEYSUMMON_NOTIFY_TARGET in:"
+echo "   $SKILL_DIR/.env"
+echo ""
+echo "   Then start the watcher:"
+echo "   bash $SKILL_DIR/scripts/setup.sh"
+echo ""
+`;
 
-  // Return as plain text so OpenClaw / ClawHub can load it directly
-  return new NextResponse(patched, {
+  return new NextResponse(script, {
     status: 200,
     headers: {
-      "Content-Type": "text/plain; charset=utf-8",
+      "Content-Type": "text/x-shellscript; charset=utf-8",
       "Cache-Control": "no-store",
     },
   });

@@ -664,20 +664,22 @@ export default function ClientsPage() {
                     <tr key={`${k.id}-instructions`} className="border-b border-[#eaeaea]">
                       <td colSpan={8} className="bg-[#fafafa] px-4 py-3">
                         <p className="mb-1 text-xs font-medium text-[#666]">Install in OpenClaw</p>
-                        <p className="mb-2 text-xs text-[#999]">Share this link with your client. One click installs the skill with the API key pre-configured.</p>
+                        <p className="mb-2 text-xs text-[#999]">
+                          Share the command below with your client. It installs the HeySummon skill and configures their API key automatically.
+                        </p>
                         <div className="flex items-center gap-2">
                           <code className="flex-1 truncate rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 font-mono text-xs text-[#444]">
-                            {installUrl(k.id)}
+                            {`curl -sL ${installUrl(k.id)} | bash`}
                           </code>
                           <button
                             onClick={() => {
-                              copyToClipboard(installUrl(k.id));
+                              copyToClipboard(`curl -sL ${installUrl(k.id)} | bash`);
                               setCopied(k.id);
                               setTimeout(() => setCopied(null), 2000);
                             }}
                             className="whitespace-nowrap rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-black/80"
                           >
-                            {copied === k.id ? "Copied!" : "Copy link"}
+                            {copied === k.id ? "Copied!" : "Copy"}
                           </button>
                         </div>
                       </td>

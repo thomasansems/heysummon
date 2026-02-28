@@ -42,6 +42,7 @@
     "guard",
     "scripts",
     "e2e",
+    "website",
     "prisma/seed.ts"
   ]
 }

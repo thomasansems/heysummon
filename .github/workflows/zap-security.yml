@@ -1,0 +1,198 @@
+name: OWASP ZAP Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Nightly at 02:00 UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: zap-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+  security-events: write
+
+env:
+  E2E_MERCURE_JWT_SECRET: e2e-mercure-secret
+  DATABASE_URL: file:${{ github.workspace }}/prisma/zap-test.db
+  APP_PORT: 3000
+  GUARD_PORT: 3457
+
+jobs:
+  zap-api-scan:
+    name: OWASP ZAP API Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mercure:
+        image: dunglas/mercure
+        env:
+          SERVER_NAME: ':3000'
+          MERCURE_PUBLISHER_JWT_KEY: e2e-mercure-secret
+          MERCURE_SUBSCRIBER_JWT_KEY: e2e-mercure-secret
+          MERCURE_EXTRA_DIRECTIVES: |
+            anonymous
+            cors_origins *
+            subscriptions
+        ports:
+          - 13100:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # ── Install dependencies ──────────────────────────────────────────────
+      - name: Install platform dependencies
+        run: npm ci
+
+      - name: Install guard dependencies
+        run: cd guard && npm ci
+
+      # ── Generate Ed25519 keypair ──────────────────────────────────────────
+      - name: Generate Ed25519 keypair for Guard
+        id: guard-keys
+        run: |
+          KEYS=$(node -e "
+            const { sign } = require('tweetnacl');
+            const kp = sign.keyPair();
+            console.log(JSON.stringify({
+              signingKey: Buffer.from(kp.secretKey).toString('hex'),
+              publicKey: Buffer.from(kp.publicKey).toString('hex'),
+            }));
+          ")
+          echo "signing_key=$(echo "$KEYS" | jq -r .signingKey)" >> "$GITHUB_OUTPUT"
+          echo "public_key=$(echo "$KEYS" | jq -r .publicKey)" >> "$GITHUB_OUTPUT"
+
+      # ── Setup database ────────────────────────────────────────────────────
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "file:./zap-test.db"
+
+      - name: Run migrations
+        run: npx prisma db push --force-reset
+        env:
+          DATABASE_URL: "file:./zap-test.db"
+
+      - name: Seed ZAP test data
+        id: seed
+        run: |
+          SEED_OUTPUT=$(bash e2e/seed-e2e.sh 2>/dev/null)
+          echo "seed_json=$SEED_OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "$SEED_OUTPUT" | jq .
+
+      # ── Build ─────────────────────────────────────────────────────────────
+      - name: Build platform
+        run: npm run build
+        env:
+          NEXTAUTH_SECRET: e2e-secret
+          MERCURE_JWT_SECRET: e2e-mercure-secret
+
+      - name: Build guard
+        run: cd guard && npm run build
+
+      # ── Start platform ────────────────────────────────────────────────────
+      - name: Start platform
+        run: |
+          npm start &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:${{ env.APP_PORT }}/api/health && break || sleep 2
+          done
+        env:
+          NEXTAUTH_URL: http://localhost:${{ env.APP_PORT }}
+          NEXTAUTH_SECRET: e2e-secret
+          MERCURE_HUB_URL: http://localhost:13100/.well-known/mercure
+          MERCURE_JWT_SECRET: e2e-mercure-secret
+          NEXT_PUBLIC_MERCURE_HUB_URL: http://localhost:13100/.well-known/mercure
+          PORT: ${{ env.APP_PORT }}
+          REQUIRE_GUARD: "false"
+          GUARD_PUBLIC_KEY: ${{ steps.guard-keys.outputs.public_key }}
+
+      - name: Start guard
+        run: |
+          cd guard && node dist/index.js &
+          for i in $(seq 1 15); do
+            curl -sf http://localhost:${{ env.GUARD_PORT }}/health && break || sleep 1
+          done
+        env:
+          PORT: ${{ env.GUARD_PORT }}
+          PLATFORM_URL: http://localhost:${{ env.APP_PORT }}
+          GUARD_SIGNING_KEY: ${{ steps.guard-keys.outputs.signing_key }}
+
+      # ── Generate OpenAPI spec for ZAP ─────────────────────────────────────
+      - name: Generate OpenAPI spec
+        run: |
+          SEED='${{ steps.seed.outputs.seed_json }}'
+          PROVIDER_KEY=$(echo "$SEED" | jq -r .providerKey)
+          CLIENT_KEY=$(echo "$SEED" | jq -r .clientKey)
+
+          node .github/zap/generate-api-spec.js \
+            --base-url http://localhost:${{ env.APP_PORT }} \
+            --provider-key "$PROVIDER_KEY" \
+            --client-key "$CLIENT_KEY" \
+            --output ${{ github.workspace }}/heysummon-openapi.json
+
+          echo "✅ OpenAPI spec generated:"
+          jq '.paths | keys[]' ${{ github.workspace }}/heysummon-openapi.json
+
+      # ── OWASP ZAP API Scan ────────────────────────────────────────────────
+      - name: Run OWASP ZAP API Scan
+        uses: zaproxy/action-api-scan@v0.9.0
+        with:
+          target: heysummon-openapi.json
+          format: openapi
+          cmd_options: >-
+            -J zap-report.json
+            -w zap-report.md
+            -r zap-report.html
+            -I
+          allow_issue_writing: true
+          fail_action: false
+
+      # ── Upload artifacts ──────────────────────────────────────────────────
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-security-report-${{ github.sha }}
+          path: |
+            zap-report.html
+            zap-report.json
+            zap-report.md
+          retention-days: 30
+
+      # ── Fail on HIGH alerts ───────────────────────────────────────────────
+      - name: Check for HIGH severity alerts
+        if: always()
+        run: |
+          if [ -f zap-report.json ]; then
+            HIGH=$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' zap-report.json 2>/dev/null || echo "0")
+            MEDIUM=$(jq '[.site[].alerts[] | select(.riskcode == "2")] | length' zap-report.json 2>/dev/null || echo "0")
+            LOW=$(jq '[.site[].alerts[] | select(.riskcode == "1")] | length' zap-report.json 2>/dev/null || echo "0")
+
+            echo "## 🔒 ZAP Security Results"
+            echo "🔴 HIGH:   $HIGH"
+            echo "🟡 MEDIUM: $MEDIUM"
+            echo "🔵 LOW:    $LOW"
+
+            if [ "$HIGH" -gt "0" ]; then
+              echo ""
+              echo "❌ HIGH severity vulnerabilities found! Review zap-report.html artifact."
+              jq -r '.site[].alerts[] | select(.riskcode == "3") | "  - \(.name): \(.desc | split("\n")[0])"' zap-report.json
+              exit 1
+            else
+              echo "✅ No HIGH severity vulnerabilities found."
+            fi
+          fi

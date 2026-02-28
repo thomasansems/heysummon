@@ -6,6 +6,7 @@ describe("config", () => {
   describe("generateEnv", () => {
     const baseConfig: HeysummonConfig = {
       port: 3435,
+      mercurePort: 3436,
       publicUrl: "http://localhost:3435",
       enableFormLogin: true,
       enableGithubOauth: false,

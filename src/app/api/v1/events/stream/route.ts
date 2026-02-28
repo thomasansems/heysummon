@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 import { validateApiKeyRequest } from "@/lib/api-key-auth";
+import { validateProviderKey } from "@/lib/provider-key-auth";
 
 const MERCURE_HUB_URL =
   process.env.MERCURE_HUB_URL || "http://localhost:3426/.well-known/mercure";
@@ -33,15 +34,20 @@ export async function GET(request: NextRequest) {
   // Resolve topics from API key
   let topics: string[] = [];
 
-  // Check provider key
-  const provider = await prisma.userProfile.findFirst({
-    where: { key: apiKey, isActive: true },
-    select: { id: true, userId: true },
-  });
+  // Check provider key (with IP binding + device secret validation)
+  const providerResult = await validateProviderKey(request);
 
-  if (provider) {
-    topics = [`/heysummon/providers/${provider.userId}`];
+  if (providerResult.ok) {
+    topics = [`/heysummon/providers/${providerResult.provider.userId}`];
+  } else if (providerResult.response.status === 403) {
+    // Provider key recognized but IP/device blocked — return the error
+    const body = await providerResult.response.json();
+    return new Response(JSON.stringify(body), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   } else {
+    // Not a provider key (401) — try client key
     // Check client key via enhanced validation (scope, IP, rate limit, rotation, device token)
     const authResult = await validateApiKeyRequest(request);
     if (!authResult.ok) {

@@ -75,7 +75,7 @@ services:
       MERCURE_EXTRA_DIRECTIVES: |
         cors_origins ${MERCURE_CORS_ORIGINS:-https://cloud.heysummon.ai}
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3446/healthz"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3446/healthz"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -109,7 +109,7 @@ services:
     volumes:
       - guard-keys:/keys:ro
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/health"]
       interval: 5s
       timeout: 3s
       retries: 5

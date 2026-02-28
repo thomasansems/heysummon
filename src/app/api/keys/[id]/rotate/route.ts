@@ -32,8 +32,11 @@ export async function POST(
     return NextResponse.json({ error: "Cannot rotate an inactive key" }, { status: 400 });
   }
 
-  // Hash current key for grace period lookup
-  const previousKeyHash = crypto.createHash("sha256").update(key.key).digest("hex");
+  // HMAC-SHA256: deterministic for DB lookup, but requires server secret to reverse.
+  // Using NEXTAUTH_SECRET as HMAC key means an attacker with only DB access cannot
+  // brute-force the original key from the stored hash.
+  const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
+  const previousKeyHash = crypto.createHmac("sha256", hmacSecret).update(key.key).digest("hex");
   const previousKeyExpiresAt = new Date(Date.now() + GRACE_PERIOD_MS);
 
   // Generate new key + device secret

@@ -107,7 +107,9 @@ async function seed() {
 
   // ── Key with device secret (for device token binding test) ──
   const deviceToken = 'e2e-device-token-' + crypto.randomBytes(8).toString('hex');
-  const deviceSecret = crypto.createHash('sha256').update(deviceToken).digest('hex');
+  // HMAC-SHA256 matching hashDeviceToken() in api-key-auth.ts
+  const hmacSecret = process.env.NEXTAUTH_SECRET ?? 'fallback-dev-secret';
+  const deviceSecret = crypto.createHmac('sha256', hmacSecret).update(deviceToken).digest('hex');
   const deviceKey = 'hs_cli_' + crypto.randomBytes(24).toString('hex');
   await prisma.apiKey.create({
     data: {

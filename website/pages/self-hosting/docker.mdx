@@ -1,0 +1,123 @@
+import { Callout } from 'nextra/components'
+
+# Docker
+
+The recommended way to self-host HeySummon. Includes Guard, Platform, PostgreSQL, and Mercure.
+
+## Prerequisites
+
+- Docker 24+
+- Docker Compose v2
+
+## Quick start
+
+One command — no source code, no manual configuration:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thomasansems/heysummon/main/install.sh | bash
+```
+
+This script:
+1. Creates `~/.heysummon-docker/`
+2. Downloads `docker-compose.yml`
+3. Generates `NEXTAUTH_SECRET`, `MERCURE_JWT_SECRET`, and `DB_PASSWORD` automatically
+4. Writes a ready-to-use `.env`
+5. Runs `docker compose up -d`
+
+Open `http://localhost:3445` when done.
+
+## Docker images
+
+```
+ghcr.io/thomasansems/heysummon        # main platform
+ghcr.io/thomasansems/heysummon-guard  # guard proxy
+```
+
+Pull manually:
+
+```bash
+docker pull ghcr.io/thomasansems/heysummon:latest
+docker pull ghcr.io/thomasansems/heysummon-guard:latest
+```
+
+## Architecture
+
+```
+Internet
+    │
+    ▼
+Guard (:3445)          — Ed25519 signing, rate limiting, key validation
+    │
+    ▼ (internal network only)
+Platform (Next.js)     — API, dashboard, auth
+    │
+    ├──▶ PostgreSQL     — data storage
+    └──▶ Mercure        — real-time SSE hub
+```
+
+Guard is the **only** externally reachable service. Platform has no exposed ports.
+
+## Making it public
+
+Add a tunnel profile to expose HeySummon to the internet:
+
+### Cloudflare Tunnel (recommended)
+
+```bash
+CLOUDFLARE_TUNNEL_TOKEN=your-token docker compose --profile cloudflare up -d
+```
+
+### Tailscale Funnel
+
+```bash
+TAILSCALE_AUTHKEY=your-key docker compose --profile tailscale up -d
+```
+
+### Ngrok
+
+```bash
+NGROK_AUTHTOKEN=your-token docker compose --profile ngrok up -d
+```
+
+## Updating
+
+```bash
+cd ~/.heysummon-docker
+docker compose pull
+docker compose up -d
+```
+
+To pin a version:
+
+```bash
+HEYSUMMON_VERSION=0.1.0 docker compose up -d
+```
+
+## Logs
+
+```bash
+docker compose logs -f app              # Platform logs
+docker compose logs -f heysummon-guard  # Guard logs
+docker compose logs -f mercure          # Mercure logs
+```
+
+## Backups
+
+```bash
+# Backup
+docker exec heysummon-db-1 pg_dump -U heysummon heysummon > backup.sql
+
+# Restore
+cat backup.sql | docker exec -i heysummon-db-1 psql -U heysummon heysummon
+```
+
+## Debug tools
+
+```bash
+# Prisma Studio — database browser at http://localhost:3447
+docker compose -f docker-compose.dev.yml --profile debug up -d
+```
+
+<Callout type="info">
+  Prisma Studio is only available in development builds (`docker-compose.dev.yml`). It never runs in the production compose file.
+</Callout>

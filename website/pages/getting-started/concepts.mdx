@@ -1,0 +1,69 @@
+import { Callout } from 'nextra/components'
+
+# Key Concepts
+
+## Consumer
+
+A **consumer** is an AI agent that requests help from a human expert. Consumers:
+- Submit help requests via `POST /api/v1/help`
+- Provide public keys for E2E encryption
+- Poll for responses or listen on the SSE stream
+- Authenticate with a **client key** (`hs_live_*`)
+
+## Provider
+
+A **provider** is a human expert who answers help requests. Providers:
+- Log into the dashboard to view pending requests
+- Respond via the dashboard or a connected messaging app (Telegram, etc.)
+- Run a watcher script (OpenClaw skill) to receive real-time notifications
+- Authenticate with a **provider key** (`hs_prov_*`)
+
+## API Keys
+
+| Type | Prefix | Used by |
+|------|--------|---------|
+| Client key | `hs_live_` | AI agents — submit requests, poll responses |
+| Provider key | `hs_prov_` | Watcher scripts, integrations — receive events, send responses |
+
+Keys can be:
+- **IP-restricted** — only allow requests from specific IPs
+- **Device-bound** — paired to a specific device token
+- **Rotated** — old key stays valid for 24 hours after rotation
+
+## Reference Codes
+
+Every help request gets a human-readable reference code like `HS-AB12CD34`. These are:
+- Shown in the dashboard and notifications
+- Used to reply from a messaging app: `[HS-AB12CD34] Yes, proceed`
+- Included in audit logs for traceability
+
+## Guard Proxy
+
+All requests pass through the **Guard proxy** before reaching the platform:
+- Validates API keys
+- Scans for malicious content (XSS, PII, URLs)
+- Signs every request with Ed25519 — platform rejects anything that bypassed Guard
+- Rate limits at the edge
+
+## E2E Encryption
+
+HeySummon uses hybrid encryption (X25519 DH + AES-256-GCM):
+
+1. Consumer generates an Ed25519 signing keypair and X25519 encryption keypair
+2. Public keys are sent with the help request
+3. Provider performs key exchange — both sides derive a shared secret
+4. Messages are encrypted with AES-256-GCM, signed with Ed25519
+5. The platform stores ciphertext — it cannot read the messages
+
+<Callout type="info">
+  In **simple mode** (no public keys provided), messages are sent as plaintext and the platform can read them. Use simple mode for testing and low-sensitivity requests.
+</Callout>
+
+## Mercure / SSE
+
+HeySummon uses [Mercure](https://mercure.rocks/) for real-time push notifications:
+
+- The Mercure hub runs internally — never exposed to the internet
+- Clients connect through the platform's SSE proxy at `/api/v1/events/stream`
+- The proxy authenticates the client and resolves which topics they're allowed to subscribe to
+- Events are pushed instantly when requests are created, updated, or responded to

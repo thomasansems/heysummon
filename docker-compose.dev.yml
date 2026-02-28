@@ -1,27 +1,20 @@
-# HeySummon — Self-Hosting via Docker Compose
-# Uses pre-built images from GHCR. No source code required.
-# Images: ghcr.io/thomasansems/heysummon (app) + ghcr.io/thomasansems/heysummon-guard (guard)
+# Development Docker Compose — builds images from local source
+# Use this if you are contributing to HeySummon or want to run from source.
 #
-# Quick start:
-#   curl -O https://raw.githubusercontent.com/thomasansems/heysummon/main/docker-compose.yml
-#   curl -O https://raw.githubusercontent.com/thomasansems/heysummon/main/.env.example
-#   cp .env.example .env  # then edit .env with your secrets
-#   docker compose up -d
-#
-# To pin a specific version (default: latest):
-#   HEYSUMMON_VERSION=0.1.0 docker compose up -d
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
 #
 # Tunnel profiles:
-#   docker compose --profile ngrok up -d
-#   docker compose --profile cloudflare up -d
-#   docker compose --profile tailscale up -d
+#   docker compose -f docker-compose.dev.yml --profile ngrok up -d
+#   docker compose -f docker-compose.dev.yml --profile cloudflare up -d
+#   docker compose -f docker-compose.dev.yml --profile tailscale up -d
 #
-# Contributing / building from source? Use docker-compose.dev.yml instead.
+# For production self-hosting (no source code needed), use docker-compose.yml instead.
 
 services:
   # ── Key Generation (runs once on first startup) ──
   guard-keygen:
-    image: ghcr.io/thomasansems/heysummon-guard:${HEYSUMMON_VERSION:-latest}
+    build: ./guard
     user: "0:0"
     entrypoint: ["sh", "-c", "
       if [ ! -f /keys/.guard-keys-generated ]; then
@@ -43,7 +36,9 @@ services:
       - guard-keys:/keys
 
   db-migrate:
-    image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
+    build:
+      context: .
+      target: deps
     entrypoint: ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss"]
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
@@ -88,8 +83,9 @@ services:
       retries: 5
 
   # ── Guard: Single entry point (reverse proxy) ──
+  # All external traffic goes through Guard first.
   heysummon-guard:
-    image: ghcr.io/thomasansems/heysummon-guard:${HEYSUMMON_VERSION:-latest}
+    build: ./guard
     restart: unless-stopped
     read_only: true
     cap_drop: [ALL]
@@ -121,10 +117,11 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── Platform: Internal only ──
+  # ── Platform: Internal only (no exposed ports) ──
   app:
-    image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
+    build: .
     restart: unless-stopped
+    # NO external ports — only reachable via Guard on the backend network
     networks:
       - backend
     depends_on:
@@ -162,7 +159,7 @@ services:
 
   # ── Tunnel Services (activate with --profile) ──
 
-  # Cloudflare Tunnel: docker compose --profile cloudflare up -d
+  # Cloudflare Tunnel: docker compose -f docker-compose.dev.yml --profile cloudflare up -d
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
@@ -175,8 +172,14 @@ services:
         condition: service_healthy
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
-  # Tailscale Funnel: docker compose --profile tailscale up -d
+  # Tailscale Funnel: docker compose -f docker-compose.dev.yml --profile tailscale up -d
   tailscale:
     image: tailscale/tailscale:latest
     restart: unless-stopped
@@ -200,8 +203,14 @@ services:
       - SYS_MODULE
     devices:
       - /dev/net/tun:/dev/net/tun
+    healthcheck:
+      test: ["CMD", "tailscale", "status", "--json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-  # Ngrok: docker compose --profile ngrok up -d
+  # Ngrok: docker compose -f docker-compose.dev.yml --profile ngrok up -d
   ngrok:
     image: ngrok/ngrok:latest
     restart: unless-stopped
@@ -216,15 +225,41 @@ services:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
     ports:
       - "3448:4040"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3448/status"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Prisma Studio: docker compose -f docker-compose.dev.yml --profile debug up -d
+  prisma-studio:
+    build:
+      context: .
+      target: deps
+    restart: unless-stopped
+    profiles: ["debug"]
+    entrypoint: ["sh", "-c", "npx prisma studio --port 3447 --browser none"]
+    ports:
+      - "${PRISMA_STUDIO_PORT:-3447}:3447"
+    networks:
+      - backend
+      - frontend
+    environment:
+      DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
+    depends_on:
+      db:
+        condition: service_healthy
 
 networks:
   frontend:
     driver: bridge
   backend:
     driver: bridge
-    internal: true
+    internal: true  # No external access — Platform is isolated
 
 volumes:
   pgdata:
   guard-keys:
+  heysummon-data:
   tailscale-state:

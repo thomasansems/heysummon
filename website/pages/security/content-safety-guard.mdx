@@ -1,0 +1,80 @@
+import { Callout } from 'nextra/components'
+
+# Content Safety Guard
+
+All requests flow through the **Guard proxy** before reaching the platform. Guard validates, scans, and signs every request.
+
+---
+
+## What Guard checks
+
+| Check | What it does | Response on fail |
+|-------|-------------|-----------------|
+| **API key validation** | Key exists, is active, not expired | `401` |
+| **IP binding** | Request IP matches bound IP (if configured) | `403` |
+| **Content scanning** | Detects XSS, HTML injection, script tags | `422` |
+| **PII detection** | Credit cards, SSNs (US), BSNs (Dutch) | `422` |
+| **URL defanging** | Neutralises malicious URLs in content | Cleaned |
+| **Oversized payloads** | Rejects bodies >1MB | `413` |
+| **Rate limiting** | 60 req/min per IP | `429` |
+
+---
+
+## Guard receipt
+
+After all checks pass, Guard signs the request with Ed25519:
+
+```
+X-Guard-Receipt: <base64 Ed25519 signature>
+X-Guard-Timestamp: 1709123456789
+```
+
+The Platform verifies this signature on every request. If the signature is missing or invalid, the request is rejected with `403`.
+
+<Callout type="warning">
+  The Guard signing keypair is generated during setup and stored securely. The private key never leaves the Guard process. The Platform only has the public key.
+</Callout>
+
+---
+
+## OWASP ZAP tested
+
+Every pull request runs an **OWASP ZAP API scan** against a live instance:
+
+- Tests all `/api/v1/*` endpoints with SQLi, XSS, path traversal, and RCE payloads
+- Fails CI if any HIGH severity vulnerability is found
+- Report uploaded as artifact on every run
+
+A separate **malicious content check** also runs in CI:
+
+```bash
+bash e2e/zap-malicious-check.sh
+```
+
+Tests verified:
+- ✅ Credit card number → Guard blocks (422)
+- ✅ SSN → Guard blocks (422)
+- ✅ BSN (Dutch) → Guard blocks (422)
+- ✅ XSS `<script>` → Guard sanitizes or rejects
+- ✅ SQL injection → Platform handles safely (no 500)
+- ✅ Oversized payload (>1MB) → rejected (413)
+- ✅ No API key → 401
+- ✅ Message to nonexistent request → 403/404
+
+---
+
+## Guard architecture
+
+Guard is a **standalone Express server** that runs in its own Docker container:
+
+```
+/guard
+├── src/
+│   ├── index.ts        # Express app + proxy middleware
+│   ├── scanner.ts      # Content scanning (XSS, PII, URLs)
+│   ├── auth.ts         # Key validation
+│   ├── receipt.ts      # Ed25519 signing
+│   └── rate-limit.ts   # Per-IP rate limiting
+```
+
+In production Docker, Guard is the **only service with an exposed port** (`:3445`). The Platform has no exposed ports — it's only reachable via Guard on the internal Docker network.

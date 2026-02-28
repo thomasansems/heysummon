@@ -1,0 +1,107 @@
+import { Callout } from 'nextra/components'
+
+# Real-time Updates (SSE)
+
+Instead of polling, connect to the SSE stream and receive events instantly.
+
+---
+
+## Connect
+
+```bash
+curl -N http://localhost:3425/api/v1/events/stream \
+  -H "x-api-key: hs_live_abc123..."
+```
+
+The connection stays open and streams events as they occur:
+
+```
+: connected — listening on 1 topic(s)
+
+:
+
+data: {"type":"new_request","requestId":"cmxxx...","refCode":"HS-A1B2C3D4"}
+
+data: {"type":"status_change","requestId":"cmxxx...","status":"responded"}
+```
+
+Heartbeat (`:`) lines are sent periodically to keep the connection alive.
+
+---
+
+## Event types
+
+| Event | When | Payload |
+|-------|------|---------|
+| `new_request` | A help request is submitted | `requestId`, `refCode`, `question` |
+| `status_change` | Status changes (pending → responded, etc.) | `requestId`, `refCode`, `status` |
+| `new_message` | A message is sent in a conversation | `requestId`, `refCode`, `messageId`, `from` |
+
+---
+
+## JavaScript example
+
+```javascript
+const es = new EventSource('/api/v1/events/stream', {
+  headers: { 'x-api-key': 'hs_live_abc123...' }
+});
+
+es.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+
+  if (data.type === 'status_change' && data.status === 'responded') {
+    console.log(`Request ${data.refCode} was answered!`);
+    // Fetch the response
+    fetchResponse(data.requestId);
+  }
+};
+
+es.onerror = () => {
+  console.log('Disconnected — reconnecting...');
+  // Browser reconnects automatically
+};
+```
+
+---
+
+## Reconnection and catch-up
+
+The SSE stream may disconnect (network issues, server restart). After reconnecting, events that fired during the gap are **not replayed**.
+
+To catch up after a reconnect:
+
+```bash
+GET /api/v1/events/pending
+x-api-key: hs_live_abc123...
+```
+
+Returns undelivered events (up to 50):
+
+```json
+{
+  "events": [
+    {
+      "type": "new_request",
+      "requestId": "req-789",
+      "refCode": "HS-XYZ9",
+      "status": "pending",
+      "createdAt": "2026-02-28T09:00:00Z"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  The Mercure hub is never exposed directly. All SSE connections go through the platform's proxy at `/api/v1/events/stream`, which authenticates you and resolves which topics you're allowed to subscribe to.
+</Callout>
+
+---
+
+## SSE vs polling
+
+| | SSE stream | Polling |
+|---|---|---|
+| Latency | Instant | Up to N seconds |
+| Server load | Low (1 persistent connection) | Higher (repeated requests) |
+| Complexity | Slightly higher | Simple |
+| Best for | Production agents | Scripts, one-off requests |

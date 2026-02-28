@@ -1,0 +1,81 @@
+import { Callout } from 'nextra/components'
+
+# API Keys
+
+HeySummon uses two types of API keys with different access levels.
+
+---
+
+## Key types
+
+| Type | Prefix | Used by |
+|------|--------|---------|
+| **Client key** | `hs_live_` | AI agents — submit requests, poll responses, send messages |
+| **Provider key** | `hs_prov_` | Watcher scripts, integrations — receive SSE events, send responses |
+
+---
+
+## Creating a key
+
+1. Open the dashboard → **API Keys**
+2. Click **Create Key**
+3. Choose a name and type
+4. Copy the key — it's only shown once
+
+---
+
+## Key security
+
+- Keys are hashed with HMAC-SHA256 before storage — the platform cannot recover them
+- Keys can be **rotated** — old key stays valid for 24 hours after rotation
+- Keys can be **IP-restricted** — only allow requests from specific IPs
+- Keys can require a **device token** — bind to a specific device
+
+---
+
+## Key rotation
+
+```bash
+# Via dashboard: API Keys → ⋯ → Rotate
+```
+
+Or via API:
+
+```bash
+curl -X POST http://localhost:3425/api/keys/KEY_ID/rotate \
+  -H "Cookie: <session>"
+```
+
+The old key remains valid for a **24-hour grace period** after rotation.
+
+---
+
+## IP Security
+
+Restrict keys to specific IP addresses:
+
+```
+Dashboard → API Keys → Select key → ⋯ → Settings → IP Security
+```
+
+Status badges:
+- **Bound** — key is bound to an IP address
+- **No binding yet** — first request will bind the IP automatically
+- **Inactive** — key is deactivated
+
+You can **Allow**, **Blacklist**, or **Remove** each IP binding.
+
+<Callout type="info">
+  IP Security is also configurable per-provider on the **Users** page and per-client on the **Clients** page — directly inline without navigating to a separate settings page.
+</Callout>
+
+---
+
+## Audit log
+
+Every key action is logged in **Audit Logs** (dashboard → Audit Logs):
+
+- Key created / rotated / deleted
+- Help request submitted
+- Provider response sent
+- IP binding created / changed

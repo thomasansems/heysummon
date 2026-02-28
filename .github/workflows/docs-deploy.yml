@@ -1,0 +1,35 @@
+name: Docs — Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  verify-build:
+    name: Verify docs build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build docs site
+        run: npm run build
+
+      - name: Build succeeded
+        run: echo "✅ Docs build verified — Vercel will deploy automatically"

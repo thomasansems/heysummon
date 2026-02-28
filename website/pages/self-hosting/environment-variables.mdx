@@ -1,0 +1,55 @@
+import { Callout } from 'nextra/components'
+
+# Environment Variables
+
+## Required
+
+| Variable | Description |
+|----------|-------------|
+| `NEXTAUTH_SECRET` | Random secret for NextAuth.js session encryption. Generate with `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | Full public URL of your HeySummon instance, e.g. `https://heysummon.example.com` |
+| `MERCURE_JWT_SECRET` | Shared secret between Platform and Mercure hub |
+
+## Database
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `file:./heysummon.db` | SQLite (NPX) or PostgreSQL connection string |
+
+PostgreSQL format:
+```
+DATABASE_URL=postgresql://user:password@host:5432/heysummon
+```
+
+## Guard
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GUARD_PUBLIC_KEY` | — | Ed25519 public key of the Guard — Platform uses this to verify receipts |
+| `REQUIRE_GUARD` | `true` | Whether Platform requires a valid Guard receipt. Set to `false` for development without Guard. |
+
+## Auth / OAuth
+
+| Variable | Description |
+|----------|-------------|
+| `ALLOW_REGISTRATION` | `true` to allow new users to sign up. Set to `false` after initial setup. |
+| `GITHUB_ID` / `GITHUB_SECRET` | GitHub OAuth credentials |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials |
+
+## Mercure
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MERCURE_HUB_URL` | `http://mercure/.well-known/mercure` | Internal URL of the Mercure hub |
+| `NEXT_PUBLIC_MERCURE_HUB_URL` | — | Public URL for browser SSE connections (usually the same as `NEXTAUTH_URL` + `/hub`) |
+
+## Optional
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3000` | Port the Platform listens on (internal) |
+| `REQUEST_TTL_HOURS` | `72` | How long requests stay open before auto-expiry |
+
+<Callout type="warning">
+  Never commit `.env` or `.env.local` to source control. The install scripts generate secrets automatically. For Docker, secrets are stored in `~/.heysummon-docker/.env`.
+</Callout>

@@ -6,6 +6,8 @@
     "dev": "next dev --port 3425",
     "dev:mercure": "bash start-mercure.sh",
     "dev:all": "concurrently --names \"next,mercure\" --prefix-colors \"cyan,magenta\" \"npm run dev\" \"npm run dev:mercure\"",
+    "dev:all:debug": "concurrently --names \"next,mercure\" --prefix-colors \"cyan,magenta\" \"node --inspect=0.0.0.0:9229 node_modules/.bin/next dev --port 3425\" \"npm run dev:mercure\"",
+    "db:studio": "prisma studio",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",

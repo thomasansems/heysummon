@@ -172,8 +172,9 @@ CODE2=$(parse_code "$RESULT2")
 
 section "2.2 — Rapid-fire unique receipts accepted"
 ALL_PASS=true
+RF_QUESTIONS=("What is the status of my order?" "How do I update my billing address?" "Can I get a refund for my purchase?")
 for i in 1 2 3; do
-  RESULT=$(submit_help "$GUARD_URL" "$CLIENT_KEY" "rapid-fire-$i-$(date +%s%N)")
+  RESULT=$(submit_help "$GUARD_URL" "$CLIENT_KEY" "${RF_QUESTIONS[$((i-1))]}")
   CODE=$(parse_code "$RESULT")
   if [ "$CODE" != "200" ]; then
     ALL_PASS=false

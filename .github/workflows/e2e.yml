@@ -91,7 +91,7 @@ jobs:
         run: |
           npm start &
           for i in $(seq 1 30); do
-            curl -s http://localhost:3000/api/health && break || sleep 2
+            curl -s http://localhost:3000/api/v1/health && break || sleep 2
           done
         env:
           NEXTAUTH_URL: http://localhost:3000

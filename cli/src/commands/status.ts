@@ -7,7 +7,7 @@ import { color, printDivider } from "../lib/ui";
 function checkHealth(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const req = http.get(
-      `http://localhost:${port}/api/health`,
+      `http://localhost:${port}/api/v1/health`,
       { timeout: 3000 },
       (res) => resolve(res.statusCode === 200)
     );

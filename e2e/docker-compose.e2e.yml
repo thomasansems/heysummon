@@ -74,7 +74,7 @@ services:
       mercure:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/v1/health"]
       interval: 5s
       timeout: 3s
       retries: 20

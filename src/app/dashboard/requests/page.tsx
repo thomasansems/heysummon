@@ -87,7 +87,7 @@ export default function RequestsPage() {
   const [filter, setFilter] = useState<string>("all");
 
   const fetchRequests = useCallback(() => {
-    fetch("/api/requests")
+    fetch("/api/v1/requests")
       .then((r) => r.json())
       .then((data) => {
         setRequests(data.requests || []);

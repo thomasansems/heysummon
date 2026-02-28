@@ -21,7 +21,7 @@ export function ApiKeyList() {
   const [copiedDeviceSecret, setCopiedDeviceSecret] = useState(false);
 
   async function loadKeys() {
-    const res = await fetch("/api/keys");
+    const res = await fetch("/api/v1/keys");
     const data = await res.json();
     setKeys(data.keys || []);
     setLoading(false);
@@ -34,7 +34,7 @@ export function ApiKeyList() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
-    const res = await fetch("/api/keys", {
+    const res = await fetch("/api/v1/keys", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newKeyName }),
@@ -49,7 +49,7 @@ export function ApiKeyList() {
   }
 
   async function handleDeactivate(id: string) {
-    await fetch(`/api/keys/${id}`, { method: "DELETE" });
+    await fetch(`/api/v1/keys/${id}`, { method: "DELETE" });
     await loadKeys();
   }
 

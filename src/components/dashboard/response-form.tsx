@@ -27,7 +27,7 @@ export function ResponseForm({
     setSending(true);
 
     try {
-      const res = await fetch(`/api/requests/${requestId}`, {
+      const res = await fetch(`/api/v1/requests/${requestId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ response: response.trim() }),

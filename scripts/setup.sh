@@ -272,7 +272,7 @@ test_connectivity() {
   # Test 2: Platform health (through Guard)
   if command -v curl &>/dev/null; then
     local health
-    health=$(curl -sf "${guard_url}/api/health" 2>/dev/null || echo "")
+    health=$(curl -sf "${guard_url}/api/v1/health" 2>/dev/null || echo "")
     if [[ -n "$health" ]]; then
       ok "Platform health endpoint responding through Guard"
       echo -e "  ${DIM}${health}${NC}"
@@ -299,7 +299,7 @@ test_connectivity() {
     ok "All connectivity tests passed!"
   else
     warn "Some tests did not pass — the stack may still be starting up."
-    info "Wait 30 seconds and run: curl http://localhost:${GUARD_PORT:-3000}/api/health"
+    info "Wait 30 seconds and run: curl http://localhost:${GUARD_PORT:-3000}/api/v1/health"
   fi
 }
 

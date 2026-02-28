@@ -33,7 +33,7 @@ export function RequestDetail({ id }: { id: string }) {
   const [resendMessage, setResendMessage] = useState("");
 
   const fetchRequest = useCallback(() => {
-    fetch(`/api/requests/${id}`)
+    fetch(`/api/v1/requests/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Not found");
         return res.json();
@@ -77,7 +77,7 @@ export function RequestDetail({ id }: { id: string }) {
     setResending(true);
     setResendMessage("");
     try {
-      const res = await fetch(`/api/requests/${id}/resend`, { method: "POST" });
+      const res = await fetch(`/api/v1/requests/${id}/resend`, { method: "POST" });
       if (res.ok) {
         setResendMessage("✅ Notification resent");
         fetchRequest();

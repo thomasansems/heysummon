@@ -31,7 +31,7 @@ export function RequestList({ providerId }: { providerId?: string }) {
 
   const fetchRequests = useCallback(() => {
     setLoading(true);
-    const url = filter ? `/api/requests?status=${filter}` : "/api/requests";
+    const url = filter ? `/api/v1/requests?status=${filter}` : "/api/v1/requests";
     fetch(url)
       .then((res) => res.json())
       .then((data) => setRequests(data.requests || []))

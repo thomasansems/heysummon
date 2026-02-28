@@ -76,7 +76,7 @@ const spec = {
 
   paths: {
     // ── Health ─────────────────────────────────────────────────────────
-    '/api/health': {
+    '/api/v1/health': {
       get: {
         tags: ['system'],
         summary: 'Health check',

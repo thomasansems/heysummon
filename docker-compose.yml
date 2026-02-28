@@ -139,7 +139,7 @@ services:
     volumes:
       - guard-keys:/keys:ro
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/v1/health"]
       interval: 10s
       timeout: 5s
       retries: 3

@@ -11,7 +11,7 @@ echo "════════════════════════�
 
 # ── Platform health ──
 section "Platform Health"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${BASE_URL}/api/health" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${BASE_URL}/api/v1/health" 2>/dev/null || echo "000")
 [ "$HTTP_CODE" = "200" ] && pass "Platform healthy (HTTP 200)" || fail "Platform not reachable (HTTP $HTTP_CODE)"
 
 # ── Guard health ──

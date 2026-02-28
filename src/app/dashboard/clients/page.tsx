@@ -65,7 +65,7 @@ export default function ClientsPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const loadKeys = () =>
-    fetch("/api/keys")
+    fetch("/api/v1/keys")
       .then((r) => {
         if (!r.ok) return { keys: [] };
         return r.json();
@@ -98,7 +98,7 @@ export default function ClientsPage() {
   const createKey = async () => {
     if (!selectedProviderId) return;
     setCreating(true);
-    await fetch("/api/keys", {
+    await fetch("/api/v1/keys", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -119,32 +119,32 @@ export default function ClientsPage() {
 
   const renameKey = async (id: string) => {
     if (!editName.trim()) return;
-    await fetch(`/api/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: editName.trim() }) });
+    await fetch(`/api/v1/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: editName.trim() }) });
     setEditingId(null);
     setEditName("");
     loadKeys();
   };
 
   const deactivate = async (id: string) => {
-    await fetch(`/api/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: false }) });
+    await fetch(`/api/v1/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: false }) });
     loadKeys();
   };
 
   const activate = async (id: string) => {
-    await fetch(`/api/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: true }) });
+    await fetch(`/api/v1/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: true }) });
     loadKeys();
   };
 
   const deleteKey = async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to permanently delete "${name}"?\n\n⚠️ This will also delete ALL help requests and messages linked to this key.\n\nThis cannot be undone.`)) return;
-    await fetch(`/api/keys/${id}`, { method: "DELETE" });
+    await fetch(`/api/v1/keys/${id}`, { method: "DELETE" });
     loadKeys();
   };
 
   const rotateKey = async (id: string) => {
     if (!window.confirm("Rotate this key?\n\nA new key and device secret will be generated. The old key will remain valid for 24 hours to allow seamless migration.")) return;
     setRotating(id);
-    const res = await fetch(`/api/keys/${id}/rotate`, { method: "POST" });
+    const res = await fetch(`/api/v1/keys/${id}/rotate`, { method: "POST" });
     const data = await res.json();
     if (res.ok) {
       setRotationResult({
@@ -159,7 +159,7 @@ export default function ClientsPage() {
 
   const saveSettings = async (id: string) => {
     setSaving(true);
-    await fetch(`/api/keys/${id}`, {
+    await fetch(`/api/v1/keys/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -568,7 +568,7 @@ heysummon:
                               <button
                                 onClick={async () => {
                                   if (!window.confirm("Reset all IP bindings? The next request will bind a new IP.")) return;
-                                  await fetch(`/api/keys/${k.id}/ip-events/reset`, { method: "POST" });
+                                  await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" });
                                   loadKeys();
                                 }}
                                 className="rounded-md border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:bg-red-50"
@@ -616,7 +616,7 @@ heysummon:
                                         {evt.status !== "allowed" && (
                                           <button
                                             onClick={async () => {
-                                              await fetch(`/api/keys/${k.id}/ip-events/${evt.id}`, {
+                                              await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
                                                 method: "PATCH",
                                                 headers: { "Content-Type": "application/json" },
                                                 body: JSON.stringify({ status: "allowed" }),
@@ -631,7 +631,7 @@ heysummon:
                                         {evt.status !== "blacklisted" && (
                                           <button
                                             onClick={async () => {
-                                              await fetch(`/api/keys/${k.id}/ip-events/${evt.id}`, {
+                                              await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
                                                 method: "PATCH",
                                                 headers: { "Content-Type": "application/json" },
                                                 body: JSON.stringify({ status: "blacklisted" }),
@@ -645,7 +645,7 @@ heysummon:
                                         )}
                                         <button
                                           onClick={async () => {
-                                            await fetch(`/api/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" });
+                                            await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" });
                                             loadKeys();
                                           }}
                                           className="rounded px-1.5 py-0.5 text-xs text-[#999] hover:bg-[#f0f0f0] hover:text-[#666]"

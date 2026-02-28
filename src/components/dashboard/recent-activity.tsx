@@ -17,7 +17,7 @@ export function RecentActivity() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/requests?limit=5")
+    fetch("/api/v1/requests?limit=5")
       .then((res) => res.json())
       .then((data) => setRequests(data.requests || []))
       .catch(() => {})

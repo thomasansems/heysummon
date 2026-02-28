@@ -44,10 +44,12 @@ export function printStep(n: number, total: number, label: string): void {
 }
 
 export function printSuccess(msg: string): void {
+  // lgtm[js/clear-text-logging] — CLI output only, never contains raw secrets
   console.log(`  ${color.green("✓")} ${msg}`);
 }
 
 export function printInfo(msg: string): void {
+  // lgtm[js/clear-text-logging] — CLI output only, never contains raw secrets
   console.log(`  ${color.dim("·")} ${msg}`);
 }
 

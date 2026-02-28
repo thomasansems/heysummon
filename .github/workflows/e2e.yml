@@ -75,6 +75,8 @@ jobs:
           SEED_OUTPUT=$(bash e2e/seed-e2e.sh 2>/dev/null)
           echo "seed_json=$SEED_OUTPUT" >> "$GITHUB_OUTPUT"
           echo "$SEED_OUTPUT" | jq .
+        env:
+          NEXTAUTH_SECRET: e2e-secret
 
       - name: Build platform
         run: npm run build

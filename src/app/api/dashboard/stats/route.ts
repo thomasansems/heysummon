@@ -24,7 +24,8 @@ export async function GET() {
   let avgResponseTime = 0;
   if (requests.length > 0) {
     const totalMs = requests.reduce((sum, r) => {
-      return sum + (r.deliveredAt!.getTime() - r.createdAt.getTime());
+      if (!r.deliveredAt) return sum;
+      return sum + (r.deliveredAt.getTime() - r.createdAt.getTime());
     }, 0);
     avgResponseTime = Math.round(totalMs / requests.length / 1000);
   }

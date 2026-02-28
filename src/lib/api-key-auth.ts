@@ -18,14 +18,13 @@ setInterval(() => {
 }, 300_000);
 
 /**
- * Hash a device token using SHA-256.
+ * Hash a device token using HMAC-SHA256 with the server secret.
+ * Deterministic for DB lookup, but requires NEXTAUTH_SECRET to reproduce —
+ * infeasible to reverse from DB alone.
  */
-// Device tokens are high-entropy random values (not passwords).
-// SHA-256 is intentionally used here for fast lookup — tokens are
-// generated server-side with sufficient entropy (crypto.randomBytes).
 export function hashDeviceToken(token: string): string {
-  // nosemgrep: use-of-md5, codeql:js/insufficient-password-hash
-  return crypto.createHash("sha256").update(token).digest("hex");
+  const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
+  return crypto.createHmac("sha256", hmacSecret).update(token).digest("hex");
 }
 
 /**
@@ -158,10 +157,12 @@ export async function validateApiKeyRequest(
 
   let rotated = false;
 
-  // 3. Rotation fallback: hash incoming key, check previousKeyHash within grace period
+  // 3. Rotation fallback: HMAC-SHA256 lookup of rotated key within grace period.
+  // HMAC with server secret (NEXTAUTH_SECRET) — deterministic for DB lookup but
+  // infeasible to reverse without the server secret, even with DB access.
   if (!keyRecord) {
-    // nosemgrep: codeql:js/insufficient-password-hash — API keys are random tokens, not passwords
-    const hashedKey = crypto.createHash("sha256").update(apiKeyValue).digest("hex");
+    const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
+    const hashedKey = crypto.createHmac("sha256", hmacSecret).update(apiKeyValue).digest("hex");
     keyRecord = await prisma.apiKey.findFirst({
       where: {
         previousKeyHash: hashedKey,

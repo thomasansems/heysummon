@@ -29,9 +29,9 @@ async function main() {
     const apiKey = await prisma.apiKey.create({
       data: { key, name: "test-key", userId: demoUser.id, isActive: true },
     });
-    console.log(`✅ API key created: ${apiKey.key.slice(0, 10)}...`);
+    console.log("✅ API key created");
   } else {
-    console.log(`✅ API key exists: ${existingKey.key.slice(0, 10)}...`);
+    console.log("✅ API key exists");
   }
 
   const apiKey = await prisma.apiKey.findFirst({ where: { userId: demoUser.id } });

@@ -1,4 +1,5 @@
 {
-  "buildCommand": "prisma generate && next build",
+  "rootDirectory": "vercel-waitlist",
+  "buildCommand": "next build",
   "installCommand": "npm install"
 }

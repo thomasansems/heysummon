@@ -64,8 +64,19 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
+const WAITLIST_MODE = process.env.WAITLIST_MODE === "true";
+const WAITLIST_ALLOWED = ["/waitlist", "/api/waitlist", "/_next", "/favicon", "/robots", "/sitemap"];
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Waitlist mode: redirect everything except allowed paths
+  if (WAITLIST_MODE) {
+    const isAllowed = WAITLIST_ALLOWED.some((p) => pathname.startsWith(p));
+    if (!isAllowed) {
+      return NextResponse.redirect(new URL("/waitlist", request.url));
+    }
+  }
   const ip = getClientIp(request);
 
   // --- Rate Limiting ---

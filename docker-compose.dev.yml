@@ -7,7 +7,6 @@
 # Tunnel profiles:
 #   docker compose -f docker-compose.dev.yml --profile ngrok up -d
 #   docker compose -f docker-compose.dev.yml --profile cloudflare up -d
-#   docker compose -f docker-compose.dev.yml --profile tailscale up -d
 #
 # For production self-hosting (no source code needed), use docker-compose.yml instead.
 
@@ -179,37 +178,6 @@ services:
       retries: 3
       start_period: 15s
 
-  # Tailscale Funnel: docker compose -f docker-compose.dev.yml --profile tailscale up -d
-  tailscale:
-    image: tailscale/tailscale:latest
-    restart: unless-stopped
-    profiles: ["tailscale"]
-    hostname: heysummon
-    networks:
-      - frontend
-    depends_on:
-      heysummon-guard:
-        condition: service_healthy
-    environment:
-      TS_AUTHKEY: ${TAILSCALE_AUTHKEY:-}
-      TS_STATE_DIR: /var/lib/tailscale
-      TS_EXTRA_ARGS: --advertise-tags=tag:heysummon
-      TS_SERVE_CONFIG: /config/serve.json
-    volumes:
-      - tailscale-state:/var/lib/tailscale
-      - ./tailscale-config:/config:ro
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    healthcheck:
-      test: ["CMD", "tailscale", "status", "--json"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
   # Ngrok: docker compose -f docker-compose.dev.yml --profile ngrok up -d
   ngrok:
     image: ngrok/ngrok:latest
@@ -262,4 +230,3 @@ volumes:
   pgdata:
   guard-keys:
   heysummon-data:
-  tailscale-state:

@@ -154,6 +154,62 @@ async function waitForResponse(requestId, timeoutMs) {
   return null;
 }
 
+server.tool(
+  "heysummon_providers",
+  "List available HeySummon providers (human experts) you can route help requests to.",
+  {},
+  async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/providers`, {
+        headers: { "x-api-key": API_KEY },
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `❌ Could not fetch providers: ${res.status}` }], isError: true };
+      }
+      const data = await res.json();
+      const providers = data.providers ?? [];
+      if (providers.length === 0) {
+        return { content: [{ type: "text", text: "No providers available." }] };
+      }
+      const list = providers.map((p) => `- **${p.name}**${p.description ? `: ${p.description}` : ""}`).join("\n");
+      return { content: [{ type: "text", text: `Available providers:\n\n${list}` }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `❌ Error: ${err.message}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "heysummon_status",
+  "Check the status of an existing HeySummon help request.",
+  {
+    requestId: z.string().describe("The request ID returned by the heysummon tool"),
+  },
+  async ({ requestId }) => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/requests/${requestId}`, {
+        headers: { "x-api-key": API_KEY },
+      });
+      if (!res.ok) {
+        return { content: [{ type: "text", text: `❌ Request not found: ${res.status}` }], isError: true };
+      }
+      const data = await res.json();
+      const req = data.request;
+      const status = req?.status ?? "unknown";
+      const messages = req?.messages ?? [];
+      const lastMsg = [...messages].reverse().find((m) => m.role === "provider" || m.from === "provider");
+
+      let text = `Status: **${status}**`;
+      if (lastMsg) {
+        text += `\n\nLatest response:\n${lastMsg.content ?? lastMsg.plaintext ?? lastMsg.text}`;
+      }
+      return { content: [{ type: "text", text }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `❌ Error: ${err.message}` }], isError: true };
+    }
+  }
+);
+
 // Start server
 const transport = new StdioServerTransport();
 await server.connect(transport);

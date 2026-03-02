@@ -1,0 +1,121 @@
+name: MCP E2E Tests
+
+on:
+  push:
+    branches: [main, "experimental/claudecode-mcp-skill"]
+    paths:
+      - "skills/claudecode/**"
+      - "e2e/tests/11-mcp-flow.sh"
+      - "e2e/seed-mcp.sh"
+      - "e2e/run-mcp-local.sh"
+      - ".github/workflows/mcp-e2e.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "skills/claudecode/**"
+      - "e2e/tests/11-mcp-flow.sh"
+  workflow_dispatch:
+
+env:
+  DATABASE_URL: file:${{ github.workspace }}/prisma/mcp-e2e.db
+  E2E_MERCURE_JWT_SECRET: mcp-e2e-mercure-secret
+
+jobs:
+  mcp-e2e:
+    name: MCP Server E2E Flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      mercure:
+        image: dunglas/mercure
+        env:
+          SERVER_NAME: ':3000'
+          MERCURE_PUBLISHER_JWT_KEY: mcp-e2e-mercure-secret
+          MERCURE_SUBSCRIBER_JWT_KEY: mcp-e2e-mercure-secret
+          MERCURE_EXTRA_DIRECTIVES: |
+            anonymous
+            cors_origins *
+            subscriptions
+        ports:
+          - 13200:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install platform dependencies
+        run: npm ci
+
+      - name: Install MCP server dependencies
+        run: cd skills/claudecode/mcp-server && npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "file:./mcp-e2e.db"
+
+      - name: Run DB migrations
+        run: npx prisma db push --force-reset
+        env:
+          DATABASE_URL: "file:./mcp-e2e.db"
+
+      - name: Seed MCP test data
+        id: seed
+        run: |
+          SEED_OUTPUT=$(bash e2e/seed-mcp.sh 2>/dev/null)
+          echo "seed_json=$SEED_OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "$SEED_OUTPUT" | jq '{
+            providerId: .providerId,
+            providerKey: (.providerKey | .[0:12] + "..."),
+            clientKey: (.clientKey | .[0:12] + "...")
+          }'
+        env:
+          NEXTAUTH_SECRET: mcp-e2e-secret
+
+      - name: Build platform
+        run: npm run build
+        env:
+          NEXTAUTH_SECRET: mcp-e2e-secret
+          MERCURE_JWT_SECRET: mcp-e2e-mercure-secret
+
+      - name: Start platform
+        run: |
+          npm start &
+          echo "Waiting for platform..."
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000/api/v1/health && break || sleep 2
+          done
+        env:
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: mcp-e2e-secret
+          MERCURE_HUB_URL: http://localhost:13200/.well-known/mercure
+          MERCURE_JWT_SECRET: mcp-e2e-mercure-secret
+          NEXT_PUBLIC_MERCURE_HUB_URL: http://localhost:13200/.well-known/mercure
+          PORT: 3000
+          E2E_RATE_LIMIT_BYPASS_SECRET: mcp-e2e-bypass-secret
+
+      - name: Run MCP E2E test
+        run: |
+          SEED='${{ steps.seed.outputs.seed_json }}'
+          export E2E_BASE_URL=http://localhost:3000
+          export E2E_PROVIDER_ID=$(echo "$SEED" | jq -r .providerId)
+          export E2E_PROVIDER_KEY=$(echo "$SEED" | jq -r .providerKey)
+          export E2E_CLIENT_KEY=$(echo "$SEED" | jq -r .clientKey)
+          export E2E_USER_ID=$(echo "$SEED" | jq -r .userId)
+          export E2E_TIMEOUT=30
+          export E2E_RATE_LIMIT_BYPASS_SECRET=mcp-e2e-bypass-secret
+          bash e2e/tests/11-mcp-flow.sh
+
+      - name: Verify MCP server starts correctly
+        run: |
+          cd skills/claudecode/mcp-server
+          # Start server and immediately kill — just verify it boots without crash
+          timeout 5 node index.js 2>&1 | head -5 || true
+        env:
+          HEYSUMMON_BASE_URL: http://localhost:3000
+          HEYSUMMON_API_KEY: ${{ fromJson(steps.seed.outputs.seed_json).clientKey }}

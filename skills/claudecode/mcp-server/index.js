@@ -12,6 +12,7 @@ import { z } from "zod";
 import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { generateKeyPairSync } from "crypto";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,6 +36,25 @@ if (!BASE_URL || !API_KEY) {
   process.exit(1);
 }
 
+/**
+ * Generate Ed25519 (signing) + X25519 (encryption) key pairs.
+ * Matches the algorithm expected by the HeySummon platform.
+ */
+function generateSessionKeys() {
+  const sign = generateKeyPairSync("ed25519", {
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  });
+  const enc = generateKeyPairSync("x25519", {
+    publicKeyEncoding: { type: "spki", format: "pem" },
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  });
+  return {
+    signPublicKey: sign.publicKey,
+    encryptPublicKey: enc.publicKey,
+  };
+}
+
 const server = new McpServer({
   name: "heysummon",
   version: "0.1.0",
@@ -51,6 +71,9 @@ server.tool(
   },
   async ({ question, context, provider, timeout }) => {
     const timeoutMs = (timeout ?? 300) * 1000;
+
+    // Generate session key pair for E2E encryption (Ed25519 sign + X25519 encrypt)
+    const { signPublicKey, encryptPublicKey } = generateSessionKeys();
 
     // Build message payload
     const messages = [
@@ -71,6 +94,9 @@ server.tool(
           "x-api-key": API_KEY,
         },
         body: JSON.stringify({
+          apiKey: API_KEY,
+          signPublicKey,
+          encryptPublicKey,
           question,
           messages,
           ...(provider && { providerName: provider }),

@@ -12,13 +12,14 @@ const crypto = require('crypto');
 const prisma = new PrismaClient();
 
 async function seed() {
+  // Use demo user so dashboard login matches the seeded data
   const user = await prisma.user.upsert({
-    where: { email: 'mcp-e2e-provider@test.local' },
+    where: { email: 'demo@heysummon.ai' },
     update: {},
     create: {
-      email: 'mcp-e2e-provider@test.local',
-      name: 'MCP E2E Provider',
-      role: 'expert',
+      email: 'demo@heysummon.ai',
+      name: 'Demo User',
+      role: 'admin',
       onboardingComplete: true,
     },
   });

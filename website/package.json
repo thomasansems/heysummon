@@ -19,5 +19,8 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }

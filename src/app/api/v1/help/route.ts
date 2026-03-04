@@ -165,7 +165,7 @@ export async function POST(request: Request) {
     dispatchWebhookToProvider(key.userId, {
       type: 'new_request',
       requestId: helpRequest.id,
-      refCode: helpRequest.refCode,
+      refCode: helpRequest.refCode ?? undefined,
       question: question || null,
       messageCount: Array.isArray(messages) ? messages.length : 0,
       messagePreview: Array.isArray(messages) && messages.length > 0

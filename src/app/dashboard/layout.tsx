@@ -1,7 +1,9 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { TopNav } from "@/components/dashboard/top-nav";
+import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 
 export default function DashboardLayout({
   children,
@@ -10,10 +12,16 @@ export default function DashboardLayout({
 }) {
   return (
     <SessionProvider>
-      <div className="min-h-screen bg-[#fafafa]" style={{ fontFamily: "var(--font-geist-sans), system-ui, sans-serif" }}>
-        <TopNav />
-        <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
-      </div>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="h-4" />
+          </header>
+          <main className="flex-1 overflow-auto p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
     </SessionProvider>
   );
 }

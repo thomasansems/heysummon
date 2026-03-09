@@ -3,6 +3,7 @@
 import { copyToClipboard } from "@/lib/clipboard";
 
 import { Fragment, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 interface Provider {
   id: string;
@@ -43,6 +44,7 @@ const scopeBadgeColors: Record<string, string> = {
 };
 
 export default function ClientsPage() {
+  const { status: sessionStatus } = useSession();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,10 +92,13 @@ export default function ClientsPage() {
       })
       .catch(() => setProviders([]));
 
+  // Wait for session before loading to avoid race condition after login redirect
   useEffect(() => {
-    loadKeys();
-    loadProviders();
-  }, []);
+    if (sessionStatus === "authenticated") {
+      loadKeys();
+      loadProviders();
+    }
+  }, [sessionStatus]);
 
   const createKey = async () => {
     if (!selectedProviderId) return;

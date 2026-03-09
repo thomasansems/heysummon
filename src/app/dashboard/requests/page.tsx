@@ -3,6 +3,7 @@
 import { copyToClipboard } from "@/lib/clipboard";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { useProviderMercure } from "@/hooks/useMercure";
 
 function CopyableRefCode({ code }: { code: string | null }) {
@@ -82,6 +83,7 @@ function deliveryTime(created: string, delivered: string | null) {
 }
 
 export default function RequestsPage() {
+  const { status: sessionStatus } = useSession();
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -96,9 +98,14 @@ export default function RequestsPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  // Wait for session to be authenticated before fetching to avoid
+  // race condition where the session cookie is not yet available
+  // immediately after login redirect (causing empty data to appear).
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    if (sessionStatus === "authenticated") {
+      fetchRequests();
+    }
+  }, [sessionStatus, fetchRequests]);
 
   // Realtime updates via Mercure
   useProviderMercure(undefined, useCallback((event) => {

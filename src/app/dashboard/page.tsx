@@ -1,8 +1,8 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-
 import { useEffect, useState } from "react";
+import { Inbox, CheckCircle2, Clock, TrendingUp, RefreshCw } from "lucide-react";
 
 interface Stats {
   total: number;
@@ -23,9 +23,7 @@ interface Stats {
 }
 
 function timeAgo(date: string) {
-  const seconds = Math.floor(
-    (Date.now() - new Date(date).getTime()) / 1000
-  );
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
   if (seconds < 60) return `${seconds}s ago`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
@@ -45,10 +43,10 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
-  if (!code) return <span className="text-[#999]">—</span>;
+  if (!code) return <span className="text-muted-foreground">—</span>;
   return (
     <button
-      className="relative font-mono text-xs text-[#444] hover:text-black transition-colors"
+      className="relative font-mono text-xs text-foreground hover:text-primary transition-colors"
       onClick={async () => {
         await copyToClipboard(code);
         setCopied(true);
@@ -57,33 +55,70 @@ function CopyableRefCode({ code }: { code: string | null }) {
     >
       {code}
       {copied && (
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-0.5 text-xs text-white whitespace-nowrap">
-          Copied!
+        <span className="absolute -top-7 left-1/2 -translate-x-1/2 rounded-md bg-popover border border-border px-2 py-1 text-[10px] text-popover-foreground whitespace-nowrap shadow-md">
+          Copied
         </span>
       )}
     </button>
   );
 }
 
+const statCards = (s: Stats) => [
+  {
+    label: "Total requests",
+    value: s.total,
+    icon: TrendingUp,
+    color: "text-blue-500",
+    bg: "bg-blue-500/8",
+  },
+  {
+    label: "Open",
+    value: s.open,
+    icon: Inbox,
+    color: "text-amber-500",
+    bg: "bg-amber-500/8",
+  },
+  {
+    label: "Resolved",
+    value: s.resolved,
+    icon: CheckCircle2,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/8",
+  },
+  {
+    label: "Avg response",
+    value: formatTime(s.avgResponseTime),
+    icon: Clock,
+    color: "text-violet-500",
+    bg: "bg-violet-500/8",
+  },
+];
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchStats = () => {
+    setRefreshing(true);
+    fetch("/api/dashboard/stats")
+      .then((r) => r.json())
+      .then(setStats)
+      .finally(() => setRefreshing(false));
+  };
 
   useEffect(() => {
-    const fetchStats = () => {
-      fetch("/api/dashboard/stats")
-        .then((r) => r.json())
-        .then(setStats);
-    };
     fetchStats();
-    // Poll every 10 seconds for live updates (replaces Mercure SSE)
     const interval = setInterval(fetchStats, 10000);
     return () => clearInterval(interval);
   }, []);
 
   if (!stats) {
     return (
-      <div className="flex h-64 items-center justify-center text-[#666]">
-        Loading...
+      <div className="flex h-64 items-center justify-center">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          Loading...
+        </div>
       </div>
     );
   }
@@ -91,106 +126,104 @@ export default function DashboardPage() {
   const maxActivity = Math.max(...stats.activity, 1);
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-semibold text-black">Overview</h1>
+    <div className="space-y-6">
+      {/* Page title */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Overview</h1>
+          <p className="text-sm text-muted-foreground">Your provider activity at a glance</p>
+        </div>
+        <button
+          onClick={fetchStats}
+          className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        >
+          <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
 
       {/* Stat cards */}
-      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          { label: "Total Requests", value: stats.total },
-          { label: "Open", value: stats.open },
-          { label: "Resolved", value: stats.resolved },
-          {
-            label: "Avg Response",
-            value: formatTime(stats.avgResponseTime),
-          },
-        ].map((stat) => (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {statCards(stats).map((card) => (
           <div
-            key={stat.label}
-            className="rounded-lg border border-[#eaeaea] bg-white p-4"
+            key={card.label}
+            className="rounded-lg border border-border bg-card p-4"
           >
-            <p className="text-sm text-[#666]">{stat.label}</p>
-            <p className="mt-1 text-2xl font-semibold text-black">
-              {stat.value}
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-muted-foreground">{card.label}</span>
+              <div className={`flex h-6 w-6 items-center justify-center rounded-md ${card.bg}`}>
+                <card.icon className={`h-3.5 w-3.5 ${card.color}`} />
+              </div>
+            </div>
+            <p className="text-2xl font-semibold tabular-nums">{card.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Open Requests */}
-      <div className="mb-8">
-        <h2 className="mb-3 text-sm font-medium text-black">Open Requests</h2>
-        <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Open requests */}
+        <div className="lg:col-span-2 rounded-lg border border-border bg-card">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="text-sm font-medium">Open Requests</h2>
+            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+              {stats.open} pending
+            </span>
+          </div>
           {stats.openRequests.length === 0 ? (
-            <div className="p-6 text-center text-sm text-[#666]">
-              No open requests
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2" />
+              <p className="text-sm text-muted-foreground">All caught up!</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#eaeaea] text-left text-[#666]">
-                  <th className="px-4 py-2.5 font-medium">Ref Code</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                  <th className="px-4 py-2.5 font-medium">Messages</th>
-                  <th className="px-4 py-2.5 font-medium">Client</th>
-                  <th className="px-4 py-2.5 font-medium text-right">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.openRequests.map((req) => (
-                  <tr
-                    key={req.id}
-                    className="border-b border-[#eaeaea] last:border-0"
-                  >
-                    <td className="px-4 py-2.5">
+            <div className="divide-y divide-border">
+              {stats.openRequests.map((req) => (
+                <div key={req.id} className="flex items-center gap-3 px-4 py-3 hover:bg-accent/40 transition-colors">
+                  <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
                       <CopyableRefCode code={req.refCode} />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-medium text-yellow-700">
-                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
-                        Awaiting Response
+                      <span className="text-[10px] text-muted-foreground truncate">
+                        {req.apiKey.name || "Unnamed"}
                       </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-[#666]">
-                      {req.messageCount > 0
-                        ? `${req.messageCount} message${req.messageCount !== 1 ? "s" : ""}`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-[#666]">
-                      {req.apiKey.name || "Unnamed"}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-[#666]">
-                      {timeAgo(req.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    {req.question && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {req.question}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    {timeAgo(req.createdAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Activity Chart */}
-      <div>
-        <h2 className="mb-3 text-sm font-medium text-black">
-          Activity (7 days)
-        </h2>
-        <div className="rounded-lg border border-[#eaeaea] bg-white p-4">
-          <div className="flex items-end justify-between gap-2" style={{ height: 120 }}>
-            {stats.activity.map((count, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-sm bg-violet-500 transition-all"
-                  style={{
-                    height: `${(count / maxActivity) * 100}%`,
-                    minHeight: count > 0 ? 4 : 0,
-                  }}
-                />
-                <span className="text-xs text-[#666]">
-                  {DAYS[(new Date().getDay() + i - 5) % 7] || DAYS[i]}
-                </span>
-              </div>
-            ))}
+        {/* Activity chart */}
+        <div className="rounded-lg border border-border bg-card">
+          <div className="px-4 py-3 border-b border-border">
+            <h2 className="text-sm font-medium">Activity</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Last 7 days</p>
+          </div>
+          <div className="p-4">
+            <div className="flex items-end justify-between gap-1.5" style={{ height: 80 }}>
+              {stats.activity.map((count, i) => (
+                <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                  <div
+                    className="w-full rounded-sm bg-primary/70 transition-all"
+                    style={{
+                      height: `${(count / maxActivity) * 100}%`,
+                      minHeight: count > 0 ? 3 : 0,
+                    }}
+                  />
+                  <span className="text-[9px] text-muted-foreground">
+                    {DAYS[(new Date().getDay() + i - 5 + 7) % 7]}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

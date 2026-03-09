@@ -6,17 +6,18 @@ import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import {
   LayoutDashboard,
-  Users,
-  MessageSquare,
-  Building2,
   Inbox,
-  Key,
-  FileText,
+  MessageSquare,
+  Users,
+  Building2,
+  KeyRound,
+  ScrollText,
   Settings,
   LogOut,
   Moon,
   Sun,
   ChevronUp,
+  Zap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,10 +25,12 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -38,16 +41,61 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const navItems = [
+const mainNav = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Requests", href: "/dashboard/requests", icon: Inbox },
-  { label: "Channels", href: "/dashboard/channels", icon: MessageSquare },
+];
+
+const providerNav = [
   { label: "Providers", href: "/dashboard/providers", icon: Users },
+  { label: "Channels", href: "/dashboard/channels", icon: MessageSquare },
   { label: "Clients", href: "/dashboard/clients", icon: Building2 },
-  { label: "API Keys", href: "/dashboard/keys", icon: Key },
-  { label: "Audit Logs", href: "/dashboard/audit-logs", icon: FileText },
+];
+
+const adminNav = [
+  { label: "API Keys", href: "/dashboard/keys", icon: KeyRound },
+  { label: "Audit Logs", href: "/dashboard/audit-logs", icon: ScrollText },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
+
+function NavGroup({
+  items,
+  label,
+  pathname,
+}: {
+  items: { label: string; href: string; icon: React.ElementType }[];
+  label?: string;
+  pathname: string;
+}) {
+  return (
+    <SidebarGroup>
+      {label && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => {
+            const isActive =
+              item.href === "/dashboard"
+                ? pathname === "/dashboard"
+                : pathname.startsWith(item.href);
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  render={<Link href={item.href} />}
+                  isActive={isActive}
+                  tooltip={item.label}
+                  className="gap-2.5"
+                >
+                  <item.icon className="h-[15px] w-[15px] shrink-0" />
+                  <span className="text-sm">{item.label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -60,75 +108,55 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-2"
-          style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}
-        >
-          <span className="text-sidebar-foreground text-lg leading-none">
-            heySummon
+      {/* Logo */}
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-3.5">
+        <Link href="/dashboard" className="flex items-center gap-2.5 px-1">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
+            <Zap className="h-3.5 w-3.5 text-primary-foreground" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
+            HeySummon
           </span>
         </Link>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => {
-                const isActive =
-                  item.href === "/dashboard"
-                    ? pathname === "/dashboard"
-                    : pathname.startsWith(item.href);
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      render={<Link href={item.href} />}
-                      isActive={isActive}
-                      tooltip={item.label}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      {/* Nav */}
+      <SidebarContent className="gap-0">
+        <NavGroup items={mainNav} pathname={pathname} />
+        <SidebarSeparator className="mx-3 my-1" />
+        <NavGroup items={providerNav} label="Providers" pathname={pathname} />
+        <SidebarSeparator className="mx-3 my-1" />
+        <NavGroup items={adminNav} label="Admin" pathname={pathname} />
       </SidebarContent>
 
+      {/* User footer */}
       <SidebarFooter className="border-t border-sidebar-border p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <SidebarMenuButton
-                render={<DropdownMenuTrigger />}
-                className="h-10"
-              >
-                  <Avatar className="h-6 w-6 shrink-0" size="sm">
-                    <AvatarImage src={userImage} alt={userName} />
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-1 flex-col overflow-hidden text-left">
-                    <span className="truncate text-sm font-medium leading-tight">
-                      {userName || "Account"}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground leading-tight">
-                      {session?.user?.email ?? ""}
-                    </span>
-                  </div>
-                  <ChevronUp className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
+              <SidebarMenuButton render={<DropdownMenuTrigger />} className="h-10 gap-2.5">
+                <Avatar className="h-6 w-6 shrink-0">
+                  <AvatarImage src={userImage} alt={userName} />
+                  <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-1 flex-col overflow-hidden text-left">
+                  <span className="truncate text-xs font-medium leading-tight">
+                    {userName || "Account"}
+                  </span>
+                  <span className="truncate text-[10px] text-muted-foreground leading-tight">
+                    {session?.user?.email ?? ""}
+                  </span>
+                </div>
+                <ChevronUp className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               </SidebarMenuButton>
-              <DropdownMenuContent side="top" align="start" className="w-56">
+              <DropdownMenuContent side="top" align="start" className="w-52">
                 <DropdownMenuItem
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 >
                   {theme === "dark" ? (
-                    <Sun className="mr-2 h-4 w-4" />
+                    <Sun className="mr-2 h-3.5 w-3.5" />
                   ) : (
-                    <Moon className="mr-2 h-4 w-4" />
+                    <Moon className="mr-2 h-3.5 w-3.5" />
                   )}
                   {theme === "dark" ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
@@ -137,8 +165,8 @@ export function AppSidebar() {
                   onClick={() => signOut({ callbackUrl: "/" })}
                   variant="destructive"
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
+                  <LogOut className="mr-2 h-3.5 w-3.5" />
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

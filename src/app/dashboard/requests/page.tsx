@@ -102,7 +102,7 @@ export default function RequestsPage() {
 
   // Realtime updates via Mercure
   useProviderMercure(undefined, useCallback((event) => {
-    if (event.type === "new_request" || event.type === "status_change" || event.type === "closed") {
+    if (event.type === "new_request" || event.type === "status_change" || event.type === "closed" || event.type === "message_sent") {
       fetchRequests();
     }
   }, [fetchRequests]));

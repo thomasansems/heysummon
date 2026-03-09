@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Inbox,
@@ -102,6 +103,9 @@ export function AppSidebar() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const userName = session?.user?.name ?? "";
   const userImage = session?.user?.image ?? "";
   const initials = userName.slice(0, 2).toUpperCase() || "?";
@@ -129,47 +133,50 @@ export function AppSidebar() {
         <NavGroup items={adminNav} label="Admin" pathname={pathname} />
       </SidebarContent>
 
-      {/* User footer */}
-      <SidebarFooter className="border-t border-sidebar-border p-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <SidebarMenuButton render={<DropdownMenuTrigger />} className="h-10 gap-2.5">
-                <Avatar className="h-6 w-6 shrink-0">
-                  <AvatarImage src={userImage} alt={userName} />
-                  <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-1 flex-col overflow-hidden text-left">
-                  <span className="truncate text-xs font-medium leading-tight">
-                    {userName || "Account"}
-                  </span>
-                  <span className="truncate text-[10px] text-muted-foreground leading-tight">
-                    {session?.user?.email ?? ""}
-                  </span>
-                </div>
-                <ChevronUp className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              </SidebarMenuButton>
-              <DropdownMenuContent side="top" align="start" className="w-52">
-                <DropdownMenuItem
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                >
-                  {theme === "dark" ? (
-                    <Sun className="mr-2 h-3.5 w-3.5" />
-                  ) : (
-                    <Moon className="mr-2 h-3.5 w-3.5" />
-                  )}
-                  {theme === "dark" ? "Light mode" : "Dark mode"}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  variant="destructive"
-                >
-                  <LogOut className="mr-2 h-3.5 w-3.5" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+      {/* User footer — suppress hydration warning because DropdownMenu (Base UI)
+          generates IDs that differ between SSR and client hydration */}
+      <SidebarFooter className="border-t border-sidebar-border p-2" suppressHydrationWarning>
+        <SidebarMenu suppressHydrationWarning>
+          <SidebarMenuItem suppressHydrationWarning>
+            {mounted && (
+              <DropdownMenu>
+                <SidebarMenuButton render={<DropdownMenuTrigger />} className="h-10 gap-2.5">
+                  <Avatar className="h-6 w-6 shrink-0">
+                    <AvatarImage src={userImage} alt={userName} />
+                    <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-1 flex-col overflow-hidden text-left">
+                    <span className="truncate text-xs font-medium leading-tight">
+                      {userName || "Account"}
+                    </span>
+                    <span className="truncate text-[10px] text-muted-foreground leading-tight">
+                      {session?.user?.email ?? ""}
+                    </span>
+                  </div>
+                  <ChevronUp className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                </SidebarMenuButton>
+                <DropdownMenuContent side="top" align="start" className="w-52">
+                  <DropdownMenuItem
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="mr-2 h-3.5 w-3.5" />
+                    ) : (
+                      <Moon className="mr-2 h-3.5 w-3.5" />
+                    )}
+                    {theme === "dark" ? "Light mode" : "Dark mode"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    variant="destructive"
+                  >
+                    <LogOut className="mr-2 h-3.5 w-3.5" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

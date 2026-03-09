@@ -35,6 +35,9 @@ interface HelpRequest {
   responseCount: number;
   createdAt: string;
   deliveredAt: string | null;
+  deliveryStatus: string;
+  deliveryRetryCount: number;
+  deliveryNextRetryAt: string | null;
   apiKey: { name: string | null };
 }
 
@@ -187,6 +190,43 @@ export default function RequestsPage() {
                   </td>
                   <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">
                     <span className="text-xs">{deliveryTime(req.createdAt, req.deliveredAt)}</span>
+                    {req.deliveryStatus === "retrying" && (
+                      <span className="ml-1 inline-flex rounded-full bg-amber-950/60 px-1.5 py-0.5 text-xs font-medium text-amber-300">
+                        retry {req.deliveryRetryCount}
+                      </span>
+                    )}
+                    {req.deliveryStatus === "failed" && (
+                      <span className="ml-1 inline-flex rounded-full bg-red-950/60 px-1.5 py-0.5 text-xs font-medium text-red-300">
+                        failed
+                      </span>
+                    )}
+                    {req.deliveryStatus === "cancelled" && (
+                      <span className="ml-1 inline-flex rounded-full bg-zinc-800 px-1.5 py-0.5 text-xs font-medium text-zinc-400">
+                        cancelled
+                      </span>
+                    )}
+                    {(req.deliveryStatus === "failed" || req.deliveryStatus === "retrying") && (
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/v1/requests/${req.id}/resend`, { method: "POST" });
+                          fetchRequests();
+                        }}
+                        className="ml-2 text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        Resend
+                      </button>
+                    )}
+                    {req.deliveryStatus === "retrying" && (
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/v1/requests/${req.id}/cancel`, { method: "POST" });
+                          fetchRequests();
+                        }}
+                        className="ml-1 text-xs text-zinc-500 hover:text-zinc-300"
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

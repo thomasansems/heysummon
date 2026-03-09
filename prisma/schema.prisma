@@ -180,6 +180,12 @@ model HelpRequest {
   deliveredAt            DateTime? // When provider watcher acknowledged receipt
   expiresAt              DateTime  // createdAt + 72 hours
   closedAt               DateTime?
+
+  // Delivery retry tracking
+  deliveryStatus         String    @default("pending")   // pending | retrying | delivered | failed | cancelled
+  deliveryRetryCount     Int       @default(0)
+  deliveryLastAttemptAt  DateTime?
+  deliveryNextRetryAt    DateTime?
   
   // Channel adapter fields
   channelProviderId      String?

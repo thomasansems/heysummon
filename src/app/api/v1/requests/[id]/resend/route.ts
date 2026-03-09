@@ -49,10 +49,16 @@ export async function POST(
 
   try {
 
-    // Reset deliveredAt so we can track the new delivery
+    // Reset retry state so delivery can be tracked again
     await prisma.helpRequest.update({
       where: { id },
-      data: { deliveredAt: null },
+      data: {
+        deliveredAt: null,
+        deliveryStatus: "retrying",
+        deliveryRetryCount: 0,
+        deliveryLastAttemptAt: new Date(),
+        deliveryNextRetryAt: null,
+      },
     });
 
     logAuditEvent({

@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
       status: true,
       createdAt: true,
       deliveredAt: true,
+      deliveryStatus: true,
+      deliveryRetryCount: true,
+      deliveryNextRetryAt: true,
       apiKey: { select: { name: true } },
       _count: { select: { messageHistory: true } },
       messageHistory: {
@@ -58,6 +61,9 @@ export async function GET(request: NextRequest) {
     responseCount: r.messageHistory.length,
     createdAt: r.createdAt,
     deliveredAt: r.deliveredAt,
+    deliveryStatus: r.deliveryStatus,
+    deliveryRetryCount: r.deliveryRetryCount,
+    deliveryNextRetryAt: r.deliveryNextRetryAt,
     apiKey: r.apiKey,
   }));
 

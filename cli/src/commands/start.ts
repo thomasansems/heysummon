@@ -14,7 +14,7 @@ import { printSuccess, printInfo, printWarning, color } from "../lib/ui";
 
 const MERCURE_PID_FILE = path.join(os.homedir(), ".heysummon", "mercure.pid");
 
-function readMercurePid(): number | null {
+function _readMercurePid(): number | null {
   try {
     const pid = parseInt(fs.readFileSync(MERCURE_PID_FILE, "utf-8").trim(), 10);
     return isNaN(pid) ? null : pid;

@@ -100,7 +100,7 @@ while true; do
     # Store refCode mapping for reply handler
     echo "$REF_CODE" > "$REQUESTS_DIR/$REQ_ID"
 
-    MSG="🦞 HeySummon verzoek van ${REF_CODE}"
+    MSG="🦞 HeySummon request from ${REF_CODE}"
     [ -n "$QUESTION" ] && MSG="${MSG}: ${QUESTION}"
 
     send_notification "$MSG"

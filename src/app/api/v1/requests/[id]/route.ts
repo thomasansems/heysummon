@@ -33,8 +33,6 @@ export async function GET(
       data: { status: "reviewing" },
     });
     helpRequest.status = "reviewing";
-    try {
-    } catch { /* non-fatal */ }
   }
 
   // Decrypt messages and question for provider view using server private key

@@ -127,21 +127,23 @@ process_line() {
         let msg='🦞 HeySummon ['+ref+'] ';
         switch(type) {
           case 'new_request':
-            msg+='Nieuw verzoek';
+            msg+='New request';
             if(q && !q.includes('==')) msg+='\n📝 '+q;
             break;
           case 'new_message':
-            msg+='Nieuw bericht (van '+from+')';
+            // Skip echo: don't notify provider about their own sent messages
+            if(from === 'provider') { console.log('{}'); return; }
+            msg+='New message from consumer';
             if(preview) msg+='\n💬 '+preview.slice(0,240);
             break;
           case 'keys_exchanged':
-            msg+='Key exchange voltooid';
+            msg+='Key exchange complete';
             break;
           case 'closed':
-            msg+='Conversatie gesloten';
+            msg+='Conversation closed';
             break;
           case 'responded':
-            msg+='Provider heeft geantwoord';
+            msg+='✅ Response sent';
             break;
           default:
             msg+='Event: '+type;

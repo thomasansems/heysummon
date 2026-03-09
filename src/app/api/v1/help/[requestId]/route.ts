@@ -44,8 +44,6 @@ export async function GET(
       where: { id: requestId },
       data: { status: "expired" },
     });
-    try {
-    } catch { /* non-fatal */ }
     return NextResponse.json({
       requestId: helpRequest.id,
       refCode: helpRequest.refCode,

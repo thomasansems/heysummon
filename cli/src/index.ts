@@ -5,7 +5,9 @@ import { status } from "./commands/status";
 import { update } from "./commands/update";
 import { uninstall } from "./commands/uninstall";
 
-const VERSION = "0.1.0";
+// Version is injected from package.json at build time
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const VERSION: string = (require("../package.json") as { version: string }).version;
 
 function printHelp(): void {
   console.log(`

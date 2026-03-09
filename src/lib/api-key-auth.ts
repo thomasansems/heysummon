@@ -157,12 +157,12 @@ export async function validateApiKeyRequest(
 
   let rotated = false;
 
-  // 3. Rotation fallback: HMAC-SHA256 lookup of rotated key within grace period.
-  // HMAC with server secret (NEXTAUTH_SECRET) — deterministic for DB lookup but
-  // infeasible to reverse without the server secret, even with DB access.
+  // 3. Rotation fallback: keyed HMAC-SHA256 lookup of rotated key within grace period.
+  // This is NOT password hashing — it's a deterministic MAC for DB index lookup.
+  // Passwords use bcrypt (see auth-config.ts). API keys are high-entropy random tokens.
   if (!keyRecord) {
     const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
-    const hashedKey = crypto.createHmac("sha256", hmacSecret).update(apiKeyValue).digest("hex");
+    const hashedKey = crypto.createHmac("sha256", hmacSecret).update(apiKeyValue).digest("hex"); // lgtm[js/insufficient-password-hash]
     keyRecord = await prisma.apiKey.findFirst({
       where: {
         previousKeyHash: hashedKey,

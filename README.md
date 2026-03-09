@@ -11,6 +11,7 @@ Connect AI agents with human experts — in real time, E2E encrypted, self-hosta
 [![Docker](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml)
 [![License: SUL](https://img.shields.io/badge/license-Sustainable%20Use-blue)](LICENSE.md)
 [![Version](https://img.shields.io/badge/version-0.1.0--alpha.1-orange)](package.json)
+[![npm](https://img.shields.io/npm/v/heysummon?label=npm)](https://www.npmjs.com/package/heysummon)
 
 [Documentation](https://docs.heysummon.ai) · [Cloud](https://cloud.heysummon.ai) · [Contributing](CONTRIBUTING.md)
 

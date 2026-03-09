@@ -54,12 +54,20 @@ jobs:
           generate_release_notes: true
 
       # Build and publish CLI to npm
+      - name: Install CLI dependencies
+        working-directory: cli
+        run: npm ci
+
       - name: Build CLI
         working-directory: cli
         run: |
-          npm run build
           VERSION=${GITHUB_REF#refs/tags/v}
           npm version $VERSION --no-git-tag-version
+          npm run build
+
+      - name: Smoke test CLI
+        working-directory: cli
+        run: node dist/index.js --version
 
       - name: Publish to npm
         working-directory: cli

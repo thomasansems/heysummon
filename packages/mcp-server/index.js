@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global process, console, fetch, setTimeout, Buffer */
+/* global process, console, fetch, setTimeout */
 /**
  * HeySummon MCP Server for Claude Code
  * Exposes a `heysummon` tool that lets Claude Code request human expert help inline.

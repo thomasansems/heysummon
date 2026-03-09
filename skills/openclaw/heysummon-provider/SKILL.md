@@ -60,3 +60,29 @@ When the user replies to a 🦞 notification, parse the refCode (HS-XXXX) from t
 | `responded` | Provider sent a response |
 | `closed` | Closed by either party |
 | `expired` | No response within 72 hours |
+
+## Provider API Endpoints
+
+All endpoints require `x-api-key: hs_prov_...` header.
+
+### Client Management
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/v1/provider/clients` | List all client keys |
+| POST | `/api/v1/provider/clients` | Create new client key |
+| DELETE | `/api/v1/provider/clients/:id` | Revoke client key |
+
+### Message Monitoring
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/v1/provider/stats` | Pending count, open requests, total messages |
+| GET | `/api/v1/provider/requests?status=pending` | List pending requests |
+
+### Provider Management
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/v1/provider/profile` | Get provider profile |
+| PATCH | `/api/v1/provider/profile` | Update profile settings |

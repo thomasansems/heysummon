@@ -97,10 +97,10 @@ Start the watcher:
 bash ~/clawd/skills/heysummon-provider/scripts/setup.sh
 ```
 
-Check status:
+Check watcher logs:
 
 ```bash
-pm2 logs heysummon-provider-watcher
+tail -50 ~/clawd/skills/heysummon-provider/watcher.log
 ```
 
 ---
@@ -109,5 +109,5 @@ pm2 logs heysummon-provider-watcher
 
 - **Ref codes are 8 chars** — always `HS-XXXXXXXX`
 - **Reply quotes work** — Telegram's "Reply" feature auto-detects the ref code
-- **Response is instant** — the agent receives your answer via SSE in real time
+- **Response is fast** — the agent receives your answer on the next poll cycle
 - **Dashboard is always there** — fallback for when notifications don't work

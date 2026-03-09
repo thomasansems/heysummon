@@ -1,6 +1,6 @@
 # Docker
 
-The recommended way to self-host HeySummon. Includes the Guard proxy, Next.js platform, PostgreSQL, and Mercure.
+The recommended way to self-host HeySummon. Includes the Guard proxy, Next.js platform, and PostgreSQL.
 
 ---
 
@@ -22,7 +22,7 @@ curl -fsSL https://raw.githubusercontent.com/thomasansems/heysummon/main/install
 This script:
 1. Creates `~/.heysummon-docker/`
 2. Downloads `docker-compose.yml`
-3. Generates `NEXTAUTH_SECRET`, `MERCURE_JWT_SECRET`, and `DB_PASSWORD` automatically
+3. Generates `NEXTAUTH_SECRET` and `DB_PASSWORD` automatically
 4. Writes a ready-to-use `.env`
 5. Runs `docker compose up -d`
 
@@ -59,11 +59,12 @@ Guard (:3445)          — Ed25519 request signing, rate limiting
     ▼ (internal network only)
 Platform (Next.js)     — API, dashboard, auth
     │
-    ├──▶ PostgreSQL     — data storage
-    └──▶ Mercure        — real-time SSE hub
+    └──▶ PostgreSQL     — data storage
 ```
 
 **Guard** is the single entry point. Platform has no exposed ports — it's only reachable from Guard on the internal Docker network.
+
+Providers poll `GET /api/v1/events/pending` every 30 seconds for new events.
 
 ---
 
@@ -107,7 +108,6 @@ docker compose -f docker-compose.dev.yml --profile debug up -d
 |----------|----------|---------|-------------|
 | `NEXTAUTH_SECRET` | ✅ | — | Random 32-byte hex string |
 | `NEXTAUTH_URL` | ✅ | — | Public URL of your instance |
-| `MERCURE_JWT_SECRET` | ✅ | — | Random 32-byte hex string |
 | `DB_PASSWORD` | ❌ | `heysummon_dev` | PostgreSQL password |
 | `GUARD_PORT` | ❌ | `3445` | External port for Guard |
 | `ALLOW_REGISTRATION` | ❌ | `false` | Allow multiple users to register |
@@ -139,9 +139,8 @@ docker compose -f docker-compose.dev.yml up -d
 ## Logs
 
 ```bash
-docker compose logs -f app       # Platform logs
-docker compose logs -f heysummon-guard   # Guard logs
-docker compose logs -f mercure   # Mercure logs
+docker compose logs -f app             # Platform logs
+docker compose logs -f heysummon-guard # Guard logs
 ```
 
 ---

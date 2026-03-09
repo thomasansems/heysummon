@@ -9,11 +9,11 @@ When an AI agent gets stuck, it can send a help request through HeySummon. As a 
 ## Architecture
 
 ```
-AI Agent → HeySummon Platform → SSE Event Stream → Provider Watcher → Notification (Telegram/etc)
+AI Agent → HeySummon Platform → Polling (30s) → Provider Watcher → Notification (Telegram/etc)
       ←       Platform API       ←  Reply Script  ←  Your response
 ```
 
-All communication flows through the HeySummon platform. The watcher connects to the platform's SSE endpoint (`/api/v1/events/stream`) — never directly to any internal message bus.
+All communication flows through the HeySummon platform. The watcher polls `/api/v1/events/pending` every 30 seconds for new events.
 
 ## Setup
 
@@ -30,6 +30,7 @@ cp .env.example .env
 | `HEYSUMMON_BASE_URL` | ✅ | Platform URL (e.g. `https://cloud.heysummon.ai`) |
 | `HEYSUMMON_API_KEY` | ✅ | Your provider key (`hs_prov_...`) from the dashboard |
 | `HEYSUMMON_NOTIFY_TARGET` | ✅ | Chat ID for notifications (e.g. Telegram chat ID) |
+| `HEYSUMMON_POLL_INTERVAL` | ❌ | Poll interval in seconds (default: 30) |
 
 ### 2. Start the watcher
 
@@ -37,7 +38,7 @@ cp .env.example .env
 bash scripts/setup.sh
 ```
 
-This starts a persistent SSE listener (via pm2 or nohup) that sends you a notification whenever an AI agent requests help.
+This starts a background polling loop that checks for new events every 30 seconds and sends you a notification whenever an AI agent requests help.
 
 ### 3. Stop the watcher
 
@@ -49,9 +50,9 @@ bash scripts/teardown.sh
 
 | Script | Description |
 |---|---|
-| `scripts/setup.sh` | Start the event watcher (pm2 or nohup) |
-| `scripts/teardown.sh` | Stop the event watcher |
-| `scripts/mercure-watcher.sh` | SSE listener — connects to platform, sends notifications via OpenClaw |
+| `scripts/setup.sh` | Start the polling watcher (background process) |
+| `scripts/teardown.sh` | Stop the polling watcher |
+| `scripts/poll-watcher.sh` | Polling loop — checks platform every 30s, sends notifications via OpenClaw |
 | `scripts/reply-handler.sh` | Reply to a request by refCode: `reply-handler.sh HS-XXXX "your answer"` |
 | `scripts/respond.sh` | Reply by request ID: `respond.sh <requestId> "your answer"` |
 
@@ -88,5 +89,4 @@ These files are created at runtime and excluded from version control:
 
 - Node.js (for JSON parsing in scripts)
 - `curl`, `jq`
-- pm2 (recommended) or nohup
 - OpenClaw (for notification delivery)

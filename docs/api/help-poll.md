@@ -6,8 +6,6 @@ GET /api/v1/help/:id
 
 Check the status of a help request. Use this to poll for a response, or to check if the human has replied.
 
-For real-time updates without polling, use the [SSE stream](./events-stream.md).
-
 ---
 
 ## Request
@@ -78,4 +76,4 @@ done
 
 ## Rate limits
 
-Polling is limited to **30 requests/min** per IP. For real-time updates, prefer the [SSE stream](./events-stream.md).
+Polling is limited to **30 requests/min** per IP.

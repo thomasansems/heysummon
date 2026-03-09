@@ -1,50 +1,5 @@
 # Troubleshooting
 
-## Real-time Server (Mercure)
-
-### Status: Disconnected / "fetch failed"
-
-The dashboard shows a red banner when it can't reach the Mercure hub.
-
-**Common causes:**
-
-| Cause | Solution |
-|-------|----------|
-| Mercure process stopped/crashed | Restart it (see below) |
-| Wrong `MERCURE_HUB_URL` | Check `.env` / `.env.local` — default: `http://localhost:3426/.well-known/mercure` |
-| Port conflict | Another service using port 3100 |
-| Firewall blocking internal traffic | Ensure localhost:3426 is reachable from the app |
-
-**Restart Mercure:**
-
-```bash
-# Docker setup
-docker compose restart mercure
-
-# NPX / self-hosted setup (pm2)
-pm2 restart mercure
-
-# Manual start (development)
-./start-mercure.sh
-```
-
-**Verify it's running:**
-
-```bash
-curl http://localhost:3426/healthz
-# Expected: 200 OK
-```
-
-### Status: Unhealthy / HTTP 401
-
-Mercure is running but rejecting requests. This usually means:
-- Anonymous subscriptions are disabled (expected in production)
-- The health check is using the wrong endpoint
-
-The dashboard health check uses `/healthz` which doesn't require authentication. If you see 401, your Mercure version may not support `/healthz` — update to the latest Mercure release.
-
----
-
 ## Dashboard: 500 Internal Server Error
 
 ### "Table does not exist"
@@ -65,12 +20,26 @@ If you have both `.env` and `.env.local`, Next.js loads `.env` first. Make sure 
 
 ---
 
-## SSE Notifications Not Delivered
+## Provider Not Receiving Notifications
 
-1. Check Mercure is running: `curl http://localhost:3426/healthz`
-2. Check `MERCURE_JWT_SECRET` matches between app and Mercure config
-3. Check browser console for SSE connection errors
-4. For Docker: ensure Mercure is on the `backend` network
+1. Check the provider polling watcher is running: `ps aux | grep poll-watcher`
+2. Verify `HEYSUMMON_API_KEY` starts with `hs_prov_` (provider key)
+3. Check OpenClaw is running: `curl http://localhost:18789/health`
+4. Check watcher logs: `tail -50 watcher.log` (in the provider skill directory)
+5. Restart watcher: `bash scripts/teardown.sh && bash scripts/setup.sh`
+
+---
+
+## Provider Shows as Inactive on Dashboard
+
+The dashboard monitors provider polling activity. If the provider hasn't polled in the last 60 seconds, it shows as inactive.
+
+**Common causes:**
+- Watcher process crashed or was stopped
+- Network connectivity issues
+- Wrong `HEYSUMMON_BASE_URL` in `.env`
+
+**Fix:** Restart the watcher: `bash scripts/setup.sh`
 
 ---
 

@@ -9,7 +9,7 @@ HeySummon uses two types of API keys with different access levels.
 | Type | Prefix | Used by | Can do |
 |------|--------|---------|--------|
 | **Client key** | `hs_live_` | AI agents, SDKs | Submit requests, poll responses, send messages |
-| **Provider key** | `hs_prov_` | Watcher scripts, integrations | Receive SSE events, send provider responses, look up requests by ref code |
+| **Provider key** | `hs_prov_` | Watcher scripts, integrations | Poll for events, send provider responses, look up requests by ref code |
 
 ---
 
@@ -71,7 +71,7 @@ Format: single IPs or CIDR ranges:
 | `help:write` | Submit help requests |
 | `help:read` | Poll request status |
 | `message:write` | Send messages |
-| `stream:read` | Connect to SSE stream |
+| `events:read` | Poll for pending events |
 
 ---
 

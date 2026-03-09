@@ -1,10 +1,10 @@
-# SSE event stream
+# Poll for events
 
 ```
-GET /api/v1/events/stream
+GET /api/v1/events/pending
 ```
 
-Real-time Server-Sent Events stream. Connect once and receive push notifications when requests are created, updated, or responded to — no polling needed.
+Poll for undelivered events. The provider watcher calls this endpoint every 30 seconds to check for new help requests and status changes.
 
 ---
 
@@ -20,21 +20,22 @@ x-api-key: hs_prov_abc123...    # provider key
 
 ## Response
 
-The connection stays open and streams events as they occur:
-
+```json
+{
+  "events": [
+    {
+      "type": "new_request",
+      "requestId": "cmxxx...",
+      "refCode": "HS-A1B2C3D4",
+      "question": "Should I proceed?",
+      "createdAt": "2026-03-09T12:00:00.000Z",
+      "expiresAt": "2026-03-12T12:00:00.000Z"
+    }
+  ]
+}
 ```
-: connected — listening on 1 topic(s)
 
-:
-
-data: {"type":"new_request","requestId":"cmxxx...","refCode":"HS-A1B2C3D4","question":"Should I proceed?"}
-
-:
-
-data: {"type":"status_change","requestId":"cmxxx...","refCode":"HS-A1B2C3D4","status":"responded"}
-```
-
-Heartbeat (`:`) lines are sent periodically to keep the connection alive.
+Returns an empty `events` array when there are no pending events.
 
 ---
 
@@ -43,46 +44,40 @@ Heartbeat (`:`) lines are sent periodically to keep the connection alive.
 | Event | When it fires | Payload |
 |-------|--------------|---------|
 | `new_request` | A new help request comes in | `requestId`, `refCode`, `question` |
-| `status_change` | Request status changes | `requestId`, `refCode`, `status` |
-| `new_message` | A message is sent in a conversation | `requestId`, `refCode`, `messageId`, `from` |
 
 ---
 
-## Example (curl)
+## Acknowledge delivery
+
+After processing an event, acknowledge it so it won't be returned again:
+
+```
+POST /api/v1/events/ack/:requestId
+```
+
+### Headers
+
+```
+x-api-key: hs_prov_abc123...
+```
+
+---
+
+## Example (bash polling loop)
 
 ```bash
-curl -N http://localhost:3425/api/v1/events/stream \
-  -H "x-api-key: hs_prov_abc123..."
+while true; do
+  RESULT=$(curl -s http://localhost:3425/api/v1/events/pending \
+    -H "x-api-key: hs_prov_abc123...")
+
+  echo "$RESULT" | jq -r '.events[] | "[\(.refCode)] \(.question)"'
+
+  sleep 30
+done
 ```
 
 ---
 
-## Example (JavaScript)
+## Rate limits
 
-```javascript
-const es = new EventSource('/api/v1/events/stream', {
-  headers: { 'x-api-key': 'hs_prov_abc123...' }
-});
-
-es.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-
-  if (data.type === 'new_request') {
-    console.log(`New request: [${data.refCode}] ${data.question}`);
-  }
-
-  if (data.type === 'status_change' && data.status === 'responded') {
-    console.log(`Request ${data.refCode} was answered`);
-  }
-};
-
-es.onerror = () => {
-  console.log('Disconnected — reconnecting...');
-};
-```
-
----
-
-## Reconnection
-
-The SSE stream may disconnect after a period of inactivity. Always implement reconnection logic. On reconnect, any events fired during the gap are not replayed — poll pending requests after reconnecting to catch up.
+Polling is limited to **30 requests/min** per IP.

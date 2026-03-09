@@ -99,7 +99,7 @@ export default function ProviderSettingsPage() {
 
   if (!provider) {
     return (
-      <div className="flex items-center justify-center py-12 text-sm text-[#666]">
+      <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
         Loading…
       </div>
     );
@@ -116,20 +116,20 @@ export default function ProviderSettingsPage() {
       <div className="mb-6 flex items-center gap-3">
         <button
           onClick={() => router.push("/dashboard/providers")}
-          className="text-sm text-[#666] hover:text-black"
+          className="text-sm text-muted-foreground hover:text-foreground"
         >
           ← Providers
         </button>
-        <h1 className="text-2xl font-semibold text-black">
+        <h1 className="text-2xl font-semibold text-foreground">
           {provider.name} — Settings
         </h1>
       </div>
 
       <div className="space-y-6">
         {/* Timezone — community */}
-        <div className="rounded-lg border border-[#eaeaea] bg-white p-5">
-          <h2 className="mb-1 text-sm font-medium text-black">Timezone</h2>
-          <p className="mb-3 text-xs text-[#666]">
+        <div className="rounded-lg border border-border bg-card p-5">
+          <h2 className="mb-1 text-sm font-medium text-foreground">Timezone</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
             Used for scheduling and display.
           </p>
           <input
@@ -137,12 +137,12 @@ export default function ProviderSettingsPage() {
             placeholder="Filter timezones…"
             value={timezoneFilter}
             onChange={(e) => setTimezoneFilter(e.target.value)}
-            className="mb-2 w-full max-w-sm rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+            className="mb-2 w-full max-w-sm rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
           />
           <select
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            className="w-full max-w-sm rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+            className="w-full max-w-sm rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
           >
             {filteredTimezones.map((tz) => (
               <option key={tz} value={tz}>
@@ -153,11 +153,11 @@ export default function ProviderSettingsPage() {
         </div>
 
         {/* Response Tagline */}
-        <div className="rounded-lg border border-[#eaeaea] bg-white p-5">
+        <div className="rounded-lg border border-border bg-card p-5">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-medium text-black">Response Tagline</h2>
-              <p className="mt-0.5 text-xs text-[#666]">
+              <h2 className="text-sm font-medium text-foreground">Response Tagline</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 Optionally append a tagline to your responses (max 160 chars).
               </p>
             </div>
@@ -165,11 +165,11 @@ export default function ProviderSettingsPage() {
               type="button"
               onClick={() => setTaglineEnabled((v) => !v)}
               className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                taglineEnabled ? "bg-black" : "bg-[#eaeaea]"
+                taglineEnabled ? "bg-black" : "bg-muted"
               }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-card shadow ring-0 transition duration-200 ${
                   taglineEnabled ? "translate-x-4" : "translate-x-0"
                 }`}
               />
@@ -182,12 +182,12 @@ export default function ProviderSettingsPage() {
             value={tagline}
             onChange={(e) => setTagline(e.target.value)}
             disabled={!taglineEnabled}
-            className="w-full rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black disabled:bg-[#f9f9f9] disabled:text-[#999]"
+            className="w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring disabled:bg-muted disabled:text-muted-foreground"
           />
-          <p className="mt-1 text-right text-xs text-[#999]">{tagline.length}/160</p>
+          <p className="mt-1 text-right text-xs text-muted-foreground">{tagline.length}/160</p>
           {taglineEnabled && tagline && (
-            <div className="mt-3 rounded-md border border-[#eaeaea] bg-[#f9f9f9] p-3 text-xs text-[#666]">
-              <span className="font-medium text-black">Preview:</span>
+            <div className="mt-3 rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Preview:</span>
               <pre className="mt-1 whitespace-pre-wrap font-sans">Your response here…{"\n\n---\n"}{tagline}</pre>
             </div>
           )}

@@ -97,11 +97,11 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-black">Settings</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-foreground">Settings</h1>
 
       {/* Profile */}
-      <div className="mb-6 rounded-lg border border-[#eaeaea] bg-white p-6">
-        <h2 className="mb-4 text-sm font-medium text-black">Profile</h2>
+      <div className="mb-6 rounded-lg border border-border bg-card p-6">
+        <h2 className="mb-4 text-sm font-medium text-foreground">Profile</h2>
         <div className="flex items-center gap-4">
           {session?.user?.image ? (
             <img
@@ -110,15 +110,15 @@ export default function SettingsPage() {
               className="h-12 w-12 rounded-full"
             />
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#eaeaea] text-lg font-medium text-[#666]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-medium text-foreground">
               {session?.user?.name?.[0] || "?"}
             </div>
           )}
           <div>
-            <p className="font-medium text-black">
+            <p className="font-medium text-foreground">
               {session?.user?.name || "—"}
             </p>
-            <p className="text-sm text-[#666]">
+            <p className="text-sm text-muted-foreground">
               {session?.user?.email || "—"}
             </p>
           </div>
@@ -126,17 +126,17 @@ export default function SettingsPage() {
       </div>
 
       {/* Notifications */}
-      <div className="mb-6 rounded-lg border border-[#eaeaea] bg-white p-6">
-        <h2 className="mb-4 text-sm font-medium text-black">Notifications</h2>
+      <div className="mb-6 rounded-lg border border-border bg-card p-6">
+        <h2 className="mb-4 text-sm font-medium text-foreground">Notifications</h2>
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm text-[#666]">
+            <label className="mb-1 block text-sm text-muted-foreground">
               Notification Preference
             </label>
             <select
               value={notificationPref}
               onChange={(e) => setNotificationPref(e.target.value)}
-              className="rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+              className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
             >
               <option value="email">Email</option>
               <option value="telegram">Telegram</option>
@@ -146,14 +146,14 @@ export default function SettingsPage() {
           {(notificationPref === "telegram" ||
             notificationPref === "both") && (
             <div>
-              <label className="mb-1 block text-sm text-[#666]">
+              <label className="mb-1 block text-sm text-muted-foreground">
                 Telegram Chat ID
               </label>
               <input
                 value={telegramChatId}
                 onChange={(e) => setTelegramChatId(e.target.value)}
                 placeholder="Your Telegram chat ID"
-                className="w-full max-w-xs rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                className="w-full max-w-xs rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
               />
             </div>
           )}
@@ -170,9 +170,9 @@ export default function SettingsPage() {
 
       {/* Provider IP Security */}
       {providerProfiles.length > 0 && (
-        <div className="mt-6 rounded-lg border border-[#eaeaea] bg-white p-6">
-          <h2 className="mb-1 text-sm font-medium text-black">Provider IP Security</h2>
-          <p className="mb-4 text-xs text-[#666]">
+        <div className="mt-6 rounded-lg border border-border bg-card p-6">
+          <h2 className="mb-1 text-sm font-medium text-foreground">Provider IP Security</h2>
+          <p className="mb-4 text-xs text-muted-foreground">
             Manage which IP addresses can use your provider keys. New IPs are automatically held as &quot;pending&quot; until you approve them.
           </p>
 
@@ -180,13 +180,13 @@ export default function SettingsPage() {
             <div key={profile.id} className="mb-4 last:mb-0">
               <h3 className="mb-2 text-sm font-medium text-[#333]">
                 {profile.name}{" "}
-                <span className="font-mono text-xs text-[#999]">
+                <span className="font-mono text-xs text-muted-foreground">
                   {profile.key.slice(0, 12)}...
                 </span>
               </h3>
 
               {profile.ipEvents.length === 0 ? (
-                <p className="text-xs text-[#999]">
+                <p className="text-xs text-muted-foreground">
                   No IP events yet. The first request will auto-bind.
                 </p>
               ) : (
@@ -194,22 +194,22 @@ export default function SettingsPage() {
                   {profile.ipEvents.map((evt) => (
                     <div
                       key={evt.id}
-                      className="flex items-center justify-between rounded-md border border-[#eaeaea] px-3 py-2"
+                      className="flex items-center justify-between rounded-md border border-border px-3 py-2"
                     >
                       <div className="flex items-center gap-3">
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                             evt.status === "allowed"
-                              ? "bg-green-50 text-green-700"
+                              ? "bg-green-950/60 text-green-300"
                               : evt.status === "blacklisted"
-                              ? "bg-red-50 text-red-700"
-                              : "bg-amber-50 text-amber-700"
+                              ? "bg-red-950/60 text-red-300"
+                              : "bg-amber-950/60 text-amber-300"
                           }`}
                         >
                           {evt.status}
                         </span>
-                        <span className="font-mono text-sm text-black">{evt.ip}</span>
-                        <span className="text-xs text-[#999]">
+                        <span className="font-mono text-sm text-foreground">{evt.ip}</span>
+                        <span className="text-xs text-muted-foreground">
                           {evt.attempts > 1 && `${evt.attempts} attempts · `}
                           Last seen {new Date(evt.lastSeen).toLocaleString()}
                         </span>
@@ -218,7 +218,7 @@ export default function SettingsPage() {
                         {evt.status !== "allowed" && (
                           <button
                             onClick={() => updateIpStatus(evt.id, "allowed")}
-                            className="rounded border border-green-200 px-2 py-1 text-xs text-green-700 hover:bg-green-50"
+                            className="rounded border border-green-800 px-2 py-1 text-xs text-green-400 hover:bg-green-950/40"
                           >
                             Allow
                           </button>
@@ -226,14 +226,14 @@ export default function SettingsPage() {
                         {evt.status !== "blacklisted" && (
                           <button
                             onClick={() => updateIpStatus(evt.id, "blacklisted")}
-                            className="rounded border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
+                            className="rounded border border-red-800 px-2 py-1 text-xs text-red-400 hover:bg-red-950/40"
                           >
                             Block
                           </button>
                         )}
                         <button
                           onClick={() => deleteIpEvent(evt.id)}
-                          className="rounded border border-[#eaeaea] px-2 py-1 text-xs text-[#666] hover:bg-[#fafafa]"
+                          className="rounded border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
                         >
                           Delete
                         </button>
@@ -249,26 +249,26 @@ export default function SettingsPage() {
 
       {/* Data Retention */}
       {retention && (
-        <div className="mt-6 rounded-lg border border-[#eaeaea] bg-white p-6">
-          <h2 className="mb-1 text-sm font-medium text-black">Data Retention</h2>
-          <p className="mb-4 text-xs text-[#666]">
+        <div className="mt-6 rounded-lg border border-border bg-card p-6">
+          <h2 className="mb-1 text-sm font-medium text-foreground">Data Retention</h2>
+          <p className="mb-4 text-xs text-muted-foreground">
             {retention.enabled
               ? `Auto-cleanup enabled — records older than ${retention.retentionDays} days are removed.`
               : "Auto-cleanup disabled. Set HEYSUMMON_RETENTION_DAYS in your environment to enable."}
           </p>
 
           <div className="mb-4 grid grid-cols-3 gap-3">
-            <div className="rounded-md border border-[#eaeaea] p-3 text-center">
-              <p className="text-lg font-medium text-black">{retention.stats.totalRequests}</p>
-              <p className="text-xs text-[#666]">Total requests</p>
+            <div className="rounded-md border border-border p-3 text-center">
+              <p className="text-lg font-medium text-foreground">{retention.stats.totalRequests}</p>
+              <p className="text-xs text-muted-foreground">Total requests</p>
             </div>
-            <div className="rounded-md border border-[#eaeaea] p-3 text-center">
-              <p className="text-lg font-medium text-black">{retention.stats.expiredRequests}</p>
-              <p className="text-xs text-[#666]">Expired / closed</p>
+            <div className="rounded-md border border-border p-3 text-center">
+              <p className="text-lg font-medium text-foreground">{retention.stats.expiredRequests}</p>
+              <p className="text-xs text-muted-foreground">Expired / closed</p>
             </div>
-            <div className="rounded-md border border-[#eaeaea] p-3 text-center">
-              <p className="text-lg font-medium text-black">{retention.stats.totalAuditLogs}</p>
-              <p className="text-xs text-[#666]">Audit log entries</p>
+            <div className="rounded-md border border-border p-3 text-center">
+              <p className="text-lg font-medium text-foreground">{retention.stats.totalAuditLogs}</p>
+              <p className="text-xs text-muted-foreground">Audit log entries</p>
             </div>
           </div>
 
@@ -276,7 +276,7 @@ export default function SettingsPage() {
             <button
               onClick={triggerCleanup}
               disabled={cleanupRunning}
-              className="rounded-md border border-[#eaeaea] px-3 py-1.5 text-sm text-black transition-colors hover:bg-[#fafafa] disabled:opacity-50"
+              className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:opacity-50"
             >
               {cleanupRunning ? "Cleaning up..." : cleanupDone ? "Done!" : "Run cleanup now"}
             </button>

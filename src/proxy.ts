@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Rate limiting store (in-memory, resets on restart).
- * For production, replace with Redis or similar.
+ * IP-level rate limiting for page/API routes (in-memory, Edge runtime).
+ * Edge middleware cannot access the database, so this intentionally resets on
+ * server restart. Per-key API rate limiting is DB-backed (see api-key-auth.ts).
  */
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 

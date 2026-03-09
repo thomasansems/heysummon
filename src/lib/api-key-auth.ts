@@ -24,7 +24,7 @@ setInterval(() => {
  */
 export function hashDeviceToken(token: string): string {
   const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
-  return crypto.createHmac("sha256", hmacSecret).update(token).digest("hex");
+  return crypto.createHmac("sha256", hmacSecret).update(token).digest("hex"); // lgtm [js/insufficient-password-hash] — Device tokens are high-entropy random secrets, not user passwords.
 }
 
 /**
@@ -162,7 +162,7 @@ export async function validateApiKeyRequest(
   // infeasible to reverse without the server secret, even with DB access.
   if (!keyRecord) {
     const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
-    const hashedKey = crypto.createHmac("sha256", hmacSecret).update(apiKeyValue).digest("hex");
+    const hashedKey = crypto.createHmac("sha256", hmacSecret).update(apiKeyValue).digest("hex"); // lgtm [js/insufficient-password-hash] — This is an API key lookup hash (HMAC-SHA256 with server secret), not a password hash. API keys are high-entropy random tokens, not user-chosen passwords.
     keyRecord = await prisma.apiKey.findFirst({
       where: {
         previousKeyHash: hashedKey,

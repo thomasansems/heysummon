@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
 
 interface AuditLogEntry {
   id: string;
@@ -79,6 +80,7 @@ function SuccessBadge({ success }: { success: boolean }) {
 }
 
 export default function AuditLogsPage() {
+  const { status: sessionStatus } = useSession();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -114,10 +116,13 @@ export default function AuditLogsPage() {
     [eventTypeFilter, startDate, endDate]
   );
 
+  // Wait for session before fetching — avoids race condition after login redirect
   useEffect(() => {
-    setLoading(true);
-    fetchLogs();
-  }, [fetchLogs]);
+    if (sessionStatus === "authenticated") {
+      setLoading(true);
+      fetchLogs();
+    }
+  }, [sessionStatus, fetchLogs]);
 
   useEffect(() => {
     if (autoRefresh) {

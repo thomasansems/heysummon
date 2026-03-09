@@ -3,6 +3,7 @@
 import { copyToClipboard } from "@/lib/clipboard";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 interface Stats {
   total: number;
@@ -76,10 +77,12 @@ function CopyableRefCode({ code }: { code: string | null }) {
 }
 
 export default function DashboardPage() {
+  const { status: sessionStatus } = useSession();
   const [stats, setStats] = useState<Stats | null>(null);
   const [mercureHealth, setMercureHealth] = useState<MercureHealth | null>(null);
 
   useEffect(() => {
+    if (sessionStatus !== "authenticated") return;
     fetch("/api/dashboard/stats")
       .then((r) => r.json())
       .then(setStats);

@@ -1,6 +1,6 @@
 #!/bin/bash
-# HeySummon E2E — 02: Full circle flow
-# consumer submit → provider SSE → provider reply → consumer SSE → verify
+# HeySummon E2E — 02: Full circle flow (polling-based, MCP-first)
+# consumer submit → provider polls → provider reply → consumer polls → verify
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib.sh"
@@ -13,12 +13,6 @@ echo "════════════════════════�
 # ── Submit Request (Consumer → Platform via Guard) ──
 section "Submit Request"
 QUESTION="E2E full-circle $(date +%s): What is 2+2?"
-
-# Start SSE listener for provider BEFORE submitting
-info "Starting provider SSE listener..."
-curl -sN -H "x-api-key: ${PROVIDER_KEY}" "${STREAM_URL}" > "$TMPDIR/provider-events.raw" 2>/dev/null &
-PIDS+=($!)
-sleep 2
 
 # Generate ephemeral crypto keys
 KEYS_JSON=$(generate_crypto_keys)
@@ -45,26 +39,22 @@ else
   fail "Submit failed: $SUBMIT_RESPONSE"
 fi
 
-# ── Provider receives event via SSE proxy ──
-section "Provider SSE Notification"
+# ── Provider polls for new pending request ──
+section "Provider Poll Notification"
 RECEIVED=false
 for i in $(seq 1 "$TIMEOUT"); do
-  if grep -q "$REF_CODE" "$TMPDIR/provider-events.raw" 2>/dev/null; then
+  PENDING=$(curl -s -H "x-api-key: ${PROVIDER_KEY}" "${BASE_URL}/api/v1/requests?status=pending" 2>/dev/null)
+  if echo "$PENDING" | jq -e ".requests[] | select(.refCode == \"$REF_CODE\")" > /dev/null 2>&1; then
     RECEIVED=true
     break
   fi
   sleep 1
 done
-[ "$RECEIVED" = true ] && pass "Provider received event via SSE proxy" || fail "Provider did not receive event within ${TIMEOUT}s"
+[ "$RECEIVED" = true ] && pass "Provider found request via polling" || fail "Provider did not find request within ${TIMEOUT}s"
 
 # ── Provider Reply ──
 section "Provider Reply"
 ANSWER="E2E answer: The answer is 4"
-
-# Start consumer SSE listener
-curl -sN -H "x-api-key: ${CLIENT_KEY}" "${STREAM_URL}" > "$TMPDIR/consumer-events.raw" 2>/dev/null &
-PIDS+=($!)
-sleep 1
 
 # Look up request by refCode
 LOOKUP=$(curl -s "${BASE_URL}/api/v1/requests/by-ref/${REF_CODE}" \
@@ -81,18 +71,18 @@ REPLY_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/message/${LOOKUP_ID}" \
 REPLY_OK=$(echo "$REPLY_RESPONSE" | jq -r 'if .success or .messageId or .id then "ok" else empty end' 2>/dev/null)
 [ "$REPLY_OK" = "ok" ] && pass "Provider replied: '$ANSWER'" || fail "Reply failed: $REPLY_RESPONSE"
 
-# ── Consumer receives response via SSE proxy ──
-section "Consumer SSE Response"
+# ── Consumer polls for response ──
+section "Consumer Poll Response"
 RECEIVED=false
 for i in $(seq 1 "$TIMEOUT"); do
-  if grep -q "new_message" "$TMPDIR/consumer-events.raw" 2>/dev/null || \
-     grep -q "provider" "$TMPDIR/consumer-events.raw" 2>/dev/null; then
+  MESSAGES=$(curl -s -H "x-api-key: ${CLIENT_KEY}" "${BASE_URL}/api/v1/messages/${LOOKUP_ID}" 2>/dev/null)
+  if echo "$MESSAGES" | jq -e '.messages[] | select(.from == "provider")' > /dev/null 2>&1; then
     RECEIVED=true
     break
   fi
   sleep 1
 done
-[ "$RECEIVED" = true ] && pass "Consumer received response via SSE proxy" || fail "Consumer did not receive response within ${TIMEOUT}s"
+[ "$RECEIVED" = true ] && pass "Consumer received response via polling" || fail "Consumer did not receive response within ${TIMEOUT}s"
 
 # ── Verify via API ──
 section "Request Status"

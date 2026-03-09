@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChatDisplay } from "./chat-display";
 import { ResponseForm } from "./response-form";
 import { StatusBadge } from "./status-badge";
-import { useRequestMercure } from "@/hooks/useMercure";
+
 
 interface Message {
   role: "user" | "assistant";
@@ -45,14 +45,10 @@ export function RequestDetail({ id }: { id: string }) {
 
   useEffect(() => {
     fetchRequest();
+    // Poll every 3 seconds for live message updates (replaces Mercure SSE)
+    const interval = setInterval(fetchRequest, 3000);
+    return () => clearInterval(interval);
   }, [fetchRequest]);
-
-  // Realtime updates via Mercure (new messages, closed, etc.)
-  useRequestMercure(id, useCallback((event) => {
-    if (event.type === "new_message" || event.type === "closed" || event.type === "keys_exchanged") {
-      fetchRequest();
-    }
-  }, [fetchRequest]));
 
   if (loading) {
     return (

@@ -3,7 +3,6 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encryptMessage } from "@/lib/crypto";
-import { publishToMercure } from "@/lib/mercure";
 import { validateApiKeyRequest } from "@/lib/api-key-auth";
 
 /**
@@ -45,14 +44,6 @@ export async function GET(
       where: { id: requestId },
       data: { status: "expired" },
     });
-    try {
-      await publishToMercure(`/heysummon/providers/${helpRequest.expertId}`, {
-        type: "status_change",
-        requestId: helpRequest.id,
-        refCode: helpRequest.refCode,
-        status: "expired",
-      });
-    } catch { /* non-fatal */ }
     return NextResponse.json({
       requestId: helpRequest.id,
       refCode: helpRequest.refCode,

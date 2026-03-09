@@ -30,9 +30,9 @@ const typeLabels: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    connected: "bg-green-50 text-green-700",
+    connected: "bg-green-950/60 text-green-300",
     disconnected: "bg-zinc-100 text-zinc-600",
-    error: "bg-red-50 text-red-700",
+    error: "bg-red-950/60 text-red-300",
   };
   return (
     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${styles[status] || styles.disconnected}`}>
@@ -75,12 +75,12 @@ export default function ChannelsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-black">Channels</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Channels</h1>
       </div>
 
       {/* Connect a channel */}
       <div className="mb-6">
-        <h2 className="mb-3 text-sm font-medium text-[#666]">Connect a channel</h2>
+        <h2 className="mb-3 text-sm font-medium text-muted-foreground">Connect a channel</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {[
             { type: "openclaw", icon: "/icons/openclaw.svg", label: "OpenClaw", enabled: true },
@@ -93,25 +93,25 @@ export default function ChannelsPage() {
               key={ch.type}
               href={ch.enabled ? "/dashboard/channels/new" : "#"}
               onClick={(e) => !ch.enabled && e.preventDefault()}
-              className={`flex items-center gap-2.5 rounded-lg border border-[#eaeaea] bg-white px-4 py-3 transition-colors ${
+              className={`flex items-center gap-2.5 rounded-lg border border-border bg-card px-4 py-3 transition-colors ${
                 ch.enabled ? "hover:border-black" : "cursor-default opacity-50"
               }`}
             >
               <img src={ch.icon} alt={ch.label} className="h-7 w-7 rounded" />
               <div>
-                <span className="text-sm font-medium text-black">{ch.label}</span>
-                {!ch.enabled && <p className="text-[10px] text-[#999]">Coming soon</p>}
+                <span className="text-sm font-medium text-foreground">{ch.label}</span>
+                {!ch.enabled && <p className="text-[10px] text-muted-foreground">Coming soon</p>}
               </div>
             </Link>
           ))}
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         {loading ? (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+              <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Name</th>
                 <th className="px-4 py-2.5 font-medium">Type</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
@@ -122,40 +122,40 @@ export default function ChannelsPage() {
             </thead>
             <tbody>
               {[1, 2, 3].map((i) => (
-                <tr key={i} className="border-b border-[#eaeaea] animate-pulse">
+                <tr key={i} className="border-b border-border animate-pulse">
                   <td className="px-4 py-2.5">
-                    <div className="h-4 w-28 rounded bg-[#eaeaea]"></div>
+                    <div className="h-4 w-28 rounded bg-muted"></div>
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1.5">
-                      <div className="h-5 w-5 rounded bg-[#eaeaea]"></div>
-                      <div className="h-4 w-20 rounded bg-[#eaeaea]"></div>
+                      <div className="h-5 w-5 rounded bg-muted"></div>
+                      <div className="h-4 w-20 rounded bg-muted"></div>
                     </div>
                   </td>
                   <td className="px-4 py-2.5">
-                    <div className="h-5 w-24 rounded-full bg-[#eaeaea]"></div>
+                    <div className="h-5 w-24 rounded-full bg-muted"></div>
                   </td>
                   <td className="px-4 py-2.5">
-                    <div className="h-4 w-24 rounded bg-[#eaeaea]"></div>
+                    <div className="h-4 w-24 rounded bg-muted"></div>
                   </td>
                   <td className="px-4 py-2.5">
-                    <div className="h-4 w-20 rounded bg-[#eaeaea]"></div>
+                    <div className="h-4 w-20 rounded bg-muted"></div>
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <div className="ml-auto h-4 w-32 rounded bg-[#eaeaea]"></div>
+                    <div className="ml-auto h-4 w-32 rounded bg-muted"></div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : channels.length === 0 ? (
-          <div className="p-8 text-center text-sm text-[#666]">
+          <div className="p-8 text-center text-sm text-muted-foreground">
             No channels yet. Create one to connect an external messaging platform.
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+              <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Name</th>
                 <th className="px-4 py-2.5 font-medium">Type</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
@@ -168,15 +168,15 @@ export default function ChannelsPage() {
               {channels.map((ch) => (
                 <tr
                   key={ch.id}
-                  className="border-b border-[#eaeaea] last:border-0"
+                  className="border-b border-border last:border-0"
                 >
-                  <td className="px-4 py-2.5 font-medium text-black">
+                  <td className="px-4 py-2.5 font-medium text-foreground">
                     {ch.name}
                   </td>
                   <td className="px-4 py-2.5">
                     <span className="inline-flex items-center gap-1.5">
                       <img src={typeIcons[ch.type] || "/icons/openclaw.svg"} alt={ch.type} className="h-5 w-5 rounded" />
-                      <span className="text-[#666]">{typeLabels[ch.type] || ch.type}</span>
+                      <span className="text-muted-foreground">{typeLabels[ch.type] || ch.type}</span>
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
@@ -187,10 +187,10 @@ export default function ChannelsPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
+                  <td className="px-4 py-2.5 text-muted-foreground">
                     {ch.profile.name}
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
+                  <td className="px-4 py-2.5 text-muted-foreground">
                     {new Date(ch.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-2.5 text-right">
@@ -204,7 +204,7 @@ export default function ChannelsPage() {
                       {ch.isActive ? (
                         <button
                           onClick={() => toggleChannel(ch.id, false)}
-                          className="text-xs text-red-500 hover:text-red-700"
+                          className="text-xs text-red-500 hover:text-red-400"
                         >
                           Deactivate
                         </button>
@@ -218,7 +218,7 @@ export default function ChannelsPage() {
                       )}
                       <button
                         onClick={() => deleteChannel(ch.id, ch.name)}
-                        className="text-base text-black hover:text-red-600"
+                        className="text-base text-foreground hover:text-red-600"
                         title="Delete"
                       >
                         ✕

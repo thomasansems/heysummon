@@ -118,16 +118,16 @@ export default function NewChannelPage() {
       <div className="mb-6 flex items-center gap-3">
         <button
           onClick={() => (step === 2 ? setStep(1) : router.push("/dashboard/channels"))}
-          className="text-sm text-[#666] hover:text-black"
+          className="text-sm text-muted-foreground hover:text-foreground"
         >
           {step === 2 ? "← Back" : "← Channels"}
         </button>
-        <h1 className="text-2xl font-semibold text-black">New Channel</h1>
+        <h1 className="text-2xl font-semibold text-foreground">New Channel</h1>
       </div>
 
       {step === 1 && (
         <div>
-          <p className="mb-4 text-sm text-[#666]">
+          <p className="mb-4 text-sm text-muted-foreground">
             Choose the type of channel you want to connect.
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -136,7 +136,7 @@ export default function NewChannelPage() {
                 key={ct.label}
                 onClick={() => handleTypeSelect(ct.type)}
                 disabled={ct.disabled}
-                className={`rounded-lg border border-[#eaeaea] bg-white p-5 text-left transition-colors ${
+                className={`rounded-lg border border-border bg-card p-5 text-left transition-colors ${
                   ct.disabled
                     ? "cursor-not-allowed opacity-50"
                     : "hover:border-black"
@@ -144,9 +144,9 @@ export default function NewChannelPage() {
               >
                 <div className="mb-2 flex items-center gap-2">
                   <img src={ct.icon} alt={ct.label} className="h-8 w-8 rounded" />
-                  <span className="text-sm font-medium text-black">{ct.label}</span>
+                  <span className="text-sm font-medium text-foreground">{ct.label}</span>
                 </div>
-                <p className="text-xs text-[#666]">{ct.description}</p>
+                <p className="text-xs text-muted-foreground">{ct.description}</p>
               </button>
             ))}
           </div>
@@ -155,12 +155,12 @@ export default function NewChannelPage() {
 
       {step === 2 && selectedType === "openclaw" && (
         <div className="max-w-md space-y-4">
-          <div className="rounded-lg border border-[#eaeaea] bg-white p-5">
+          <div className="rounded-lg border border-border bg-card p-5">
             <div className="mb-3 flex items-center gap-2">
               <img src="/icons/openclaw.svg" alt="OpenClaw" className="h-8 w-8 rounded" />
-              <h2 className="text-sm font-medium text-black">OpenClaw Setup</h2>
+              <h2 className="text-sm font-medium text-foreground">OpenClaw Setup</h2>
             </div>
-            <p className="mb-4 text-sm text-[#666]">
+            <p className="mb-4 text-sm text-muted-foreground">
               OpenClaw channels are configured through the OpenClaw agent itself — no manual setup needed here.
               Follow the guide to connect your OpenClaw agent to HeySummon.
             </p>
@@ -178,13 +178,13 @@ export default function NewChannelPage() {
 
       {step === 2 && selectedType && selectedType !== "openclaw" && (
         <div className="max-w-md space-y-4">
-          <div className="rounded-lg border border-[#eaeaea] bg-white p-5">
-            <h2 className="mb-4 text-sm font-medium text-black">
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h2 className="mb-4 text-sm font-medium text-foreground">
               Configure {selectedType === "telegram" ? "Telegram" : selectedType} Channel
             </h2>
 
             {profiles.length === 0 ? (
-              <p className="text-sm text-[#666]">
+              <p className="text-sm text-muted-foreground">
                 No user profiles yet.{" "}
                 <a href="/dashboard/providers" className="text-violet-600 hover:text-violet-800">
                   Create one
@@ -195,13 +195,13 @@ export default function NewChannelPage() {
               <div className="space-y-3">
                 {profiles.length > 1 && (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-[#666]">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
                       Profile
                     </label>
                     <select
                       value={selectedProfileId}
                       onChange={(e) => setSelectedProfileId(e.target.value)}
-                      className="w-full rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                      className="w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                     >
                       <option value="">Select profile...</option>
                       {profiles.map((p) => (
@@ -212,29 +212,29 @@ export default function NewChannelPage() {
                 )}
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-[#666]">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
                     Channel Name
                   </label>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Support Bot"
-                    className="w-full rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                    className="w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                   />
                 </div>
 
                 {selectedType === "telegram" && (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-[#666]">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
                       Bot Token
                     </label>
                     <input
                       value={botToken}
                       onChange={(e) => setBotToken(e.target.value)}
                       placeholder="123456789:ABCdef..."
-                      className="w-full rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 font-mono text-sm text-black outline-none focus:border-black"
+                      className="w-full rounded-md border border-border bg-card px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
                     />
-                    <p className="mt-1 text-xs text-[#666]">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Get a bot token from{" "}
                       <a
                         href="https://t.me/BotFather"
@@ -263,7 +263,7 @@ export default function NewChannelPage() {
                   </button>
                   <button
                     onClick={() => router.push("/dashboard/channels")}
-                    className="rounded-md border border-[#eaeaea] px-3 py-1.5 text-sm text-[#666]"
+                    className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground"
                   >
                     Cancel
                   </button>

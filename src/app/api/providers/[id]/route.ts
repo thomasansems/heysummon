@@ -25,6 +25,8 @@ export async function GET(
       quietHoursStart: true,
       quietHoursEnd: true,
       digestTime: true,
+      tagline: true,
+      taglineEnabled: true,
       userId: true,
     },
   });
@@ -61,6 +63,8 @@ export async function PATCH(
   if (body.name !== undefined) data.name = body.name;
   if (body.isActive !== undefined) data.isActive = body.isActive;
   if (body.timezone !== undefined) data.timezone = body.timezone;
+  if (body.tagline !== undefined) data.tagline = (body.tagline as string).slice(0, 160) || null;
+  if (body.taglineEnabled !== undefined) data.taglineEnabled = body.taglineEnabled;
 
   // Quiet hours & digest are cloud-only
   if (isCloud()) {
@@ -80,6 +84,8 @@ export async function PATCH(
       quietHoursStart: true,
       quietHoursEnd: true,
       digestTime: true,
+      tagline: true,
+      taglineEnabled: true,
     },
   });
 

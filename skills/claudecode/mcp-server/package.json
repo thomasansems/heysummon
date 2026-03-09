@@ -1,0 +1,19 @@
+{
+  "name": "@heysummon/claude-code-mcp",
+  "version": "0.1.0",
+  "description": "HeySummon MCP server for Claude Code — request human expert help inline",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["heysummon", "mcp", "claude-code", "human-in-the-loop"],
+  "license": "MIT"
+}

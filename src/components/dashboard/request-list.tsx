@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Link from "next/link";
 import { StatusBadge } from "./status-badge";
-import { useProviderMercure } from "@/hooks/useMercure";
+
 
 interface HelpRequestItem {
   id: string;
@@ -41,14 +42,10 @@ export function RequestList({ providerId }: { providerId?: string }) {
 
   useEffect(() => {
     fetchRequests();
+    // Poll every 5 seconds for live updates (replaces Mercure SSE)
+    const interval = setInterval(fetchRequests, 5000);
+    return () => clearInterval(interval);
   }, [fetchRequests]);
-
-  // Realtime updates via Mercure
-  useProviderMercure(providerId, useCallback((event) => {
-    if (event.type === "new_request" || event.type === "status_change" || event.type === "closed") {
-      fetchRequests();
-    }
-  }, [fetchRequests]));
 
   return (
     <div>

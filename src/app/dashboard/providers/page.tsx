@@ -154,7 +154,7 @@ export default function ProvidersPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-black">Users</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Users</h1>
         <button
           onClick={() => setShowCreate(true)}
           className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black/90"
@@ -164,14 +164,14 @@ export default function ProvidersPage() {
       </div>
 
       {showCreate && (
-        <div className="mb-6 rounded-lg border border-[#eaeaea] bg-white p-4">
-          <h3 className="mb-3 text-sm font-medium text-black">New User</h3>
+        <div className="mb-6 rounded-lg border border-border bg-card p-4">
+          <h3 className="mb-3 text-sm font-medium text-foreground">New User</h3>
           <div className="flex gap-2">
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="User name"
-              className="flex-1 rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+              className="flex-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
               onKeyDown={(e) => e.key === "Enter" && createProvider()}
             />
             <button
@@ -183,7 +183,7 @@ export default function ProvidersPage() {
             </button>
             <button
               onClick={() => setShowCreate(false)}
-              className="rounded-md border border-[#eaeaea] px-3 py-1.5 text-sm text-[#666]"
+              className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground"
             >
               Cancel
             </button>
@@ -191,11 +191,11 @@ export default function ProvidersPage() {
         </div>
       )}
 
-      <div className="overflow-visible rounded-lg border border-[#eaeaea] bg-white">
+      <div className="overflow-visible rounded-lg border border-border bg-card">
         {loading ? (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+              <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Name</th>
                 <th className="px-4 py-2.5 font-medium">User Key</th>
                 <th className="px-4 py-2.5 font-medium">Clients</th>
@@ -206,25 +206,25 @@ export default function ProvidersPage() {
             </thead>
             <tbody>
               {[1, 2, 3].map((i) => (
-                <tr key={i} className="border-b border-[#eaeaea] animate-pulse">
-                  <td className="px-4 py-2.5"><div className="h-4 w-24 rounded bg-[#eaeaea]" /></td>
-                  <td className="px-4 py-2.5"><div className="h-4 w-36 rounded bg-[#eaeaea]" /></td>
-                  <td className="px-4 py-2.5"><div className="h-4 w-8 rounded bg-[#eaeaea]" /></td>
-                  <td className="px-4 py-2.5"><div className="h-5 w-16 rounded-full bg-[#eaeaea]" /></td>
-                  <td className="px-4 py-2.5"><div className="h-4 w-20 rounded bg-[#eaeaea]" /></td>
-                  <td className="px-4 py-2.5 text-right"><div className="ml-auto h-6 w-8 rounded bg-[#eaeaea]" /></td>
+                <tr key={i} className="border-b border-border animate-pulse">
+                  <td className="px-4 py-2.5"><div className="h-4 w-24 rounded bg-muted" /></td>
+                  <td className="px-4 py-2.5"><div className="h-4 w-36 rounded bg-muted" /></td>
+                  <td className="px-4 py-2.5"><div className="h-4 w-8 rounded bg-muted" /></td>
+                  <td className="px-4 py-2.5"><div className="h-5 w-16 rounded-full bg-muted" /></td>
+                  <td className="px-4 py-2.5"><div className="h-4 w-20 rounded bg-muted" /></td>
+                  <td className="px-4 py-2.5 text-right"><div className="ml-auto h-6 w-8 rounded bg-muted" /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : providers.length === 0 ? (
-          <div className="p-8 text-center text-sm text-[#666]">
+          <div className="p-8 text-center text-sm text-muted-foreground">
             No providers yet. Create one to get started.
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+              <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Name</th>
                 <th className="px-4 py-2.5 font-medium">User Key</th>
                 <th className="px-4 py-2.5 font-medium">Clients</th>
@@ -236,8 +236,8 @@ export default function ProvidersPage() {
             <tbody>
               {providers.map((p) => (
                 <Fragment key={p.id}>
-                  <tr className="border-b border-[#eaeaea] last:border-0">
-                    <td className="px-4 py-2.5 font-medium text-black">
+                  <tr className="border-b border-border last:border-0">
+                    <td className="px-4 py-2.5 font-medium text-foreground">
                       {editingId === p.id ? (
                         <div className="flex items-center gap-1">
                           <input
@@ -247,11 +247,11 @@ export default function ProvidersPage() {
                               if (e.key === "Enter") renameProvider(p.id);
                               if (e.key === "Escape") setEditingId(null);
                             }}
-                            className="w-32 rounded border border-[#eaeaea] px-2 py-0.5 text-sm outline-none focus:border-black"
+                            className="w-32 rounded border border-border px-2 py-0.5 text-sm outline-none focus:border-ring"
                             autoFocus
                           />
                           <button onClick={() => renameProvider(p.id)} className="text-xs text-green-600">✓</button>
-                          <button onClick={() => setEditingId(null)} className="text-xs text-[#666]">✕</button>
+                          <button onClick={() => setEditingId(null)} className="text-xs text-muted-foreground">✕</button>
                         </div>
                       ) : (
                         <span
@@ -266,7 +266,7 @@ export default function ProvidersPage() {
 
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <code className="font-mono text-xs text-[#666]">{masked(p.key)}</code>
+                        <code className="font-mono text-xs text-muted-foreground">{masked(p.key)}</code>
                         <button
                           onClick={() => copyKey(p.key)}
                           className="text-xs text-violet-600 hover:text-violet-800"
@@ -276,16 +276,16 @@ export default function ProvidersPage() {
                       </div>
                     </td>
 
-                    <td className="px-4 py-2.5 text-[#666]">{p._count.apiKeys}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{p._count.apiKeys}</td>
 
                     <td className="px-4 py-2.5">
                       <span
                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                           !p.isActive
-                            ? "bg-red-50 text-red-700"
+                            ? "bg-red-950/60 text-red-300"
                             : p.ipEvents?.some((e) => e.status === "allowed")
-                              ? "bg-green-50 text-green-700"
-                              : "bg-orange-50 text-orange-700"
+                              ? "bg-green-950/60 text-green-300"
+                              : "bg-orange-950/60 text-orange-300"
                         }`}
                       >
                         {!p.isActive
@@ -296,7 +296,7 @@ export default function ProvidersPage() {
                       </span>
                     </td>
 
-                    <td className="px-4 py-2.5 text-[#666]">
+                    <td className="px-4 py-2.5 text-muted-foreground">
                       {new Date(p.createdAt).toLocaleDateString()}
                     </td>
 
@@ -304,37 +304,37 @@ export default function ProvidersPage() {
                       <div className="relative inline-block">
                         <button
                           onClick={() => setOpenMenuId(openMenuId === p.id ? null : p.id)}
-                          className="rounded-md border border-[#eaeaea] px-2 py-1 text-xs text-[#666] hover:bg-[#fafafa] hover:text-black"
+                          className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
                           ⋯
                         </button>
                         {openMenuId === p.id && (
-                          <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-[#eaeaea] bg-white py-1 shadow-lg">
+                          <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
                             <button
                               onClick={() => { openSettings(p); setOpenMenuId(null); }}
-                              className="block w-full px-3 py-1.5 text-left text-xs text-[#666] hover:bg-[#fafafa] hover:text-black"
+                              className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                             >
                               Settings
                             </button>
                             {p.isActive ? (
                               <button
                                 onClick={() => { toggleProvider(p.id, false); setOpenMenuId(null); }}
-                                className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-[#fafafa] hover:text-red-700"
+                                className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-muted hover:text-red-400"
                               >
                                 Deactivate
                               </button>
                             ) : (
                               <button
                                 onClick={() => { toggleProvider(p.id, true); setOpenMenuId(null); }}
-                                className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-[#fafafa] hover:text-green-800"
+                                className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800"
                               >
                                 Activate
                               </button>
                             )}
-                            <div className="my-1 border-t border-[#eaeaea]" />
+                            <div className="my-1 border-t border-border" />
                             <button
                               onClick={() => { deleteProvider(p.id, p.name); setOpenMenuId(null); }}
-                              className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-700"
+                              className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300"
                             >
                               Delete
                             </button>
@@ -346,23 +346,23 @@ export default function ProvidersPage() {
 
                   {/* Settings inline panel */}
                   {settingsId === p.id && (
-                    <tr key={`${p.id}-settings`} className="border-b border-[#eaeaea]">
-                      <td colSpan={6} className="bg-[#fafafa] px-4 py-3">
+                    <tr key={`${p.id}-settings`} className="border-b border-border">
+                      <td colSpan={6} className="bg-muted px-4 py-3">
                         {/* Timezone Section */}
                         <div className="mb-4">
-                          <p className="mb-2 text-xs font-medium text-[#666]">Timezone</p>
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">Timezone</p>
                           <div className="flex flex-col gap-2">
                             <input
                               type="text"
                               placeholder="Filter timezones…"
                               value={timezoneFilter}
                               onChange={(e) => setTimezoneFilter(e.target.value)}
-                              className="max-w-xs rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                              className="max-w-xs rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                             />
                             <select
                               value={editTimezone}
                               onChange={(e) => setEditTimezone(e.target.value)}
-                              className="max-w-xs rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black"
+                              className="max-w-xs rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                             >
                               {(timezoneFilter
                                 ? timezones.filter((tz) =>
@@ -386,9 +386,9 @@ export default function ProvidersPage() {
                         </div>
 
                         {/* IP Security Section */}
-                        <div className="border-t border-[#eaeaea] pt-3">
+                        <div className="border-t border-border pt-3">
                           <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs font-medium text-[#666]">IP Security</p>
+                            <p className="text-xs font-medium text-muted-foreground">IP Security</p>
                             {p.ipEvents?.length > 0 && (
                               <button
                                 onClick={async () => {
@@ -400,7 +400,7 @@ export default function ProvidersPage() {
                                   );
                                   loadProviders();
                                 }}
-                                className="rounded-md border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                                className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40"
                               >
                                 Reset All Bindings
                               </button>
@@ -408,13 +408,13 @@ export default function ProvidersPage() {
                           </div>
 
                           {!p.ipEvents || p.ipEvents.length === 0 ? (
-                            <p className="text-xs text-[#999]">
+                            <p className="text-xs text-muted-foreground">
                               No IP bindings yet. The first API request from this provider will automatically bind its IP.
                             </p>
                           ) : (
                             <table className="w-full text-xs">
                               <thead>
-                                <tr className="text-left text-[#999]">
+                                <tr className="text-left text-muted-foreground">
                                   <th className="pb-1 pr-4 font-medium">IP Address</th>
                                   <th className="pb-1 pr-4 font-medium">Status</th>
                                   <th className="pb-1 pr-4 font-medium">Attempts</th>
@@ -425,24 +425,24 @@ export default function ProvidersPage() {
                               </thead>
                               <tbody>
                                 {p.ipEvents.map((evt) => (
-                                  <tr key={evt.id} className="border-t border-[#eaeaea]">
-                                    <td className="py-1.5 pr-4 font-mono text-[#666]">{evt.ip}</td>
+                                  <tr key={evt.id} className="border-t border-border">
+                                    <td className="py-1.5 pr-4 font-mono text-muted-foreground">{evt.ip}</td>
                                     <td className="py-1.5 pr-4">
                                       <span
                                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                                           evt.status === "allowed"
-                                            ? "bg-green-50 text-green-700"
+                                            ? "bg-green-950/60 text-green-300"
                                             : evt.status === "pending"
-                                              ? "bg-amber-50 text-amber-700"
-                                              : "bg-red-50 text-red-700"
+                                              ? "bg-amber-950/60 text-amber-300"
+                                              : "bg-red-950/60 text-red-300"
                                         }`}
                                       >
                                         {evt.status}
                                       </span>
                                     </td>
-                                    <td className="py-1.5 pr-4 text-[#666]">{evt.attempts}</td>
-                                    <td className="py-1.5 pr-4 text-[#666]">{new Date(evt.firstSeen).toLocaleString()}</td>
-                                    <td className="py-1.5 pr-4 text-[#666]">{new Date(evt.lastSeen).toLocaleString()}</td>
+                                    <td className="py-1.5 pr-4 text-muted-foreground">{evt.attempts}</td>
+                                    <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.firstSeen).toLocaleString()}</td>
+                                    <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.lastSeen).toLocaleString()}</td>
                                     <td className="py-1.5 text-right">
                                       <div className="flex items-center justify-end gap-1">
                                         {evt.status !== "allowed" && (
@@ -480,7 +480,7 @@ export default function ProvidersPage() {
                                             await fetch(`/api/providers/ip-events/${evt.id}`, { method: "DELETE" });
                                             loadProviders();
                                           }}
-                                          className="rounded px-1.5 py-0.5 text-xs text-[#999] hover:bg-[#f0f0f0] hover:text-[#666]"
+                                          className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0] hover:text-muted-foreground"
                                         >
                                           Remove
                                         </button>

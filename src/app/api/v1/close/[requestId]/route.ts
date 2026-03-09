@@ -2,7 +2,6 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { publishToMercure } from "@/lib/mercure";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 
 /**
@@ -56,34 +55,6 @@ export async function POST(
         closedAt,
       },
     });
-
-    // Publish to Mercure: notify both parties
-    try {
-      await Promise.all([
-        // Notify consumer
-        publishToMercure(
-          `/heysummon/requests/${requestId}`,
-          {
-            type: 'closed',
-            requestId,
-            closedAt: closedAt.toISOString(),
-          }
-        ),
-        // Notify provider
-        publishToMercure(
-          `/heysummon/providers/${helpRequest.expertId}`,
-          {
-            type: 'closed',
-            requestId,
-            refCode: helpRequest.refCode,
-            closedAt: closedAt.toISOString(),
-          }
-        ),
-      ]);
-    } catch (mercureError) {
-      console.error('Mercure publish failed (non-fatal):', mercureError);
-    }
-
     return NextResponse.json({
       success: true,
       status: "closed",

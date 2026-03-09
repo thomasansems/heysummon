@@ -1,13 +1,12 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-
 import { useEffect, useState, useCallback } from "react";
-import { useProviderMercure } from "@/hooks/useMercure";
+import { Inbox } from "lucide-react";
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
-  if (!code) return <span>—</span>;
+  if (!code) return <span className="text-muted-foreground">—</span>;
   return (
     <button
       onClick={(e) => {
@@ -16,13 +15,12 @@ function CopyableRefCode({ code }: { code: string | null }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="font-mono text-xs text-black hover:text-violet-600 cursor-pointer relative"
-      title="Click to copy"
+      className="font-mono text-xs text-foreground hover:text-primary transition-colors cursor-pointer relative"
     >
       {code}
       {copied && (
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-0.5 text-xs text-white whitespace-nowrap">
-          Copied!
+        <span className="absolute -top-7 left-1/2 -translate-x-1/2 rounded-md bg-popover border border-border px-2 py-1 text-[10px] text-popover-foreground whitespace-nowrap shadow-md">
+          Copied
         </span>
       )}
     </button>
@@ -42,26 +40,23 @@ interface HelpRequest {
 
 const FILTERS = ["all", "pending", "responded", "failed", "expired"] as const;
 
-const statusStyles: Record<string, string> = {
-  pending: "bg-yellow-50 text-yellow-700",
-  responded: "bg-green-50 text-green-700",
-  expired: "bg-gray-50 text-gray-700",
-  failed: "bg-red-50 text-red-700",
+const statusConfig: Record<string, { dot: string; text: string; label: string }> = {
+  pending: { dot: "bg-amber-500", text: "text-amber-600", label: "Pending" },
+  responded: { dot: "bg-emerald-500", text: "text-emerald-600", label: "Responded" },
+  expired: { dot: "bg-zinc-400", text: "text-zinc-500", label: "Expired" },
+  failed: { dot: "bg-red-500", text: "text-red-600", label: "Failed" },
+  active: { dot: "bg-blue-500", text: "text-blue-600", label: "Active" },
 };
 
-const dotStyles: Record<string, string> = {
-  pending: "bg-yellow-500",
-  responded: "bg-green-500",
-  expired: "bg-red-500",
-  failed: "bg-red-500",
-};
-
-const statusLabels: Record<string, string> = {
-  pending: "Awaiting Response",
-  responded: "Responded",
-  expired: "Expired",
-  failed: "Failed",
-};
+function StatusBadge({ status }: { status: string }) {
+  const cfg = statusConfig[status] ?? { dot: "bg-zinc-400", text: "text-zinc-500", label: status };
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+      <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
+    </span>
+  );
+}
 
 function timeAgo(date: string) {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -98,34 +93,32 @@ export default function RequestsPage() {
 
   useEffect(() => {
     fetchRequests();
+    const interval = setInterval(fetchRequests, 5000);
+    return () => clearInterval(interval);
   }, [fetchRequests]);
 
-  // Realtime updates via Mercure
-  useProviderMercure(undefined, useCallback((event) => {
-    if (event.type === "new_request" || event.type === "status_change" || event.type === "closed") {
-      fetchRequests();
-    }
-  }, [fetchRequests]));
-
-  const filtered =
-    filter === "all"
-      ? requests
-      : requests.filter((r) => r.status === filter);
+  const filtered = filter === "all" ? requests : requests.filter((r) => r.status === filter);
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-semibold text-black">Requests</h1>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Requests</h1>
+          <p className="text-sm text-muted-foreground">{requests.length} total requests</p>
+        </div>
+      </div>
 
       {/* Filter tabs */}
-      <div className="mb-4 flex gap-1 rounded-lg border border-[#eaeaea] bg-white p-1 w-fit">
+      <div className="flex gap-1 w-fit rounded-lg border border-border bg-muted/40 p-1">
         {FILTERS.map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`rounded-md px-3 py-1 text-sm capitalize transition-colors ${
+            className={`rounded-md px-3 py-1 text-xs font-medium capitalize transition-all ${
               filter === f
-                ? "bg-black text-white"
-                : "text-[#666] hover:text-black"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {f}
@@ -133,116 +126,73 @@ export default function RequestsPage() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
-        {loading ? (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
-                <th className="px-4 py-2.5 font-medium">Ref Code</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Messages</th>
-                <th className="px-4 py-2.5 font-medium">Responses</th>
-                <th className="px-4 py-2.5 font-medium">Client</th>
-                <th className="px-4 py-2.5 font-medium">Created</th>
-                <th className="px-4 py-2.5 font-medium text-right">
-                  Delivery Time
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {[1, 2, 3, 4].map((i) => (
-                <tr key={i} className="border-b border-[#eaeaea] animate-pulse">
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-16 rounded bg-[#eaeaea]"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-5 w-32 rounded-full bg-[#eaeaea]"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-24 rounded bg-[#eaeaea]"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-8 rounded bg-[#eaeaea]"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-20 rounded bg-[#eaeaea]"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-16 rounded bg-[#eaeaea]"></div>
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="ml-auto h-4 w-16 rounded bg-[#eaeaea]"></div>
-                  </td>
+      {/* Table */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Ref</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Status</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground hidden md:table-cell">Messages</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground hidden md:table-cell">Responses</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground hidden lg:table-cell">Client</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Created</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground hidden lg:table-cell">Delivery</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i} className="border-b border-border animate-pulse">
+                  {Array.from({ length: 7 }).map((_, j) => (
+                    <td key={j} className="px-4 py-3">
+                      <div className="h-3 w-20 rounded bg-muted" />
+                    </td>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-[#666]">
-            No requests found
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
-                <th className="px-4 py-2.5 font-medium">Ref Code</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Messages</th>
-                <th className="px-4 py-2.5 font-medium">Responses</th>
-                <th className="px-4 py-2.5 font-medium">Client</th>
-                <th className="px-4 py-2.5 font-medium">Created</th>
-                <th className="px-4 py-2.5 font-medium text-right">
-                  Delivery Time
-                </th>
+              ))
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-16 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Inbox className="h-8 w-8 opacity-40" />
+                    <span className="text-sm">No requests found</span>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((req) => (
-                <tr
-                  key={req.id}
-                  className="border-b border-[#eaeaea] last:border-0"
-                >
-                  <td className="px-4 py-2.5">
+            ) : (
+              filtered.map((req) => (
+                <tr key={req.id} className="border-b border-border last:border-0 hover:bg-accent/30 transition-colors">
+                  <td className="px-4 py-3">
                     <CopyableRefCode code={req.refCode} />
                   </td>
-                  <td className="px-4 py-2.5">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
-                        statusStyles[req.status] || ""
-                      }`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          dotStyles[req.status] || ""
-                        }`}
-                      />
-                      {statusLabels[req.status] || req.status}
-                    </span>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={req.status} />
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
-                    {req.messageCount > 0
-                      ? `${req.messageCount} berichten`
-                      : "—"}
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
+                    {req.messageCount > 0 ? `${req.messageCount} message${req.messageCount !== 1 ? "s" : ""}` : "—"}
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
-                    {req.responseCount > 0
-                      ? <span className="inline-flex items-center gap-1 text-green-600 font-medium">{req.responseCount}</span>
-                      : "—"}
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    {req.responseCount > 0 ? (
+                      <span className="text-emerald-600 font-medium text-xs">{req.responseCount}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
-                    {req.apiKey.name || "Unnamed"}
+                  <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
+                    <span className="text-xs">{req.apiKey.name || "Unnamed"}</span>
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
-                    {timeAgo(req.createdAt)}
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <span className="text-xs">{timeAgo(req.createdAt)}</span>
                   </td>
-                  <td className="px-4 py-2.5 text-right text-[#666]">
-                    {deliveryTime(req.createdAt, req.deliveredAt)}
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">
+                    <span className="text-xs">{deliveryTime(req.createdAt, req.deliveredAt)}</span>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { publishToMercure } from "@/lib/mercure";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
 /**
@@ -49,21 +48,6 @@ export async function POST(
   }
 
   try {
-    await publishToMercure(
-      `/heysummon/providers/${user.id}`,
-      {
-        type: "new_request",
-        requestId: helpRequest.id,
-        refCode: helpRequest.refCode,
-        question: helpRequest.question || null,
-        messageCount: helpRequest.messageHistory.length,
-        messagePreview: null,
-        consumerSignPubKey: helpRequest.consumerSignPubKey || null,
-        consumerEncryptPubKey: helpRequest.consumerEncryptPubKey || null,
-        createdAt: helpRequest.createdAt.toISOString(),
-        expiresAt: helpRequest.expiresAt.toISOString(),
-      }
-    );
 
     // Reset deliveredAt so we can track the new delivery
     await prisma.helpRequest.update({

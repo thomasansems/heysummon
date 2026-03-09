@@ -7,7 +7,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const email = body.email?.trim().toLowerCase();
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    // Use indexOf-based validation instead of regex to avoid ReDoS on uncontrolled input
+    const isValidEmail = (e: string) => {
+      const at = e.indexOf("@");
+      if (at < 1) return false;
+      const dot = e.lastIndexOf(".");
+      return dot > at + 1 && dot < e.length - 1;
+    };
+    if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
     }
 

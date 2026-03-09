@@ -7,7 +7,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const email = body.email?.trim().toLowerCase();
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    // indexOf-based email validation (no regex — avoids ReDoS / polynomial backtracking)
+    const atIdx = email ? email.indexOf("@") : -1;
+    const dotAfterAt = atIdx > 0 ? email.indexOf(".", atIdx) : -1;
+    if (!email || atIdx < 1 || dotAfterAt < atIdx + 2 || email.endsWith(".") || email.includes(" ")) {
       return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
     }
 

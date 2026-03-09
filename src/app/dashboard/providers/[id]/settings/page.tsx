@@ -41,6 +41,8 @@ interface ProviderData {
   id: string;
   name: string;
   timezone: string;
+  tagline: string | null;
+  taglineEnabled: boolean;
 }
 
 export default function ProviderSettingsPage() {
@@ -48,6 +50,8 @@ export default function ProviderSettingsPage() {
   const router = useRouter();
   const [provider, setProvider] = useState<ProviderData | null>(null);
   const [timezone, setTimezone] = useState("UTC");
+  const [tagline, setTagline] = useState("");
+  const [taglineEnabled, setTaglineEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -64,6 +68,8 @@ export default function ProviderSettingsPage() {
       .then(({ provider: p }: { provider: ProviderData }) => {
         setProvider(p);
         setTimezone(p.timezone || "UTC");
+        setTagline(p.tagline || "");
+        setTaglineEnabled(p.taglineEnabled ?? false);
       })
       .catch(() => router.push("/dashboard/providers"));
   }, [params.id, router]);
@@ -73,7 +79,7 @@ export default function ProviderSettingsPage() {
     setError("");
     setSaved(false);
 
-    const body: Record<string, unknown> = { timezone };
+    const body: Record<string, unknown> = { timezone, tagline, taglineEnabled };
 
     const res = await fetch(`/api/providers/${params.id}`, {
       method: "PATCH",
@@ -144,6 +150,47 @@ export default function ProviderSettingsPage() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Response Tagline */}
+        <div className="rounded-lg border border-[#eaeaea] bg-white p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-medium text-black">Response Tagline</h2>
+              <p className="mt-0.5 text-xs text-[#666]">
+                Optionally append a tagline to your responses (max 160 chars).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTaglineEnabled((v) => !v)}
+              className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                taglineEnabled ? "bg-black" : "bg-[#eaeaea]"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                  taglineEnabled ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+          <input
+            type="text"
+            maxLength={160}
+            placeholder="e.g. Powered by HeySummon · https://heysummon.ai"
+            value={tagline}
+            onChange={(e) => setTagline(e.target.value)}
+            disabled={!taglineEnabled}
+            className="w-full rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black outline-none focus:border-black disabled:bg-[#f9f9f9] disabled:text-[#999]"
+          />
+          <p className="mt-1 text-right text-xs text-[#999]">{tagline.length}/160</p>
+          {taglineEnabled && tagline && (
+            <div className="mt-3 rounded-md border border-[#eaeaea] bg-[#f9f9f9] p-3 text-xs text-[#666]">
+              <span className="font-medium text-black">Preview:</span>
+              <pre className="mt-1 whitespace-pre-wrap font-sans">Your response here…{"\n\n---\n"}{tagline}</pre>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

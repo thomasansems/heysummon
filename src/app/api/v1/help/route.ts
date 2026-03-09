@@ -134,7 +134,6 @@ export async function POST(request: Request) {
         guardVerified,
       },
     });
-    try {
 
     // Dispatch webhook notifications (parallel, non-blocking)
     dispatchWebhookToProvider(key.userId, {

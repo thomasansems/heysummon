@@ -76,6 +76,8 @@ model UserProfile {
   digestTime       String?
   deviceSecret     String?
   machineId        String?
+  tagline          String?           // Optional upsell tagline appended to responses (max 160 chars)
+  taglineEnabled   Boolean           @default(false)
   user             User              @relation(fields: [userId], references: [id])
   apiKeys          ApiKey[]
   channelProviders ChannelProvider[]

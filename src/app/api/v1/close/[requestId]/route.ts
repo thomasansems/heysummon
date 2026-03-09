@@ -55,11 +55,6 @@ export async function POST(
         closedAt,
       },
     });
-    try {
-      await Promise.all([
-        // Notify consumer
-      ]);
-
     return NextResponse.json({
       success: true,
       status: "closed",

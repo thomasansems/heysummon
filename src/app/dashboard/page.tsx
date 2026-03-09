@@ -153,7 +153,7 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-4 py-2.5 text-[#666]">
                       {req.messageCount > 0
-                        ? `${req.messageCount} berichten`
+                        ? `${req.messageCount} message${req.messageCount !== 1 ? "s" : ""}`
                         : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-[#666]">

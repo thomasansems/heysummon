@@ -62,7 +62,6 @@ export async function POST(
         status: "active",
       },
     });
-    try {
 
     logAuditEvent({
       eventType: AuditEventTypes.KEY_EXCHANGE,

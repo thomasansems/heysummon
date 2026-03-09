@@ -83,4 +83,4 @@ curl -X POST http://localhost:3425/api/v1/message/cmxxx... \
 
 - The **key type must match** the `from` field — a provider key cannot send as `consumer` and vice versa
 - When a provider sends a message, the request status changes to `responded` automatically
-- Both parties receive a real-time SSE event (`new_message`) when a message is sent
+- Both parties can poll for new messages after sending

@@ -106,7 +106,7 @@ Each message in a conversation shares the same ref code, making threads easy to 
 - **Ref codes are 8 characters** (e.g. `HS-7X3K9Q2M`) — always include them
 - **Reply quotes work** — on Telegram, replying to the notification auto-detects the ref code
 - **Long responses are fine** — write as much detail as needed after the tag
-- **Response is instant** — the agent receives your answer in real time via SSE
+- **Response is fast** — the agent receives your answer on the next poll cycle
 
 ---
 

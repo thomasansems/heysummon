@@ -21,7 +21,9 @@ Required variables:
 
 The API key **MUST** start with `hs_prov_`. Reject keys with `hs_cli_` prefix — those are client keys.
 
-### Step 3: Start the watcher
+### Step 3: Start polling
+
+The provider polls the platform every 30 seconds for new events via `GET /api/v1/events/pending`.
 
 ```bash
 bash {baseDir}/scripts/setup.sh
@@ -32,7 +34,7 @@ To stop: `bash {baseDir}/scripts/teardown.sh`
 ## Architecture
 
 ```
-AI Agent → HeySummon Platform → SSE → Watcher → OpenClaw → Notification
+AI Agent → HeySummon Platform → Polling (30s) → OpenClaw → Notification
 ```
 
 All communication flows through the platform. No direct infrastructure access.
@@ -41,9 +43,9 @@ All communication flows through the platform. No direct infrastructure access.
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/setup.sh` | Start the event watcher |
-| `scripts/teardown.sh` | Stop the watcher |
-| `scripts/mercure-watcher.sh` | SSE listener → notifications via OpenClaw |
+| `scripts/setup.sh` | Start the polling watcher |
+| `scripts/teardown.sh` | Stop the polling watcher |
+| `scripts/poll-watcher.sh` | Polls platform every 30s → notifications via OpenClaw |
 | `scripts/reply-handler.sh` | Reply by refCode: `reply-handler.sh HS-XXXX "response"` |
 | `scripts/respond.sh` | Reply by request ID: `respond.sh <id> "response"` |
 

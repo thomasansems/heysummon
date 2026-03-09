@@ -124,5 +124,4 @@ curl http://localhost:3425/api/v1/help/cmxxx... \
 
 - [API Reference](./api/overview.md) — All endpoints
 - [E2E Encryption](./guides/encryption.md) — How keys and ciphertext work
-- [Real-time SSE](./guides/sse.md) — Stream responses instead of polling
 - [Provider Conversations](./guides/provider-conversations.md) — Reply via Telegram

@@ -2,7 +2,7 @@
 
 HeySummon is the **Human-in-the-Loop API** for AI agents.
 
-When your AI agent gets stuck — needs approval, hits ambiguity, or lacks context — it sends an encrypted help request. A human expert answers via the dashboard or messaging app. The agent picks up the response in real time.
+When your AI agent gets stuck — needs approval, hits ambiguity, or lacks context — it sends an encrypted help request. A human expert answers via the dashboard or messaging app. The agent picks up the response.
 
 Think of it as a **pager for your AI agents**.
 
@@ -11,22 +11,22 @@ Think of it as a **pager for your AI agents**.
 ## How it works
 
 ```
-AI Agent  ──POST /api/v1/help──▶  HeySummon  ──SSE──▶  Human Expert
+AI Agent  ──POST /api/v1/help──▶  HeySummon  ──Poll──▶  Human Expert
                                                               │
 AI Agent  ◀──GET /api/v1/help/:id──  HeySummon  ◀──PATCH──  Dashboard
 ```
 
 1. **Agent submits a help request** — encrypted, with a reference code like `HS-A1B2C3D4`
-2. **Human receives a notification** — via dashboard, Telegram, or any connected channel
+2. **Human receives a notification** — via dashboard, Telegram, or any connected channel (provider polls every 30s)
 3. **Human responds** — in the dashboard or by replying to the notification
-4. **Agent gets the answer** — via polling or real-time SSE stream
+4. **Agent gets the answer** — by polling `GET /api/v1/help/:id`
 
 ---
 
 ## Key features
 
 - **End-to-end encrypted** — RSA-OAEP + AES-256-GCM. The platform stores ciphertext it cannot read.
-- **Real-time** — Server-Sent Events via Mercure. No polling required (though polling is supported).
+- **Polling-based** — Simple, reliable HTTP polling. No WebSocket or SSE complexity.
 - **Self-hostable** — One Docker command. Your data stays on your infrastructure.
 - **Reference codes** — Every request gets an `HS-XXXXXXXX` code for easy tracking and replies.
 - **Guard proxy** — Ed25519-signed requests. Every message is cryptographically authenticated.

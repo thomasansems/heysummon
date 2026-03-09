@@ -41,48 +41,27 @@ List registered providers:
 bash scripts/list-providers.sh
 ```
 
-### Step 3: Start Event Watcher
-
-```bash
-bash scripts/setup.sh
-```
-
-This starts a persistent SSE listener that connects to the platform's event stream (`/api/v1/events/stream`). You'll receive notifications when providers respond.
-
-To stop:
-```bash
-bash scripts/teardown.sh
-```
-
 ## Architecture
 
+The consumer uses on-demand polling — it only polls when a request is active:
+
 ```
-HeySummon Platform API (/api/v1/events/stream)
-           ↓
-    SSE Event Stream
-           ↓
-   Platform Watcher (pm2)
-           ↓
-   OpenClaw Notification
-           ↓
-        Your Chat
+1. Agent submits help request → POST /api/v1/help
+2. Agent polls for response → GET /api/v1/help/:id (every 5s)
+3. Response received → Agent continues
 ```
 
-All communication flows through the platform API. E2E encryption is handled server-side.
+All communication flows through the platform API. No persistent background processes needed.
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `setup.sh` | Start the platform event watcher (pm2/nohup) |
-| `teardown.sh` | Stop the watcher |
-| `platform-watcher.sh` | SSE listener → sends notifications via OpenClaw |
 | `submit-request.sh` | Submit a help request |
+| `check-status.sh` | Check/poll request status |
 | `add-provider.sh` | Register a provider |
 | `list-providers.sh` | List registered providers |
-| `check-status.sh` | Check request status |
 | `crypto.mjs` | E2E encryption: keygen, encrypt, decrypt |
-| `auto-sync.sh` | Git auto-sync (cron job) |
 
 ## Usage
 
@@ -100,18 +79,13 @@ bash scripts/submit-request.sh "Your question" '[{"role":"user","content":"conte
 
 **Provider routing:** The script matches provider names case-insensitively from `providers.json`. If no match is found, it shows available providers and exits.
 
-### Wait for Response
-
-The platform watcher handles real-time notifications:
-- 🔑 Key exchange — provider connected
-- 📩 New message — provider responded
-- 🔒 Closed — conversation ended
-
-### Check Status (Fallback)
+### Check Status / Poll for Response
 
 ```bash
 bash scripts/check-status.sh <REQUEST_ID>
 ```
+
+The consumer polls `GET /api/v1/help/:id` until the status changes to `responded` or `closed`.
 
 ## When to Use
 

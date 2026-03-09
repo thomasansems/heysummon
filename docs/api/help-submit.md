@@ -85,7 +85,7 @@ curl -X POST https://your-instance.com/api/v1/help \
 
 1. The human expert sees the request in their dashboard (and gets notified via any connected channel)
 2. They respond — the status changes to `responded`
-3. You poll `GET /api/v1/help/:id` or listen on the SSE stream to get the response
+3. You poll `GET /api/v1/help/:id` to get the response
 
 ---
 

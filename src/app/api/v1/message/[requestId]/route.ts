@@ -167,8 +167,9 @@ export async function POST(
       });
     }
 
-    // Update status to responded when provider sends a message
-    if (from === "provider" && helpRequest.status !== "responded") {
+    // Update status to responded when provider sends a message (first time only)
+    const firstResponse = from === "provider" && helpRequest.status !== "responded";
+    if (firstResponse) {
       await prisma.helpRequest.update({
         where: { id: requestId },
         data: { status: "responded", respondedAt: new Date() },
@@ -188,15 +189,33 @@ export async function POST(
       },
     });
 
-    // Log audit event for provider responses
+    // Log audit events
     if (from === "provider") {
+      // PROVIDER_RESPONSE: every time provider sends a message
       logAuditEvent({
         eventType: AuditEventTypes.PROVIDER_RESPONSE,
         success: true,
         metadata: { requestId, refCode: helpRequest.refCode, via: "api" },
         request,
       });
+      // RESPONDED: only on first response (status transition)
+      if (firstResponse) {
+        logAuditEvent({
+          eventType: AuditEventTypes.RESPONDED,
+          success: true,
+          metadata: { requestId, refCode: helpRequest.refCode },
+          request,
+        });
+      }
     }
+
+    // MESSAGE_SENT: log for both provider and consumer messages
+    logAuditEvent({
+      eventType: AuditEventTypes.MESSAGE_SENT,
+      success: true,
+      metadata: { requestId, refCode: helpRequest.refCode, from, messageId },
+      request,
+    });
 
     // Publish to Mercure: notify both parties
     try {

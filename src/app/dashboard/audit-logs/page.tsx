@@ -27,6 +27,8 @@ const EVENT_TYPES = [
   "NOTIFICATION_DELIVERED",
   "NOTIFICATION_RESENT",
   "PROVIDER_RESPONSE",
+  "RESPONDED",
+  "MESSAGE_SENT",
 ] as const;
 
 function formatDate(date: string) {
@@ -52,7 +54,9 @@ function EventTypeBadge({ type }: { type: string }) {
     HELP_REQUEST_SUBMITTED: "bg-indigo-50 text-indigo-700",
     NOTIFICATION_DELIVERED: "bg-emerald-50 text-emerald-700",
     NOTIFICATION_RESENT: "bg-amber-50 text-amber-700",
-    PROVIDER_RESPONSE: "bg-emerald-50 text-emerald-700",
+    PROVIDER_RESPONSE: "bg-emerald-950/60 text-emerald-300",
+    RESPONDED: "bg-teal-950/60 text-teal-300",
+    MESSAGE_SENT: "bg-sky-950/60 text-sky-300",
   };
 
   const label = type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());

@@ -13,6 +13,8 @@ export const AuditEventTypes = {
   PROVIDER_RESPONSE: "PROVIDER_RESPONSE",
   NOTIFICATION_DELIVERED: "NOTIFICATION_DELIVERED",
   NOTIFICATION_RESENT: "NOTIFICATION_RESENT",
+  RESPONDED: "RESPONDED",
+  MESSAGE_SENT: "MESSAGE_SENT",
 } as const;
 
 export type AuditEventType = (typeof AuditEventTypes)[keyof typeof AuditEventTypes];

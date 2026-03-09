@@ -1,23 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect, useCallback } from "react";
-
-interface IpEvent {
-  id: string;
-  ip: string;
-  status: string;
-  attempts: number;
-  firstSeen: string;
-  lastSeen: string;
-}
-
-interface ProviderProfile {
-  id: string;
-  name: string;
-  key: string;
-  ipEvents: IpEvent[];
-}
+import { useState, useEffect } from "react";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -32,28 +16,6 @@ export default function SettingsPage() {
   } | null>(null);
   const [cleanupRunning, setCleanupRunning] = useState(false);
   const [cleanupDone, setCleanupDone] = useState(false);
-  const [providerProfiles, setProviderProfiles] = useState<ProviderProfile[]>([]);
-
-  const fetchProviderIpEvents = useCallback(() => {
-    fetch("/api/providers/ip-events")
-      .then((r) => r.json())
-      .then((data) => setProviderProfiles(data.profiles || []))
-      .catch(() => {});
-  }, []);
-
-  const updateIpStatus = async (eventId: string, status: string) => {
-    await fetch(`/api/providers/ip-events/${eventId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    fetchProviderIpEvents();
-  };
-
-  const deleteIpEvent = async (eventId: string) => {
-    await fetch(`/api/providers/ip-events/${eventId}`, { method: "DELETE" });
-    fetchProviderIpEvents();
-  };
 
   useEffect(() => {
     fetch("/api/settings")
@@ -68,9 +30,7 @@ export default function SettingsPage() {
       .then((r) => r.json())
       .then((data) => setRetention(data))
       .catch(() => {});
-
-    fetchProviderIpEvents();
-  }, [fetchProviderIpEvents]);
+  }, []);
 
   const triggerCleanup = async () => {
     setCleanupRunning(true);
@@ -168,84 +128,7 @@ export default function SettingsPage() {
         {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
       </button>
 
-      {/* Provider IP Security */}
-      {providerProfiles.length > 0 && (
-        <div className="mt-6 rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-1 text-sm font-medium text-foreground">Provider IP Security</h2>
-          <p className="mb-4 text-xs text-muted-foreground">
-            Manage which IP addresses can use your provider keys. New IPs are automatically held as &quot;pending&quot; until you approve them.
-          </p>
-
-          {providerProfiles.map((profile) => (
-            <div key={profile.id} className="mb-4 last:mb-0">
-              <h3 className="mb-2 text-sm font-medium text-[#333]">
-                {profile.name}{" "}
-                <span className="font-mono text-xs text-muted-foreground">
-                  {profile.key.slice(0, 12)}...
-                </span>
-              </h3>
-
-              {profile.ipEvents.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No IP events yet. The first request will auto-bind.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {profile.ipEvents.map((evt) => (
-                    <div
-                      key={evt.id}
-                      className="flex items-center justify-between rounded-md border border-border px-3 py-2"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            evt.status === "allowed"
-                              ? "bg-green-950/60 text-green-300"
-                              : evt.status === "blacklisted"
-                              ? "bg-red-950/60 text-red-300"
-                              : "bg-amber-950/60 text-amber-300"
-                          }`}
-                        >
-                          {evt.status}
-                        </span>
-                        <span className="font-mono text-sm text-foreground">{evt.ip}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {evt.attempts > 1 && `${evt.attempts} attempts · `}
-                          Last seen {new Date(evt.lastSeen).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        {evt.status !== "allowed" && (
-                          <button
-                            onClick={() => updateIpStatus(evt.id, "allowed")}
-                            className="rounded border border-green-800 px-2 py-1 text-xs text-green-400 hover:bg-green-950/40"
-                          >
-                            Allow
-                          </button>
-                        )}
-                        {evt.status !== "blacklisted" && (
-                          <button
-                            onClick={() => updateIpStatus(evt.id, "blacklisted")}
-                            className="rounded border border-red-800 px-2 py-1 text-xs text-red-400 hover:bg-red-950/40"
-                          >
-                            Block
-                          </button>
-                        )}
-                        <button
-                          onClick={() => deleteIpEvent(evt.id)}
-                          className="rounded border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Provider IP Security removed — moved to Providers page (per-provider level) */}
 
       {/* Data Retention */}
       {retention && (

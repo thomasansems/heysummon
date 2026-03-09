@@ -680,6 +680,15 @@ heysummon:
                         >
                           Copy snippet
                         </button>
+                        <span className="mx-2 text-gray-400">|</span>
+                        <a
+                          href={`/api/v1/skill-install/${k.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Install in OpenClaw →
+                        </a>
                       </td>
                     </tr>
                   )}

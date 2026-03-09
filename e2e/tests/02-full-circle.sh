@@ -43,7 +43,7 @@ fi
 section "Provider Poll Notification"
 RECEIVED=false
 for i in $(seq 1 "$TIMEOUT"); do
-  PENDING=$(curl -s -H "x-api-key: ${PROVIDER_KEY}" "${BASE_URL}/api/v1/requests?status=PENDING" 2>/dev/null)
+  PENDING=$(curl -s -H "x-api-key: ${PROVIDER_KEY}" "${BASE_URL}/api/v1/requests?status=pending" 2>/dev/null)
   if echo "$PENDING" | jq -e ".requests[] | select(.refCode == \"$REF_CODE\")" > /dev/null 2>&1; then
     RECEIVED=true
     break

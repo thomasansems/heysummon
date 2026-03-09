@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
 
   const where: Record<string, unknown> = { expertId: userId };
   if (statusFilter) {
-    where.status = statusFilter.toUpperCase() === statusFilter ? statusFilter : statusFilter.toUpperCase();
+    // DB stores lowercase status values (pending, active, closed, expired, responded)
+    where.status = statusFilter.toLowerCase();
   }
 
   const requests = await prisma.helpRequest.findMany({

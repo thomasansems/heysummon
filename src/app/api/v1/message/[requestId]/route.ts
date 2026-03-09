@@ -2,7 +2,6 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { publishToMercure } from "@/lib/mercure";
 import { messageCreateSchema, validateBody } from "@/lib/validations";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
@@ -197,35 +196,9 @@ export async function POST(
         request,
       });
     }
-
-    // Publish to Mercure: notify both parties
     try {
       await Promise.all([
-        publishToMercure(
-          `/heysummon/requests/${requestId}`,
-          {
-            type: 'new_message',
-            requestId,
-            messageId,
-            from,
-            createdAt: message.createdAt.toISOString(),
-          }
-        ),
-        publishToMercure(
-          `/heysummon/providers/${helpRequest.expertId}`,
-          {
-            type: 'new_message',
-            requestId,
-            refCode: helpRequest.refCode,
-            messageId,
-            from,
-            createdAt: message.createdAt.toISOString(),
-          }
-        ),
       ]);
-    } catch (mercureError) {
-      console.error('Mercure publish failed (non-fatal):', mercureError);
-    }
 
     return NextResponse.json({
       success: true,

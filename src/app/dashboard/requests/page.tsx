@@ -2,8 +2,8 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 
-import { useEffect, useState, useCallback } from "react";
-import { useProviderMercure } from "@/hooks/useMercure";
+import { useEffect, useState, useCallback } from "react"; // useCallback kept for fetchRequests memoization
+
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -98,14 +98,10 @@ export default function RequestsPage() {
 
   useEffect(() => {
     fetchRequests();
+    // Poll every 5 seconds for live updates (replaces Mercure SSE)
+    const interval = setInterval(fetchRequests, 5000);
+    return () => clearInterval(interval);
   }, [fetchRequests]);
-
-  // Realtime updates via Mercure
-  useProviderMercure(undefined, useCallback((event) => {
-    if (event.type === "new_request" || event.type === "status_change" || event.type === "closed") {
-      fetchRequests();
-    }
-  }, [fetchRequests]));
 
   const filtered =
     filter === "all"

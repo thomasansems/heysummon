@@ -2,7 +2,6 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { publishToMercure } from "@/lib/mercure";
 import { keyExchangeSchema, validateBody } from "@/lib/validations";
 import { sanitizeError } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
@@ -63,21 +62,7 @@ export async function POST(
         status: "active",
       },
     });
-
-    // Publish to Mercure: notify consumer that keys are exchanged
     try {
-      await publishToMercure(
-        `/heysummon/requests/${requestId}`,
-        {
-          type: 'keys_exchanged',
-          requestId,
-          providerSignPubKey: signPublicKey,
-          providerEncryptPubKey: encryptPublicKey,
-        }
-      );
-    } catch (mercureError) {
-      console.error('Mercure publish failed (non-fatal):', mercureError);
-    }
 
     logAuditEvent({
       eventType: AuditEventTypes.KEY_EXCHANGE,

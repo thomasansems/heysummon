@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { publishToMercure } from "@/lib/mercure";
 import type { TelegramConfig } from "@/lib/adapters/types";
 
 interface TelegramUpdate {
@@ -105,19 +104,7 @@ export async function POST(
         question: message.text,
       },
     });
-
-    // Publish new request event
     try {
-      await publishToMercure(
-        `/heysummon/providers/${channel.profile.userId}`,
-        {
-          type: "new_request",
-          requestId: helpRequest.id,
-          refCode: helpRequest.refCode,
-          channel: "telegram",
-          consumerName: senderName,
-        }
-      );
     } catch { /* non-fatal */ }
   } else {
     // Add message to existing request using the Message model
@@ -133,18 +120,7 @@ export async function POST(
         messageId: crypto.randomUUID(),
       },
     });
-
-    // Publish new message event
     try {
-      await publishToMercure(
-        `/heysummon/requests/${helpRequest.id}`,
-        {
-          type: "new_message",
-          requestId: helpRequest.id,
-          from: "consumer",
-          channel: "telegram",
-        }
-      );
     } catch { /* non-fatal */ }
   }
 

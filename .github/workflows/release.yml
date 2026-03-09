@@ -32,19 +32,17 @@ jobs:
       - name: Create tarball
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          tar -czf ../heysummon-${VERSION}.tar.gz \
+          tar -czf heysummon-${VERSION}.tar.gz \
             --exclude='node_modules' \
             --exclude='.git' \
             --exclude='tests' \
             --exclude='e2e' \
-            --exclude='cli' \
             --exclude='.env*' \
             --exclude='prisma/*.db' \
             --exclude='.github' \
             --exclude='docs' \
             --exclude='CLAUDE.md' \
-            -C . .
-          mv ../heysummon-${VERSION}.tar.gz .
+            .
 
       # GitHub Release
       - name: Create GitHub Release
@@ -54,15 +52,36 @@ jobs:
           generate_release_notes: true
 
       # Build and publish CLI to npm
-      - name: Build CLI
+      - name: Install CLI dependencies
+        working-directory: cli
+        run: npm ci
+
+      - name: Sync CLI version with git tag
         working-directory: cli
         run: |
-          npm run build
           VERSION=${GITHUB_REF#refs/tags/v}
           npm version $VERSION --no-git-tag-version
+
+      - name: Build CLI
+        working-directory: cli
+        run: npm run build
 
       - name: Publish to npm
         working-directory: cli
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Smoke test: install from npm and verify --version output
+      - name: Smoke test — npx heysummon --version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          # Wait a moment for npm registry to propagate
+          sleep 10
+          PUBLISHED=$(npx --yes heysummon@${VERSION} --version 2>/dev/null || echo "")
+          echo "Published version output: $PUBLISHED"
+          if [ "$PUBLISHED" != "$VERSION" ]; then
+            echo "::error::Smoke test failed — expected $VERSION, got '$PUBLISHED'"
+            exit 1
+          fi
+          echo "✅ Smoke test passed: heysummon@$VERSION"

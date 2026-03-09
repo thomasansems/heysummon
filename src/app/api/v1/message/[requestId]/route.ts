@@ -217,7 +217,9 @@ export async function POST(
       request,
     });
 
-    // Publish to Mercure: notify both parties
+    // Publish to Mercure: notify both parties.
+    // Provider topic receives 'message_sent' when the provider is the sender
+    // (confirmation), and 'new_message' when a consumer sends an incoming message.
     try {
       await Promise.all([
         publishToMercure(
@@ -233,7 +235,7 @@ export async function POST(
         publishToMercure(
           `/heysummon/providers/${helpRequest.expertId}`,
           {
-            type: 'new_message',
+            type: from === 'provider' ? 'message_sent' : 'new_message',
             requestId,
             refCode: helpRequest.refCode,
             messageId,

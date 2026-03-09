@@ -49,7 +49,8 @@ export function RequestDetail({ id }: { id: string }) {
 
   // Realtime updates via Mercure (new messages, closed, etc.)
   useRequestMercure(id, useCallback((event) => {
-    if (event.type === "new_message" || event.type === "closed" || event.type === "keys_exchanged") {
+    // message_sent = provider sent confirmation; new_message = incoming from consumer
+    if (event.type === "new_message" || event.type === "message_sent" || event.type === "closed" || event.type === "keys_exchanged") {
       fetchRequest();
     }
   }, [fetchRequest]));

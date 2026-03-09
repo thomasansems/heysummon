@@ -244,3 +244,13 @@ model AuditLog {
   @@index([eventType, createdAt])
   @@index([userId])
 }
+
+model RateLimit {
+  id      String   @id @default(cuid())
+  keyId   String   @unique
+  count   Int      @default(1)
+  resetAt DateTime
+
+  @@index([keyId])
+  @@index([resetAt])
+}

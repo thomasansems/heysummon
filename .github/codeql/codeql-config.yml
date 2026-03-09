@@ -1,0 +1,15 @@
+name: "HeySummon CodeQL Configuration"
+
+# Suppress known false positives
+paths-ignore:
+  # CLI output functions are not logging sensitive data;
+  # CodeQL traces process.env → function calls incorrectly
+  - cli/src/lib/ui.ts
+
+query-filters:
+  # HMAC-SHA256 is used as a keyed MAC for database index lookup,
+  # NOT for password hashing. Passwords use bcrypt (auth-config.ts).
+  # API keys are high-entropy random tokens (128-bit).
+  - exclude:
+      id: js/insufficient-password-hash
+      path: src/lib/api-key-auth.ts

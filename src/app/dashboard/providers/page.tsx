@@ -2,6 +2,7 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 import { Fragment, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 const COMMON_TIMEZONES = [
   "UTC",
@@ -58,6 +59,7 @@ interface Provider {
 }
 
 export default function ProvidersPage() {
+  const { status: sessionStatus } = useSession();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
@@ -80,7 +82,7 @@ export default function ProvidersPage() {
       .then((data) => { setProviders(data.providers || []); setLoading(false); })
       .catch(() => setLoading(false));
 
-  useEffect(() => { loadProviders(); }, []);
+  useEffect(() => { if (sessionStatus === "authenticated") loadProviders(); }, [sessionStatus]);
 
   const createProvider = async () => {
     if (!newName.trim()) return;

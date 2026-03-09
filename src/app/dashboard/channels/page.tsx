@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -42,6 +43,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ChannelsPage() {
+  const { status: sessionStatus } = useSession();
   const [channels, setChannels] = useState<ChannelProvider[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,8 +56,8 @@ export default function ChannelsPage() {
       });
 
   useEffect(() => {
-    loadChannels();
-  }, []);
+    if (sessionStatus === "authenticated") loadChannels();
+  }, [sessionStatus]);
 
   const toggleChannel = async (id: string, isActive: boolean) => {
     await fetch(`/api/channels/${id}`, {

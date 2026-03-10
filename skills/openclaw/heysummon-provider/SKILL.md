@@ -53,21 +53,22 @@ When the user replies to a 🦞 notification, parse the refCode (HS-XXXX) from t
 
 ## Approve/Deny Requests
 
-When a request has `requiresApproval: true`, the watcher sends a Telegram message with **✅ Approve** and **❌ Deny** inline buttons (`callback_data: "hs:approve:<requestId>"` or `"hs:deny:<requestId>"`).
+When `requiresApproval: true`, the watcher sends a Telegram message with native **✅ Approve** / **❌ Deny** inline buttons.
 
-**When a button callback arrives** (callback_data starts with `hs:approve:` or `hs:deny:`):
+`callback_data` format: `hs:approve:HS-XXXX` or `hs:deny:HS-XXXX` (using refCode).
 
-1. Parse decision and requestId from callback_data
-2. Call `POST {BASE_URL}/api/v1/approve/<requestId>` with `x-api-key` and body `{"decision":"approved"}` or `{"decision":"denied"}`
-3. Confirm to the user: "✅ Approved" or "❌ Denied"
+**When a button callback arrives** (callback_data starts with `hs:`):
 
-Example:
-```bash
-curl -s -X POST "${HEYSUMMON_BASE_URL}/api/v1/approve/${REQUEST_ID}" \
-  -H "x-api-key: ${HEYSUMMON_API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{"decision":"approved"}'
-```
+1. Parse: `[_, decision, refCode] = callback_data.split(":")`
+2. Call `reply-handler.sh <refCode> <decision>` — e.g.:
+   ```bash
+   bash scripts/reply-handler.sh HS-XXXX approved
+   bash scripts/reply-handler.sh HS-XXXX denied
+   ```
+3. reply-handler.sh detects "approved"/"denied" and sends `approvalDecision` via `POST /api/v1/message/[id]`
+4. Confirm to user: "✅ Approved for HS-XXXX" or "❌ Denied for HS-XXXX"
+
+The consumer polling endpoint returns `approvalDecision` so the client skill can continue its workflow.
 
 ## Statuses
 

@@ -39,11 +39,25 @@ if [ -z "$REQUEST_ID" ]; then
   exit 1
 fi
 
-# Send plaintext response — encryption is handled by the platform
+# Detect approve/deny — send as approvalDecision via message endpoint
+LOWER_RESPONSE=$(echo "$RESPONSE" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+
+if [ "$LOWER_RESPONSE" = "approved" ] || [ "$LOWER_RESPONSE" = "approve" ]; then
+  PAYLOAD=$(node -e "console.log(JSON.stringify({plaintext:'approved',from:'provider',approvalDecision:'approved'}))" 2>/dev/null)
+  DISPLAY="✅ Approved"
+elif [ "$LOWER_RESPONSE" = "denied" ] || [ "$LOWER_RESPONSE" = "deny" ]; then
+  PAYLOAD=$(node -e "console.log(JSON.stringify({plaintext:'denied',from:'provider',approvalDecision:'denied'}))" 2>/dev/null)
+  DISPLAY="❌ Denied"
+else
+  # Regular plaintext response
+  PAYLOAD=$(node -e "console.log(JSON.stringify({plaintext:process.argv[1],from:'provider'}))" "$RESPONSE" 2>/dev/null)
+  DISPLAY="✅ Response sent for $REF_CODE"
+fi
+
 RESULT=$(curl -s -X POST "${BASE_URL}/api/v1/message/${REQUEST_ID}" \
   -H "Content-Type: application/json" \
   -H "x-api-key: ${API_KEY}" \
-  -d "$(node -e "console.log(JSON.stringify({plaintext:process.argv[1],from:'provider'}))" "$RESPONSE" 2>/dev/null)")
+  -d "$PAYLOAD")
 
 ERROR=$(echo "$RESULT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);if(j.error)console.log(j.error)}catch(e){}})" 2>/dev/null)
 
@@ -52,4 +66,4 @@ if [ -n "$ERROR" ]; then
   exit 1
 fi
 
-echo "✅ Response sent for $REF_CODE"
+echo "$DISPLAY"

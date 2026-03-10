@@ -166,11 +166,27 @@ export async function POST(
       });
     }
 
+    // Handle approvalDecision if present (approve/deny flow)
+    const approvalDecision = (raw as Record<string, unknown>).approvalDecision;
+    const isApprovalResponse =
+      from === "provider" &&
+      (approvalDecision === "approved" || approvalDecision === "denied");
+
     // Update status to responded when provider sends a message
     if (from === "provider" && helpRequest.status !== "responded") {
       await prisma.helpRequest.update({
         where: { id: requestId },
-        data: { status: "responded", respondedAt: new Date() },
+        data: {
+          status: "responded",
+          respondedAt: new Date(),
+          ...(isApprovalResponse ? { approvalDecision: approvalDecision as string } : {}),
+        },
+      });
+    } else if (isApprovalResponse && !helpRequest.approvalDecision) {
+      // Update approvalDecision even if already responded
+      await prisma.helpRequest.update({
+        where: { id: requestId },
+        data: { approvalDecision: approvalDecision as string },
       });
     }
 

@@ -43,6 +43,19 @@ export async function POST(request: Request) {
       messageCount,
     } = body;
 
+    // Debug logging
+    console.log("[POST /api/v1/help] Request received:", {
+      questionPreview: questionPreview ? `${questionPreview.slice(0, 50)}...` : null,
+      requiresApproval,
+      apiKey: apiKey ? apiKey.slice(0, 20) + "..." : null,
+      hasQuestion: !!question,
+      hasMessages: !!messages && Array.isArray(messages) && messages.length > 0,
+      messageCount,
+      hasSignPublicKey: !!signPublicKey,
+      hasEncryptPublicKey: !!encryptPublicKey,
+      hasPublicKey: !!publicKey,
+    });
+
     if (!apiKey) {
       return NextResponse.json(
         { error: "apiKey is required" },
@@ -136,6 +149,16 @@ export async function POST(request: Request) {
         contentFlags: null,
         guardVerified,
       },
+    });
+
+    // Debug logging — show what was stored
+    console.log("[POST /api/v1/help] Request created:", {
+      id: helpRequest.id,
+      refCode: helpRequest.refCode,
+      questionPreview: helpRequest.questionPreview,
+      requiresApproval: helpRequest.requiresApproval,
+      expiresAt: helpRequest.expiresAt.toISOString(),
+      expertId: helpRequest.expertId,
     });
 
     logAuditEvent({

@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateProviderKey } from "@/lib/provider-key-auth";
 
+const DEBUG = process.env.DEBUG === "true";
+
 /**
  * POST /api/v1/approve/[requestId] — Approve or deny a request
  *
@@ -19,6 +21,13 @@ export async function POST(
 
   const { requestId } = await params;
 
+  if (DEBUG) {
+    console.log(`[POST /api/v1/approve/${requestId}] Request received from provider:`, {
+      provider: result.provider.name,
+      userId: result.provider.userId,
+    });
+  }
+
   let body: { decision?: string };
   try {
     body = await request.json();
@@ -27,6 +36,10 @@ export async function POST(
   }
 
   const { decision } = body;
+
+  if (DEBUG) {
+    console.log(`[POST /api/v1/approve/${requestId}] Decision received:`, { decision });
+  }
   if (decision !== "approved" && decision !== "denied") {
     return NextResponse.json(
       { error: "decision must be \"approved\" or \"denied\"" },
@@ -87,6 +100,16 @@ export async function POST(
       messageId: `approval-${requestId}-${Date.now()}`,
     },
   });
+
+  if (DEBUG) {
+    console.log(`[POST /api/v1/approve/${requestId}] Decision saved:`, {
+      requestId: updated.id,
+      refCode: updated.refCode,
+      approvalDecision: updated.approvalDecision,
+      status: updated.status,
+      respondedAt: updated.respondedAt,
+    });
+  }
 
   return NextResponse.json({
     success: true,

@@ -15,6 +15,7 @@ OPENCLAW_PORT="${OPENCLAW_PORT:-18789}"
 PENDING_URL="${BASE_URL}/api/v1/events/pending"
 ACK_URL="${BASE_URL}/api/v1/events/ack"
 POLL_INTERVAL="${HEYSUMMON_POLL_INTERVAL:-5}"
+DEBUG="${DEBUG:-false}"
 
 mkdir -p "$HOME/.heysummon-provider"
 touch "$SEEN_FILE"
@@ -33,6 +34,7 @@ fi
 echo "🦞 Provider watcher started (pid $$)"
 echo "   Polling: ${PENDING_URL} every ${POLL_INTERVAL}s"
 echo "   API key: ${API_KEY:0:15}..."
+[ "$DEBUG" = "true" ] && echo "   DEBUG mode: ON"
 
 # Send ACK for a delivered event
 send_ack() {
@@ -113,6 +115,11 @@ process_event() {
   echo "$dedup_key" >> "$SEEN_FILE"
   echo "$data" >> "$EVENTS_FILE"
 
+  if [ "$DEBUG" = "true" ]; then
+    echo "[DEBUG] Event received:" >&2
+    echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.error(JSON.stringify(j,null,2))}catch(e){}})" 2>&1 >&2
+  fi
+
   # Send notification via OpenClaw
   local NOTIFY_TARGET="${HEYSUMMON_NOTIFY_TARGET:?ERROR: Set HEYSUMMON_NOTIFY_TARGET}"
   local PAYLOAD
@@ -120,6 +127,12 @@ process_event() {
     tool:'message',
     args:{action:'send',message:process.argv[1],target:process.argv[2]}
   }))" "$msg" "$NOTIFY_TARGET" 2>/dev/null)
+
+  if [ "$DEBUG" = "true" ]; then
+    echo "[DEBUG] Sending to OpenClaw:" >&2
+    echo "$PAYLOAD" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.error(JSON.stringify(j,null,2))}catch(e){}})" 2>&1 >&2
+    echo "[DEBUG] Message for provider: $msg" >&2
+  fi
 
   curl -s "http://127.0.0.1:${OPENCLAW_PORT}/tools/invoke" \
     -H "Authorization: Bearer ${OPENCLAW_TOKEN}" \

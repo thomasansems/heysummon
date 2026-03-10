@@ -12,6 +12,7 @@ import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 
 const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
 const REQUEST_TTL_MS = parseInt(process.env.HEYSUMMON_REQUEST_TTL_MS || String(72 * 60 * 60 * 1000), 10);
+const DEBUG = process.env.DEBUG === "true";
 
 /**
  * POST /api/v1/help — Submit a help request.
@@ -44,17 +45,19 @@ export async function POST(request: Request) {
     } = body;
 
     // Debug logging
-    console.log("[POST /api/v1/help] Request received:", {
-      questionPreview: questionPreview ? `${questionPreview.slice(0, 50)}...` : null,
-      requiresApproval,
-      apiKey: apiKey ? apiKey.slice(0, 20) + "..." : null,
-      hasQuestion: !!question,
-      hasMessages: !!messages && Array.isArray(messages) && messages.length > 0,
-      messageCount,
-      hasSignPublicKey: !!signPublicKey,
-      hasEncryptPublicKey: !!encryptPublicKey,
-      hasPublicKey: !!publicKey,
-    });
+    if (DEBUG) {
+      console.log("[POST /api/v1/help] Request received:", {
+        questionPreview: questionPreview ? `${questionPreview.slice(0, 50)}...` : null,
+        requiresApproval,
+        apiKey: apiKey ? apiKey.slice(0, 20) + "..." : null,
+        hasQuestion: !!question,
+        hasMessages: !!messages && Array.isArray(messages) && messages.length > 0,
+        messageCount,
+        hasSignPublicKey: !!signPublicKey,
+        hasEncryptPublicKey: !!encryptPublicKey,
+        hasPublicKey: !!publicKey,
+      });
+    }
 
     if (!apiKey) {
       return NextResponse.json(
@@ -152,14 +155,16 @@ export async function POST(request: Request) {
     });
 
     // Debug logging — show what was stored
-    console.log("[POST /api/v1/help] Request created:", {
-      id: helpRequest.id,
-      refCode: helpRequest.refCode,
-      questionPreview: helpRequest.questionPreview,
-      requiresApproval: helpRequest.requiresApproval,
-      expiresAt: helpRequest.expiresAt.toISOString(),
-      expertId: helpRequest.expertId,
-    });
+    if (DEBUG) {
+      console.log("[POST /api/v1/help] Request created:", {
+        id: helpRequest.id,
+        refCode: helpRequest.refCode,
+        questionPreview: helpRequest.questionPreview,
+        requiresApproval: helpRequest.requiresApproval,
+        expiresAt: helpRequest.expiresAt.toISOString(),
+        expertId: helpRequest.expertId,
+      });
+    }
 
     logAuditEvent({
       eventType: AuditEventTypes.HELP_REQUEST_SUBMITTED,

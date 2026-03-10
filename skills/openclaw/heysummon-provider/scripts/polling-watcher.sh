@@ -120,13 +120,39 @@ process_event() {
     echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.error(JSON.stringify(j,null,2))}catch(e){}})" 2>&1 >&2
   fi
 
+  # Determine if this is an approval request
+  local needs_approval request_id_for_buttons
+  needs_approval=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.requiresApproval?'true':'false')}catch(e){console.log('false')}})" 2>/dev/null)
+  request_id_for_buttons=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).requestId||'')}catch(e){console.log('')}})" 2>/dev/null)
+
   # Send notification via OpenClaw
   local NOTIFY_TARGET="${HEYSUMMON_NOTIFY_TARGET:?ERROR: Set HEYSUMMON_NOTIFY_TARGET}"
   local PAYLOAD
-  PAYLOAD=$(node -e "console.log(JSON.stringify({
-    tool:'message',
-    args:{action:'send',message:process.argv[1],target:process.argv[2]}
-  }))" "$msg" "$NOTIFY_TARGET" 2>/dev/null)
+  if [ "$needs_approval" = "true" ] && [ -n "$request_id_for_buttons" ]; then
+    # Send with inline Approve / Deny buttons
+    PAYLOAD=$(node -e "
+      const msg=process.argv[1];
+      const target=process.argv[2];
+      const rid=process.argv[3];
+      console.log(JSON.stringify({
+        tool:'message',
+        args:{
+          action:'send',
+          message:msg,
+          target:target,
+          buttons:[[
+            {text:'✅ Approve',callback_data:'hs:approve:'+rid},
+            {text:'❌ Deny',   callback_data:'hs:deny:'+rid}
+          ]]
+        }
+      }));
+    " "$msg" "$NOTIFY_TARGET" "$request_id_for_buttons" 2>/dev/null)
+  else
+    PAYLOAD=$(node -e "console.log(JSON.stringify({
+      tool:'message',
+      args:{action:'send',message:process.argv[1],target:process.argv[2]}
+    }))" "$msg" "$NOTIFY_TARGET" 2>/dev/null)
+  fi
 
   if [ "$DEBUG" = "true" ]; then
     echo "[DEBUG] Sending to OpenClaw:" >&2

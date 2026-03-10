@@ -91,7 +91,8 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
         requestId: e.requestId,
         refCode: e.refCode,
         requiresApproval: e.requiresApproval,
-        questionPreview: e.questionPreview ? `${e.questionPreview.slice(0, 40)}...` : null,
+        question: e.question || null,
+        questionPreview: e.questionPreview || null,
       })),
     });
   }

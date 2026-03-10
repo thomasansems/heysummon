@@ -11,7 +11,7 @@
 - [Submit a request](./api/help-submit.md) — `POST /api/v1/help`
 - [Poll a request](./api/help-poll.md) — `GET /api/v1/help/:id`
 - [Send a message](./api/message-send.md) — `POST /api/v1/message/:requestId`
-- [SSE event stream](./api/events-stream.md) — `GET /api/v1/events/stream`
+- [Events API](./api/events-stream.md) — `GET /api/v1/events/pending`
 - [Verify API key](./api/whoami.md) — `GET /api/v1/whoami`
 
 ## Guides
@@ -24,5 +24,5 @@
 
 - [Docker](./self-hosting/docker.md) — Recommended for production
 - [NPX installer](./self-hosting/npx.md) — Fastest way to get started
-- [Architecture](./self-hosting/architecture.md) — Guard, Platform, Mercure, security model
+- [Architecture](./self-hosting/architecture.md) — Guard, Platform, security model
 - [Troubleshooting](./TROUBLESHOOTING.md) — Common issues and fixes

@@ -2,7 +2,7 @@ import { Callout } from 'nextra/components'
 
 # Docker
 
-The recommended way to self-host HeySummon. Includes Guard, Platform, PostgreSQL, and Mercure.
+The recommended way to self-host HeySummon. Includes Guard, Platform, and PostgreSQL.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/thomasansems/heysummon/main/install
 This script:
 1. Creates `~/.heysummon-docker/`
 2. Downloads `docker-compose.yml`
-3. Generates `NEXTAUTH_SECRET`, `MERCURE_JWT_SECRET`, and `DB_PASSWORD` automatically
+3. Generates `NEXTAUTH_SECRET` and `DB_PASSWORD` automatically
 4. Writes a ready-to-use `.env`
 5. Runs `docker compose up -d`
 
@@ -51,8 +51,7 @@ Guard (:3445)          — Ed25519 signing, rate limiting, key validation
     ▼ (internal network only)
 Platform (Next.js)     — API, dashboard, auth
     │
-    ├──▶ PostgreSQL     — data storage
-    └──▶ Mercure        — real-time SSE hub
+    └──▶ PostgreSQL     — data storage
 ```
 
 Guard is the **only** externally reachable service. Platform has no exposed ports.
@@ -98,7 +97,6 @@ HEYSUMMON_VERSION=0.1.0 docker compose up -d
 ```bash
 docker compose logs -f app              # Platform logs
 docker compose logs -f heysummon-guard  # Guard logs
-docker compose logs -f mercure          # Mercure logs
 ```
 
 ## Backups

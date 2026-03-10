@@ -22,8 +22,8 @@ type AuthFlags = {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
-        <div className="text-[#999]">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     }>
       <LoginForm />
@@ -141,8 +141,8 @@ function LoginForm() {
 
   if (!flags) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
-        <div className="text-[#999]">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -151,23 +151,23 @@ function LoginForm() {
   const hasDivider = flags.formLogin && (hasOAuth || flags.magicLink);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fafafa] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link
             href="/"
-            className="mb-4 inline-flex items-center gap-2 text-lg font-bold text-black"
+            className="mb-4 inline-flex items-center gap-2 text-lg font-bold text-foreground"
           >
             HeySummon
           </Link>
-          <h1 className="mt-6 text-2xl font-semibold text-black">
+          <h1 className="mt-6 text-2xl font-semibold text-foreground">
             {mode === "login"
               ? "Welcome back"
               : flags?.hasUsers === false
                 ? "Set up your account"
                 : "Create your account"}
           </h1>
-          <p className="mt-1 text-sm text-[#666]">
+          <p className="mt-1 text-sm text-muted-foreground">
             {mode === "login"
               ? "Sign in to your provider dashboard"
               : flags?.hasUsers === false
@@ -176,14 +176,14 @@ function LoginForm() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-[#eaeaea] bg-white p-6 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           {error && (
-            <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+            <div className="mb-4 rounded-md bg-red-950/40 px-3 py-2 text-sm text-red-400">
               {error}
             </div>
           )}
           {success && (
-            <div className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-600">
+            <div className="mb-4 rounded-md bg-green-950/40 px-3 py-2 text-sm text-green-400">
               {success}
             </div>
           )}
@@ -191,12 +191,12 @@ function LoginForm() {
           {/* Magic Link sent state */}
           {magicSent && (
             <div className="text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-xl">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-950/40 text-xl">
                 ✉️
               </div>
-              <h2 className="text-lg font-semibold text-black">Check your email</h2>
-              <p className="mt-2 text-sm text-[#666]">
-                We sent a magic link to <strong className="text-black">{email}</strong>.
+              <h2 className="text-lg font-semibold text-foreground">Check your email</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                We sent a magic link to <strong className="text-foreground">{email}</strong>.
               </p>
               <button
                 onClick={() => { setMagicSent(false); setEmail(""); }}
@@ -214,7 +214,7 @@ function LoginForm() {
                 <form onSubmit={mode === "login" ? handleFormLogin : handleRegister} className="mb-0">
                   {mode === "register" && (
                     <>
-                      <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-[#333]">
+                      <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
                         Name
                       </label>
                       <input
@@ -223,12 +223,12 @@ function LoginForm() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Your name (optional)"
-                        className="mb-3 w-full rounded-md border border-[#eaeaea] bg-white px-3.5 py-2.5 text-sm text-black placeholder-[#999] outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                        className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
                       />
                     </>
                   )}
 
-                  <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[#333]">
+                  <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
                     Email address
                   </label>
                   <input
@@ -238,10 +238,10 @@ function LoginForm() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="you@example.com"
-                    className="mb-3 w-full rounded-md border border-[#eaeaea] bg-white px-3.5 py-2.5 text-sm text-black placeholder-[#999] outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                    className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
                   />
 
-                  <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-[#333]">
+                  <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
                     Password
                   </label>
                   <input
@@ -252,7 +252,7 @@ function LoginForm() {
                     required
                     minLength={8}
                     placeholder={mode === "register" ? "Min. 8 characters" : "••••••••"}
-                    className="mb-4 w-full rounded-md border border-[#eaeaea] bg-white px-3.5 py-2.5 text-sm text-black placeholder-[#999] outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                    className="mb-4 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
                   />
 
                   <button
@@ -265,7 +265,7 @@ function LoginForm() {
                       : mode === "login" ? "Sign in" : "Create account"}
                   </button>
 
-                  <p className="mt-3 text-center text-sm text-[#666]">
+                  <p className="mt-3 text-center text-sm text-muted-foreground">
                     {mode === "login" && flags?.registrationOpen ? (
                       <>
                         Don&apos;t have an account?{" "}
@@ -297,10 +297,10 @@ function LoginForm() {
               {hasDivider && (
                 <div className="relative my-5">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-[#eaeaea]" />
+                    <div className="w-full border-t border-border" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="bg-white px-2 text-[#999]">or continue with</span>
+                    <span className="bg-card px-2 text-muted-foreground">or continue with</span>
                   </div>
                 </div>
               )}
@@ -308,7 +308,7 @@ function LoginForm() {
               {/* Magic Link */}
               {flags.magicLink && !flags.formLogin && (
                 <form onSubmit={handleMagicLink} className="mb-5">
-                  <label htmlFor="magic-email" className="mb-1.5 block text-sm font-medium text-[#333]">
+                  <label htmlFor="magic-email" className="mb-1.5 block text-sm font-medium text-foreground">
                     Email address
                   </label>
                   <input
@@ -318,7 +318,7 @@ function LoginForm() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="you@example.com"
-                    className="mb-3 w-full rounded-md border border-[#eaeaea] bg-white px-3.5 py-2.5 text-sm text-black placeholder-[#999] outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                    className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
                   />
                   <button
                     type="submit"
@@ -339,7 +339,7 @@ function LoginForm() {
                     }
                   }}
                   disabled={!email}
-                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#fafafa] disabled:opacity-50"
+                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-background disabled:opacity-50"
                 >
                   ✉️ Send Magic Link instead
                 </button>
@@ -362,7 +362,7 @@ function LoginForm() {
                   {flags.google && (
                     <button
                       onClick={() => doSignIn("google", { callbackUrl })}
-                      className="flex w-full items-center justify-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#fafafa]"
+                      className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-background"
                     >
                       <svg className="h-5 w-5" viewBox="0 0 24 24">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -378,8 +378,8 @@ function LoginForm() {
 
               {/* No login methods available */}
               {!flags.formLogin && !flags.magicLink && !hasOAuth && (
-                <p className="text-center text-sm text-[#666]">
-                  No login methods are configured. Set <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">ENABLE_FORM_LOGIN=true</code> in your environment.
+                <p className="text-center text-sm text-muted-foreground">
+                  No login methods are configured. Set <code className="text-xs bg-muted px-1 py-0.5 rounded">ENABLE_FORM_LOGIN=true</code> in your environment.
                 </p>
               )}
             </>

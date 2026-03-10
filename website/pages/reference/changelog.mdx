@@ -13,9 +13,8 @@ Initial public beta release.
 - Multi-turn conversations via `POST /api/v1/message`
 - Reference codes (`HS-XXXXXXXX`) for every request
 - Dashboard for human experts
-- Real-time SSE via Mercure
-- `GET /api/v1/events/stream` — SSE proxy (authenticated, topics scoped per key)
-- `GET /api/v1/events/pending` — catch up on missed events
+- `GET /api/v1/events/pending` — poll for pending events
+- HTTP polling for updates
 - `POST /api/v1/events/ack/:id` — acknowledge delivery
 
 **Security**
@@ -33,7 +32,7 @@ Initial public beta release.
 - IP Security inline on Clients and Users dashboard pages
 
 **Infrastructure**
-- Docker deployment with Guard, Platform, PostgreSQL, Mercure
+- Docker deployment with Guard, Platform, PostgreSQL
 - NPX installer (`npx heysummon`) for local/personal use
 - GitHub Container Registry images at `ghcr.io/thomasansems/heysummon`
 - Automated release workflow with Docker image publishing

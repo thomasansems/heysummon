@@ -4,18 +4,7 @@ import crypto from "crypto";
 
 const AUTO_BLACKLIST_THRESHOLD = 20;
 
-// ── Per-key rate limiting (in-memory sliding window) ──
-
-const keyRateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60_000;
-
-// Cleanup old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, val] of keyRateLimitMap) {
-    if (now > val.resetAt) keyRateLimitMap.delete(key);
-  }
-}, 300_000);
 
 /**
  * Hash a device token using HMAC-SHA256 with the server secret.
@@ -77,19 +66,32 @@ export function isScopeAllowed(
 
 /**
  * Check if a key has exceeded its per-minute rate limit.
+ * DB-backed so limits persist across server restarts.
  * Returns true if rate limited.
  */
-export function isKeyRateLimited(keyId: string, maxPerMinute: number): boolean {
-  const now = Date.now();
-  const entry = keyRateLimitMap.get(keyId);
+export async function isKeyRateLimited(keyId: string, maxPerMinute: number): Promise<boolean> {
+  const now = new Date();
+  const resetAt = new Date(Date.now() + RATE_LIMIT_WINDOW_MS);
 
-  if (!entry || now > entry.resetAt) {
-    keyRateLimitMap.set(keyId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+  // Upsert: increment count if window active, reset if expired
+  const existing = await prisma.rateLimit.findUnique({ where: { keyId } });
+
+  if (!existing || existing.resetAt < now) {
+    // Start fresh window
+    await prisma.rateLimit.upsert({
+      where: { keyId },
+      create: { keyId, count: 1, resetAt },
+      update: { count: 1, resetAt },
+    });
     return false;
   }
 
-  entry.count++;
-  return entry.count > maxPerMinute;
+  const updated = await prisma.rateLimit.update({
+    where: { keyId },
+    data: { count: { increment: 1 } },
+  });
+
+  return updated.count > maxPerMinute;
 }
 
 /**
@@ -319,7 +321,7 @@ export async function validateApiKeyRequest(
   }
 
   // 9. Per-key rate limit
-  if (isKeyRateLimited(keyRecord.id, keyRecord.rateLimitPerMinute)) {
+  if (await isKeyRateLimited(keyRecord.id, keyRecord.rateLimitPerMinute)) {
     return {
       ok: false,
       response: NextResponse.json(

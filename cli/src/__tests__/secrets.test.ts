@@ -15,13 +15,10 @@ describe("secrets", () => {
     assert.notStrictEqual(a, b);
   });
 
-  it("generates both required secrets", () => {
+  it("generates the required secret", () => {
     const secrets = generateSecrets();
     assert.ok(secrets.nextauthSecret);
-    assert.ok(secrets.mercureJwtSecret);
     assert.match(secrets.nextauthSecret, /^[0-9a-f]{64}$/);
-    assert.match(secrets.mercureJwtSecret, /^[0-9a-f]{64}$/);
-    assert.notStrictEqual(secrets.nextauthSecret, secrets.mercureJwtSecret);
   });
 
   it("respects custom byte length", () => {

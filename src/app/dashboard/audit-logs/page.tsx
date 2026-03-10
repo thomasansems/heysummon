@@ -41,24 +41,24 @@ function formatDate(date: string) {
 
 function EventTypeBadge({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    LOGIN_SUCCESS: "bg-green-50 text-green-700",
-    LOGIN_FAILURE: "bg-red-50 text-red-700",
-    ACCOUNT_CREATED: "bg-blue-50 text-blue-700",
-    API_KEY_CREATED: "bg-violet-50 text-violet-700",
-    API_KEY_ROTATED: "bg-amber-50 text-amber-700",
-    API_KEY_DELETED: "bg-red-50 text-red-700",
-    KEY_EXCHANGE: "bg-cyan-50 text-cyan-700",
-    PERMISSION_CHANGED: "bg-orange-50 text-orange-700",
-    HELP_REQUEST_SUBMITTED: "bg-indigo-50 text-indigo-700",
-    NOTIFICATION_DELIVERED: "bg-emerald-50 text-emerald-700",
-    NOTIFICATION_RESENT: "bg-amber-50 text-amber-700",
-    PROVIDER_RESPONSE: "bg-emerald-50 text-emerald-700",
+    LOGIN_SUCCESS: "bg-green-950/60 text-green-300",
+    LOGIN_FAILURE: "bg-red-950/60 text-red-300",
+    ACCOUNT_CREATED: "bg-blue-950/60 text-blue-300",
+    API_KEY_CREATED: "bg-violet-950/60 text-violet-300",
+    API_KEY_ROTATED: "bg-amber-950/60 text-amber-300",
+    API_KEY_DELETED: "bg-red-950/60 text-red-300",
+    KEY_EXCHANGE: "bg-cyan-950/60 text-cyan-300",
+    PERMISSION_CHANGED: "bg-orange-950/60 text-orange-300",
+    HELP_REQUEST_SUBMITTED: "bg-indigo-950/60 text-indigo-300",
+    NOTIFICATION_DELIVERED: "bg-emerald-950/60 text-emerald-300",
+    NOTIFICATION_RESENT: "bg-amber-950/60 text-amber-300",
+    PROVIDER_RESPONSE: "bg-emerald-950/60 text-emerald-300",
   };
 
   const label = type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${colors[type] || "bg-gray-50 text-gray-700"}`}>
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${colors[type] || "bg-muted text-muted-foreground"}`}>
       {label}
     </span>
   );
@@ -66,12 +66,12 @@ function EventTypeBadge({ type }: { type: string }) {
 
 function SuccessBadge({ success }: { success: boolean }) {
   return success ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs font-medium text-emerald-300">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
       Success
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+    <span className="inline-flex items-center gap-1 rounded-full bg-red-950/60 px-2 py-0.5 text-xs font-medium text-red-300">
       <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
       Failed
     </span>
@@ -134,13 +134,13 @@ export default function AuditLogsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-black">Audit Logs</h1>
-        <label className="flex items-center gap-2 text-sm text-[#666]">
+        <h1 className="text-2xl font-semibold text-foreground">Audit Logs</h1>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
           <input
             type="checkbox"
             checked={autoRefresh}
             onChange={(e) => setAutoRefresh(e.target.checked)}
-            className="rounded border-[#eaeaea]"
+            className="rounded border-border accent-primary [color-scheme:dark]"
           />
           Auto-refresh
         </label>
@@ -151,7 +151,7 @@ export default function AuditLogsPage() {
         <select
           value={eventTypeFilter}
           onChange={(e) => setEventTypeFilter(e.target.value)}
-          className="rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black"
+          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground"
         >
           <option value="">All events</option>
           {EVENT_TYPES.map((type) => (
@@ -164,14 +164,14 @@ export default function AuditLogsPage() {
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black"
+          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground"
           placeholder="Start date"
         />
         <input
           type="date"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
-          className="rounded-md border border-[#eaeaea] bg-white px-3 py-1.5 text-sm text-black"
+          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground"
           placeholder="End date"
         />
         {(eventTypeFilter || startDate || endDate) && (
@@ -181,7 +181,7 @@ export default function AuditLogsPage() {
               setStartDate("");
               setEndDate("");
             }}
-            className="rounded-md px-3 py-1.5 text-sm text-[#666] hover:text-black"
+            className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
           >
             Clear filters
           </button>
@@ -189,19 +189,19 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         {loading ? (
-          <div className="flex h-48 items-center justify-center text-sm text-[#666]">
+          <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
             Loading...
           </div>
         ) : logs.length === 0 ? (
-          <div className="flex h-48 items-center justify-center text-sm text-[#666]">
+          <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
             No audit logs found
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+              <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Timestamp</th>
                 <th className="px-4 py-2.5 font-medium">Event</th>
                 <th className="px-4 py-2.5 font-medium">User</th>
@@ -215,18 +215,18 @@ export default function AuditLogsPage() {
                   <td colSpan={5} className="p-0">
                     <button
                       onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-                      className="flex w-full items-center border-b border-[#eaeaea] text-left hover:bg-[#fafafa] transition-colors"
+                      className="flex w-full items-center border-b border-border text-left hover:bg-muted transition-colors"
                     >
-                      <span className="px-4 py-2.5 w-[160px] shrink-0 text-[#666]">
+                      <span className="px-4 py-2.5 w-[160px] shrink-0 text-muted-foreground">
                         {formatDate(log.createdAt)}
                       </span>
                       <span className="px-4 py-2.5 w-[220px] shrink-0">
                         <EventTypeBadge type={log.eventType} />
                       </span>
-                      <span className="px-4 py-2.5 flex-1 truncate text-black font-mono text-xs">
+                      <span className="px-4 py-2.5 flex-1 truncate text-foreground font-mono text-xs">
                         {log.userId || "—"}
                       </span>
-                      <span className="px-4 py-2.5 w-[140px] shrink-0 text-[#666] font-mono text-xs">
+                      <span className="px-4 py-2.5 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">
                         {log.ip || "—"}
                       </span>
                       <span className="px-4 py-2.5 w-[100px] shrink-0 text-right">
@@ -234,24 +234,24 @@ export default function AuditLogsPage() {
                       </span>
                     </button>
                     {expandedId === log.id && (
-                      <div className="border-b border-[#eaeaea] bg-[#fafafa] px-4 py-3">
+                      <div className="border-b border-border bg-muted px-4 py-3">
                         <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
                           <div>
-                            <span className="font-medium text-[#666]">Event ID:</span>{" "}
-                            <span className="font-mono text-black">{log.id}</span>
+                            <span className="font-medium text-muted-foreground">Event ID:</span>{" "}
+                            <span className="font-mono text-foreground">{log.id}</span>
                           </div>
                           <div>
-                            <span className="font-medium text-[#666]">API Key ID:</span>{" "}
-                            <span className="font-mono text-black">{log.apiKeyId || "—"}</span>
+                            <span className="font-medium text-muted-foreground">API Key ID:</span>{" "}
+                            <span className="font-mono text-foreground">{log.apiKeyId || "—"}</span>
                           </div>
                           <div className="col-span-2">
-                            <span className="font-medium text-[#666]">User Agent:</span>{" "}
-                            <span className="text-black break-all">{log.userAgent || "—"}</span>
+                            <span className="font-medium text-muted-foreground">User Agent:</span>{" "}
+                            <span className="text-foreground break-all">{log.userAgent || "—"}</span>
                           </div>
                           {log.metadata && (
                             <div className="col-span-2">
-                              <span className="font-medium text-[#666]">Metadata:</span>
-                              <pre className="mt-1 overflow-x-auto rounded bg-white p-2 text-xs text-black border border-[#eaeaea]">
+                              <span className="font-medium text-muted-foreground">Metadata:</span>
+                              <pre className="mt-1 overflow-x-auto rounded bg-card p-2 text-xs text-foreground border border-border">
                                 {JSON.stringify(log.metadata, null, 2)}
                               </pre>
                             </div>
@@ -272,7 +272,7 @@ export default function AuditLogsPage() {
         <div className="mt-4 text-center">
           <button
             onClick={() => fetchLogs(nextCursor)}
-            className="rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-sm text-black hover:bg-[#fafafa] transition-colors"
+            className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
           >
             Load more
           </button>

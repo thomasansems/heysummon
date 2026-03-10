@@ -19,10 +19,9 @@ HeySummon is designed to be self-hosted. Your data never leaves your infrastruct
 | **Guard** | Entry point — validates keys, signs requests | 3445 (Docker) |
 | **Platform** | Next.js app — API, dashboard, auth | Internal only |
 | **PostgreSQL** | Database (Docker) or SQLite (NPX) | Internal only |
-| **Mercure** | Real-time SSE hub | Internal only |
 
 <Callout type="warning">
-  The Platform has no exposed ports in Docker — only Guard is reachable from outside. Never expose the Platform or Mercure directly to the internet.
+  The Platform has no exposed ports in Docker — only Guard is reachable from outside. Never expose the Platform directly to the internet.
 </Callout>
 
 ## Making it public

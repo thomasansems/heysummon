@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 
 env:
-  E2E_MERCURE_JWT_SECRET: e2e-mercure-secret
   DATABASE_URL: file:${{ github.workspace }}/prisma/e2e-test.db
 
 jobs:
@@ -16,20 +15,6 @@ jobs:
     name: Extended E2E Suite
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    services:
-      mercure:
-        image: dunglas/mercure
-        env:
-          SERVER_NAME: ':3000'
-          MERCURE_PUBLISHER_JWT_KEY: e2e-mercure-secret
-          MERCURE_SUBSCRIBER_JWT_KEY: e2e-mercure-secret
-          MERCURE_EXTRA_DIRECTIVES: |
-            anonymous
-            cors_origins *
-            subscriptions
-        ports:
-          - 13100:3000
 
     steps:
       - uses: actions/checkout@v4
@@ -82,7 +67,6 @@ jobs:
         run: npm run build
         env:
           NEXTAUTH_SECRET: e2e-secret
-          MERCURE_JWT_SECRET: e2e-mercure-secret
 
       - name: Build guard
         run: cd guard && npm run build
@@ -96,9 +80,6 @@ jobs:
         env:
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: e2e-secret
-          MERCURE_HUB_URL: http://localhost:13100/.well-known/mercure
-          MERCURE_JWT_SECRET: e2e-mercure-secret
-          NEXT_PUBLIC_MERCURE_HUB_URL: http://localhost:13100/.well-known/mercure
           PORT: 3000
           REQUIRE_GUARD: "true"
           GUARD_PUBLIC_KEY: ${{ steps.guard-keys.outputs.public_key }}
@@ -130,6 +111,5 @@ jobs:
           export E2E_BASE_URL=http://localhost:3000
           export GUARD_URL=http://localhost:3457
           export GUARD_SIGNING_KEY=${{ steps.guard-keys.outputs.signing_key }}
-          export E2E_MERCURE_HUB=http://localhost:13100/.well-known/mercure
           export E2E_RATE_LIMIT_BYPASS_SECRET=e2e-bypass-secret-do-not-use-in-prod
           bash e2e/e2e-test.sh

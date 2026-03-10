@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Provider Tagline — Settings Preview</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 32px; max-width: 700px; margin: auto; }
+  .card { background: white; border: 1px solid #eaeaea; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  h2 { font-size: 14px; font-weight: 600; color: #000; margin: 0 0 4px; }
+  p.sub { font-size: 12px; color: #666; margin: 0 0 12px; }
+  .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  /* Toggle */
+  .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: #000; border-radius: 20px; transition: .2s; }
+  .slider:before { content: ''; position: absolute; height: 16px; width: 16px; left: 2px; bottom: 2px; background: white; border-radius: 50%; transition: .2s; transform: translateX(16px); }
+  input:not(:checked) + .slider { background: #eaeaea; }
+  input:not(:checked) + .slider:before { transform: translateX(0); }
+  input { display: block; }
+  .field { width: 100%; border: 1px solid #eaeaea; border-radius: 6px; padding: 8px 12px; font-size: 14px; color: #000; box-sizing: border-box; outline: none; }
+  .field:focus { border-color: #000; }
+  .count { text-align: right; font-size: 11px; color: #999; margin-top: 4px; }
+  .preview { background: #f9f9f9; border: 1px solid #eaeaea; border-radius: 6px; padding: 12px; margin-top: 12px; font-size: 12px; color: #666; }
+  .preview strong { color: #000; }
+  .preview pre { margin: 6px 0 0; font-family: inherit; white-space: pre-wrap; line-height: 1.6; }
+  .btn { background: #000; color: white; border: none; border-radius: 6px; padding: 7px 16px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .saved { color: #16a34a; font-size: 14px; margin-left: 12px; }
+  .page-title { font-size: 22px; font-weight: 600; color: #000; margin-bottom: 20px; }
+  .back { color: #666; font-size: 14px; text-decoration: none; margin-right: 12px; }
+  .separator { color: #bbb; margin-right: 8px; }
+</style>
+</head>
+<body>
+
+<div style="margin-bottom: 24px">
+  <a class="back" href="#">← Providers</a>
+  <span class="separator">|</span>
+  <span class="page-title" style="font-size:14px; display:inline">Thomas — Settings</span>
+</div>
+
+<div class="card">
+  <h2>Timezone</h2>
+  <p class="sub">Used for scheduling and display.</p>
+  <select class="field" style="max-width:340px"><option>Europe/Amsterdam</option></select>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div>
+      <h2>Response Tagline</h2>
+      <p class="sub">Optionally append a tagline to your responses (max 160 chars).</p>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" checked id="toggle" onchange="syncToggle()">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <input type="text" class="field" id="tagline" maxlength="160"
+    value="Powered by HeySummon · https://heysummon.ai"
+    oninput="updatePreview()" placeholder="e.g. Powered by HeySummon · https://heysummon.ai">
+  <div class="count"><span id="count">44</span>/160</div>
+  <div class="preview" id="preview">
+    <strong>Preview:</strong>
+    <pre id="previewText">Your response here…
+
+---
+Powered by HeySummon · https://heysummon.ai</pre>
+  </div>
+</div>
+
+<div style="display:flex; align-items:center">
+  <button class="btn" onclick="save()">Save</button>
+  <span class="saved" id="saved" style="display:none">Settings saved ✓</span>
+</div>
+
+<script>
+function updatePreview() {
+  const v = document.getElementById('tagline').value;
+  document.getElementById('count').textContent = v.length;
+  const enabled = document.getElementById('toggle').checked;
+  const preview = document.getElementById('preview');
+  if (enabled && v) {
+    preview.style.display = 'block';
+    document.getElementById('previewText').textContent = 'Your response here…\n\n---\n' + v;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+function syncToggle() {
+  const field = document.getElementById('tagline');
+  field.disabled = !document.getElementById('toggle').checked;
+  field.style.background = field.disabled ? '#f9f9f9' : '';
+  field.style.color = field.disabled ? '#999' : '';
+  updatePreview();
+}
+function save() {
+  const saved = document.getElementById('saved');
+  saved.style.display = 'inline';
+  setTimeout(() => saved.style.display = 'none', 2000);
+}
+updatePreview();
+</script>
+</body>
+</html>

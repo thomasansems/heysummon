@@ -53,6 +53,8 @@ export const providerUpdateSchema = z.object({
   quietHoursStart: z.string().optional(),
   quietHoursEnd: z.string().optional(),
   digestTime: z.string().optional(),
+  tagline: z.string().max(160).optional(),
+  taglineEnabled: z.boolean().optional(),
 });
 
 // ── Key schemas ──

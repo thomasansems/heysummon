@@ -22,14 +22,6 @@ interface Stats {
   }[];
 }
 
-interface MercureHealth {
-  status: "healthy" | "unhealthy";
-  mercureUrl: string;
-  lastCheck: string;
-  responseTime?: number;
-  error?: string;
-}
-
 function timeAgo(date: string) {
   const seconds = Math.floor(
     (Date.now() - new Date(date).getTime()) / 1000
@@ -62,12 +54,12 @@ function CopyableRefCode({ code }: { code: string | null }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="font-mono text-xs text-black hover:text-violet-600 cursor-pointer relative"
+      className="font-mono text-xs text-foreground hover:text-violet-600 cursor-pointer relative"
       title="Click to copy"
     >
       {code}
       {copied && (
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-0.5 text-xs text-white whitespace-nowrap">
+        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-foreground px-2 py-0.5 text-xs text-background whitespace-nowrap">
           Copied!
         </span>
       )}
@@ -77,35 +69,15 @@ function CopyableRefCode({ code }: { code: string | null }) {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [mercureHealth, setMercureHealth] = useState<MercureHealth | null>(null);
-
   useEffect(() => {
     fetch("/api/dashboard/stats")
       .then((r) => r.json())
       .then(setStats);
-
-    // Check Mercure health
-    const checkMercureHealth = () => {
-      fetch("/api/mercure/health")
-        .then((r) => r.json())
-        .then(setMercureHealth)
-        .catch(() => setMercureHealth({
-          status: "unhealthy",
-          mercureUrl: "unknown",
-          lastCheck: new Date().toISOString(),
-          error: "Failed to check health",
-        }));
-    };
-
-    checkMercureHealth();
-    // Poll every 30 seconds
-    const interval = setInterval(checkMercureHealth, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   if (!stats) {
     return (
-      <div className="flex h-64 items-center justify-center text-[#666]">
+      <div className="flex h-64 items-center justify-center text-muted-foreground">
         Loading...
       </div>
     );
@@ -115,80 +87,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-black">Overview</h1>
-
-      {/* Mercure Health Status */}
-      {mercureHealth && mercureHealth.status === "unhealthy" && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-red-500" />
-              <p className="text-sm font-medium text-red-900">
-                Real-time server is down
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setMercureHealth(null);
-                  fetch("/api/mercure/health")
-                    .then((r) => r.json())
-                    .then(setMercureHealth)
-                    .catch(() => setMercureHealth({
-                      status: "unhealthy",
-                      mercureUrl: "unknown",
-                      lastCheck: new Date().toISOString(),
-                      error: "Failed to check health",
-                    }));
-                }}
-                className="rounded-md border border-red-300 bg-white px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
-              >
-                ↻ Retry
-              </button>
-              <a
-                href="https://github.com/thomasansems/heysummon/blob/main/docs/TROUBLESHOOTING.md#real-time-server-mercure"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-md border border-red-300 bg-white px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
-              >
-                Troubleshooting ↗
-              </a>
-            </div>
-          </div>
-          <p className="mt-1 text-sm text-red-700">
-            SSE notifications are not being delivered. {mercureHealth.error || "Connection failed"}
-          </p>
-          <p className="mt-2 text-xs text-red-600">
-            Common fix: <code className="rounded bg-red-100 px-1 py-0.5">docker compose restart mercure</code> or <code className="rounded bg-red-100 px-1 py-0.5">pm2 restart mercure</code>
-          </p>
-        </div>
-      )}
-
-      {mercureHealth && (
-        <div className="mb-6 flex items-center justify-between rounded-lg border border-[#eaeaea] bg-white px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span
-              className={`h-2 w-2 rounded-full ${
-                mercureHealth.status === "healthy"
-                  ? "bg-green-500"
-                  : "bg-red-500"
-              }`}
-            />
-            <div>
-              <p className="text-sm font-medium text-black">
-                Real-time Server
-              </p>
-              <p className="text-xs text-[#666]">
-                {mercureHealth.status === "healthy" ? "Connected" : "Disconnected"}
-                {mercureHealth.responseTime != null && ` • ${mercureHealth.responseTime}ms`}
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-[#666]">
-            Checked {timeAgo(mercureHealth.lastCheck)}
-          </p>
-        </div>
-      )}
+      <h1 className="mb-6 text-2xl font-semibold text-foreground">Overview</h1>
 
       {/* Stat cards */}
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -203,10 +102,10 @@ export default function DashboardPage() {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="rounded-lg border border-[#eaeaea] bg-white p-4"
+            className="rounded-lg border border-border bg-card p-4"
           >
-            <p className="text-sm text-[#666]">{stat.label}</p>
-            <p className="mt-1 text-2xl font-semibold text-black">
+            <p className="text-sm text-muted-foreground">{stat.label}</p>
+            <p className="mt-1 text-2xl font-semibold text-foreground">
               {stat.value}
             </p>
           </div>
@@ -215,16 +114,16 @@ export default function DashboardPage() {
 
       {/* Open Requests */}
       <div className="mb-8">
-        <h2 className="mb-3 text-sm font-medium text-black">Open Requests</h2>
-        <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
+        <h2 className="mb-3 text-sm font-medium text-foreground">Open Requests</h2>
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           {stats.openRequests.length === 0 ? (
-            <div className="p-6 text-center text-sm text-[#666]">
+            <div className="p-6 text-center text-sm text-muted-foreground">
               No open requests
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+                <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Ref Code</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
                   <th className="px-4 py-2.5 font-medium">Messages</th>
@@ -236,26 +135,26 @@ export default function DashboardPage() {
                 {stats.openRequests.map((req) => (
                   <tr
                     key={req.id}
-                    className="border-b border-[#eaeaea] last:border-0"
+                    className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
                   >
                     <td className="px-4 py-2.5">
                       <CopyableRefCode code={req.refCode} />
                     </td>
                     <td className="px-4 py-2.5">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-medium text-yellow-700">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">
                         <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
                         Awaiting Response
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-[#666]">
+                    <td className="px-4 py-2.5 text-muted-foreground">
                       {req.messageCount > 0
                         ? `${req.messageCount} berichten`
                         : "—"}
                     </td>
-                    <td className="px-4 py-2.5 text-[#666]">
+                    <td className="px-4 py-2.5 text-muted-foreground">
                       {req.apiKey.name || "Unnamed"}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-[#666]">
+                    <td className="px-4 py-2.5 text-right text-muted-foreground">
                       {timeAgo(req.createdAt)}
                     </td>
                   </tr>
@@ -268,10 +167,10 @@ export default function DashboardPage() {
 
       {/* Activity Chart */}
       <div>
-        <h2 className="mb-3 text-sm font-medium text-black">
+        <h2 className="mb-3 text-sm font-medium text-foreground">
           Activity (7 days)
         </h2>
-        <div className="rounded-lg border border-[#eaeaea] bg-white p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-end justify-between gap-2" style={{ height: 120 }}>
             {stats.activity.map((count, i) => (
               <div key={i} className="flex flex-1 flex-col items-center gap-1">
@@ -282,7 +181,7 @@ export default function DashboardPage() {
                     minHeight: count > 0 ? 4 : 0,
                   }}
                 />
-                <span className="text-xs text-[#666]">
+                <span className="text-xs text-muted-foreground">
                   {DAYS[(new Date().getDay() + i - 5) % 7] || DAYS[i]}
                 </span>
               </div>

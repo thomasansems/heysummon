@@ -1,6 +1,6 @@
 # Architecture
 
-HeySummon is designed around security, real-time delivery, and zero-knowledge relay.
+HeySummon is designed around security, reliable delivery, and zero-knowledge relay.
 
 ---
 
@@ -13,10 +13,9 @@ HeySummon is designed around security, real-time delivery, and zero-knowledge re
 │  ┌─────────┐    ┌──────────────┐    ┌────────────────┐  │
 │  │  Guard  │───▶│   Platform   │───▶│   PostgreSQL   │  │
 │  │  :3445  │    │  (Next.js)   │    └────────────────┘  │
-│  │ Ed25519 │    │  (internal)  │    ┌────────────────┐  │
-│  └─────────┘    │              │───▶│    Mercure     │  │
-│       ▲         └──────────────┘    │  (SSE hub)     │  │
-│       │                             └────────────────┘  │
+│  │ Ed25519 │    │  (internal)  │                        │
+│  └─────────┘    └──────────────┘                        │
+│       ▲                                                 │
 │  ┌─────────┐                                            │
 │  │ Tunnel  │  (optional: Cloudflare / Tailscale / Ngrok)│
 │  └─────────┘                                            │
@@ -52,14 +51,6 @@ The core application. Runs on an **internal network with no exposed ports**.
 
 ---
 
-## Mercure
-
-Internal real-time hub. Clients never connect to Mercure directly — they go through the Platform's SSE proxy at `/api/v1/events/stream`.
-
-When a request is submitted or responded to, Platform publishes a Mercure event on the provider's topic. The provider's watcher or dashboard picks it up instantly.
-
----
-
 ## Request flow
 
 ```
@@ -72,17 +63,16 @@ Guard
   ▼
 Platform
   │  Verifies receipt, stores encrypted request, generates ref code
-  │  Publishes Mercure event on provider topic
   ▼
-Mercure ──SSE──▶ Provider watcher / Dashboard
+Provider watcher polls GET /api/v1/events/pending
                        │
                        │  Human reads, responds
                        │  PATCH /api/requests/:id (or POST /api/v1/message/:id)
                        ▼
                    Platform
-                       │  Updates request status, publishes Mercure event
+                       │  Updates request status
                        ▼
-                   Mercure ──SSE──▶ AI Agent (or agent polls GET /api/v1/help/:id)
+                   AI Agent polls GET /api/v1/help/:id
 ```
 
 ---
@@ -97,7 +87,7 @@ Generate X25519 keypair
                     ──── POST /api/v1/help ────▶
                          (signPubKey, encryptPubKey,
                           encrypted question)
-                                                ──── SSE event ────▶
+                                                ──── polling ────▶
                     ◀── serverPublicKey ─────────
                                                               Generate keypairs
                                                 ◀── POST /key-exchange ──

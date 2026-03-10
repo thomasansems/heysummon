@@ -76,6 +76,8 @@ model UserProfile {
   digestTime       String?
   deviceSecret     String?
   machineId        String?
+  tagline          String?           // Optional upsell tagline appended to responses (max 160 chars)
+  taglineEnabled   Boolean           @default(false)
   user             User              @relation(fields: [userId], references: [id])
   apiKeys          ApiKey[]
   channelProviders ChannelProvider[]
@@ -178,6 +180,12 @@ model HelpRequest {
   deliveredAt            DateTime? // When provider watcher acknowledged receipt
   expiresAt              DateTime  // createdAt + 72 hours
   closedAt               DateTime?
+
+  // Delivery retry tracking
+  deliveryStatus         String    @default("pending")   // pending | retrying | delivered | failed | cancelled
+  deliveryRetryCount     Int       @default(0)
+  deliveryLastAttemptAt  DateTime?
+  deliveryNextRetryAt    DateTime?
   
   // Channel adapter fields
   channelProviderId      String?
@@ -241,4 +249,14 @@ model AuditLog {
 
   @@index([eventType, createdAt])
   @@index([userId])
+}
+
+model RateLimit {
+  id      String   @id @default(cuid())
+  keyId   String   @unique
+  count   Int      @default(1)
+  resetAt DateTime
+
+  @@index([keyId])
+  @@index([resetAt])
 }

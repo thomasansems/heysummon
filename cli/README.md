@@ -139,7 +139,7 @@ The CLI is the easiest path but not the only one. Choose based on your use case:
 
 ### Docker (recommended for production)
 
-Full stack with PostgreSQL, Mercure, Guard reverse proxy, and optional tunnel:
+Full stack with PostgreSQL, Guard reverse proxy, and optional tunnel:
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git

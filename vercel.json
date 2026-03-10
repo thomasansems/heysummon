@@ -1,4 +1,9 @@
 {
-  "buildCommand": "prisma generate && next build",
-  "installCommand": "npm install"
+  "rootDirectory": "vercel-waitlist",
+  "buildCommand": "next build",
+  "installCommand": "npm install",
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]",
+  "github": {
+    "silent": true
+  }
 }

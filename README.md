@@ -9,8 +9,8 @@ Connect AI agents with human experts — in real time, E2E encrypted, self-hosta
 [![CI](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/thomasansems/heysummon/actions/workflows/codeql.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/codeql.yml)
 [![Docker](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/docker.yml)
+[![npm version](https://img.shields.io/npm/v/heysummon?color=orange&label=npm)](https://www.npmjs.com/package/heysummon)
 [![License: SUL](https://img.shields.io/badge/license-Sustainable%20Use-blue)](LICENSE.md)
-[![Version](https://img.shields.io/badge/version-0.1.0--alpha.1-orange)](package.json)
 
 [Documentation](https://docs.heysummon.ai) · [Cloud](https://cloud.heysummon.ai) · [Contributing](CONTRIBUTING.md)
 
@@ -20,7 +20,7 @@ Connect AI agents with human experts — in real time, E2E encrypted, self-hosta
 
 ## What is HeySummon?
 
-HeySummon is an open-source platform that lets AI agents ask humans for help when they get stuck. An agent sends an encrypted help request, a human expert answers through the dashboard, and the agent picks up the response — all in real time via SSE.
+HeySummon is an open-source platform that lets AI agents ask humans for help when they get stuck. An agent sends an encrypted help request, a human expert answers through the dashboard, and the agent picks up the response via HTTP polling.
 
 Think of it as **a pager for your AI agents**: when they hit a wall, they summon a human.
 
@@ -34,14 +34,14 @@ Think of it as **a pager for your AI agents**: when they hit a wall, they summon
 
 | | Feature | Description |
 |---|---|---|
-| 📡 | **Real-time SSE** | Instant push updates via Server-Sent Events (Mercure-powered internally) |
+| 📡 | **HTTP Polling** | Event discovery via polling API with acknowledgment |
 | 🔐 | **E2E Encryption** | RSA-OAEP + AES-256-GCM — zero-knowledge relay |
 | 👥 | **Multi-Provider** | Multiple human experts can handle requests |
 | 🔑 | **API Keys** | Issue and manage consumer API keys from the dashboard |
 | 📊 | **Dashboard** | Review, decrypt, and respond to requests in a clean UI |
 | 📎 | **Reference Codes** | `HS-XXXX` codes for easy tracking |
 | ⏱️ | **Auto-Expiry** | Requests expire after 24 hours |
-| 🐳 | **Docker Ready** | One command to deploy with Postgres + Mercure |
+| 🐳 | **Docker Ready** | One command to deploy with Postgres |
 
 ## Quick Start
 
@@ -81,7 +81,7 @@ curl -fsSL https://raw.githubusercontent.com/thomasansems/heysummon/main/install
 
 Installs to `~/.heysummon-docker/`. The app is available at `http://localhost:3445`.
 
-Includes: **Guard** (reverse proxy with Ed25519 request signing) → **Next.js app** → **PostgreSQL** + **Mercure** (real-time SSE).
+Includes: **Guard** (reverse proxy with Ed25519 request signing) → **Next.js app** → **PostgreSQL**.
 
 ```bash
 # To stop / update
@@ -156,13 +156,13 @@ docker compose -f docker-compose.dev.yml up -d
 
 ## Default Ports
 
-| Environment | Guard (app) | Mercure (realtime) | Prisma Studio | Ngrok dashboard |
-|-------------|-------------|-------------------|---------------|-----------------|
-| **Docker** | `3445` | `3446` | `3447` *(debug profile)* | `3448` *(ngrok profile)* |
-| **CLI** (`heysummon start`) | `3435` | `3436` | `3437` *(optional)* | — |
-| **Local dev** (`npm run dev`) | `3425` | `3426` | `3427` *(optional)* | — |
+| Environment | Guard (app) | Prisma Studio | Ngrok dashboard |
+|-------------|-------------|---------------|-----------------|
+| **Docker** | `3445` | `3447` *(debug profile)* | `3448` *(ngrok profile)* |
+| **CLI** (`heysummon start`) | `3435` | `3437` *(optional)* | — |
+| **Local dev** (`npm run dev`) | `3425` | `3427` *(optional)* | — |
 
-> Internal container-to-container traffic always uses port `3000` (app) and the Mercure server name port. These are never exposed directly.
+> Internal container-to-container traffic always uses port `3000` (app). These are never exposed directly.
 
 ---
 
@@ -174,10 +174,10 @@ docker compose -f docker-compose.dev.yml up -d
 ┌──────────┐       │  ┌─────────┐      ┌──────────┐      ┌──────────┐      │  ┌──────────┐
 │ AI Agent │──────▶│  │  Guard  │─────▶│ Platform │─────▶│ Postgres │      │  │  Human   │
 │(Consumer)│ HTTPS │  │  :3000  │      │(internal)│      └──────────┘      │  │(Provider)│
-└──────────┘       │  │Ed25519  │      │ Next.js  │      ┌──────────┐      │  │Dashboard │
-                   │  │signing  │      │          │─────▶│ Mercure  │──SSE─│─▶│          │
-                   │  └─────────┘      └──────────┘      │(internal)│      │  └──────────┘
-                   │       ▲                              └──────────┘      │
+└──────────┘       │  │Ed25519  │      │ Next.js  │                        │  │Dashboard │
+                   │  │signing  │      │          │────────── polling ─────│─▶│          │
+                   │  └─────────┘      └──────────┘                        │  └──────────┘
+                   │       ▲                                               │
                    │       │                                               │
                    │  ┌─────────┐  (optional)                              │
                    │  │ Tunnel  │  Cloudflare / Tailscale / Ngrok          │
@@ -188,7 +188,7 @@ docker compose -f docker-compose.dev.yml up -d
 **Key points:**
 - **Guard** is the single entry point — validates requests, adds Ed25519 signatures
 - **Platform** runs on an internal network with no exposed ports
-- Mercure is internal only — clients connect via the Next.js SSE proxy
+- Providers and consumers discover events via HTTP polling
 - E2E encryption means the platform stores ciphertext it cannot read
 - Tunnel profiles (Cloudflare/Tailscale/Ngrok) route through Guard, never directly to Platform
 
@@ -201,7 +201,7 @@ docker compose -f docker-compose.dev.yml up -d
 | `POST` | `/api/v1/help` | API key | Submit encrypted help request |
 | `GET` | `/api/v1/help/:id` | API key | Poll status / get encrypted response |
 | `POST` | `/api/v1/key-exchange` | API key | Exchange public keys for E2E |
-| `GET` | `/api/v1/events` | API key | SSE stream for real-time updates |
+| `GET` | `/api/v1/events/pending` | API key | Poll for pending events |
 
 ### Provider API (dashboard)
 
@@ -228,7 +228,7 @@ docker compose -f docker-compose.dev.yml up -d
 - **Next.js 15** — App Router, React Server Components
 - **Prisma** — SQLite (default) or Postgres
 - **NextAuth.js v5** — Email/password by default, GitHub + Google OAuth opt-in
-- **Mercure** — Internal real-time hub, proxied as SSE to clients
+- **HTTP Polling** — Event discovery via polling API
 - **Tailwind CSS** + shadcn/ui — Dashboard UI
 - **RSA-OAEP + AES-256-GCM** — Hybrid E2E encryption
 

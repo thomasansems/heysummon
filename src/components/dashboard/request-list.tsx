@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { StatusBadge } from "./status-badge";
-import { useProviderMercure } from "@/hooks/useMercure";
 
 interface HelpRequestItem {
   id: string;
@@ -43,12 +42,11 @@ export function RequestList({ providerId }: { providerId?: string }) {
     fetchRequests();
   }, [fetchRequests]);
 
-  // Realtime updates via Mercure
-  useProviderMercure(providerId, useCallback((event) => {
-    if (event.type === "new_request" || event.type === "status_change" || event.type === "closed") {
-      fetchRequests();
-    }
-  }, [fetchRequests]));
+  // Poll for updates every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchRequests, 10_000);
+    return () => clearInterval(interval);
+  }, [fetchRequests]);
 
   return (
     <div>

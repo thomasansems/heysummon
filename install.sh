@@ -59,7 +59,6 @@ else
   info "Generating secrets and writing .env..."
 
   NEXTAUTH_SECRET=$(openssl rand -hex 32)
-  MERCURE_JWT_SECRET=$(openssl rand -hex 32)
   DB_PASSWORD=$(openssl rand -hex 16)
 
   cat > .env <<EOF
@@ -68,7 +67,6 @@ else
 
 # ─── Required secrets (auto-generated) ──────────────
 NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-MERCURE_JWT_SECRET=${MERCURE_JWT_SECRET}
 
 # ─── Database ───────────────────────────────────────
 DB_PASSWORD=${DB_PASSWORD}

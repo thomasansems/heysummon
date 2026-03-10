@@ -1,31 +1,40 @@
 import { Callout } from 'nextra/components'
 
-# Real-time Updates (SSE)
+# Polling for Updates
 
-Instead of polling, connect to the SSE stream and receive events instantly.
+Poll the pending events endpoint to receive updates about your help requests.
 
 ---
 
-## Connect
+## Poll for events
 
 ```bash
-curl -N http://localhost:3425/api/v1/events/stream \
+curl http://localhost:3425/api/v1/events/pending \
   -H "x-api-key: hs_live_abc123..."
 ```
 
-The connection stays open and streams events as they occur:
+Returns pending events as JSON:
 
+```json
+{
+  "events": [
+    {
+      "type": "new_request",
+      "requestId": "cmxxx...",
+      "refCode": "HS-A1B2C3D4",
+      "status": "pending",
+      "createdAt": "2026-02-28T09:00:00Z"
+    },
+    {
+      "type": "status_change",
+      "requestId": "cmxxx...",
+      "refCode": "HS-A1B2C3D4",
+      "status": "responded",
+      "respondedAt": "2026-02-28T09:05:00Z"
+    }
+  ]
+}
 ```
-: connected — listening on 1 topic(s)
-
-:
-
-data: {"type":"new_request","requestId":"cmxxx...","refCode":"HS-A1B2C3D4"}
-
-data: {"type":"status_change","requestId":"cmxxx...","status":"responded"}
-```
-
-Heartbeat (`:`) lines are sent periodically to keep the connection alive.
 
 ---
 
@@ -34,7 +43,7 @@ Heartbeat (`:`) lines are sent periodically to keep the connection alive.
 | Event | When | Payload |
 |-------|------|---------|
 | `new_request` | A help request is submitted | `requestId`, `refCode`, `question` |
-| `status_change` | Status changes (pending → responded, etc.) | `requestId`, `refCode`, `status` |
+| `status_change` | Status changes (pending -> responded, etc.) | `requestId`, `refCode`, `status` |
 | `new_message` | A message is sent in a conversation | `requestId`, `refCode`, `messageId`, `from` |
 
 ---
@@ -42,66 +51,54 @@ Heartbeat (`:`) lines are sent periodically to keep the connection alive.
 ## JavaScript example
 
 ```javascript
-const es = new EventSource('/api/v1/events/stream', {
-  headers: { 'x-api-key': 'hs_live_abc123...' }
-});
+async function pollForUpdates(apiKey) {
+  const response = await fetch('/api/v1/events/pending', {
+    headers: { 'x-api-key': apiKey }
+  });
+  const { events } = await response.json();
 
-es.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-
-  if (data.type === 'status_change' && data.status === 'responded') {
-    console.log(`Request ${data.refCode} was answered!`);
-    // Fetch the response
-    fetchResponse(data.requestId);
+  for (const event of events) {
+    if (event.type === 'status_change' && event.status === 'responded') {
+      console.log(`Request ${event.refCode} was answered!`);
+      await fetchResponse(event.requestId);
+    }
   }
-};
 
-es.onerror = () => {
-  console.log('Disconnected — reconnecting...');
-  // Browser reconnects automatically
-};
+  // Acknowledge processed events
+  for (const event of events) {
+    await fetch(`/api/v1/events/ack/${event.requestId}`, {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey }
+    });
+  }
+}
+
+// Poll every 5 seconds
+setInterval(() => pollForUpdates('hs_live_abc123...'), 5000);
 ```
 
 ---
 
-## Reconnection and catch-up
+## Acknowledging events
 
-The SSE stream may disconnect (network issues, server restart). After reconnecting, events that fired during the gap are **not replayed**.
-
-To catch up after a reconnect:
+After processing events, acknowledge them so they are not returned again:
 
 ```bash
-GET /api/v1/events/pending
+POST /api/v1/events/ack/:requestId
 x-api-key: hs_live_abc123...
 ```
 
-Returns undelivered events (up to 50):
-
-```json
-{
-  "events": [
-    {
-      "type": "new_request",
-      "requestId": "req-789",
-      "refCode": "HS-XYZ9",
-      "status": "pending",
-      "createdAt": "2026-02-28T09:00:00Z"
-    }
-  ]
-}
-```
-
 <Callout type="info">
-  The Mercure hub is never exposed directly. All SSE connections go through the platform's proxy at `/api/v1/events/stream`, which authenticates you and resolves which topics you're allowed to subscribe to.
+  Pending events are stored for **24 hours** after the last activity on the request. Make sure to poll and acknowledge regularly.
 </Callout>
 
 ---
 
-## SSE vs polling
+## Polling tips
 
-| | SSE stream | Polling |
-|---|---|---|
-| Latency | Instant | Up to N seconds |
-| Server load | Low (1 persistent connection) | Higher (repeated requests) |
-| Complexity | Slightly higher | Simple |
-| Best for | Production agents | Scripts, one-off requests |
+| Consideration | Recommendation |
+|---|---|
+| Poll interval | Every 3-10 seconds depending on urgency |
+| Rate limits | 30 req/min per IP on polling endpoints |
+| Missed events | Events are stored until acknowledged or expired |
+| Best for | All agents, scripts, and one-off requests |

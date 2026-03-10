@@ -24,7 +24,6 @@ jobs:
       NEXTAUTH_SECRET: playwright-test-secret
       NEXTAUTH_URL: http://localhost:3456
       AUTH_TRUST_HOST: "true"
-      MERCURE_JWT_SECRET: playwright-test-secret
 
     steps:
       - uses: actions/checkout@v4

@@ -114,7 +114,7 @@ if [ -z "$REQUEST_ID" ]; then
   exit 1
 fi
 
-# Register request for Mercure watcher (store refCode + provider name)
+# Register request for polling watcher (store refCode + provider name)
 mkdir -p "$REQUESTS_DIR"
 echo "$REF_CODE" > "$REQUESTS_DIR/$REQUEST_ID"
 # Store provider info alongside request

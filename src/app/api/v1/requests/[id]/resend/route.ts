@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { publishToMercure } from "@/lib/mercure";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
 /**
- * POST /api/requests/:id/resend — Re-publish a Mercure notification for a request.
+ * POST /api/requests/:id/resend — Reset delivery tracking for a request.
  *
- * Used when the provider watcher missed the original SSE event.
+ * Clears deliveredAt so the polling watcher picks it up again.
  * Auth: session cookie (dashboard user).
  */
 export async function POST(
@@ -26,14 +25,6 @@ export async function POST(
       id: true,
       refCode: true,
       status: true,
-      question: true,
-      createdAt: true,
-      expiresAt: true,
-      consumerSignPubKey: true,
-      consumerEncryptPubKey: true,
-      messageHistory: {
-        select: { id: true },
-      },
     },
   });
 
@@ -48,42 +39,19 @@ export async function POST(
     );
   }
 
-  try {
-    await publishToMercure(
-      `/heysummon/providers/${user.id}`,
-      {
-        type: "new_request",
-        requestId: helpRequest.id,
-        refCode: helpRequest.refCode,
-        question: helpRequest.question || null,
-        messageCount: helpRequest.messageHistory.length,
-        messagePreview: null,
-        consumerSignPubKey: helpRequest.consumerSignPubKey || null,
-        consumerEncryptPubKey: helpRequest.consumerEncryptPubKey || null,
-        createdAt: helpRequest.createdAt.toISOString(),
-        expiresAt: helpRequest.expiresAt.toISOString(),
-      }
-    );
+  // Reset deliveredAt so polling watchers pick it up as pending again
+  await prisma.helpRequest.update({
+    where: { id },
+    data: { deliveredAt: null },
+  });
 
-    // Reset deliveredAt so we can track the new delivery
-    await prisma.helpRequest.update({
-      where: { id },
-      data: { deliveredAt: null },
-    });
+  logAuditEvent({
+    eventType: AuditEventTypes.NOTIFICATION_RESENT,
+    userId: user.id,
+    success: true,
+    metadata: { requestId: id, refCode: helpRequest.refCode },
+    request,
+  });
 
-    logAuditEvent({
-      eventType: AuditEventTypes.NOTIFICATION_RESENT,
-      userId: user.id,
-      success: true,
-      metadata: { requestId: id, refCode: helpRequest.refCode },
-      request,
-    });
-
-    return NextResponse.json({ ok: true, message: "Notification resent" });
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to resend notification" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ ok: true, message: "Notification resent" });
 }

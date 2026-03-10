@@ -106,24 +106,6 @@ Closes the request. Provider key required.
 
 ## Events
 
-### SSE stream
-`GET /api/v1/events/stream`
-
-**Header:** `x-api-key`
-
-Opens a persistent SSE connection. Streams events for all topics the key has access to.
-
-Events:
-```
-data: {"type":"new_request","requestId":"...","refCode":"HS-..."}
-
-data: {"type":"status_change","requestId":"...","status":"responded"}
-
-data: {"type":"new_message","requestId":"...","messageId":"...","from":"provider"}
-```
-
----
-
 ### Pending events
 `GET /api/v1/events/pending`
 

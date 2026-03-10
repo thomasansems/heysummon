@@ -2,7 +2,7 @@ import { Callout } from 'nextra/components'
 
 # Architecture
 
-HeySummon is designed around security, real-time delivery, and zero-knowledge relay.
+HeySummon is designed around security, reliable delivery, and zero-knowledge relay.
 
 ---
 
@@ -15,10 +15,10 @@ HeySummon is designed around security, real-time delivery, and zero-knowledge re
 │  ┌─────────┐    ┌──────────────┐    ┌────────────────┐  │
 │  │  Guard  │───▶│   Platform   │───▶│   PostgreSQL   │  │
 │  │  :3445  │    │  (Next.js)   │    └────────────────┘  │
-│  │ Ed25519 │    │  (internal)  │    ┌────────────────┐  │
-│  └─────────┘    │              │───▶│    Mercure     │  │
-│       ▲         └──────────────┘    │  (SSE hub)     │  │
-│       │                             └────────────────┘  │
+│  │ Ed25519 │    │  (internal)  │                        │
+│  └─────────┘    └──────────────┘                        │
+│       ▲                                                  │
+│       │                                                  │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -52,20 +52,19 @@ The core application. Runs on an **internal network with no exposed ports**.
 
 ---
 
-## Mercure
+## Event delivery
 
-Internal real-time hub. Clients **never connect to Mercure directly** — they go through the Platform's SSE proxy at `/api/v1/events/stream`.
+Events are delivered via **HTTP polling**. Clients poll `GET /api/v1/events/pending` to receive updates.
 
 ```
-Provider Watcher  ──▶  /api/v1/events/stream  ──▶  Mercure (internal)
-Dashboard Browser ──▶  /api/v1/events/stream  ──▶  Mercure (internal)
+Provider Watcher  ──▶  GET /api/v1/events/pending
+Dashboard Browser ──▶  GET /api/v1/events/pending
 ```
 
-The proxy:
+The polling endpoint:
 - Authenticates the client (API key or session cookie)
 - Resolves allowed topics per client
-- Creates a scoped Mercure JWT
-- Streams events back to the client via SSE
+- Returns pending events as JSON
 
 ---
 
@@ -81,16 +80,16 @@ Guard
   ▼
 Platform
   │  Verifies receipt, stores encrypted request, generates ref code
-  │  Publishes Mercure event on provider topic
+  │  Creates event on provider topic
   ▼
-Mercure ──SSE──▶ Provider watcher / Dashboard
+Provider watcher / Dashboard (via polling)
                        │
                        │  Human reads, responds
                        ▼
                    Platform
-                       │  Updates request status, publishes Mercure event
+                       │  Updates request status, creates event
                        ▼
-                   Mercure ──SSE──▶ AI Agent
+                   AI Agent (via polling)
 ```
 
 ---
@@ -105,7 +104,7 @@ Generate X25519 keypair
                     ──── POST /api/v1/help ────▶
                          (signPubKey, encryptPubKey,
                           encrypted question)
-                                                ──── SSE event ────▶
+                                                ──── notification ────▶
                     ◀── serverPublicKey ─────────
                                                               Generate keypairs
                                                 ◀── POST /key-exchange ──

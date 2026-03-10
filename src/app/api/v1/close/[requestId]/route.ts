@@ -9,7 +9,6 @@ import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
  *
  * Authentication: x-api-key header required.
  * Either party (consumer or provider) can close the conversation.
- * Publishes a "closed" event to both Mercure topics.
  *
  * Returns: { success: true, closedAt }
  */
@@ -55,6 +54,7 @@ export async function POST(
         closedAt,
       },
     });
+
     return NextResponse.json({
       success: true,
       status: "closed",

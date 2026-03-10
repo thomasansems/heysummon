@@ -6,7 +6,6 @@ describe("config", () => {
   describe("generateEnv", () => {
     const baseConfig: HeysummonConfig = {
       port: 3435,
-      mercurePort: 3436,
       publicUrl: "http://localhost:3435",
       enableFormLogin: true,
       enableGithubOauth: false,
@@ -15,7 +14,6 @@ describe("config", () => {
 
     const secrets = {
       nextauthSecret: "abc123",
-      mercureJwtSecret: "def456",
     };
 
     it("generates env with all required variables", () => {
@@ -25,7 +23,6 @@ describe("config", () => {
       assert.ok(env.includes("PORT=3435"));
       assert.ok(env.includes('NEXTAUTH_URL="http://localhost:3435"'));
       assert.ok(env.includes('NEXTAUTH_SECRET="abc123"'));
-      assert.ok(env.includes('MERCURE_JWT_SECRET="def456"'));
       assert.ok(env.includes('ENABLE_FORM_LOGIN="true"'));
     });
 

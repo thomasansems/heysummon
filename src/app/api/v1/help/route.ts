@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
-import { dispatchWebhookToProvider } from "@/lib/webhook";
 import { helpCreateSchema, validateBody } from "@/lib/validations";
 import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
@@ -134,20 +133,6 @@ export async function POST(request: Request) {
         guardVerified,
       },
     });
-
-    // Dispatch webhook notifications (parallel, non-blocking)
-    dispatchWebhookToProvider(key.userId, {
-      type: 'new_request',
-      requestId: helpRequest.id,
-      refCode: helpRequest.refCode ?? undefined,
-      question: question || null,
-      messageCount: Array.isArray(messages) ? messages.length : 0,
-      messagePreview: Array.isArray(messages) && messages.length > 0
-        ? messages[messages.length - 1]?.content?.slice(0, 240) || null
-        : null,
-      createdAt: helpRequest.createdAt.toISOString(),
-      expiresAt: helpRequest.expiresAt.toISOString(),
-    }).catch(err => console.error('Webhook dispatch failed (non-fatal):', err));
 
     logAuditEvent({
       eventType: AuditEventTypes.HELP_REQUEST_SUBMITTED,

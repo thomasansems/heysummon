@@ -6,7 +6,6 @@ import { ChatDisplay } from "./chat-display";
 import { ResponseForm } from "./response-form";
 import { StatusBadge } from "./status-badge";
 
-
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -45,8 +44,11 @@ export function RequestDetail({ id }: { id: string }) {
 
   useEffect(() => {
     fetchRequest();
-    // Poll every 3 seconds for live message updates (replaces Mercure SSE)
-    const interval = setInterval(fetchRequest, 3000);
+  }, [fetchRequest]);
+
+  // Poll for updates every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchRequest, 10_000);
     return () => clearInterval(interval);
   }, [fetchRequest]);
 

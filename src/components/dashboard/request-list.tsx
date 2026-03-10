@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Link from "next/link";
 import { StatusBadge } from "./status-badge";
-
 
 interface HelpRequestItem {
   id: string;
@@ -42,8 +40,11 @@ export function RequestList({ providerId }: { providerId?: string }) {
 
   useEffect(() => {
     fetchRequests();
-    // Poll every 5 seconds for live updates (replaces Mercure SSE)
-    const interval = setInterval(fetchRequests, 5000);
+  }, [fetchRequests]);
+
+  // Poll for updates every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchRequests, 10_000);
     return () => clearInterval(interval);
   }, [fetchRequests]);
 

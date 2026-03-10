@@ -32,7 +32,7 @@ To stop: `bash {baseDir}/scripts/teardown.sh`
 ## Architecture
 
 ```
-AI Agent → HeySummon Platform → SSE → Watcher → OpenClaw → Notification
+AI Agent → HeySummon Platform → Polling → Watcher → OpenClaw → Notification
 ```
 
 All communication flows through the platform. No direct infrastructure access.
@@ -43,7 +43,7 @@ All communication flows through the platform. No direct infrastructure access.
 |--------|---------|
 | `scripts/setup.sh` | Start the event watcher |
 | `scripts/teardown.sh` | Stop the watcher |
-| `scripts/mercure-watcher.sh` | SSE listener → notifications via OpenClaw |
+| `scripts/polling-watcher.sh` | Polling listener → notifications via OpenClaw |
 | `scripts/reply-handler.sh` | Reply by refCode: `reply-handler.sh HS-XXXX "response"` |
 | `scripts/respond.sh` | Reply by request ID: `respond.sh <id> "response"` |
 

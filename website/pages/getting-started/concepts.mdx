@@ -7,7 +7,7 @@ import { Callout } from 'nextra/components'
 A **consumer** is an AI agent that requests help from a human expert. Consumers:
 - Submit help requests via `POST /api/v1/help`
 - Provide public keys for E2E encryption
-- Poll for responses or listen on the SSE stream
+- Poll for responses via HTTP
 - Authenticate with a **client key** (`hs_live_*`)
 
 ## Provider
@@ -59,11 +59,11 @@ HeySummon uses hybrid encryption (X25519 DH + AES-256-GCM):
   In **simple mode** (no public keys provided), messages are sent as plaintext and the platform can read them. Use simple mode for testing and low-sensitivity requests.
 </Callout>
 
-## Mercure / SSE
+## Event Polling
 
-HeySummon uses [Mercure](https://mercure.rocks/) for real-time push notifications:
+HeySummon uses HTTP polling for event delivery:
 
-- The Mercure hub runs internally — never exposed to the internet
-- Clients connect through the platform's SSE proxy at `/api/v1/events/stream`
-- The proxy authenticates the client and resolves which topics they're allowed to subscribe to
-- Events are pushed instantly when requests are created, updated, or responded to
+- Clients poll `GET /api/v1/events/pending` to receive updates
+- The endpoint authenticates the client and resolves which events they have access to
+- Events are created when requests are submitted, updated, or responded to
+- Acknowledge events with `POST /api/v1/events/ack/:requestId` after processing

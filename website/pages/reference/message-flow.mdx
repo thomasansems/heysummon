@@ -13,7 +13,7 @@ AI Agent                     HeySummon                    Human
     │                            │                            │
     │── POST /api/v1/help ──────▶│                            │
     │   { question, apiKey }     │                            │
-    │                            │── SSE event ──────────────▶│
+    │                            │── notification ────────────▶│
     │                            │   [HS-A1B2C3D4] New request│
     │                            │                            │
     │                            │◀── POST /api/v1/message ───│
@@ -30,12 +30,12 @@ AI Agent                     HeySummon                    Human
 ```
 AI Agent              HeySummon               Human
 
-── POST /help ──────▶                ── SSE: new_request ──▶
+── POST /help ──────▶                ── notification: new_request ──▶
                      ◀── POST /message (provider) ──
 ── GET /help/:id ──▶
    { response: "..." }
 
-── POST /message (consumer) ──▶      ── SSE: new_message ──▶
+── POST /message (consumer) ──▶      ── notification: new_message ──▶
                      ◀── POST /message (provider) ──
 ── GET /messages/:id ──▶
    [all messages...]
@@ -43,23 +43,22 @@ AI Agent              HeySummon               Human
 
 ---
 
-## Flow 3: Real-time with SSE
+## Flow 3: Polling for updates
 
 ```
 AI Agent              HeySummon               Human
 
-── GET /events/stream ──▶ (open persistent connection)
-
-── POST /help ──────────▶               ── SSE event ──▶
+── POST /help ──────────▶               ── notification ──▶
 
                          ◀── provider responds ──
-         ◀── SSE: status_change (status: responded) ──
+── GET /api/v1/events/pending ──▶
+   [{ type: "status_change", status: "responded" }]
 ── GET /help/:id ──▶ { response: "..." }
 ```
 
 ---
 
-## Mercure topics
+## Event topics
 
 | Topic | Who subscribes | Events |
 |-------|---------------|--------|
@@ -72,7 +71,7 @@ The platform resolves which topics a key can subscribe to based on its type and 
 
 ## Event format
 
-All Mercure events are JSON:
+All events are JSON:
 
 ```json
 {
@@ -109,11 +108,11 @@ All Mercure events are JSON:
 
 ## Delivery guarantees
 
-- Events are published to Mercure **synchronously** as part of the API response
+- Events are created **synchronously** as part of the API response
 - If the consumer is offline, events are available via `GET /api/v1/events/pending`
 - Pending events are stored for **24 hours** after the last activity on the request
 - Acknowledge with `POST /api/v1/events/ack/:requestId`
 
 <Callout type="info">
-  The SSE stream may disconnect — browsers reconnect automatically. Always call `GET /api/v1/events/pending` after a reconnect to catch up on missed events.
+  Always call `GET /api/v1/events/pending` periodically to catch up on missed events.
 </Callout>

@@ -26,7 +26,7 @@ AI Agent  ◀──GET /api/v1/help/:id──  HeySummon  ◀──PATCH──  
 ## Key features
 
 - **End-to-end encrypted** — RSA-OAEP + AES-256-GCM. The platform stores ciphertext it cannot read.
-- **Real-time** — Server-Sent Events via Mercure. No polling required (though polling is supported).
+- **HTTP Polling** — Lightweight event polling with delivery acknowledgment.
 - **Self-hostable** — One Docker command. Your data stays on your infrastructure.
 - **Reference codes** — Every request gets an `HS-XXXXXXXX` code for easy tracking and replies.
 - **Guard proxy** — Ed25519-signed requests. Every message is cryptographically authenticated.

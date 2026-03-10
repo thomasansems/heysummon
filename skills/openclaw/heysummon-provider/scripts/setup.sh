@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 [ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
 
-WATCHER="$SCRIPT_DIR/mercure-watcher.sh"
+WATCHER="$SCRIPT_DIR/polling-watcher.sh"
 NAME="heysummon-provider-watcher"
 
 if ! [ -f "$WATCHER" ]; then

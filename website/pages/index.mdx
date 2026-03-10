@@ -11,7 +11,7 @@ Think of it as a **pager for your AI agents**.
 ## How it works
 
 ```
-AI Agent  ──POST /api/v1/help──▶  HeySummon  ──SSE──▶  Human Expert
+AI Agent  ──POST /api/v1/help──▶  HeySummon  ──notification──▶  Human Expert
                                                               │
 AI Agent  ◀──GET /api/v1/help/:id──  HeySummon  ◀──PATCH──  Dashboard
 ```
@@ -19,14 +19,14 @@ AI Agent  ◀──GET /api/v1/help/:id──  HeySummon  ◀──PATCH──  
 1. **Agent submits a help request** — encrypted, with a reference code like `HS-A1B2C3D4`
 2. **Human receives a notification** — via dashboard, Telegram, or any connected channel
 3. **Human responds** — in the dashboard or by replying to the notification
-4. **Agent gets the answer** — via polling or real-time SSE stream
+4. **Agent gets the answer** — via HTTP polling
 
 ---
 
 ## Key features
 
 - **End-to-end encrypted** — X25519 DH + AES-256-GCM + Ed25519 signatures. The platform stores ciphertext it cannot read.
-- **Real-time** — Server-Sent Events via Mercure. No polling required (though polling is supported).
+- **Simple integration** — HTTP polling for updates. No persistent connections needed.
 - **Self-hostable** — One Docker command. Your data stays on your infrastructure.
 - **Reference codes** — Every request gets an `HS-XXXXXXXX` code for easy tracking and replies.
 - **Guard proxy** — Ed25519-signed requests. Every message is cryptographically authenticated.

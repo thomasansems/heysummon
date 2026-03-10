@@ -23,10 +23,10 @@ else
   skip "Guard not available (HTTP $HTTP_CODE)"
 fi
 
-# ── Requests API requires auth ──
-section "Requests API Auth"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${BASE_URL}/api/v1/requests" 2>/dev/null || echo "000")
-[ "$HTTP_CODE" = "401" ] && pass "Requests API requires auth (401)" || fail "Requests API auth check unexpected (HTTP $HTTP_CODE)"
+# ── Events endpoint requires auth ──
+section "Events Endpoint Auth"
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${PENDING_URL}" 2>/dev/null || echo "000")
+[ "$HTTP_CODE" = "401" ] && pass "Events endpoint requires auth (401)" || fail "Events endpoint auth check unexpected (HTTP $HTTP_CODE)"
 
 # ── Whoami ──
 section "Whoami"

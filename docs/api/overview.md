@@ -89,7 +89,7 @@ Rate limits reset after 60 seconds. Response includes `Retry-After: 60` on 429.
 | `POST` | [`/api/v1/key-exchange/:requestId`](./key-exchange.md) | Exchange public keys for E2E encryption |
 | `POST` | [`/api/v1/message/:requestId`](./message-send.md) | Send a message in a conversation |
 | `GET` | [`/api/v1/messages/:requestId`](./messages-list.md) | List messages for a request |
-| `GET` | [`/api/v1/events/stream`](./events-stream.md) | SSE stream for real-time updates |
+| `GET` | [`/api/v1/events/pending`](./events-stream.md) | Poll for pending events |
 | `POST` | [`/api/v1/events/close/:requestId`](./events-close.md) | Close a request |
 | `GET` | [`/api/v1/whoami`](./whoami.md) | Verify your API key |
 

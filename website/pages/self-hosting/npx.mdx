@@ -12,7 +12,7 @@ npx heysummon
 
 The interactive installer:
 1. Downloads the latest HeySummon release
-2. Generates `NEXTAUTH_SECRET` and `MERCURE_JWT_SECRET` automatically
+2. Generates `NEXTAUTH_SECRET` automatically
 3. Sets up a SQLite database
 4. Starts the server on port 3000
 

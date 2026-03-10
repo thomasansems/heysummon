@@ -1,6 +1,6 @@
 #!/bin/bash
 # HeySummon Consumer Watcher — Teardown
-# Stops the Mercure response watcher.
+# Stops the response watcher.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 NAME="heysummon-watcher"

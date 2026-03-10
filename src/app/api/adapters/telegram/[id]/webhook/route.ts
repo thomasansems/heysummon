@@ -104,6 +104,7 @@ export async function POST(
         question: message.text,
       },
     });
+
   } else {
     // Add message to existing request using the Message model
     const crypto = await import("node:crypto");
@@ -118,6 +119,7 @@ export async function POST(
         messageId: crypto.randomUUID(),
       },
     });
+
   }
 
   return NextResponse.json({ ok: true });

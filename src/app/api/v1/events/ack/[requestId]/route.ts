@@ -7,7 +7,7 @@ import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 /**
  * POST /api/v1/events/ack/:requestId — Acknowledge delivery of a notification
  *
- * Called by the provider watcher after it successfully processes an SSE event.
+ * Called by the provider watcher after it successfully processes a pending event.
  * Updates deliveredAt on the HelpRequest and logs an audit event.
  *
  * Auth: x-api-key (provider key)

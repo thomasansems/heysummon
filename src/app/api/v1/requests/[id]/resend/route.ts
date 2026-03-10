@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
 /**
- * POST /api/requests/:id/resend — Re-publish a Mercure notification for a request.
+ * POST /api/requests/:id/resend — Reset delivery tracking for a request.
  *
- * Used when the provider watcher missed the original SSE event.
+ * Clears deliveredAt so the polling watcher picks it up again.
  * Auth: session cookie (dashboard user).
  */
 export async function POST(
@@ -25,14 +25,6 @@ export async function POST(
       id: true,
       refCode: true,
       status: true,
-      question: true,
-      createdAt: true,
-      expiresAt: true,
-      consumerSignPubKey: true,
-      consumerEncryptPubKey: true,
-      messageHistory: {
-        select: { id: true },
-      },
     },
   });
 
@@ -47,33 +39,19 @@ export async function POST(
     );
   }
 
-  try {
+  // Reset deliveredAt so polling watchers pick it up as pending again
+  await prisma.helpRequest.update({
+    where: { id },
+    data: { deliveredAt: null },
+  });
 
-    // Reset retry state so delivery can be tracked again
-    await prisma.helpRequest.update({
-      where: { id },
-      data: {
-        deliveredAt: null,
-        deliveryStatus: "retrying",
-        deliveryRetryCount: 0,
-        deliveryLastAttemptAt: new Date(),
-        deliveryNextRetryAt: null,
-      },
-    });
+  logAuditEvent({
+    eventType: AuditEventTypes.NOTIFICATION_RESENT,
+    userId: user.id,
+    success: true,
+    metadata: { requestId: id, refCode: helpRequest.refCode },
+    request,
+  });
 
-    logAuditEvent({
-      eventType: AuditEventTypes.NOTIFICATION_RESENT,
-      userId: user.id,
-      success: true,
-      metadata: { requestId: id, refCode: helpRequest.refCode },
-      request,
-    });
-
-    return NextResponse.json({ ok: true, message: "Notification resent" });
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to resend notification" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ ok: true, message: "Notification resent" });
 }

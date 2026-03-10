@@ -116,11 +116,6 @@ export async function PATCH(
     },
   });
 
-  try {
-    // Notify provider dashboard
-    // Notify consumer (listening on request topic)
-  } catch { /* non-fatal */ }
-
   logAuditEvent({
     eventType: AuditEventTypes.PROVIDER_RESPONSE,
     userId: user.id,

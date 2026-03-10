@@ -1,18 +1,20 @@
 #!/bin/bash
-# HeySummon Consumer Watcher — polling-based (MCP-first, no SSE/Mercure)
-# Polls /api/v1/requests?status=PENDING for new incoming requests
-# and notifies OpenClaw when found.
+# HeySummon Consumer Watcher — HTTP polling for pending events
+# Polls GET /api/v1/events/pending for real-time event notifications
+# Listens on all active request topics automatically (server-side)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 [ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
 
-BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3425}"
+BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3445}"
 API_KEY="${HEYSUMMON_API_KEY:?ERROR: Set HEYSUMMON_API_KEY}"
 REQUESTS_DIR="${HEYSUMMON_REQUESTS_DIR:-$SKILL_DIR/.requests}"
 OPENCLAW_PORT="${OPENCLAW_PORT:-18789}"
 NOTIFY_MODE="${HEYSUMMON_NOTIFY_MODE:-message}"
 NOTIFY_TARGET="${HEYSUMMON_NOTIFY_TARGET:-}"
+PENDING_URL="${BASE_URL}/api/v1/events/pending"
+ACK_URL="${BASE_URL}/api/v1/events/ack"
 POLL_INTERVAL="${HEYSUMMON_POLL_INTERVAL:-5}"
 
 if [ "$NOTIFY_MODE" = "message" ] && [ -z "$NOTIFY_TARGET" ]; then
@@ -30,10 +32,10 @@ fi
 
 mkdir -p "$REQUESTS_DIR"
 
-# Deduplication — track seen request IDs
+# Deduplication
 SEEN_FILE="$SKILL_DIR/.seen-events.txt"
 touch "$SEEN_FILE"
-tail -1000 "$SEEN_FILE" > "${SEEN_FILE}.tmp" 2>/dev/null && mv "${SEEN_FILE}.tmp" "$SEEN_FILE"
+tail -500 "$SEEN_FILE" > "${SEEN_FILE}.tmp" 2>/dev/null && mv "${SEEN_FILE}.tmp" "$SEEN_FILE"
 
 send_notification() {
   local MSG="$1"
@@ -61,51 +63,121 @@ send_notification() {
   fi
 }
 
-echo "🦞 HeySummon watcher started (pid $$, polling every ${POLL_INTERVAL}s) → ${BASE_URL}"
+# Send ACK for a delivered event
+send_ack() {
+  local request_id="$1"
+  [[ -z "$request_id" ]] && return
+  curl -s -X POST "${ACK_URL}/${request_id}" \
+    -H "x-api-key: ${API_KEY}" \
+    >/dev/null 2>&1
+}
 
-while true; do
-  RESPONSE=$(curl -s -H "x-api-key: ${API_KEY}" "${BASE_URL}/api/v1/requests?status=PENDING" 2>/dev/null)
+# Write PID for submit-request.sh signaling
+mkdir -p "$REQUESTS_DIR"
+echo $$ > "$REQUESTS_DIR/.watcher.pid"
 
-  if [ -z "$RESPONSE" ]; then
-    sleep "$POLL_INTERVAL"
-    continue
+echo "🦞 Platform watcher started (pid $$)"
+echo "   Polling: ${PENDING_URL} every ${POLL_INTERVAL}s"
+echo "   API key: ${API_KEY:0:15}..."
+
+process_event() {
+  local data="$1"
+  [[ -z "$data" ]] && return
+
+  # Look up refCode from active-requests file
+  EVENT_REQ_ID=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).requestId||'')}catch(e){console.log('')}})" 2>/dev/null)
+  FILE_REF=""
+  [ -n "$EVENT_REQ_ID" ] && [ -f "$REQUESTS_DIR/$EVENT_REQ_ID" ] && FILE_REF=$(cat "$REQUESTS_DIR/$EVENT_REQ_ID")
+
+  MSG=$(echo "$data" | REF_FROM_FILE="$FILE_REF" node -e "
+    let d='';
+    process.stdin.on('data',c=>d+=c);
+    process.stdin.on('end',()=>{
+      try {
+        const j=JSON.parse(d);
+        const type=j.type||'unknown';
+        const ref=j.refCode||process.env.REF_FROM_FILE||j.requestId||'?';
+        switch(type) {
+          case 'keys_exchanged':
+            console.log('🔑 Key exchange voltooid voor '+ref+' — provider is verbonden');
+            break;
+          case 'new_message':
+            if(j.from==='provider') {
+              console.log('📩 Nieuw antwoord van provider voor '+ref);
+            } else {
+              console.log('');
+            }
+            break;
+          case 'responded':
+            console.log('📩 Provider heeft geantwoord op '+ref);
+            break;
+          case 'closed':
+            console.log('🔒 Conversatie '+ref+' gesloten');
+            break;
+          default:
+            console.log('🦞 HeySummon event ('+type+') voor '+ref);
+        }
+      } catch(e) {
+        console.log('🦞 HeySummon consumer event');
+      }
+    });
+  " 2>/dev/null)
+
+  # For provider messages, fetch the actual response text
+  IS_PROVIDER_MSG=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.type==='new_message'&&j.from==='provider'?'yes':'')}catch(e){console.log('')}})" 2>/dev/null)
+  if [ "$IS_PROVIDER_MSG" = "yes" ] && [ -n "$EVENT_REQ_ID" ]; then
+    RESPONSE_TEXT=$(curl -s "${BASE_URL}/api/v1/messages/${EVENT_REQ_ID}" \
+      -H "x-api-key: ${API_KEY}" 2>/dev/null | \
+      node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);const msgs=j.messages||[];const last=msgs.filter(m=>m.from==='provider').pop();if(last&&last.iv==='plaintext'){console.log(Buffer.from(last.ciphertext,'base64').toString())}else{console.log('(encrypted)')}}catch(e){console.log('')}})" 2>/dev/null)
+    if [ -n "$RESPONSE_TEXT" ]; then
+      MSG="${MSG}\n💬 ${RESPONSE_TEXT}"
+    fi
   fi
 
-  # Parse request IDs and refCodes
-  echo "$RESPONSE" | node -e "
-    let d='';
-    process.stdin.on('data', c => d += c);
-    process.stdin.on('end', () => {
-      try {
-        const { requests = [] } = JSON.parse(d);
-        requests.forEach(r => {
-          process.stdout.write(JSON.stringify({ id: r.id, refCode: r.refCode || r.id, question: r.question || '' }) + '\n');
-        });
-      } catch(e) {}
-    });
-  " 2>/dev/null | while IFS= read -r item; do
-    REQ_ID=$(echo "$item" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).id)}catch(e){}})" 2>/dev/null)
-    REF_CODE=$(echo "$item" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).refCode)}catch(e){}})" 2>/dev/null)
-    QUESTION=$(echo "$item" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const q=JSON.parse(d).question;console.log(q.length>120?q.slice(0,120)+'…':q)}catch(e){}})" 2>/dev/null)
-
-    [ -z "$REQ_ID" ] && continue
-
+  if [ -n "$MSG" ]; then
     # Deduplication
-    if grep -qF "pending:${REQ_ID}" "$SEEN_FILE" 2>/dev/null; then
-      continue
+    EVENT_TYPE=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).type||'?')}catch(e){console.log('?')}})" 2>/dev/null)
+    DEDUP_KEY="${EVENT_TYPE}:${EVENT_REQ_ID}"
+    if grep -qF "$DEDUP_KEY" "$SEEN_FILE" 2>/dev/null; then
+      echo "⏭️ Skip duplicate: $DEDUP_KEY"
+    else
+      echo "$DEDUP_KEY" >> "$SEEN_FILE"
+      send_notification "$MSG"
+      echo "📨 Notified: $MSG"
     fi
+  fi
 
-    echo "pending:${REQ_ID}" >> "$SEEN_FILE"
+  # Remove closed/expired requests
+  EVENT_TYPE=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).type)}catch(e){}})" 2>/dev/null)
+  if [ "$EVENT_TYPE" = "closed" ] && [ -n "$EVENT_REQ_ID" ]; then
+    rm -f "$REQUESTS_DIR/$EVENT_REQ_ID"
+  fi
 
-    # Store refCode mapping for reply handler
-    echo "$REF_CODE" > "$REQUESTS_DIR/$REQ_ID"
+  # Send delivery ACK
+  send_ack "$EVENT_REQ_ID"
+}
 
-    MSG="🦞 HeySummon request from ${REF_CODE}"
-    [ -n "$QUESTION" ] && MSG="${MSG}: ${QUESTION}"
+# Main polling loop
+while true; do
+  response=$(curl -s -H "x-api-key: ${API_KEY}" "${PENDING_URL}" 2>/dev/null)
 
-    send_notification "$MSG"
-    echo "📨 Notified: $MSG"
-  done
+  if [[ -n "$response" ]]; then
+    # Process each event from the response
+    echo "$response" | node -e "
+      let d='';
+      process.stdin.on('data',c=>d+=c);
+      process.stdin.on('end',()=>{
+        try {
+          const j=JSON.parse(d);
+          for(const e of (j.events||[])) {
+            console.log(JSON.stringify(e));
+          }
+        } catch(e){}
+      });
+    " 2>/dev/null | while IFS= read -r event_json; do
+      process_event "$event_json"
+    done
+  fi
 
   sleep "$POLL_INTERVAL"
 done

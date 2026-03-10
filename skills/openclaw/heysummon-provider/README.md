@@ -9,11 +9,11 @@ When an AI agent gets stuck, it can send a help request through HeySummon. As a 
 ## Architecture
 
 ```
-AI Agent → HeySummon Platform → SSE Event Stream → Provider Watcher → Notification (Telegram/etc)
+AI Agent → HeySummon Platform → HTTP Polling → Provider Watcher → Notification (Telegram/etc)
       ←       Platform API       ←  Reply Script  ←  Your response
 ```
 
-All communication flows through the HeySummon platform. The watcher connects to the platform's SSE endpoint (`/api/v1/events/stream`) — never directly to any internal message bus.
+All communication flows through the HeySummon platform. The watcher polls the platform's pending events endpoint (`/api/v1/events/pending`) — never directly to any internal systems.
 
 ## Setup
 
@@ -37,7 +37,7 @@ cp .env.example .env
 bash scripts/setup.sh
 ```
 
-This starts a persistent SSE listener (via pm2 or nohup) that sends you a notification whenever an AI agent requests help.
+This starts a persistent polling watcher (via pm2 or nohup) that sends you a notification whenever an AI agent requests help.
 
 ### 3. Stop the watcher
 
@@ -51,7 +51,7 @@ bash scripts/teardown.sh
 |---|---|
 | `scripts/setup.sh` | Start the event watcher (pm2 or nohup) |
 | `scripts/teardown.sh` | Stop the event watcher |
-| `scripts/mercure-watcher.sh` | SSE listener — connects to platform, sends notifications via OpenClaw |
+| `scripts/polling-watcher.sh` | Polling listener — polls platform for pending events, sends notifications via OpenClaw |
 | `scripts/reply-handler.sh` | Reply to a request by refCode: `reply-handler.sh HS-XXXX "your answer"` |
 | `scripts/respond.sh` | Reply by request ID: `respond.sh <requestId> "your answer"` |
 

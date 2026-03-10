@@ -12,6 +12,7 @@ const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 120; // 120 req/min per IP (pages)
 const RATE_LIMIT_API_MAX = 60; // 60 req/min for /api/v1/*
 const RATE_LIMIT_POLLING_MAX = 30; // 30 req/min for /api/v1/help/* polling
+const RATE_LIMIT_EVENTS_POLLING_MAX = 300; // 300 req/min for /api/v1/events/pending + ack (watcher polls every 5s)
 
 function getClientIp(req: NextRequest): string {
   return (
@@ -85,7 +86,23 @@ export function proxy(request: NextRequest) {
   }
 
   const isPolling = pathname.startsWith("/api/v1/help/") && request.method === "GET";
+  const isEventsPolling =
+    pathname === "/api/v1/events/pending" ||
+    pathname.startsWith("/api/v1/events/ack/");
   const isApiV1 = pathname.startsWith("/api/v1");
+
+  // High rate limit for events polling endpoints (watcher polls every 5s, rate by API key)
+  if (isEventsPolling) {
+    const apiKey = request.headers.get("x-api-key") || ip;
+    if (isRateLimited(`events:${apiKey}`, RATE_LIMIT_EVENTS_POLLING_MAX)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+    // Skip global API bucket for these endpoints
+    return applySecurityHeaders(NextResponse.next());
+  }
 
   // Stricter rate limit for polling endpoint (brute-force protection)
   if (isPolling) {

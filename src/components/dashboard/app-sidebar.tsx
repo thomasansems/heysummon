@@ -11,14 +11,12 @@ import {
   MessageSquare,
   Users,
   Building2,
-  KeyRound,
   ScrollText,
   Settings,
   LogOut,
   Moon,
   Sun,
   ChevronUp,
-  Zap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +30,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -54,7 +53,6 @@ const providerNav = [
 ];
 
 const adminNav = [
-  { label: "API Keys", href: "/dashboard/keys", icon: KeyRound },
   { label: "Audit Logs", href: "/dashboard/audit-logs", icon: ScrollText },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
@@ -102,6 +100,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+  const { open } = useSidebar();
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -112,17 +111,16 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* Logo */}
-      <SidebarHeader className="border-b border-sidebar-border px-3 py-3.5">
-        <Link href="/dashboard" className="flex items-center gap-2.5 px-1">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
-            <Zap className="h-3.5 w-3.5 text-primary-foreground" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
-            HeySummon
-          </span>
-        </Link>
-      </SidebarHeader>
+
+      {open && (
+        <SidebarHeader className="border-b border-sidebar-border px-2 py-2.5">
+          <Link href="/dashboard" className="flex items-center gap-2 px-1">
+            <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
+              HeySummon
+            </span>
+          </Link>
+        </SidebarHeader>
+      )}
 
       {/* Nav */}
       <SidebarContent className="gap-0">

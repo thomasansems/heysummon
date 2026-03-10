@@ -15,12 +15,12 @@ function CopyableRefCode({ code }: { code: string | null }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="font-mono text-xs text-black hover:text-violet-600 cursor-pointer relative"
+      className="font-mono text-xs text-foreground hover:text-violet-600 cursor-pointer relative"
       title="Click to copy"
     >
       {code}
       {copied && (
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-0.5 text-xs text-white whitespace-nowrap">
+        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-foreground px-2 py-0.5 text-xs text-background whitespace-nowrap">
           Copied!
         </span>
       )}
@@ -42,10 +42,10 @@ interface HelpRequest {
 const FILTERS = ["all", "pending", "responded", "failed", "expired"] as const;
 
 const statusStyles: Record<string, string> = {
-  pending: "bg-yellow-50 text-yellow-700",
-  responded: "bg-green-50 text-green-700",
-  expired: "bg-gray-50 text-gray-700",
-  failed: "bg-red-50 text-red-700",
+  pending: "bg-yellow-950/60 text-yellow-300",
+  responded: "bg-emerald-950/60 text-emerald-300",
+  expired: "bg-slate-950/60 text-slate-300",
+  failed: "bg-red-950/60 text-red-300",
 };
 
 const dotStyles: Record<string, string> = {
@@ -112,18 +112,18 @@ export default function RequestsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-black">Requests</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-foreground">Requests</h1>
 
       {/* Filter tabs */}
-      <div className="mb-4 flex gap-1 rounded-lg border border-[#eaeaea] bg-white p-1 w-fit">
+      <div className="mb-4 flex gap-1 rounded-lg border border-border bg-card p-1 w-fit">
         {FILTERS.map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={`rounded-md px-3 py-1 text-sm capitalize transition-colors ${
               filter === f
-                ? "bg-black text-white"
-                : "text-[#666] hover:text-black"
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {f}
@@ -131,11 +131,11 @@ export default function RequestsPage() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-[#eaeaea] bg-white">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         {loading ? (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+              <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Ref Code</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
                 <th className="px-4 py-2.5 font-medium">Messages</th>
@@ -149,7 +149,7 @@ export default function RequestsPage() {
             </thead>
             <tbody>
               {[1, 2, 3, 4].map((i) => (
-                <tr key={i} className="border-b border-[#eaeaea] animate-pulse">
+                <tr key={i} className="border-b border-border animate-pulse">
                   <td className="px-4 py-2.5">
                     <div className="h-4 w-16 rounded bg-[#eaeaea]"></div>
                   </td>
@@ -176,13 +176,13 @@ export default function RequestsPage() {
             </tbody>
           </table>
         ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-[#666]">
+          <div className="p-8 text-center text-sm text-muted-foreground">
             No requests found
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#eaeaea] text-left text-[#666]">
+              <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Ref Code</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
                 <th className="px-4 py-2.5 font-medium">Messages</th>
@@ -198,7 +198,7 @@ export default function RequestsPage() {
               {filtered.map((req) => (
                 <tr
                   key={req.id}
-                  className="border-b border-[#eaeaea] last:border-0"
+                  className="border-b border-border last:border-0"
                 >
                   <td className="px-4 py-2.5">
                     <CopyableRefCode code={req.refCode} />
@@ -217,23 +217,23 @@ export default function RequestsPage() {
                       {statusLabels[req.status] || req.status}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
+                  <td className="px-4 py-2.5 text-muted-foreground">
                     {req.messageCount > 0
                       ? `${req.messageCount} berichten`
                       : "—"}
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
+                  <td className="px-4 py-2.5 text-muted-foreground">
                     {req.responseCount > 0
                       ? <span className="inline-flex items-center gap-1 text-green-600 font-medium">{req.responseCount}</span>
                       : "—"}
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
+                  <td className="px-4 py-2.5 text-muted-foreground">
                     {req.apiKey.name || "Unnamed"}
                   </td>
-                  <td className="px-4 py-2.5 text-[#666]">
+                  <td className="px-4 py-2.5 text-muted-foreground">
                     {timeAgo(req.createdAt)}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-[#666]">
+                  <td className="px-4 py-2.5 text-right text-muted-foreground">
                     {deliveryTime(req.createdAt, req.deliveredAt)}
                   </td>
                 </tr>

@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateProviderKey } from "@/lib/provider-key-auth";
 
 /**
  * GET /api/v1/events/pending — List pending events for providers or consumers
@@ -17,14 +18,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing x-api-key" }, { status: 401 });
   }
 
-  // Try provider key first (UserProfile)
-  const provider = await prisma.userProfile.findFirst({
-    where: { key: apiKey, isActive: true },
-    select: { id: true, userId: true },
-  });
-
-  if (provider) {
-    return handleProviderPending(provider);
+  // Provider key — route through validateProviderKey for IP binding
+  if (apiKey.startsWith("hs_prov_")) {
+    const result = await validateProviderKey(request);
+    if (!result.ok) return result.response;
+    return handleProviderPending({ id: result.provider.id, userId: result.provider.userId });
   }
 
   // Try client key (ApiKey)

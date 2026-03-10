@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateProviderKey } from "@/lib/provider-key-auth";
 
+const DEBUG = process.env.DEBUG === "true";
+
 /**
  * GET /api/v1/events/pending — List pending events for providers or consumers
  *
@@ -81,6 +83,19 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
     expiresAt: r.expiresAt.toISOString(),
   }));
 
+  if (DEBUG) {
+    console.log("[GET /api/v1/events/pending] Provider poll:", {
+      providerId: provider.id,
+      eventCount: mapped.length,
+      events: mapped.map((e) => ({
+        requestId: e.requestId,
+        refCode: e.refCode,
+        requiresApproval: e.requiresApproval,
+        questionPreview: e.questionPreview ? `${e.questionPreview.slice(0, 40)}...` : null,
+      })),
+    });
+  }
+
   return NextResponse.json({ events: mapped });
 }
 
@@ -121,6 +136,18 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
     respondedAt: r.respondedAt?.toISOString() || null,
     latestMessageAt: r.messageHistory[0]?.createdAt.toISOString() || null,
   }));
+
+  if (DEBUG) {
+    console.log("[GET /api/v1/events/pending] Consumer poll:", {
+      clientKeyId: clientKey.id,
+      eventCount: mapped.length,
+      events: mapped.map((e) => ({
+        requestId: e.requestId,
+        refCode: e.refCode,
+        latestMessageAt: e.latestMessageAt,
+      })),
+    });
+  }
 
   return NextResponse.json({ events: mapped });
 }

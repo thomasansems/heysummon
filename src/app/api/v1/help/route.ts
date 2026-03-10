@@ -159,6 +159,7 @@ export async function POST(request: Request) {
       console.log("[POST /api/v1/help] Request created:", {
         id: helpRequest.id,
         refCode: helpRequest.refCode,
+        question: helpRequest.question || null,
         questionPreview: helpRequest.questionPreview,
         requiresApproval: helpRequest.requiresApproval,
         expiresAt: helpRequest.expiresAt.toISOString(),

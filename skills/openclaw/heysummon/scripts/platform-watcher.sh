@@ -39,6 +39,7 @@ tail -500 "$SEEN_FILE" > "${SEEN_FILE}.tmp" 2>/dev/null && mv "${SEEN_FILE}.tmp"
 
 send_notification() {
   local MSG="$1"
+  local WAKE_TEXT="${2:-$MSG}"
   if [ "$NOTIFY_MODE" = "file" ]; then
     local EVENTS_FILE="${HEYSUMMON_EVENTS_FILE:-$HOME/.heysummon/consumer-events.jsonl}"
     mkdir -p "$(dirname "$EVENTS_FILE")"
@@ -47,9 +48,10 @@ send_notification() {
     curl -s -X POST "http://127.0.0.1:${OPENCLAW_PORT}/cron/wake" \
       -H "Authorization: Bearer ${OPENCLAW_TOKEN}" \
       -H "Content-Type: application/json" \
-      -d "{\"text\":\"$MSG\",\"mode\":\"now\",\"agentId\":\"secondary\"}" \
+      -d "{\"text\":\"$WAKE_TEXT\",\"mode\":\"now\",\"agentId\":\"secondary\"}" \
       >/dev/null 2>&1
   else
+    # 1. Send Telegram notification
     local PAYLOAD
     PAYLOAD=$(node -e "console.log(JSON.stringify({
       tool:'message',
@@ -59,6 +61,13 @@ send_notification() {
       -H "Authorization: Bearer ${OPENCLAW_TOKEN}" \
       -H "Content-Type: application/json" \
       -d "$PAYLOAD" \
+      >/dev/null 2>&1
+
+    # 2. Wake the agent so it can act on the response
+    curl -s -X POST "http://127.0.0.1:${OPENCLAW_PORT}/cron/wake" \
+      -H "Authorization: Bearer ${OPENCLAW_TOKEN}" \
+      -H "Content-Type: application/json" \
+      -d "$(node -e "console.log(JSON.stringify({text:process.argv[1],mode:'now'}))" "$WAKE_TEXT" 2>/dev/null)" \
       >/dev/null 2>&1
   fi
 }
@@ -142,7 +151,14 @@ process_event() {
       echo "⏭️ Skip duplicate: $DEDUP_KEY"
     else
       echo "$DEDUP_KEY" >> "$SEEN_FILE"
-      send_notification "$MSG"
+
+      # Build a rich wake message for the agent to act on
+      WAKE_TEXT="HeySummon antwoord ontvangen. $MSG"
+      if [ -n "$RESPONSE_TEXT" ]; then
+        WAKE_TEXT="HeySummon provider heeft geantwoord op verzoek $FILE_REF: \"$RESPONSE_TEXT\". Verwerk dit antwoord en ga verder met de bijbehorende actie."
+      fi
+
+      send_notification "$MSG" "$WAKE_TEXT"
       echo "📨 Notified: $MSG"
     fi
   fi

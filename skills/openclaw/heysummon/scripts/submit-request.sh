@@ -104,7 +104,6 @@ RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/help" \
       signPublicKey: process.argv[2],
       encryptPublicKey: process.argv[3],
       question: q,
-      questionPreview: q,
       messages: JSON.parse(process.argv[5])
     }));
   " "$API_KEY" "$SIGN_PUB" "$ENC_PUB" "$QUESTION" "$MESSAGES")")

@@ -85,7 +85,6 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
       requestId: r.id,
       refCode: r.refCode,
       question: questionPlaintext,
-      questionPreview: questionPlaintext,
       requiresApproval: r.requiresApproval,
       approvalDecision: r.approvalDecision || null,
       messageCount: r._count.messageHistory,
@@ -106,7 +105,6 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
         refCode: e.refCode,
         requiresApproval: e.requiresApproval,
         question: e.question || null,
-        questionPreview: e.questionPreview || null,
       })),
     });
   }

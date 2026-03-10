@@ -38,7 +38,6 @@ export async function POST(request: Request) {
       encryptPublicKey,
       messages,
       question,
-      questionPreview,
       requiresApproval,
       publicKey,
       messageCount,
@@ -47,7 +46,7 @@ export async function POST(request: Request) {
     // Debug logging
     if (DEBUG) {
       console.log("[POST /api/v1/help] Request received:", {
-        questionPreview: questionPreview ? `${questionPreview.slice(0, 50)}...` : null,
+        question: question,
         requiresApproval,
         apiKey: apiKey ? apiKey.slice(0, 20) + "..." : null,
         hasQuestion: !!question,
@@ -147,7 +146,6 @@ export async function POST(request: Request) {
         serverPublicKey: serverKeyPair?.publicKey || null,
         serverPrivateKey: serverKeyPair?.privateKey || null,
 
-        questionPreview: questionPreview ?? null,
         requiresApproval: requiresApproval ?? false,
         contentFlags: null,
         guardVerified,
@@ -160,7 +158,6 @@ export async function POST(request: Request) {
         id: helpRequest.id,
         refCode: helpRequest.refCode,
         question: helpRequest.question || null,
-        questionPreview: helpRequest.questionPreview,
         requiresApproval: helpRequest.requiresApproval,
         expiresAt: helpRequest.expiresAt.toISOString(),
         expertId: helpRequest.expertId,

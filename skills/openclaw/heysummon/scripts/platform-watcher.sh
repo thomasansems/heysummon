@@ -63,11 +63,13 @@ send_notification() {
       -d "$PAYLOAD" \
       >/dev/null 2>&1
 
-    # 2. Wake the agent so it can act on the response
-    curl -s -X POST "http://127.0.0.1:${OPENCLAW_PORT}/cron/wake" \
-      -H "Authorization: Bearer ${OPENCLAW_TOKEN}" \
+    # 2. Wake the agent via /hooks/agent so it can act on the response
+    HOOKS_TOKEN="${HEYSUMMON_HOOKS_TOKEN:-heysummon-wake-token-sandy}"
+    AGENT_ID="${HEYSUMMON_AGENT_ID:-tertiary}"
+    curl -s -X POST "http://127.0.0.1:${OPENCLAW_PORT}/hooks/agent" \
+      -H "Authorization: Bearer ${HOOKS_TOKEN}" \
       -H "Content-Type: application/json" \
-      -d "$(node -e "console.log(JSON.stringify({text:process.argv[1],mode:'now'}))" "$WAKE_TEXT" 2>/dev/null)" \
+      -d "$(node -e "console.log(JSON.stringify({message:process.argv[1],agentId:process.argv[2],deliver:true,channel:'last',wakeMode:'now'}))" "$WAKE_TEXT" "$AGENT_ID" 2>/dev/null)" \
       >/dev/null 2>&1
   fi
 }

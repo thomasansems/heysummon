@@ -100,18 +100,16 @@ generate_env() {
   local env_file="$DIR/.env"
 
   # Preserve existing values
-  local existing_db_url="" existing_secret="" existing_mercure_secret=""
+  local existing_db_url="" existing_secret=""
   local existing_github_id="" existing_github_secret=""
   if [[ -f "$env_file" ]]; then
     existing_db_url=$(grep '^DATABASE_URL=' "$env_file" 2>/dev/null | cut -d= -f2- || true)
     existing_secret=$(grep '^NEXTAUTH_SECRET=' "$env_file" 2>/dev/null | cut -d= -f2- || true)
-    existing_mercure_secret=$(grep '^MERCURE_JWT_SECRET=' "$env_file" 2>/dev/null | cut -d= -f2- || true)
     existing_github_id=$(grep '^AUTH_GITHUB_ID=' "$env_file" 2>/dev/null | cut -d= -f2- || true)
     existing_github_secret=$(grep '^AUTH_GITHUB_SECRET=' "$env_file" 2>/dev/null | cut -d= -f2- || true)
   fi
 
   local secret="${existing_secret:-$(openssl rand -hex 32)}"
-  local mercure_secret="${existing_mercure_secret:-$(openssl rand -hex 32)}"
 
   prompt NEXTAUTH_URL "Public URL for your HeySummon instance" "${PUBLIC_URL:-http://localhost:3425}"
 
@@ -121,7 +119,6 @@ generate_env() {
 
 # ─── Required Secrets ─────────────────────────────────
 NEXTAUTH_SECRET=${secret}
-MERCURE_JWT_SECRET=${mercure_secret}
 
 # ─── Database ─────────────────────────────────────────
 DATABASE_URL=${existing_db_url:-postgresql://heysummon:heysummon_dev@db:5432/heysummon}
@@ -282,14 +279,14 @@ test_connectivity() {
     fi
   fi
 
-  # Test 3: SSE endpoint
+  # Test 3: Events polling endpoint
   if command -v curl &>/dev/null; then
-    local sse_status
-    sse_status=$(curl -sf -o /dev/null -w '%{http_code}' "${guard_url}/api/v1/events/stream" 2>/dev/null || echo "000")
-    if [[ "$sse_status" == "401" || "$sse_status" == "200" ]]; then
-      ok "SSE endpoint reachable through Guard (HTTP ${sse_status})"
+    local polling_status
+    polling_status=$(curl -sf -o /dev/null -w '%{http_code}' "${guard_url}/api/v1/events/pending" 2>/dev/null || echo "000")
+    if [[ "$polling_status" == "401" || "$polling_status" == "200" ]]; then
+      ok "Events endpoint reachable through Guard (HTTP ${polling_status})"
     else
-      warn "SSE endpoint returned HTTP ${sse_status}"
+      warn "Events endpoint returned HTTP ${polling_status}"
       all_ok=false
     fi
   fi

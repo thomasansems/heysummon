@@ -63,23 +63,6 @@ services:
       timeout: 3s
       retries: 5
 
-  mercure:
-    image: dunglas/mercure
-    restart: unless-stopped
-    networks:
-      - backend
-    environment:
-      SERVER_NAME: ':3446'
-      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:?Set MERCURE_JWT_SECRET}
-      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET}
-      MERCURE_EXTRA_DIRECTIVES: |
-        cors_origins ${MERCURE_CORS_ORIGINS:-https://cloud.heysummon.ai}
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3446/healthz"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
   # ── Guard: Single entry point (reverse proxy) ──
   heysummon-guard:
     image: ghcr.io/thomasansems/heysummon-guard:${HEYSUMMON_VERSION:-latest}
@@ -127,8 +110,6 @@ services:
         condition: service_completed_successfully
       db:
         condition: service_healthy
-      mercure:
-        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3445}
@@ -136,8 +117,6 @@ services:
       AUTH_TRUST_HOST: "true"
       AUTH_GITHUB_ID: ${AUTH_GITHUB_ID:-}
       AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET:-}
-      MERCURE_HUB_URL: http://mercure:3446/.well-known/mercure
-      MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
       GUARD_PUBLIC_KEY_FILE: /keys/guard-public-key
       REQUIRE_GUARD: "true"
       HEYSUMMON_PUBLIC_URL: ${HEYSUMMON_PUBLIC_URL:-}

@@ -41,18 +41,18 @@ Platform
   │  Verifies Guard receipt
   │  Generates ref code: HS-XXXXXXXX
   │  Stores encrypted request
-  │  Publishes Mercure event → provider topic
+  │  Creates event on provider topic
   ▼
-Mercure ──SSE──▶ Provider dashboard / watcher
+Provider dashboard / watcher (via polling)
                        │
                        │  Notification: "🦞 [HS-XXXXXXXX] New request"
                        │  Human reads, responds
                        ▼
                    Platform
                        │  Status → responded
-                       │  Publishes Mercure event → consumer topic
+                       │  Creates event on consumer topic
                        ▼
-                   AI Agent (polling or SSE)
+                   AI Agent (via polling)
                        │  GET /api/v1/help/:id → { status: "responded" }
 ```
 
@@ -73,10 +73,10 @@ These codes are:
 
 | Method | How | Latency |
 |--------|-----|---------|
-| **SSE stream** | `GET /api/v1/events/stream` — persistent connection | Instant |
-| **Polling** | `GET /api/v1/help/:id` — check every N seconds | N seconds |
+| **Event polling** | `GET /api/v1/events/pending` — poll for new events | Seconds |
+| **Status polling** | `GET /api/v1/help/:id` — check every N seconds | N seconds |
 
-Use SSE for production agents. Polling is simpler for scripts and one-off requests.
+Use event polling for production agents. Status polling is simpler for scripts and one-off requests.
 
 ---
 

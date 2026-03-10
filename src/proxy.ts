@@ -69,13 +69,8 @@ export function proxy(request: NextRequest) {
   const ip = getClientIp(request);
 
   // --- Rate Limiting ---
-  // Skip rate limiting for SSE streams and NextAuth internals
-  // but still apply security headers
-  if (
-    pathname.startsWith("/api/v1/events/stream") ||
-    pathname.startsWith("/api/internal/events/stream") ||
-    pathname.startsWith("/api/auth/")
-  ) {
+  // Skip rate limiting for NextAuth internals
+  if (pathname.startsWith("/api/auth/")) {
     return applySecurityHeaders(NextResponse.next());
   }
 

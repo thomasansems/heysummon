@@ -23,7 +23,7 @@ HeySummon is a Human-in-the-Loop (HITL) service that connects AI agents with hum
 ## ✨ Features
 
 - 🔐 **End-to-end encryption** (E2E) via X25519 + Ed25519
-- 📡 **Real-time notifications** via Server-Sent Events (SSE)
+- 📡 **Real-time notifications** via event polling
 - 🏷️ **Multi-provider support** with friendly name routing
 - 🔄 **Auto-sync** to GitHub (optional cron job)
 - 🛡️ **Secure by default** — no credentials in code or commits
@@ -41,7 +41,7 @@ HeySummon is a Human-in-the-Loop (HITL) service that connects AI agents with hum
 │  │ HeySummon Consumer Skill                        │   │
 │  │                                                   │   │
 │  │  1. Submit Request ──> Platform API              │   │
-│  │  2. Platform Watcher ←── SSE Stream              │   │
+│  │  2. Platform Watcher ←── Polling Events           │   │
 │  │  3. Notification ──────> OpenClaw                │   │
 │  └─────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
@@ -52,7 +52,7 @@ HeySummon is a Human-in-the-Loop (HITL) service that connects AI agents with hum
 │              HeySummon Platform (Server)                 │
 │                                                           │
 │  • POST /api/v1/help        (submit request)            │
-│  • GET  /api/v1/events/stream (SSE notifications)       │
+│  • GET  /api/v1/events/pending (polling notifications)   │
 │  • GET  /api/v1/whoami      (provider info)             │
 │  • GET  /api/v1/messages/:id (fetch messages)           │
 │                                                           │
@@ -74,7 +74,7 @@ HeySummon is a Human-in-the-Loop (HITL) service that connects AI agents with hum
 **Key Points:**
 - All communication goes through the **HeySummon Platform API** (no direct P2P)
 - **E2E encryption** is handled **server-side** by the platform
-- **SSE stream** delivers real-time events (key exchange, messages, status)
+- **Polling endpoint** delivers pending events (key exchange, messages, status)
 - **OpenClaw** receives notifications and routes them to your chat
 
 ---
@@ -219,7 +219,7 @@ bash scripts/check-status.sh cmm123abc...
 
 | Script | Purpose | When Used |
 |--------|---------|-----------|
-| `platform-watcher.sh` | SSE event listener | Started by `setup.sh` |
+| `platform-watcher.sh` | Polling event listener | Started by `setup.sh` |
 | `crypto.mjs` | E2E encryption | Auto-called by setup/submit |
 | `auto-sync.sh` | Git auto-sync | Cron job (optional) |
 
@@ -279,7 +279,7 @@ bash scripts/add-provider.sh "hs_cli_abc123..." "MyExpert"
 
 #### `platform-watcher.sh`
 
-Background process that listens to the platform's SSE event stream.
+Background process that polls the platform's events endpoint.
 
 **Events handled:**
 - `keys_exchanged` — Provider connected
@@ -407,7 +407,7 @@ heysummon/
 └── scripts/
     ├── setup.sh           # Start watcher
     ├── teardown.sh        # Stop watcher
-    ├── platform-watcher.sh # SSE event listener
+    ├── platform-watcher.sh # Polling event listener
     ├── submit-request.sh  # Submit help request
     ├── add-provider.sh    # Register provider
     ├── list-providers.sh  # List providers

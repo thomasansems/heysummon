@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decryptMessage } from "@/lib/crypto";
-import { publishToMercure } from "@/lib/mercure";
 import { requestPatchSchema, validateBody } from "@/lib/validations";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import { sendResponseToTelegram } from "@/lib/adapters/telegram";
@@ -34,14 +33,6 @@ export async function GET(
       data: { status: "reviewing" },
     });
     helpRequest.status = "reviewing";
-    try {
-      await publishToMercure(`/heysummon/providers/${user.id}`, {
-        type: "status_change",
-        requestId: helpRequest.id,
-        refCode: helpRequest.refCode,
-        status: "reviewing",
-      });
-    } catch { /* non-fatal */ }
   }
 
   // Decrypt messages and question for provider view using server private key
@@ -124,23 +115,6 @@ export async function PATCH(
       respondedAt: new Date(),
     },
   });
-
-  try {
-    // Notify provider dashboard
-    await publishToMercure(`/heysummon/providers/${user.id}`, {
-      type: "status_change",
-      requestId: updated.id,
-      refCode: updated.refCode,
-      status: "responded",
-    });
-    // Notify consumer (listening on request topic)
-    await publishToMercure(`/heysummon/requests/${updated.id}`, {
-      type: "responded",
-      requestId: updated.id,
-      refCode: updated.refCode,
-      status: "responded",
-    });
-  } catch { /* non-fatal */ }
 
   logAuditEvent({
     eventType: AuditEventTypes.PROVIDER_RESPONSE,

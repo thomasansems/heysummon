@@ -47,7 +47,7 @@ bash scripts/list-providers.sh
 bash scripts/setup.sh
 ```
 
-This starts a persistent SSE listener that connects to the platform's event stream (`/api/v1/events/stream`). You'll receive notifications when providers respond.
+This starts a persistent polling listener that connects to the platform's events endpoint (`/api/v1/events/pending`). You'll receive notifications when providers respond.
 
 To stop:
 ```bash
@@ -57,9 +57,9 @@ bash scripts/teardown.sh
 ## Architecture
 
 ```
-HeySummon Platform API (/api/v1/events/stream)
+HeySummon Platform API (/api/v1/events/pending)
            ↓
-    SSE Event Stream
+    Polling Events
            ↓
    Platform Watcher (pm2)
            ↓
@@ -76,7 +76,7 @@ All communication flows through the platform API. E2E encryption is handled serv
 |--------|---------|
 | `setup.sh` | Start the platform event watcher (pm2/nohup) |
 | `teardown.sh` | Stop the watcher |
-| `platform-watcher.sh` | SSE listener → sends notifications via OpenClaw |
+| `platform-watcher.sh` | Polling listener → sends notifications via OpenClaw |
 | `submit-request.sh` | Submit a help request |
 | `add-provider.sh` | Register a provider |
 | `list-providers.sh` | List registered providers |

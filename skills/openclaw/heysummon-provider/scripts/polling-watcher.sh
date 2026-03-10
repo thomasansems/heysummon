@@ -1,6 +1,6 @@
 #!/bin/bash
-# HeySummon Provider Watcher — persistent SSE listener via platform proxy
-# Connects to /api/v1/events/stream (never directly to Mercure)
+# HeySummon Provider Watcher — HTTP polling for pending events
+# Polls GET /api/v1/events/pending every 5 seconds
 # On new event: sends message via OpenClaw /tools/invoke (channel-agnostic)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -12,7 +12,9 @@ API_KEY="${HEYSUMMON_API_KEY:?ERROR: Set HEYSUMMON_API_KEY}"
 SEEN_FILE="$HOME/.heysummon-provider/seen-events.txt"
 EVENTS_FILE="$HOME/.heysummon-provider/events.jsonl"
 OPENCLAW_PORT="${OPENCLAW_PORT:-18789}"
-STREAM_URL="${BASE_URL}/api/v1/events/stream"
+PENDING_URL="${BASE_URL}/api/v1/events/pending"
+ACK_URL="${BASE_URL}/api/v1/events/ack"
+POLL_INTERVAL="${HEYSUMMON_POLL_INTERVAL:-5}"
 
 mkdir -p "$HOME/.heysummon-provider"
 touch "$SEEN_FILE"
@@ -29,13 +31,8 @@ if [ -z "$OPENCLAW_TOKEN" ]; then
 fi
 
 echo "🦞 Provider watcher started (pid $$)"
-echo "   Stream: ${STREAM_URL}"
+echo "   Polling: ${PENDING_URL} every ${POLL_INTERVAL}s"
 echo "   API key: ${API_KEY:0:15}..."
-
-BACKOFF=5
-LAST_EVENT_TYPE=""
-PENDING_URL="${BASE_URL}/api/v1/events/pending"
-ACK_URL="${BASE_URL}/api/v1/events/ack"
 
 # Send ACK for a delivered event
 send_ack() {
@@ -46,66 +43,8 @@ send_ack() {
     >/dev/null 2>&1
 }
 
-# Poll for missed events on (re)connect
-poll_pending() {
-  echo "🔍 Polling for missed events..."
-  local response
-  response=$(curl -s -H "x-api-key: ${API_KEY}" "${PENDING_URL}" 2>/dev/null)
-  [[ -z "$response" ]] && return
-
-  local count
-  count=$(echo "$response" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log((j.events||[]).length)}catch(e){console.log(0)}})" 2>/dev/null)
-  
-  if [[ "$count" -gt 0 ]]; then
-    echo "📬 Found ${count} undelivered event(s)"
-    echo "$response" | node -e "
-      let d='';
-      process.stdin.on('data',c=>d+=c);
-      process.stdin.on('end',()=>{
-        try {
-          const j=JSON.parse(d);
-          for(const e of (j.events||[])) {
-            console.log('data:'+JSON.stringify(e));
-          }
-        } catch(e){}
-      });
-    " 2>/dev/null | while IFS= read -r line; do
-      process_line "$line"
-    done
-  else
-    echo "✅ No missed events"
-  fi
-}
-
-process_line() {
-  local line="$1"
-
-  # Skip empty lines
-  [[ -z "$line" ]] && return
-
-  # Skip SSE comments (lines starting with :)
-  [[ "$line" == :* ]] && return
-
-  # Track SSE event type
-  if [[ "$line" == event:* ]]; then
-    LAST_EVENT_TYPE="${line#event:}"
-    LAST_EVENT_TYPE="${LAST_EVENT_TYPE# }"
-    return
-  fi
-
-  # Only process data: lines
-  [[ "$line" != data:* ]] && return
-
-  # Skip error events from SSE proxy
-  if [[ "$LAST_EVENT_TYPE" == "error" ]]; then
-    echo "⚠️ SSE error: ${line:0:100}"
-    LAST_EVENT_TYPE=""
-    return
-  fi
-  LAST_EVENT_TYPE=""
-
-  local data="${line#data:}"
-  data="${data# }"
+process_event() {
+  local data="$1"
   [[ -z "$data" ]] && return
 
   # Parse and deduplicate using node
@@ -123,7 +62,7 @@ process_line() {
         const q=j.question||'';
         const from=j.from||'';
         const preview=j.messagePreview||'';
-        
+
         let msg='🦞 HeySummon ['+ref+'] ';
         switch(type) {
           case 'new_request':
@@ -163,7 +102,6 @@ process_line() {
 
   # Deduplication check
   if grep -qF "$dedup_key" "$SEEN_FILE" 2>/dev/null; then
-    echo "⏭️ Skip duplicate: $dedup_key"
     return
   fi
   echo "$dedup_key" >> "$SEEN_FILE"
@@ -189,35 +127,29 @@ process_line() {
   send_ack "$request_id"
 
   echo "📨 Sent: $dedup_key"
-  BACKOFF=5
 }
 
+# Main polling loop
 while true; do
-  echo "🔌 Connecting to SSE stream..."
-  
-  # Poll for any missed events before connecting to stream
-  poll_pending
-  
-  # Use a temp file + tail approach to avoid pipe subshell issues
-  FIFO="/tmp/.heysummon-sse-$$"
-  rm -f "$FIFO"
-  mkfifo "$FIFO"
-  
-  # Start curl writing to fifo in background
-  curl -sN --no-buffer -H "x-api-key: ${API_KEY}" "${STREAM_URL}" > "$FIFO" 2>/dev/null &
-  CURL_PID=$!
-  
-  # Read from fifo in main shell (not a subshell!)
-  while IFS= read -r line; do
-    process_line "$line"
-  done < "$FIFO"
-  
-  # Cleanup
-  kill "$CURL_PID" 2>/dev/null
-  wait "$CURL_PID" 2>/dev/null
-  rm -f "$FIFO"
+  response=$(curl -s -H "x-api-key: ${API_KEY}" "${PENDING_URL}" 2>/dev/null)
 
-  echo "🔄 Reconnecting in ${BACKOFF}s..."
-  sleep "$BACKOFF"
-  [ "$BACKOFF" -lt 60 ] && BACKOFF=$((BACKOFF + 5))
+  if [[ -n "$response" ]]; then
+    # Process each event from the response
+    echo "$response" | node -e "
+      let d='';
+      process.stdin.on('data',c=>d+=c);
+      process.stdin.on('end',()=>{
+        try {
+          const j=JSON.parse(d);
+          for(const e of (j.events||[])) {
+            console.log(JSON.stringify(e));
+          }
+        } catch(e){}
+      });
+    " 2>/dev/null | while IFS= read -r event_json; do
+      process_event "$event_json"
+    done
+  fi
+
+  sleep "$POLL_INTERVAL"
 done

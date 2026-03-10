@@ -59,7 +59,6 @@ export async function init(): Promise<void> {
   console.log("");
 
   const port = parseInt(await ask("  Guard port (app entry point)", "3435"), 10) || 3435;
-  const mercurePort = parseInt(await ask("  Mercure port (realtime hub)", "3436"), 10) || 3436;
 
   console.log("");
   printInfo(`HeySummon will be available at: ${color.cyan(`http://localhost:${port}`)}`);
@@ -75,7 +74,6 @@ export async function init(): Promise<void> {
 
   const config: HeysummonConfig = {
     port,
-    mercurePort,
     publicUrl,
     enableFormLogin: true,
     enableGithubOauth: false,

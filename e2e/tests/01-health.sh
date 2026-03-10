@@ -23,10 +23,10 @@ else
   skip "Guard not available (HTTP $HTTP_CODE)"
 fi
 
-# ── SSE stream requires auth ──
-section "SSE Stream Auth"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${STREAM_URL}" 2>/dev/null || echo "000")
-[ "$HTTP_CODE" = "401" ] && pass "SSE stream requires auth (401)" || fail "SSE stream auth check unexpected (HTTP $HTTP_CODE)"
+# ── Events endpoint requires auth ──
+section "Events Endpoint Auth"
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${PENDING_URL}" 2>/dev/null || echo "000")
+[ "$HTTP_CODE" = "401" ] && pass "Events endpoint requires auth (401)" || fail "Events endpoint auth check unexpected (HTTP $HTTP_CODE)"
 
 # ── Whoami ──
 section "Whoami"

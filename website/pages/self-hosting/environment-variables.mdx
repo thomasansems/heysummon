@@ -8,7 +8,6 @@ import { Callout } from 'nextra/components'
 |----------|-------------|
 | `NEXTAUTH_SECRET` | Random secret for NextAuth.js session encryption. Generate with `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Full public URL of your HeySummon instance, e.g. `https://heysummon.example.com` |
-| `MERCURE_JWT_SECRET` | Shared secret between Platform and Mercure hub |
 
 ## Database
 
@@ -35,13 +34,6 @@ DATABASE_URL=postgresql://user:password@host:5432/heysummon
 | `ALLOW_REGISTRATION` | `true` to allow new users to sign up. Set to `false` after initial setup. |
 | `GITHUB_ID` / `GITHUB_SECRET` | GitHub OAuth credentials |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials |
-
-## Mercure
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MERCURE_HUB_URL` | `http://mercure/.well-known/mercure` | Internal URL of the Mercure hub |
-| `NEXT_PUBLIC_MERCURE_HUB_URL` | — | Public URL for browser SSE connections (usually the same as `NEXTAUTH_URL` + `/hub`) |
 
 ## Optional
 

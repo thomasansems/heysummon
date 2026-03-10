@@ -3,7 +3,6 @@
 import { copyToClipboard } from "@/lib/clipboard";
 
 import { useEffect, useState, useCallback } from "react";
-import { useProviderMercure } from "@/hooks/useMercure";
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -100,12 +99,11 @@ export default function RequestsPage() {
     fetchRequests();
   }, [fetchRequests]);
 
-  // Realtime updates via Mercure
-  useProviderMercure(undefined, useCallback((event) => {
-    if (event.type === "new_request" || event.type === "status_change" || event.type === "closed") {
-      fetchRequests();
-    }
-  }, [fetchRequests]));
+  // Poll for updates every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchRequests, 10_000);
+    return () => clearInterval(interval);
+  }, [fetchRequests]);
 
   const filtered =
     filter === "all"

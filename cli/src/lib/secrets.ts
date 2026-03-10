@@ -6,10 +6,8 @@ export function generateSecret(bytes: number = 32): string {
 
 export function generateSecrets(): {
   nextauthSecret: string;
-  mercureJwtSecret: string;
 } {
   return {
     nextauthSecret: generateSecret(),
-    mercureJwtSecret: generateSecret(),
   };
 }

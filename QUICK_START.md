@@ -24,9 +24,9 @@ Manage afterwards with: `heysummon start -d` · `heysummon stop` · `heysummon s
 |------|---------|-----------|
 | **Node.js** | 18+ | ✅ Yes |
 | **npm** | 9+ (ships with Node) | ✅ Yes |
-| **Docker** | Any recent version | ❌ Optional (for PostgreSQL/Mercure) |
+| **Docker** | Any recent version | ❌ Optional (for PostgreSQL) |
 
-> **No Docker?** No problem — HeySummon defaults to SQLite, and Mercure (real-time updates) is optional for local dev.
+> **No Docker?** No problem — HeySummon defaults to SQLite.
 
 ---
 
@@ -49,9 +49,8 @@ cp .env.example .env
 Open `.env` and set these two **required** secrets:
 
 ```bash
-# Generate secrets (copy-paste each output into .env)
+# Generate secret (copy-paste output into .env)
 openssl rand -hex 32   # → NEXTAUTH_SECRET
-openssl rand -hex 32   # → MERCURE_JWT_SECRET
 ```
 
 The defaults handle everything else for local dev:
@@ -63,7 +62,7 @@ The defaults handle everything else for local dev:
 | `ENABLE_FORM_LOGIN` | `true` | Email + password login (no OAuth needed) |
 | `HEYSUMMON_EDITION` | `community` | Self-hosted edition |
 
-> 💡 See `.env.example` for all available options (OAuth, PostgreSQL, Mercure, etc.)
+> See `.env.example` for all available options (OAuth, PostgreSQL, etc.)
 
 ---
 
@@ -151,7 +150,7 @@ You'll get back a response with a request ID and reference code:
 
 - 📖 Read the full [README](./README.md) for architecture details
 - 🔐 Learn about [E2E encryption](./README.md) (RSA-OAEP + AES-256-GCM)
-- 🐳 Try `docker compose up` for a full PostgreSQL + Mercure setup
+- Try `docker compose up` for a full PostgreSQL setup
 - 🧪 Run tests: `npm test`
 
 ---

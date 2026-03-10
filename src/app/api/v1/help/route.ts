@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
-import { publishToMercure } from "@/lib/mercure";
 import { helpCreateSchema, validateBody } from "@/lib/validations";
 import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
@@ -134,31 +133,6 @@ export async function POST(request: Request) {
         guardVerified,
       },
     });
-
-    // Publish to Mercure
-    try {
-      await publishToMercure(
-        `/heysummon/providers/${key.userId}`,
-        {
-          type: 'new_request',
-          requestId: helpRequest.id,
-          refCode: helpRequest.refCode,
-          question: question || null,
-          messageCount: Array.isArray(messages)
-            ? (typeof messageCount === 'number' ? Math.min(messageCount, messages.length) : messages.length)
-            : 0,
-          messagePreview: Array.isArray(messages) && messages.length > 0
-            ? messages[messages.length - 1]?.content?.slice(0, 240) || null
-            : null,
-          consumerSignPubKey: signPublicKey || null,
-          consumerEncryptPubKey: encryptPublicKey || null,
-          createdAt: helpRequest.createdAt.toISOString(),
-          expiresAt: helpRequest.expiresAt.toISOString(),
-        }
-      );
-    } catch (mercureError) {
-      console.error('Mercure publish failed (non-fatal):', mercureError);
-    }
 
     logAuditEvent({
       eventType: AuditEventTypes.HELP_REQUEST_SUBMITTED,

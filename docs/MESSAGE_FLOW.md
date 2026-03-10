@@ -1,6 +1,6 @@
 # Message Flow Architecture
 
-This document explains how a message travels through HeySummon — from API submission, through validation, storage, and real-time delivery.
+This document explains how a message travels through HeySummon — from API submission, through validation, storage, and polling-based delivery.
 
 ## Overview: The Journey of a Message
 
@@ -39,10 +39,10 @@ This document explains how a message travels through HeySummon — from API subm
                   │
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
-│   4. REAL-TIME UPDATES - Mercure/SSE Broadcast             │
-│   • Publishes to /heysummon/requests/{requestId}            │
-│   • Publishes to /heysummon/providers/{expertId}            │
-│   • Dashboard subscribes via EventSource                    │
+│   4. POLLING - Event Discovery                              │
+│   • Provider polls GET /api/v1/events/pending               │
+│   • Dashboard polls for updates                             │
+│   • Consumer polls GET /api/v1/help/:id                     │
 └─────────────────┬───────────────────────────────────────────┘
                   │
         ┌────────┬────────┐
@@ -64,7 +64,7 @@ This document explains how a message travels through HeySummon — from API subm
         │            ▼
         │    ┌───────────────────────────┐
         │    │ 6. ACKNOWLEDGMENT (ACK)   │
-        │    │ POST /api/v1/events/ack   │
+        │    │ GET /api/v1/events/ack/:id│
         │    │ Provider confirms receipt │
         │    └───────┬───────────────────┘
         │            │
@@ -305,205 +305,77 @@ if (existing) {
 
 ---
 
-### 4️⃣ Real-Time Updates: Mercure/SSE
+### 4️⃣ Polling: Event Discovery
 
-**File**: `/src/lib/mercure.ts`, `/src/app/api/internal/events/stream/route.ts`
+**File**: `/src/app/api/v1/events/pending/route.ts`
 
-After successful storage, the Platform **broadcasts** the update so interested parties know immediately.
+After successful storage, interested parties discover new events by polling.
 
-#### Publishing to Mercure
+#### Provider Watcher Polling
 
-```typescript
-// When a message is stored, publish to Mercure hub
-await publishToMercure(
-  `/heysummon/requests/${requestId}`,  // Topic 1: all parties to this request
-  {
-    type: 'new_message',
-    requestId,
-    messageId,
-    from: "provider",
-    createdAt: "2026-02-28T10:30:00Z"
-  }
-);
+The provider watcher polls `GET /api/v1/events/pending` on an interval to discover new requests:
 
-await publishToMercure(
-  `/heysummon/providers/${expertId}`,  // Topic 2: provider-specific updates
-  {
-    type: 'new_message',
-    requestId,
-    refCode: "HS-ABC1",
-    messageId,
-    // ...
-  }
-);
+```bash
+# polling-watcher.sh polls every few seconds
+curl -H "x-api-key: hs_prov_secret123" \
+  "http://localhost:3456/api/v1/events/pending"
 ```
 
-#### Mercure Topics
-
-Think of topics as **broadcast channels**:
-
+Response:
+```json
+{
+  "events": [
+    {
+      "type": "new_request",
+      "requestId": "req-789",
+      "refCode": "HS-XYZ9",
+      "question": "How do I...?",
+      "status": "pending",
+      "createdAt": "2026-02-28T09:00:00Z"
+    }
+  ]
+}
 ```
-/heysummon/requests/{requestId}
-└─ All updates for a specific request (consumer + provider subscribed)
-   • new_message
-   • keys_exchanged
-   • closed
-   • status_change
 
-/heysummon/providers/{providerId}
-└─ All updates for a specific provider
-   • new_request
-   • new_message (from consumers on their requests)
-   • status_change
-```
+#### Dashboard Polling
+
+The dashboard periodically fetches updated request data to reflect changes in the UI.
 
 ---
 
 ### 5️⃣ Provider Delivery: Notifications & Channel Adapters
 
-**File**: `/src/lib/channels/`, `/src/app/api/adapters/telegram/[id]/webhook/route.ts`, `/src/app/api/v1/events/stream/route.ts`
+**File**: `/src/lib/channels/`, `/src/app/api/adapters/telegram/[id]/webhook/route.ts`
 
-When a request is published to Mercure, the **provider watcher** (a separate process/SDK running via OpenClaw skills) receives the event through the **HeySummon EventStream proxy**.
+When the provider watcher discovers a new event via polling, it processes the event and delivers a notification.
 
-#### The EventStream Proxy: Central Hub
-
-**Important**: The Mercure hub is **never exposed directly**. Instead, all clients (watcher + dashboard) connect through `/api/v1/events/stream` — a secure proxy endpoint.
-
-**File**: `/src/app/api/v1/events/stream/route.ts`
-
-```typescript
-/**
- * GET /api/v1/events/stream — SSE proxy for Mercure events
- *
- * Auth: x-api-key header (provider or client key)
- * Flow:
- *   1. Client connects with API key
- *   2. Server validates key + IP + device secret
- *   3. Server determines which topics are allowed
- *   4. Server creates JWT, connects to Mercure internally
- *   5. Server streams Mercure events back to client via SSE
- */
-```
-
-**Connection diagram**:
-
-```
-Provider Watcher (CLI/OpenClaw skill)      Dashboard (Browser)
-        │                                           │
-        │ GET /api/v1/events/stream                │ EventSource
-        │ x-api-key: hs_prov_xyz                   │ (same endpoint)
-        │                                           │
-        ├─────────────────┬───────────────────────┤
-                          │
-                          ▼
-        ╔════════════════════════════════════════╗
-        ║  HeySummon API Proxy                   ║
-        ║  /api/v1/events/stream                 ║
-        ║                                        ║
-        ║ • Authenticate x-api-key              ║
-        ║ • Validate IP + device secret         ║
-        ║ • Resolve allowed topics              ║
-        ║ • Create Mercure JWT                  ║
-        ╚────────────────┬─────────────────────┘
-                         │
-                         ▼ (internal connection)
-        ╔════════════════════════════════════════╗
-        ║  Mercure Hub                           ║
-        ║  :3426/.well-known/mercure             ║
-        ║  (NEVER exposed externally)            ║
-        ║                                        ║
-        ║ • Publish/Subscribe server             ║
-        ║ • Manages all topics                   ║
-        ║ • Pushes real-time events              ║
-        ╚════════════════════════════════════════╝
-```
-
-#### Option A: Provider Watcher (CLI/OpenClaw Skill)
+#### Provider Watcher (CLI/OpenClaw Skill)
 
 The provider runs a **watcher script** (via OpenClaw integration) that:
 
-1. **Connects to EventStream proxy**:
+1. **Polls for pending events**:
    ```bash
-   # ~/clawd/skills/heysummon-provider/scripts/mercure-watcher.sh
-   curl -N -H "x-api-key: hs_prov_secret123" \
-     "http://localhost:3456/api/v1/events/stream"
+   # ~/clawd/skills/heysummon-provider/scripts/polling-watcher.sh
+   curl -H "x-api-key: hs_prov_secret123" \
+     "http://localhost:3456/api/v1/events/pending"
    ```
 
-2. **API proxy authenticates & resolves topics**:
-   ```typescript
-   // Request comes in with provider key
-   const provider = await validateProviderKey(request);
-   
-   // Automatically subscribe to provider's topic
-   const topics = [`/heysummon/providers/${provider.userId}`];
-   
-   // Creates JWT for internal Mercure access
-   const subscriberToken = jwt.sign(
-     { mercure: { subscribe: topics } },
-     MERCURE_JWT_SECRET
-   );
-   
-   // Connects internally to Mercure hub
-   const mercureRes = await fetch(mercureUrl, {
-     headers: { Authorization: `Bearer ${subscriberToken}` }
-   });
-   ```
-
-3. **Proxy streams SSE to watcher**:
-   ```
-   :connected — listening on 1 topic(s)
-   event: message
-   data: {"type":"new_request","refCode":"HS-ABC1",...}
-   
-   event: message
-   data: {"type":"new_message","messageId":"msg-001",...}
-   ```
-
-4. **Watcher receives & processes event**:
+2. **Processes each event**:
    ```bash
-   # Parse event from SSE stream
    refCode="HS-ABC1"
-   
+
    # Format notification using channel adapter
-   NOTIFICATION="📨 New request $refCode: How do I...?"
-   
+   NOTIFICATION="New request $refCode: How do I...?"
+
    # Send via Telegram/WhatsApp/etc
    SEND_TELEGRAM "$CHAT_ID" "$NOTIFICATION"
-   
-   # Acknowledge delivery back to platform
-   curl -X POST "http://localhost:3456/api/v1/events/ack/$REQUEST_ID" \
-     -H "x-api-key: hs_prov_secret123"
    ```
 
-#### Option B: Dashboard (Web Browser)
-
-The dashboard browser also connects to the **same proxy endpoint**:
-
-```javascript
-// src/hooks/useMercure.ts
-const es = new EventSource(
-  '/api/internal/events/stream?topic=/heysummon/requests/req-123'
-);
-```
-
-But with key differences:
-
-- **Client key** instead of provider key
-- **Automatic topic resolution**: only topics for user's active requests
-- **Session validation** instead of API key IP binding
-
-Both watcher and dashboard are thus **pull**-based: they request events from the proxy, not the other way around.
-
-#### Why This Architecture?
-
-| Aspect | Benefit |
-|--------|---------|
-| **No external Mercure** | Never expose internal hub to public internet |
-| **Unified auth** | Single validation point (API key + IP + device) |
-| **Topic isolation** | Providers only see their topics, clients only their requests |
-| **Rate limiting** | Applied at proxy level, not Mercure |
-| **Audit & logging** | Track every connection, every event delivered |
-| **Scalability** | Can have multiple Mercure instances behind proxy |
+3. **Acknowledges delivery**:
+   ```bash
+   curl "http://localhost:3456/api/v1/events/ack/$REQUEST_ID" \
+     -H "x-api-key: hs_prov_secret123"
+   ```
 
 ---
 
@@ -664,7 +536,7 @@ New request HS-ABC1: How do I...?
 
 **File**: `/src/app/api/v1/events/pending/route.ts`
 
-If the watcher crashes or misses events, it can **catch up** on reconnect.
+If the watcher crashes or misses events, it catches up automatically on the next poll cycle.
 
 ```bash
 GET /api/v1/events/pending
@@ -690,79 +562,20 @@ x-api-key: hs_prov_abc123
 ```
 
 **Watcher logic**:
-1. On restart: call GET `/api/v1/events/pending`
-2. Process each missed event
+1. Poll `GET /api/v1/events/pending` on interval
+2. Process each pending event
 3. Send notification via channel adapter
-4. Call POST `/api/v1/events/ack/{requestId}` for each
-5. Resume listening to SSE stream
+4. Acknowledge each with `GET /api/v1/events/ack/:id`
 
 This ensures **no messages are lost** even if the watcher crashes!
 
 ---
 
-### 9️⃣ Frontend: Live Updates via Proxy
+### 9️⃣ Frontend: Updates via Polling
 
-**File**: `/src/hooks/useMercure.ts`, `/src/components/dashboard/request-detail.tsx`, `/src/app/api/v1/events/stream/route.ts`
+**File**: `/src/components/dashboard/request-detail.tsx`
 
-The dashboard also uses the **same `/api/v1/events/stream` proxy** to receive real-time updates:
-
-#### How Dashboard Subscription Works
-
-```javascript
-// src/hooks/useMercure.ts
-export function useMercure(topics: string[], onEvent) {
-  useEffect(() => {
-    // Connect to EventStream PROXY (NOT direct Mercure)
-    const es = new EventSource(
-      `/api/v1/events/stream?topic=${topics.join('&topic=')}`
-    );
-    
-    es.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      onEvent(data);  // ← Call the callback
-    };
-    
-    return () => es.close();
-  }, [topics]);
-}
-```
-
-**Under the hood**:
-
-1. Browser makes **GET /api/v1/events/stream** with session auth (cookie)
-2. API validates user's session
-3. API **automatically resolves topics** — only topics for user's own requests
-4. API creates JWT, connects to Mercure internally
-5. API streams events via SSE back to browser
-
-#### Unified Proxy: Watcher + Dashboard + Consumers
-
-```
-External World           HeySummon API Proxy         Internal Systems
-────────────────────────────────────────────────────────────────────
-
-Provider Watcher ────────┐
-(OpenClaw skill)         │
-                         ├──→ /api/v1/events/stream ──→ Mercure Hub
-Dashboard (Browser) ─────┤
-                         │
-Consumer SDK ────────────┘
-
-
-All three connect to SAME endpoint, but:
-  • Different authentication (API key vs session cookie)
-  • Different allowed topics (resolved per user)
-  • All benefit from same security layer
-```
-
-#### Why Unified Proxy?
-
-- **Single point of auth**: Validate once, all clients secure
-- **Topic isolation**: Can't subscribe to topics you don't own
-- **Rate limiting**: Per-client, per-topic rate limits
-- **Audit logging**: All SSE connections logged
-- **No external exposure**: Mercure stays internal only
-- **Scalable**: Many Mercure instances, single proxy gateway
+The dashboard polls for updates to reflect new messages and status changes in the UI.
 
 ---
 
@@ -824,41 +637,24 @@ PROVIDER sends response via API:
                     │
                     ▼
         ╔══════════════════════════╗
-        ║  4. MERCURE BROADCAST    ║
-        ║  :3426 (Mercure hub)     ║
+        ║  4. POLLING DISCOVERY    ║
         ║                          ║
-        ║ Publish to topics:       ║
-        ║  • /requests/req-xyz     ║
-        ║  • /providers/prov-123   ║
+        ║ Provider watcher polls:  ║
+        ║  GET /events/pending     ║
         ║                          ║
-        ║ Event payload:           ║
-        ║  {                       ║
-        ║    type: new_message,    ║
-        ║    messageId: msg-001,   ║
-        ║    from: provider,       ║
-        ║    createdAt: ...        ║
-        ║  }                       ║
-        ╚══════════════════════════╝
-                    │
-                    ▼
-        ╔══════════════════════════╗
-        ║  5. SSE TO BROWSER       ║
-        ║  EventSource update      ║
+        ║ Dashboard polls for      ║
+        ║ updated request data     ║
         ║                          ║
-        ║ event: message           ║
-        ║ data: {...}              ║
-        ║                          ║
-        ║ (JavaScript receives)    ║
-        ║ → refreshes UI           ║
-        ║ → shows new message      ║
+        ║ Consumer polls:          ║
+        ║  GET /api/v1/help/:id    ║
         ╚══════════════════════════╝
 ```
 
 ---
 
-## 🔟 Complete Data Flow Diagram
+## Complete Data Flow Diagram
 
-**The Unified Architecture**: Everything flows through the EventStream proxy
+**Polling Architecture**: Clients discover events by polling the platform API.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -878,95 +674,71 @@ PROVIDER sends response via API:
 │     │                                  │                (main app)         │
 │     │                                  │                │                  │
 │     │                                  │                │ 3. Create Request │
-│     │                                  │                │ 4. Broadcast event├────────┐
-│     │                                  │                │   on heysummon/  ││        │
-│     │                                  │                │   requests/abc   ││        │
-│     │                                  │                │                  ││        │
-│     │                                  │<──── signed    │                  ││        │
-│     │                                  │ receipt        │                  ││        │
-│     │<────────────────────────────────────────────────  │                  ││        │
-│     │                                                    │                  ││        │
-│                                                          │                  ││        │
-└──────────────────────────────────────────────────────────┼──────────────────┼┼────────┘
-                                                            │                  ││
-┌────────────────────────────────────────────────────────────────────────────┼┼──────────┐
-│        REAL-TIME BROADCAST (via unified EventStream proxy)                 ││         │
-├────────────────────────────────────────────────────────────────────────────┼┼──────────┤
-│                                                                             ││         │
-│  Event published on Mercure topic: heysummon/requests/abc123             ││         │
-│                                                                             ││         │
-│  Provider Watcher                                                          ││         │
-│  (OpenClaw Skill)                Dashboard (Browser)                       ││         │
-│      │                                  │                                  ││         │
-│      │ 5a. GET /api/v1/events/  ───┐   │ 5b. GET /api/v1/events/         ││         │
-│      │     stream                   │   │      stream                      ││         │
-│      │     (x-api-key)              │   │      (session cookie)            ││         │
-│      │                              │   │                                  ││         │
-│      │                         GET /api/v1/events/stream  ◄──┐             ││         │
-│      │                             (proxy validates both)    │             ││         │
-│      │                                  │                    │             ││         │
-│      │                                  │ 5c. Auth validates │             ││         │
-│      │                                  │     Topics resolve │             ││         │
-│      │                                  │     JWT created    │             ││         │
-│      │                                  │     SSE stream open
-│      │<───────────────────────────────────────────────────────┤             ││         │
-│      │                                  │                    │             ││         │
-│      │ 6. Watcher receives SSE        │ 6. Dashboard           │             ││         │
-│      │    event from Mercure          │    receives event    │             ││         │
-│      │    via proxy stream            │    via proxy stream   │             ││         │
-│      │    (decrypts if E2E)           │    (updates UI)       │             ││         │
-│      │                                  │                     │             ││         │
-│      │ 7. Channel adapter formats    │                        │             ││         │
-│      │    notification                │                        │             ││         │
-│      │    (Telegram/WhatsApp/etc)   │                        │             ││         │
-│      │                                  │                     │             ││         │
-│      │ 8. Send to external service  │                        │             ││         │
-│      │    (Telegram/WhatsApp API)    │                        │             ││         │
-│                                                                           │             ││         │
-│                                                                           │             ││         │
-└────────────────────────────────────────────────────────────────────────────────────────┼┼──────────┘
-                                                                            │             ││
-┌──────────────────────────────────────────────────────────────────────────┼─────────────┼┼──────────┐
-│                    PROVIDER REPLY (closing the loop)                     │  External   ││          │
-├──────────────────────────────────────────────────────────────────────────┼─────────────┼┼──────────┤
-│                                                                            │  Services   ││          │
-│                                                                            │              ││          │
-│  Provider clicks "resolve" button OR replies via Telegram/WhatsApp       │  ◄───────────┘│          │
-│                                                                            │               │          │
-│  9. POST /api/v1/message/{requestId}                                      │               │          │
-│      (with consumer public key, encrypted payload)                        │               │          │
-│      ├──────────> /api/message (auth middleware)                          │               │          │
-│      │                                                                    │               │          │
-│      │            • Verify provider signature                            │               │          │
-│      │            • Validate request exists                              │               │          │
-│      │            • Create Message record (encrypted)                    │               │          │
-│      │            • Broadcast on heysummon/providers/{providerId}     │               │          │
-│      │            • Broadcast on heysummon/requests/{requestId}       ◄──────────────┘               │
-│      │                                                                    │                          │
-│      │ 10. Consumer receives via SSE (same proxy stream)                 │                          │
-│      │     • Decrypts message with Ed25519 verification                  │                          │
-│      │     • Displays notification to user                               │                          │
-│      │                                                                    │                          │
-│  11. POST /api/v1/events/ack/{requestId}                                 │                          │
-│      (watcher confirms receipt)                                          │                          │
-│      ├──────────> /api/events/ack                                        │                          │
-│      │             • Sets deliveredAt timestamp                          │                          │
-│      │             • Logs audit event                                    │                          │
-│      │             • Also broadcasts ack on heysummon/requests/{id}   │                          │
-│      │                                                                    │                          │
-│      │ 12. Dashboard receives ack event                                  │                          │
-│      │     • Updates UI: "Delivered to provider"                          │                          │
-│                                                                            │                          │
-└──────────────────────────────────────────────────────────────────────────┴──────────────────────────┘
+│     │                                  │                │ 4. Store in DB   │
+│     │                                  │                │                  │
+│     │                                  │<──── signed    │                  │
+│     │                                  │ receipt        │                  │
+│     │<────────────────────────────────────────────────  │                  │
+│     │                                                    │                  │
+└──────────────────────────────────────────────────────────┼──────────────────┘
+                                                            │
+┌────────────────────────────────────────────────────────────────────────────────┐
+│        EVENT DISCOVERY (via HTTP polling)                                      │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│  Provider Watcher                    Dashboard (Browser)                      │
+│  (OpenClaw Skill)                                                             │
+│      │                                  │                                     │
+│      │ 5a. GET /api/v1/events/          │ 5b. Polls for updated              │
+│      │     pending                      │     request data                    │
+│      │     (x-api-key)                  │     (session cookie)                │
+│      │                                  │                                     │
+│      │ 6. Process pending events        │ 6. Dashboard refreshes             │
+│      │    (send notifications)          │    with latest data                │
+│      │                                  │                                     │
+│      │ 7. Channel adapter formats       │                                     │
+│      │    notification                  │                                     │
+│      │    (Telegram/WhatsApp/etc)       │                                     │
+│      │                                  │                                     │
+│      │ 8. Acknowledge delivery          │                                     │
+│      │    GET /api/v1/events/ack/:id    │                                     │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                    PROVIDER REPLY (closing the loop)                           │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│  Provider clicks "resolve" button OR replies via Telegram/WhatsApp            │
+│                                                                                │
+│  9. POST /api/v1/message/{requestId}                                          │
+│      (with consumer public key, encrypted payload)                            │
+│      ├──────────> /api/message (auth middleware)                              │
+│      │            • Verify provider signature                                │
+│      │            • Validate request exists                                  │
+│      │            • Create Message record (encrypted)                        │
+│      │                                                                        │
+│      │ 10. Consumer polls GET /api/v1/help/:id                               │
+│      │     • Discovers response                                              │
+│      │     • Decrypts message with Ed25519 verification                      │
+│      │                                                                        │
+│  11. GET /api/v1/events/ack/{requestId}                                       │
+│      (watcher confirms receipt)                                              │
+│      ├──────────> /api/events/ack                                            │
+│      │             • Sets deliveredAt timestamp                              │
+│      │             • Logs audit event                                        │
+│      │                                                                        │
+│      │ 12. Dashboard polls and sees ack                                      │
+│      │     • Updates UI: "Delivered to provider"                              │
+│                                                                                │
+└────────────────────────────────────────────────────────────────────────────────┘
 
 
 Key Architecture Points:
   • Guard Proxy (port 8081): Validates content, creates signed receipt
-  • Main App API: Handles all database operations, broadcasts events
-  • EventStream Proxy (/api/v1/events/stream): Single gateway for all real-time connections
-  • Mercure Hub (port 3426): Internal only - never exposed to external clients
-  • Each client (watcher, dashboard, consumer) authenticates once to proxy
-  • Proxy determines allowed topics per user/key type
+  • Main App API: Handles all database operations
+  • Polling endpoints: /api/v1/events/pending + /api/v1/events/ack/:id
+  • Each client (watcher, dashboard, consumer) authenticates per request
   • All encryption/decryption happens client-side or at platform boundaries
 ```
 
@@ -1025,20 +797,22 @@ curl -X GET http://localhost:3425/api/v1/messages/req-123 \
 }
 ```
 
-### GET /api/internal/events/stream
+### GET /api/v1/events/pending
 
-**Subscribe to real-time updates** (SSE)
+**Poll for pending events**
 
-```javascript
-const es = new EventSource(
-  '/api/internal/events/stream?topic=/heysummon/requests/req-123'
-);
+```bash
+curl http://localhost:3425/api/v1/events/pending \
+  -H "x-api-key: hs_prov_secret"
+```
 
-es.onmessage = (event) => {
-  const update = JSON.parse(event.data);
-  console.log('Got update:', update);
-  // { type: 'new_message', messageId: 'msg-001', from: 'provider' }
-};
+### GET /api/v1/events/ack/:id
+
+**Acknowledge event delivery**
+
+```bash
+curl http://localhost:3425/api/v1/events/ack/req-123 \
+  -H "x-api-key: hs_prov_secret"
 ```
 
 ---
@@ -1049,8 +823,6 @@ es.onmessage = (event) => {
 
 | Layer | Mechanism | Protects Against |
 |-------|-----------|------------------|
-| **EventStream Proxy** | Single auth gateway for all clients | Unauthorized Mercure access, topic confusion |
-| **Topic Isolation** | API key type → allowed topics | Cross-tenant message leaking |
 | **Guard** | Content validation + Ed25519 signing | Malicious content, XSS, PII exposure |
 | **API Key** | Unique per consumer/provider, time-limited | Unauthorized access, key reuse |
 | **IP Binding** | Provider keys bound to specific IP | Theft of provider credentials |
@@ -1062,60 +834,32 @@ es.onmessage = (event) => {
 | **Audit Log** | Log all API actions + ACK events | Post-breach investigation, delivery tracking |
 
 **Key Security Principles:**
-1. **Mercure is never exposed externally** — only accessible through proxy with full auth
-2. **Topic subscription is validated** — can't subscribe to topics you don't own
-3. **All real-time connections are authenticated** — no anonymous SSE connections
-4. **Replay prevention** — timestamps + nonces make old requests invalid
-5. **Audit trail** — every action (send, deliver, ack) is logged
+1. **All API requests are authenticated** — API key or session required
+2. **Replay prevention** — timestamps + nonces make old requests invalid
+3. **Audit trail** — every action (send, deliver, ack) is logged
 
 ---
 
 ## Troubleshooting
 
-### EventStream Proxy not connecting?
+### Polling not returning events?
 
-1. **Check proxy is running**:
-   ```bash
-   curl http://localhost:3456/api/v1/events/stream
-   # Should get 401 Unauthorized (missing x-api-key or session)
-   ```
-
-2. **Verify API key format**:
+1. **Verify API key format**:
    - Provider watchers use: `hs_prov_*`
    - Consumer clients use: `hs_cli_*`
    - Check the key isn't rotated or revoked
 
-3. **Check proxy authentication**:
+2. **Check pending events endpoint**:
    ```bash
-   # With provider key
-   curl -N -H "x-api-key: hs_prov_YOUR_KEY" \
-     http://localhost:3456/api/v1/events/stream
-   
-   # Should return 200 and streaming (Ctrl+C to stop)
+   curl -H "x-api-key: hs_prov_YOUR_KEY" \
+     http://localhost:3456/api/v1/events/pending
+
+   # Should return 200 with events array
    ```
 
-4. **Check IP validation** (for provider keys):
+3. **Check IP validation** (for provider keys):
    - IP must match the key's IP binding
    - Check in database: `SELECT ipBound FROM ApiKey WHERE ...`
-
-### Message not appearing in real-time?
-
-1. **Check Mercure health** (internal only):
-   ```bash
-   curl http://localhost:3426/health
-   # You can't curl this from outside - it's internal only
-   ```
-
-2. **Check proxy is forwarding events**:
-   - Connect to `/api/v1/events/stream`
-   - Send a message via API
-   - Should see event in the stream
-   - Check browser DevTools → Network → `/api/v1/events/stream` should show `200` and streaming
-
-3. **Check topic resolution**:
-   - Provider keys subscribe to: `/heysummon/providers/{userId}`
-   - Consumer keys subscribe to: topics for their own requests
-   - Broadcast happens on both `/heysummon/requests/{id}` AND `/heysummon/providers/{id}`
 
 4. **Restart everything**:
    ```bash
@@ -1143,12 +887,11 @@ es.onmessage = (event) => {
 - Dashboard will see `deliveredAt` timestamp after ACK
 - Check audit log: `SELECT * FROM AuditLog WHERE action = 'ack'`
 
-### Mercure topics not matching?
+### Events not being acknowledged?
 
-The proxy resolves topics based on key type:
-- **Provider key** (`hs_prov_*`): Can only subscribe to `/heysummon/providers/{userId}`
-- **Client key** (`hs_cli_*`): Can only subscribe to topics for requests they own
-- **Issue**: If watcher isn't receiving events, provider key might have wrong userId
+- Ensure you call `GET /api/v1/events/ack/:id` after processing each event
+- The request ID in the ack URL must match a request owned by the authenticated provider
+- Check audit log: `SELECT * FROM AuditLog WHERE action = 'ack'`
 
 ---
 

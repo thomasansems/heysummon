@@ -41,7 +41,7 @@ USER_ID="${E2E_USER_ID:-$PROVIDER_ID}"
 PROVIDER_KEY="${E2E_PROVIDER_KEY:?Set E2E_PROVIDER_KEY}"
 CLIENT_KEY="${E2E_CLIENT_KEY:?Set E2E_CLIENT_KEY}"
 TIMEOUT="${E2E_TIMEOUT:-30}"
-STREAM_URL="${BASE_URL}/api/v1/events/stream"
+PENDING_URL="${BASE_URL}/api/v1/events/pending"
 
 # Extended test keys (optional — tests skip if not set)
 PROVIDER2_KEY="${E2E_PROVIDER2_KEY:-}"

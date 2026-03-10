@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateProviderKey } from "@/lib/provider-key-auth";
+import { decryptMessage } from "@/lib/crypto";
 
 const DEBUG = process.env.DEBUG === "true";
 
@@ -55,6 +56,7 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
       status: true,
       question: true,
       questionPreview: true,
+      serverPrivateKey: true,
       requiresApproval: true,
       approvalDecision: true,
       createdAt: true,
@@ -67,21 +69,33 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
     take: 50,
   });
 
-  const mapped = requests.map((r) => ({
-    type: "new_request" as const,
-    requestId: r.id,
-    refCode: r.refCode,
-    question: r.question || null,
-    questionPreview: r.questionPreview || null,
-    requiresApproval: r.requiresApproval,
-    approvalDecision: r.approvalDecision || null,
-    messageCount: r._count.messageHistory,
-    messagePreview: null,
-    consumerSignPubKey: r.consumerSignPubKey || null,
-    consumerEncryptPubKey: r.consumerEncryptPubKey || null,
-    createdAt: r.createdAt.toISOString(),
-    expiresAt: r.expiresAt.toISOString(),
-  }));
+  const mapped = requests.map((r) => {
+    // Resolve plaintext question: prefer questionPreview, then try server-side decrypt
+    let questionPlaintext: string | null = r.questionPreview || null;
+    if (!questionPlaintext && r.question && r.serverPrivateKey) {
+      try {
+        questionPlaintext = decryptMessage(r.question, r.serverPrivateKey);
+      } catch {
+        // Decryption failed — leave null
+      }
+    }
+
+    return {
+      type: "new_request" as const,
+      requestId: r.id,
+      refCode: r.refCode,
+      question: questionPlaintext,
+      questionPreview: questionPlaintext,
+      requiresApproval: r.requiresApproval,
+      approvalDecision: r.approvalDecision || null,
+      messageCount: r._count.messageHistory,
+      messagePreview: null,
+      consumerSignPubKey: r.consumerSignPubKey || null,
+      consumerEncryptPubKey: r.consumerEncryptPubKey || null,
+      createdAt: r.createdAt.toISOString(),
+      expiresAt: r.expiresAt.toISOString(),
+    };
+  });
 
   if (DEBUG) {
     console.log("[GET /api/v1/events/pending] Provider poll:", {

@@ -85,7 +85,7 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
   const requests = await prisma.helpRequest.findMany({
     where: {
       apiKeyId: clientKey.id,
-      status: { in: ["pending", "active"] },
+      status: { in: ["pending", "active", "responded"] },
       expiresAt: { gt: new Date() },
       messageHistory: {
         some: { from: "provider" },

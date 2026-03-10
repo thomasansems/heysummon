@@ -92,6 +92,8 @@ export const helpCreateSchema = z.object({
   publicKey: z.string().optional(),
   messages: z.array(z.any()).optional(),
   question: z.string().optional(),
+  questionPreview: z.string().optional(),
+  requiresApproval: z.boolean().optional(),
   messageCount: z.number().int().min(0).optional(),
 });
 

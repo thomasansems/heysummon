@@ -72,7 +72,7 @@ process_event() {
           case 'new_request':
             msg+='New request';
             if(needsApproval) msg+='\n🗳️ Approval needed';
-            if(qPreview) msg+='\n📝 '+qPreview.slice(0,200);
+            if(qPreview) msg+='\n📝 '+qPreview;
             else if(q && !q.includes('==')) msg+='\n📝 '+q;
             break;
           case 'new_message':

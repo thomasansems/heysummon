@@ -147,7 +147,7 @@ export async function POST(request: Request) {
         serverPublicKey: serverKeyPair?.publicKey || null,
         serverPrivateKey: serverKeyPair?.privateKey || null,
 
-        questionPreview: questionPreview ? questionPreview.slice(0, 200) : null,
+        questionPreview: questionPreview ?? null,
         requiresApproval: requiresApproval ?? false,
         contentFlags: null,
         guardVerified,

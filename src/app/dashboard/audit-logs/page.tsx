@@ -66,12 +66,12 @@ function EventTypeBadge({ type }: { type: string }) {
 
 function SuccessBadge({ success }: { success: boolean }) {
   return success ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-400">
-      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs font-medium text-emerald-300">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
       Success
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-400">
+    <span className="inline-flex items-center gap-1 rounded-full bg-red-950/60 px-2 py-0.5 text-xs font-medium text-red-300">
       <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
       Failed
     </span>

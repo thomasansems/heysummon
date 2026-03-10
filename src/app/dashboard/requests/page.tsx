@@ -31,6 +31,8 @@ interface HelpRequest {
   id: string;
   refCode: string | null;
   status: string;
+  requiresApproval: boolean;
+  approvalDecision: string | null;
   messageCount: number;
   responseCount: number;
   createdAt: string;
@@ -51,6 +53,8 @@ const statusStyles: Record<string, string> = {
   pending: "bg-yellow-950/60 text-yellow-300",
   delivered: "bg-teal-950/60 text-teal-300",
   responded: "bg-emerald-950/60 text-emerald-300",
+  approved: "bg-emerald-950/60 text-emerald-300",
+  denied: "bg-red-950/60 text-red-300",
   expired: "bg-slate-950/60 text-slate-300",
   failed: "bg-red-950/60 text-red-300",
   cancelled: "bg-red-950/60 text-red-400",
@@ -60,6 +64,8 @@ const dotStyles: Record<string, string> = {
   pending: "bg-yellow-500",
   delivered: "bg-teal-400",
   responded: "bg-green-500",
+  approved: "bg-green-500",
+  denied: "bg-red-500",
   expired: "bg-slate-500",
   failed: "bg-red-500",
   cancelled: "bg-red-400",
@@ -69,12 +75,17 @@ const statusLabels: Record<string, string> = {
   pending: "Awaiting Response",
   delivered: "Delivered",
   responded: "Responded",
+  approved: "Approved",
+  denied: "Denied",
   expired: "Expired",
   failed: "Failed",
   cancelled: "Cancelled",
 };
 
 function getDisplayStatus(req: HelpRequest): string {
+  if (req.approvalDecision) {
+    return req.approvalDecision; // "approved" | "denied"
+  }
   if (
     req.deliveredAt &&
     (req.status === "pending" || req.status === "active")
@@ -144,6 +155,20 @@ export default function RequestsPage() {
     try {
       const res = await fetch(`/api/v1/dashboard/requests/${id}/resend`, {
         method: "POST",
+      });
+      if (res.ok) fetchRequests();
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleApproval(id: string, decision: "approved" | "denied") {
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/v1/approve/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision }),
       });
       if (res.ok) fetchRequests();
     } finally {
@@ -249,6 +274,10 @@ export default function RequestsPage() {
                 const canResend = ["responded", "failed", "expired"].includes(
                   req.status
                 );
+                const canApprove =
+                  req.requiresApproval &&
+                  !req.approvalDecision &&
+                  (req.status === "pending" || req.status === "active");
                 const isLoading = actionLoading === req.id;
 
                 return (
@@ -260,23 +289,30 @@ export default function RequestsPage() {
                       <CopyableRefCode code={req.refCode} />
                     </td>
                     <td className="px-4 py-2.5">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
-                          statusStyles[display] || ""
-                        }`}
-                        title={
-                          display === "delivered" && req.deliveredAt
-                            ? `Delivered: ${new Date(req.deliveredAt).toLocaleString()}`
-                            : undefined
-                        }
-                      >
+                      <div className="flex items-center gap-1.5">
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            dotStyles[display] || ""
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            statusStyles[display] || ""
                           }`}
-                        />
-                        {statusLabels[display] || req.status}
-                      </span>
+                          title={
+                            display === "delivered" && req.deliveredAt
+                              ? `Delivered: ${new Date(req.deliveredAt).toLocaleString()}`
+                              : undefined
+                          }
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              dotStyles[display] || ""
+                            }`}
+                          />
+                          {statusLabels[display] || req.status}
+                        </span>
+                        {req.requiresApproval && !req.approvalDecision && (
+                          <span className="inline-flex items-center rounded-full bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-300">
+                            Approval Required
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">
                       {req.messageCount > 0
@@ -302,24 +338,44 @@ export default function RequestsPage() {
                       {deliveryTime(req.createdAt, req.deliveredAt)}
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      {canCancel && (
-                        <button
-                          onClick={() => handleCancel(req.id)}
-                          disabled={isLoading}
-                          className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40 transition-colors disabled:opacity-50"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                      {canResend && (
-                        <button
-                          onClick={() => handleResend(req.id)}
-                          disabled={isLoading}
-                          className="rounded px-2 py-1 text-xs font-medium text-violet-400 hover:bg-violet-950/40 transition-colors disabled:opacity-50"
-                        >
-                          Resend
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1">
+                        {canApprove && (
+                          <>
+                            <button
+                              onClick={() => handleApproval(req.id, "approved")}
+                              disabled={isLoading}
+                              className="rounded px-2 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleApproval(req.id, "denied")}
+                              disabled={isLoading}
+                              className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40 transition-colors disabled:opacity-50"
+                            >
+                              Deny
+                            </button>
+                          </>
+                        )}
+                        {canCancel && !canApprove && (
+                          <button
+                            onClick={() => handleCancel(req.id)}
+                            disabled={isLoading}
+                            className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40 transition-colors disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        {canResend && (
+                          <button
+                            onClick={() => handleResend(req.id)}
+                            disabled={isLoading}
+                            className="rounded px-2 py-1 text-xs font-medium text-violet-400 hover:bg-violet-950/40 transition-colors disabled:opacity-50"
+                          >
+                            Resend
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

@@ -62,12 +62,16 @@ process_event() {
         const q=j.question||'';
         const from=j.from||'';
         const preview=j.messagePreview||'';
+        const qPreview=j.questionPreview||'';
+        const needsApproval=j.requiresApproval||false;
 
         let msg='🦞 HeySummon ['+ref+'] ';
         switch(type) {
           case 'new_request':
             msg+='New request';
-            if(q && !q.includes('==')) msg+='\n📝 '+q;
+            if(needsApproval) msg+='\n🗳️ Approval needed';
+            if(qPreview) msg+='\n📝 '+qPreview.slice(0,200);
+            else if(q && !q.includes('==')) msg+='\n📝 '+q;
             break;
           case 'new_message':
             // Skip echo: don't notify provider about their own sent messages

@@ -94,16 +94,20 @@ fi
 SIGN_PUB=$(cat "$KEY_DIR/sign_public.pem")
 ENC_PUB=$(cat "$KEY_DIR/encrypt_public.pem")
 
-# Submit request
+# Submit request (questionPreview = plaintext for notifications, question = encrypted)
 RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/help" \
   -H "Content-Type: application/json" \
-  -d "$(node -e "console.log(JSON.stringify({
-    apiKey: process.argv[1],
-    signPublicKey: process.argv[2],
-    encryptPublicKey: process.argv[3],
-    question: process.argv[4],
-    messages: JSON.parse(process.argv[5])
-  }))" "$API_KEY" "$SIGN_PUB" "$ENC_PUB" "$QUESTION" "$MESSAGES")")
+  -d "$(node -e "
+    const q = process.argv[4];
+    console.log(JSON.stringify({
+      apiKey: process.argv[1],
+      signPublicKey: process.argv[2],
+      encryptPublicKey: process.argv[3],
+      question: q,
+      questionPreview: q.slice(0, 200),
+      messages: JSON.parse(process.argv[5])
+    }));
+  " "$API_KEY" "$SIGN_PUB" "$ENC_PUB" "$QUESTION" "$MESSAGES")")
 
 REQUEST_ID=$(echo "$RESPONSE" | jq -r '.requestId // empty')
 REF_CODE=$(echo "$RESPONSE" | jq -r '.refCode // empty')

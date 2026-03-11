@@ -155,3 +155,41 @@ Use HeySummon when you are **truly stuck**:
 - `providers.json`
 - `.keys/` directory
 - `.requests/` directory
+
+## Agent-to-Agent Response Flow
+
+When a provider approves/responds, the consumer watcher can automatically notify another OpenClaw agent session via `sessions_send`. This enables fully automated end-to-end flows without human intervention.
+
+### Required OpenClaw config (`~/.openclaw/openclaw.json`)
+
+```json
+{
+  "gateway": {
+    "tools": { "allow": ["sessions_send"] }
+  },
+  "tools": {
+    "sessions": { "visibility": "all" },
+    "agentToAgent": { "enabled": true }
+  },
+  "hooks": {
+    "enabled": true,
+    "token": "your-hook-token"
+  }
+}
+```
+
+After updating config: `openclaw gateway restart`
+
+### Flow
+
+```
+Provider approves (Telegram button)
+    ↓
+reply-handler.sh → POST /api/v1/message (approvalDecision: "approved")
+    ↓
+Consumer watcher polls → detects approvalDecision
+    ↓
+sessions_send → notifies agent session with result
+    ↓
+Agent continues workflow automatically
+```

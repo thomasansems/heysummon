@@ -318,148 +318,113 @@ heysummon:
         </div>
       )}
 
-      <div className="overflow-visible rounded-lg border border-border bg-card">
+      <div className="overflow-visible overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="px-4 py-2.5 font-medium">Name</th>
-                <th className="px-4 py-2.5 font-medium">Provider</th>
-                <th className="px-4 py-2.5 font-medium">Key</th>
-                <th className="px-4 py-2.5 font-medium">Scope</th>
-                <th className="px-4 py-2.5 font-medium">Requests</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Created</th>
-                <th className="px-4 py-2.5 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Mobile loading skeleton */}
+            <div className="md:hidden">
               {[1, 2, 3].map((i) => (
-                <tr key={i} className="border-b border-border animate-pulse">
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-24 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-20 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-32 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-5 w-16 rounded-full bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-8 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-5 w-20 rounded-full bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-4 w-20 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="ml-auto h-6 w-8 rounded bg-muted"></div>
-                  </td>
-                </tr>
+                <div key={i} className="border-b border-border p-4 space-y-3 animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-24 rounded bg-muted" />
+                    <div className="h-6 w-8 rounded bg-muted" />
+                  </div>
+                  <div className="h-4 w-20 rounded bg-muted" />
+                  <div className="h-4 w-32 rounded bg-muted" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="h-5 w-16 rounded-full bg-muted" />
+                    <div className="h-4 w-8 rounded bg-muted" />
+                    <div className="h-5 w-20 rounded-full bg-muted" />
+                    <div className="h-4 w-20 rounded bg-muted" />
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+            {/* Desktop loading skeleton */}
+            <table className="hidden md:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Provider</th>
+                  <th className="px-4 py-2.5 font-medium">Key</th>
+                  <th className="px-4 py-2.5 font-medium">Scope</th>
+                  <th className="px-4 py-2.5 font-medium">Requests</th>
+                  <th className="px-4 py-2.5 font-medium">Status</th>
+                  <th className="px-4 py-2.5 font-medium">Created</th>
+                  <th className="px-4 py-2.5 font-medium" />
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3].map((i) => (
+                  <tr key={i} className="border-b border-border animate-pulse">
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-24 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-20 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-32 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-5 w-16 rounded-full bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-8 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-5 w-20 rounded-full bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-20 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="ml-auto h-6 w-8 rounded bg-muted"></div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         ) : keys.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             No client keys yet. Create one to get started.
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="px-4 py-2.5 font-medium">Name</th>
-                <th className="px-4 py-2.5 font-medium">Provider</th>
-                <th className="px-4 py-2.5 font-medium">Key</th>
-                <th className="px-4 py-2.5 font-medium">Scope</th>
-                <th className="px-4 py-2.5 font-medium">Requests</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Created</th>
-                <th className="px-4 py-2.5 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Mobile card view */}
+            <div className="md:hidden">
               {keys.map((k) => (
                 <Fragment key={k.id}>
-                  <tr
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="px-4 py-2.5 font-medium text-foreground">
-                      {editingId === k.id ? (
-                        <div className="flex items-center gap-1">
-                          <input
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") renameKey(k.id); if (e.key === "Escape") setEditingId(null); }}
-                            className="w-32 rounded border border-border px-2 py-0.5 text-sm outline-none focus:border-ring"
-                            autoFocus
-                          />
-                          <button onClick={() => renameKey(k.id)} className="text-xs text-green-600">OK</button>
-                          <button onClick={() => setEditingId(null)} className="text-xs text-muted-foreground">X</button>
+                  <div className="border-b border-border p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-muted-foreground">Name</span>
+                        <div className="font-medium text-foreground">
+                          {editingId === k.id ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") renameKey(k.id); if (e.key === "Escape") setEditingId(null); }}
+                                className="w-32 rounded border border-border px-2 py-0.5 text-sm outline-none focus:border-ring"
+                                autoFocus
+                              />
+                              <button onClick={() => renameKey(k.id)} className="text-xs text-green-600">OK</button>
+                              <button onClick={() => setEditingId(null)} className="text-xs text-muted-foreground">X</button>
+                            </div>
+                          ) : (
+                            <span
+                              className="cursor-pointer hover:underline"
+                              onClick={() => { setEditingId(k.id); setEditName(k.name || ""); }}
+                              title="Click to rename"
+                            >
+                              {k.name || "Unnamed"}
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <span
-                          className="cursor-pointer hover:underline"
-                          onClick={() => { setEditingId(k.id); setEditName(k.name || ""); }}
-                          title="Click to rename"
-                        >
-                          {k.name || "Unnamed"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {k.provider?.name || "-"}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <code className="font-mono text-xs text-muted-foreground">
-                          {masked(k.key)}
-                        </code>
-                        <button
-                          onClick={() => copyKey(k.key)}
-                          className="text-xs text-violet-600 hover:text-violet-800"
-                        >
-                          {copied === k.key ? "Copied!" : "Copy"}
-                        </button>
                       </div>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-muted text-muted-foreground"}`}>
-                        {k.scope}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {k._count.requests}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-1">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            !k.isActive
-                              ? "bg-red-950/60 text-red-300"
-                              : k.ipEvents?.some((e) => e.status === "allowed")
-                                ? "bg-green-950/60 text-green-300"
-                                : "bg-orange-950/60 text-orange-300"
-                          }`}
-                        >
-                          {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
-                        </span>
-                        {isInGracePeriod(k) && (
-                          <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-300" title={`Old key valid until ${new Date(k.previousKeyExpiresAt!).toLocaleString()}`}>
-                            Grace
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {new Date(k.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="relative inline-block">
+                      <div className="relative">
                         <button
                           onClick={() => setOpenMenuId(openMenuId === k.id ? null : k.id)}
                           className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -514,188 +479,550 @@ heysummon:
                           </div>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                  {/* Settings row */}
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Provider</span>
+                      <div className="text-muted-foreground">{k.provider?.name || "-"}</div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Key</span>
+                      <div className="flex items-center gap-2">
+                        <code className="font-mono text-xs text-muted-foreground break-all">
+                          {masked(k.key)}
+                        </code>
+                        <button
+                          onClick={() => copyKey(k.key)}
+                          className="shrink-0 text-xs text-violet-600 hover:text-violet-800"
+                        >
+                          {copied === k.key ? "Copied!" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-xs text-muted-foreground">Scope</span>
+                        <div>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-muted text-muted-foreground"}`}>
+                            {k.scope}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Requests</span>
+                        <div className="text-muted-foreground">{k._count.requests}</div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Status</span>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                              !k.isActive
+                                ? "bg-red-950/60 text-red-300"
+                                : k.ipEvents?.some((e) => e.status === "allowed")
+                                  ? "bg-green-950/60 text-green-300"
+                                  : "bg-orange-950/60 text-orange-300"
+                            }`}
+                          >
+                            {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
+                          </span>
+                          {isInGracePeriod(k) && (
+                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-300" title={`Old key valid until ${new Date(k.previousKeyExpiresAt!).toLocaleString()}`}>
+                              Grace
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Created</span>
+                        <div className="text-muted-foreground">{new Date(k.createdAt).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+                  </div>
                   {settingsId === k.id && (
-                    <tr key={`${k.id}-settings`} className="border-b border-border">
-                      <td colSpan={8} className="bg-muted px-4 py-3">
-                        <p className="mb-2 text-xs font-medium text-muted-foreground">Key Settings</p>
-                        <div className="flex flex-wrap items-end gap-3">
-                          <div>
-                            <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
-                            <select
-                              value={editScope}
-                              onChange={(e) => setEditScope(e.target.value)}
-                              className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                    <div className="border-b border-border bg-muted px-4 py-3">
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">Key Settings</p>
+                      <div className="flex flex-wrap items-end gap-3">
+                        <div>
+                          <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
+                          <select
+                            value={editScope}
+                            onChange={(e) => setEditScope(e.target.value)}
+                            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                          >
+                            {SCOPE_OPTIONS.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs text-muted-foreground">Rate Limit (req/min)</label>
+                          <input
+                            type="number"
+                            value={editRateLimit}
+                            onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)}
+                            min={1}
+                            max={10000}
+                            className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                          />
+                        </div>
+                        <button
+                          onClick={() => saveSettings(k.id)}
+                          disabled={saving}
+                          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                        >
+                          {saving ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={() => setSettingsId(null)}
+                          className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <div className="mt-4 border-t border-border pt-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-xs font-medium text-muted-foreground">IP Bindings</p>
+                          {k.ipEvents?.length > 0 && (
+                            <button
+                              onClick={async () => {
+                                if (!window.confirm("Reset all IP bindings? The next request will bind a new IP.")) return;
+                                await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" });
+                                loadKeys();
+                              }}
+                              className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40"
                             >
-                              {SCOPE_OPTIONS.map((s) => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
+                              Reset All Bindings
+                            </button>
+                          )}
+                        </div>
+                        {!k.ipEvents || k.ipEvents.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No IP bindings yet. The first API request will automatically bind its IP.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {k.ipEvents.map((evt) => (
+                              <div key={evt.id} className="rounded border border-border p-2 text-xs">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-mono text-muted-foreground">{evt.ip}</span>
+                                  <span
+                                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                      evt.status === "allowed"
+                                        ? "bg-green-950/60 text-green-300"
+                                        : evt.status === "pending"
+                                          ? "bg-amber-950/60 text-amber-300"
+                                          : "bg-red-950/60 text-red-300"
+                                    }`}
+                                  >
+                                    {evt.status}
+                                  </span>
+                                </div>
+                                <div className="mt-1 text-muted-foreground">
+                                  {evt.attempts} attempts &middot; {new Date(evt.lastSeen).toLocaleString()}
+                                </div>
+                                <div className="mt-1 flex items-center gap-1">
+                                  {evt.status !== "allowed" && (
+                                    <button
+                                      onClick={async () => {
+                                        await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ status: "allowed" }),
+                                        });
+                                        loadKeys();
+                                      }}
+                                      className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50"
+                                    >
+                                      Allow
+                                    </button>
+                                  )}
+                                  {evt.status !== "blacklisted" && (
+                                    <button
+                                      onClick={async () => {
+                                        await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ status: "blacklisted" }),
+                                        });
+                                        loadKeys();
+                                      }}
+                                      className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                                    >
+                                      Blacklist
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={async () => {
+                                      await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" });
+                                      loadKeys();
+                                    }}
+                                    className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0] hover:text-muted-foreground"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          <div>
-                            <label className="mb-1 block text-xs text-muted-foreground">Rate Limit (req/min)</label>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {showInstructions === k.id && (
+                    <div className="border-b border-border bg-muted px-4 py-3">
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">
+                        OpenClaw Configuration
+                      </p>
+                      <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400 overflow-x-auto">
+                        {configSnippet(k.key)}
+                      </pre>
+                      <button
+                        onClick={() => copyToClipboard(configSnippet(k.key))}
+                        className="mt-2 text-xs text-violet-600 hover:text-violet-800"
+                      >
+                        Copy snippet
+                      </button>
+                      <span className="mx-2 text-gray-400">|</span>
+                      <a
+                        href={`/api/v1/skill-install/${k.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Install in OpenClaw →
+                      </a>
+                    </div>
+                  )}
+                </Fragment>
+              ))}
+            </div>
+            {/* Desktop table view */}
+            <table className="hidden md:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Provider</th>
+                  <th className="px-4 py-2.5 font-medium">Key</th>
+                  <th className="px-4 py-2.5 font-medium">Scope</th>
+                  <th className="px-4 py-2.5 font-medium">Requests</th>
+                  <th className="px-4 py-2.5 font-medium">Status</th>
+                  <th className="px-4 py-2.5 font-medium">Created</th>
+                  <th className="px-4 py-2.5 font-medium" />
+                </tr>
+              </thead>
+              <tbody>
+                {keys.map((k) => (
+                  <Fragment key={k.id}>
+                    <tr
+                      className="border-b border-border last:border-0"
+                    >
+                      <td className="px-4 py-2.5 font-medium text-foreground">
+                        {editingId === k.id ? (
+                          <div className="flex items-center gap-1">
                             <input
-                              type="number"
-                              value={editRateLimit}
-                              onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)}
-                              min={1}
-                              max={10000}
-                              className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") renameKey(k.id); if (e.key === "Escape") setEditingId(null); }}
+                              className="w-32 rounded border border-border px-2 py-0.5 text-sm outline-none focus:border-ring"
+                              autoFocus
                             />
+                            <button onClick={() => renameKey(k.id)} className="text-xs text-green-600">OK</button>
+                            <button onClick={() => setEditingId(null)} className="text-xs text-muted-foreground">X</button>
                           </div>
-                          <button
-                            onClick={() => saveSettings(k.id)}
-                            disabled={saving}
-                            className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                        ) : (
+                          <span
+                            className="cursor-pointer hover:underline"
+                            onClick={() => { setEditingId(k.id); setEditName(k.name || ""); }}
+                            title="Click to rename"
                           >
-                            {saving ? "Saving..." : "Save"}
-                          </button>
+                            {k.name || "Unnamed"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {k.provider?.name || "-"}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <code className="font-mono text-xs text-muted-foreground">
+                            {masked(k.key)}
+                          </code>
                           <button
-                            onClick={() => setSettingsId(null)}
-                            className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground"
+                            onClick={() => copyKey(k.key)}
+                            className="text-xs text-violet-600 hover:text-violet-800"
                           >
-                            Cancel
+                            {copied === k.key ? "Copied!" : "Copy"}
                           </button>
                         </div>
-
-                        {/* IP Events Section */}
-                        <div className="mt-4 border-t border-border pt-3">
-                          <div className="mb-2 flex items-center justify-between">
-                            <p className="text-xs font-medium text-muted-foreground">IP Bindings</p>
-                            {k.ipEvents?.length > 0 && (
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-muted text-muted-foreground"}`}>
+                          {k.scope}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {k._count.requests}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                              !k.isActive
+                                ? "bg-red-950/60 text-red-300"
+                                : k.ipEvents?.some((e) => e.status === "allowed")
+                                  ? "bg-green-950/60 text-green-300"
+                                  : "bg-orange-950/60 text-orange-300"
+                            }`}
+                          >
+                            {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
+                          </span>
+                          {isInGracePeriod(k) && (
+                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-300" title={`Old key valid until ${new Date(k.previousKeyExpiresAt!).toLocaleString()}`}>
+                              Grace
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {new Date(k.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <div className="relative inline-block">
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === k.id ? null : k.id)}
+                            className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                          >
+                            ⋯
+                          </button>
+                          {openMenuId === k.id && (
+                            <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
                               <button
-                                onClick={async () => {
-                                  if (!window.confirm("Reset all IP bindings? The next request will bind a new IP.")) return;
-                                  await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" });
-                                  loadKeys();
-                                }}
-                                className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40"
+                                onClick={() => { openSettings(k); setOpenMenuId(null); }}
+                                className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                               >
-                                Reset All Bindings
+                                Settings
                               </button>
-                            )}
-                          </div>
-                          {!k.ipEvents || k.ipEvents.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">No IP bindings yet. The first API request will automatically bind its IP.</p>
-                          ) : (
-                            <table className="w-full text-xs">
-                              <thead>
-                                <tr className="text-left text-muted-foreground">
-                                  <th className="pb-1 pr-4 font-medium">IP Address</th>
-                                  <th className="pb-1 pr-4 font-medium">Status</th>
-                                  <th className="pb-1 pr-4 font-medium">Attempts</th>
-                                  <th className="pb-1 pr-4 font-medium">First Seen</th>
-                                  <th className="pb-1 pr-4 font-medium">Last Seen</th>
-                                  <th className="pb-1 font-medium" />
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {k.ipEvents.map((evt) => (
-                                  <tr key={evt.id} className="border-t border-border">
-                                    <td className="py-1.5 pr-4 font-mono text-muted-foreground">{evt.ip}</td>
-                                    <td className="py-1.5 pr-4">
-                                      <span
-                                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                                          evt.status === "allowed"
-                                            ? "bg-green-950/60 text-green-300"
-                                            : evt.status === "pending"
-                                              ? "bg-amber-950/60 text-amber-300"
-                                              : "bg-red-950/60 text-red-300"
-                                        }`}
-                                      >
-                                        {evt.status}
-                                      </span>
-                                    </td>
-                                    <td className="py-1.5 pr-4 text-muted-foreground">{evt.attempts}</td>
-                                    <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.firstSeen).toLocaleString()}</td>
-                                    <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.lastSeen).toLocaleString()}</td>
-                                    <td className="py-1.5 text-right">
-                                      <div className="flex items-center justify-end gap-1">
-                                        {evt.status !== "allowed" && (
-                                          <button
-                                            onClick={async () => {
-                                              await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
-                                                method: "PATCH",
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({ status: "allowed" }),
-                                              });
-                                              loadKeys();
-                                            }}
-                                            className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50"
-                                          >
-                                            Allow
-                                          </button>
-                                        )}
-                                        {evt.status !== "blacklisted" && (
-                                          <button
-                                            onClick={async () => {
-                                              await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
-                                                method: "PATCH",
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify({ status: "blacklisted" }),
-                                              });
-                                              loadKeys();
-                                            }}
-                                            className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
-                                          >
-                                            Blacklist
-                                          </button>
-                                        )}
-                                        <button
-                                          onClick={async () => {
-                                            await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" });
-                                            loadKeys();
-                                          }}
-                                          className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0] hover:text-muted-foreground"
-                                        >
-                                          Remove
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                              <button
+                                onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }}
+                                className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                              >
+                                Share
+                              </button>
+                              {k.isActive && (
+                                <button
+                                  onClick={() => { rotateKey(k.id); setOpenMenuId(null); }}
+                                  disabled={rotating === k.id}
+                                  className="block w-full px-3 py-1.5 text-left text-xs text-violet-600 hover:bg-muted hover:text-violet-800 disabled:opacity-50"
+                                >
+                                  {rotating === k.id ? "Rotating..." : "Rotate"}
+                                </button>
+                              )}
+                              {k.isActive ? (
+                                <button
+                                  onClick={() => { deactivate(k.id); setOpenMenuId(null); }}
+                                  className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-muted hover:text-red-400"
+                                >
+                                  Deactivate
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => { activate(k.id); setOpenMenuId(null); }}
+                                  className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800"
+                                >
+                                  Activate
+                                </button>
+                              )}
+                              <div className="my-1 border-t border-border" />
+                              <button
+                                onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }}
+                                className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           )}
                         </div>
                       </td>
                     </tr>
-                  )}
-                  {showInstructions === k.id && (
-                    <tr key={`${k.id}-instructions`} className="border-b border-border">
-                      <td colSpan={8} className="bg-muted px-4 py-3">
-                        <p className="mb-2 text-xs font-medium text-muted-foreground">
-                          OpenClaw Configuration
-                        </p>
-                        <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400">
-                          {configSnippet(k.key)}
-                        </pre>
-                        <button
-                          onClick={() =>
-                            copyToClipboard(configSnippet(k.key))
-                          }
-                          className="mt-2 text-xs text-violet-600 hover:text-violet-800"
-                        >
-                          Copy snippet
-                        </button>
-                        <span className="mx-2 text-gray-400">|</span>
-                        <a
-                          href={`/api/v1/skill-install/${k.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 text-xs text-blue-600 hover:text-blue-800"
-                        >
-                          Install in OpenClaw →
-                        </a>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+                    {/* Settings row */}
+                    {settingsId === k.id && (
+                      <tr key={`${k.id}-settings`} className="border-b border-border">
+                        <td colSpan={8} className="bg-muted px-4 py-3">
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">Key Settings</p>
+                          <div className="flex flex-wrap items-end gap-3">
+                            <div>
+                              <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
+                              <select
+                                value={editScope}
+                                onChange={(e) => setEditScope(e.target.value)}
+                                className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                              >
+                                {SCOPE_OPTIONS.map((s) => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs text-muted-foreground">Rate Limit (req/min)</label>
+                              <input
+                                type="number"
+                                value={editRateLimit}
+                                onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)}
+                                min={1}
+                                max={10000}
+                                className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                              />
+                            </div>
+                            <button
+                              onClick={() => saveSettings(k.id)}
+                              disabled={saving}
+                              className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                            >
+                              {saving ? "Saving..." : "Save"}
+                            </button>
+                            <button
+                              onClick={() => setSettingsId(null)}
+                              className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+
+                          {/* IP Events Section */}
+                          <div className="mt-4 border-t border-border pt-3">
+                            <div className="mb-2 flex items-center justify-between">
+                              <p className="text-xs font-medium text-muted-foreground">IP Bindings</p>
+                              {k.ipEvents?.length > 0 && (
+                                <button
+                                  onClick={async () => {
+                                    if (!window.confirm("Reset all IP bindings? The next request will bind a new IP.")) return;
+                                    await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" });
+                                    loadKeys();
+                                  }}
+                                  className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40"
+                                >
+                                  Reset All Bindings
+                                </button>
+                              )}
+                            </div>
+                            {!k.ipEvents || k.ipEvents.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">No IP bindings yet. The first API request will automatically bind its IP.</p>
+                            ) : (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-left text-muted-foreground">
+                                    <th className="pb-1 pr-4 font-medium">IP Address</th>
+                                    <th className="pb-1 pr-4 font-medium">Status</th>
+                                    <th className="pb-1 pr-4 font-medium">Attempts</th>
+                                    <th className="pb-1 pr-4 font-medium">First Seen</th>
+                                    <th className="pb-1 pr-4 font-medium">Last Seen</th>
+                                    <th className="pb-1 font-medium" />
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {k.ipEvents.map((evt) => (
+                                    <tr key={evt.id} className="border-t border-border">
+                                      <td className="py-1.5 pr-4 font-mono text-muted-foreground">{evt.ip}</td>
+                                      <td className="py-1.5 pr-4">
+                                        <span
+                                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                            evt.status === "allowed"
+                                              ? "bg-green-950/60 text-green-300"
+                                              : evt.status === "pending"
+                                                ? "bg-amber-950/60 text-amber-300"
+                                                : "bg-red-950/60 text-red-300"
+                                          }`}
+                                        >
+                                          {evt.status}
+                                        </span>
+                                      </td>
+                                      <td className="py-1.5 pr-4 text-muted-foreground">{evt.attempts}</td>
+                                      <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.firstSeen).toLocaleString()}</td>
+                                      <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.lastSeen).toLocaleString()}</td>
+                                      <td className="py-1.5 text-right">
+                                        <div className="flex items-center justify-end gap-1">
+                                          {evt.status !== "allowed" && (
+                                            <button
+                                              onClick={async () => {
+                                                await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
+                                                  method: "PATCH",
+                                                  headers: { "Content-Type": "application/json" },
+                                                  body: JSON.stringify({ status: "allowed" }),
+                                                });
+                                                loadKeys();
+                                              }}
+                                              className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50"
+                                            >
+                                              Allow
+                                            </button>
+                                          )}
+                                          {evt.status !== "blacklisted" && (
+                                            <button
+                                              onClick={async () => {
+                                                await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
+                                                  method: "PATCH",
+                                                  headers: { "Content-Type": "application/json" },
+                                                  body: JSON.stringify({ status: "blacklisted" }),
+                                                });
+                                                loadKeys();
+                                              }}
+                                              className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                                            >
+                                              Blacklist
+                                            </button>
+                                          )}
+                                          <button
+                                            onClick={async () => {
+                                              await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" });
+                                              loadKeys();
+                                            }}
+                                            className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0] hover:text-muted-foreground"
+                                          >
+                                            Remove
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    {showInstructions === k.id && (
+                      <tr key={`${k.id}-instructions`} className="border-b border-border">
+                        <td colSpan={8} className="bg-muted px-4 py-3">
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">
+                            OpenClaw Configuration
+                          </p>
+                          <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400">
+                            {configSnippet(k.key)}
+                          </pre>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(configSnippet(k.key))
+                            }
+                            className="mt-2 text-xs text-violet-600 hover:text-violet-800"
+                          >
+                            Copy snippet
+                          </button>
+                          <span className="mx-2 text-gray-400">|</span>
+                          <a
+                            href={`/api/v1/skill-install/${k.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                          >
+                            Install in OpenClaw →
+                          </a>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
     </div>

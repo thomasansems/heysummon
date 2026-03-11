@@ -107,9 +107,22 @@ export default function ChannelsPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (
-          <table className="w-full text-sm">
+          <>
+          <div className="md:hidden">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border-b border-border p-4 space-y-3 last:border-0 animate-pulse">
+                <div><div className="h-3 w-12 rounded bg-muted mb-1"></div><div className="h-4 w-28 rounded bg-muted"></div></div>
+                <div><div className="h-3 w-12 rounded bg-muted mb-1"></div><div className="h-4 w-20 rounded bg-muted"></div></div>
+                <div><div className="h-3 w-12 rounded bg-muted mb-1"></div><div className="h-5 w-24 rounded-full bg-muted"></div></div>
+                <div><div className="h-3 w-12 rounded bg-muted mb-1"></div><div className="h-4 w-24 rounded bg-muted"></div></div>
+                <div><div className="h-3 w-12 rounded bg-muted mb-1"></div><div className="h-4 w-20 rounded bg-muted"></div></div>
+                <div><div className="h-3 w-12 rounded bg-muted mb-1"></div><div className="h-4 w-32 rounded bg-muted"></div></div>
+              </div>
+            ))}
+          </div>
+          <table className="hidden md:table w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Name</th>
@@ -148,12 +161,72 @@ export default function ChannelsPage() {
               ))}
             </tbody>
           </table>
+          </>
         ) : channels.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             No channels yet. Create one to connect an external messaging platform.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <>
+          <div className="md:hidden">
+            {channels.map((ch) => (
+              <div key={ch.id} className="border-b border-border p-4 space-y-3 last:border-0">
+                <div><span className="text-xs text-muted-foreground">Name</span><div className="font-medium text-foreground">{ch.name}</div></div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Type</span>
+                  <div className="inline-flex items-center gap-1.5">
+                    <img src={typeIcons[ch.type] || "/icons/openclaw.svg"} alt={ch.type} className="h-5 w-5 rounded" />
+                    <span className="text-muted-foreground">{typeLabels[ch.type] || ch.type}</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Status</span>
+                  <div>
+                    <StatusBadge status={ch.status} />
+                    {ch.errorMessage && (
+                      <span className="ml-2 text-xs text-red-500" title={ch.errorMessage}>(!)</span>
+                    )}
+                  </div>
+                </div>
+                <div><span className="text-xs text-muted-foreground">Profile</span><div className="text-muted-foreground">{ch.profile.name}</div></div>
+                <div><span className="text-xs text-muted-foreground">Created</span><div className="text-muted-foreground">{new Date(ch.createdAt).toLocaleDateString()}</div></div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Actions</span>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/dashboard/channels/${ch.id}/settings`}
+                      className="text-xs text-violet-600 hover:text-violet-800"
+                    >
+                      Settings
+                    </Link>
+                    {ch.isActive ? (
+                      <button
+                        onClick={() => toggleChannel(ch.id, false)}
+                        className="text-xs text-red-500 hover:text-red-400"
+                      >
+                        Deactivate
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => toggleChannel(ch.id, true)}
+                        className="text-xs text-green-600 hover:text-green-800"
+                      >
+                        Activate
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteChannel(ch.id, ch.name)}
+                      className="text-base text-foreground hover:text-red-600"
+                      title="Delete"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <table className="hidden md:table w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Name</th>
@@ -229,6 +302,7 @@ export default function ChannelsPage() {
               ))}
             </tbody>
           </table>
+          </>
         )}
       </div>
     </div>

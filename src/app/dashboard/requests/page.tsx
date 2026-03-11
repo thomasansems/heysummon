@@ -204,69 +204,77 @@ export default function RequestsPage() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
-                <th className={thClass}>Ref Code</th>
-                <th className={thClass}>Status</th>
-                <th className={thClass}>Messages</th>
-                <th className={thClass}>Responses</th>
-                <th className={thClass}>Client</th>
-                <th className={thClass}>Created</th>
-                <th className={`${thClass} text-right`}>Delivery Time</th>
-                <th className={thClass}></th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="md:hidden">
               {[1, 2, 3, 4].map((i) => (
-                <tr key={i} className="border-b border-border animate-pulse">
-                  <td className="px-4 py-2.5">
+                <div key={i} className="border-b border-border p-4 space-y-3 last:border-0 animate-pulse">
+                  <div className="flex items-center justify-between">
                     <div className="h-4 w-16 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="h-5 w-32 rounded-full bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
+                    <div className="h-6 w-16 rounded bg-muted"></div>
+                  </div>
+                  <div className="h-5 w-32 rounded-full bg-muted"></div>
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="h-4 w-24 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
                     <div className="h-4 w-8 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
                     <div className="h-4 w-20 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5">
                     <div className="h-4 w-16 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="ml-auto h-4 w-16 rounded bg-muted"></div>
-                  </td>
-                  <td className="px-4 py-2.5"></td>
-                </tr>
+                  </div>
+                  <div className="h-4 w-16 rounded bg-muted"></div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+            <table className="hidden md:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className={thClass}>Ref Code</th>
+                  <th className={thClass}>Status</th>
+                  <th className={thClass}>Messages</th>
+                  <th className={thClass}>Responses</th>
+                  <th className={thClass}>Client</th>
+                  <th className={thClass}>Created</th>
+                  <th className={`${thClass} text-right`}>Delivery Time</th>
+                  <th className={thClass}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4].map((i) => (
+                  <tr key={i} className="border-b border-border animate-pulse">
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-16 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-5 w-32 rounded-full bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-24 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-8 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-20 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-4 w-16 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="ml-auto h-4 w-16 rounded bg-muted"></div>
+                    </td>
+                    <td className="px-4 py-2.5"></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             No requests found
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
-                <th className={thClass}>Ref Code</th>
-                <th className={thClass}>Status</th>
-                <th className={thClass}>Messages</th>
-                <th className={thClass}>Responses</th>
-                <th className={thClass}>Client</th>
-                <th className={thClass}>Created</th>
-                <th className={`${thClass} text-right`}>Delivery Time</th>
-                <th className={thClass}></th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="md:hidden">
               {filtered.map((req) => {
                 const display = getDisplayStatus(req);
                 const canCancel =
@@ -281,64 +289,10 @@ export default function RequestsPage() {
                 const isLoading = actionLoading === req.id;
 
                 return (
-                  <tr
-                    key={req.id}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="px-4 py-2.5">
+                  <div key={req.id} className="border-b border-border p-4 space-y-3 last:border-0">
+                    <div className="flex items-center justify-between">
                       <CopyableRefCode code={req.refCode} />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
-                            statusStyles[display] || ""
-                          }`}
-                          title={
-                            display === "delivered" && req.deliveredAt
-                              ? `Delivered: ${new Date(req.deliveredAt).toLocaleString()}`
-                              : undefined
-                          }
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              dotStyles[display] || ""
-                            }`}
-                          />
-                          {statusLabels[display] || req.status}
-                        </span>
-                        {req.requiresApproval && !req.approvalDecision && (
-                          <span className="inline-flex items-center rounded-full bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-300">
-                            Approval Required
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {req.messageCount > 0
-                        ? `${req.messageCount} berichten`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {req.responseCount > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-green-600 font-medium">
-                          {req.responseCount}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {req.apiKey.name || "Unnamed"}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {timeAgo(req.createdAt)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-muted-foreground">
-                      {deliveryTime(req.createdAt, req.deliveredAt)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center gap-1">
                         {canApprove && (
                           <>
                             <button
@@ -376,12 +330,200 @@ export default function RequestsPage() {
                           </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Status</span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            statusStyles[display] || ""
+                          }`}
+                          title={
+                            display === "delivered" && req.deliveredAt
+                              ? `Delivered: ${new Date(req.deliveredAt).toLocaleString()}`
+                              : undefined
+                          }
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              dotStyles[display] || ""
+                            }`}
+                          />
+                          {statusLabels[display] || req.status}
+                        </span>
+                        {req.requiresApproval && !req.approvalDecision && (
+                          <span className="inline-flex items-center rounded-full bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-300">
+                            Approval Required
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-xs text-muted-foreground">Messages</span>
+                        <div className="text-muted-foreground">
+                          {req.messageCount > 0 ? `${req.messageCount} berichten` : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Responses</span>
+                        <div>
+                          {req.responseCount > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+                              {req.responseCount}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Client</span>
+                        <div className="text-muted-foreground">{req.apiKey.name || "Unnamed"}</div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Created</span>
+                        <div className="text-muted-foreground">{timeAgo(req.createdAt)}</div>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Delivery Time</span>
+                      <div className="text-muted-foreground">{deliveryTime(req.createdAt, req.deliveredAt)}</div>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+            <table className="hidden md:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className={thClass}>Ref Code</th>
+                  <th className={thClass}>Status</th>
+                  <th className={thClass}>Messages</th>
+                  <th className={thClass}>Responses</th>
+                  <th className={thClass}>Client</th>
+                  <th className={thClass}>Created</th>
+                  <th className={`${thClass} text-right`}>Delivery Time</th>
+                  <th className={thClass}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((req) => {
+                  const display = getDisplayStatus(req);
+                  const canCancel =
+                    req.status === "pending" || req.status === "active";
+                  const canResend = ["responded", "failed", "expired"].includes(
+                    req.status
+                  );
+                  const canApprove =
+                    req.requiresApproval &&
+                    !req.approvalDecision &&
+                    (req.status === "pending" || req.status === "active");
+                  const isLoading = actionLoading === req.id;
+
+                  return (
+                    <tr
+                      key={req.id}
+                      className="border-b border-border last:border-0"
+                    >
+                      <td className="px-4 py-2.5">
+                        <CopyableRefCode code={req.refCode} />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                              statusStyles[display] || ""
+                            }`}
+                            title={
+                              display === "delivered" && req.deliveredAt
+                                ? `Delivered: ${new Date(req.deliveredAt).toLocaleString()}`
+                                : undefined
+                            }
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                dotStyles[display] || ""
+                              }`}
+                            />
+                            {statusLabels[display] || req.status}
+                          </span>
+                          {req.requiresApproval && !req.approvalDecision && (
+                            <span className="inline-flex items-center rounded-full bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-300">
+                              Approval Required
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {req.messageCount > 0
+                          ? `${req.messageCount} berichten`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {req.responseCount > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+                            {req.responseCount}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {req.apiKey.name || "Unnamed"}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {timeAgo(req.createdAt)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-muted-foreground">
+                        {deliveryTime(req.createdAt, req.deliveredAt)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {canApprove && (
+                            <>
+                              <button
+                                onClick={() => handleApproval(req.id, "approved")}
+                                disabled={isLoading}
+                                className="rounded px-2 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleApproval(req.id, "denied")}
+                                disabled={isLoading}
+                                className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40 transition-colors disabled:opacity-50"
+                              >
+                                Deny
+                              </button>
+                            </>
+                          )}
+                          {canCancel && !canApprove && (
+                            <button
+                              onClick={() => handleCancel(req.id)}
+                              disabled={isLoading}
+                              className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40 transition-colors disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                          {canResend && (
+                            <button
+                              onClick={() => handleResend(req.id)}
+                              disabled={isLoading}
+                              className="rounded px-2 py-1 text-xs font-medium text-violet-400 hover:bg-violet-950/40 transition-colors disabled:opacity-50"
+                            >
+                              Resend
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
     </div>

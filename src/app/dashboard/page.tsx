@@ -115,13 +115,52 @@ export default function DashboardPage() {
       {/* Open Requests */}
       <div className="mb-8">
         <h2 className="mb-3 text-sm font-medium text-foreground">Open Requests</h2>
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           {stats.openRequests.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
               No open requests
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <>
+              {/* Mobile card layout */}
+              <div className="md:hidden">
+                {stats.openRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="border-b border-border p-4 space-y-2 last:border-0 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <CopyableRefCode code={req.refCode} />
+                      <span className="text-muted-foreground text-sm">
+                        {timeAgo(req.createdAt)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
+                        Awaiting Response
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-xs text-muted-foreground">Messages</span>
+                        <div className="text-muted-foreground">
+                          {req.messageCount > 0 ? `${req.messageCount} berichten` : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Client</span>
+                        <div className="text-muted-foreground">
+                          {req.apiKey.name || "Unnamed"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table layout */}
+              <table className="hidden md:table w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Ref Code</th>
@@ -161,6 +200,7 @@ export default function DashboardPage() {
                 ))}
               </tbody>
             </table>
+            </>
           )}
         </div>
       </div>

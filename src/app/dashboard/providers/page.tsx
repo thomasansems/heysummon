@@ -191,9 +191,25 @@ export default function ProvidersPage() {
         </div>
       )}
 
-      <div className="overflow-visible rounded-lg border border-border bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (
-          <table className="w-full text-sm">
+          <>
+          {/* Mobile loading skeleton */}
+          <div className="md:hidden">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border-b border-border p-4 space-y-3 animate-pulse">
+                <div className="h-4 w-24 rounded bg-muted" />
+                <div className="h-4 w-36 rounded bg-muted" />
+                <div className="flex gap-4">
+                  <div className="h-4 w-8 rounded bg-muted" />
+                  <div className="h-5 w-16 rounded-full bg-muted" />
+                </div>
+                <div className="h-4 w-20 rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+          {/* Desktop loading skeleton */}
+          <table className="hidden md:table w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Name</th>
@@ -217,12 +233,290 @@ export default function ProvidersPage() {
               ))}
             </tbody>
           </table>
+          </>
         ) : providers.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             No providers yet. Create one to get started.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <>
+          {/* Mobile card view */}
+          <div className="md:hidden">
+            {providers.map((p) => (
+              <Fragment key={p.id}>
+                <div className="border-b border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium text-foreground">
+                      {editingId === p.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") renameProvider(p.id);
+                              if (e.key === "Escape") setEditingId(null);
+                            }}
+                            className="w-32 rounded border border-border px-2 py-0.5 text-sm outline-none focus:border-ring"
+                            autoFocus
+                          />
+                          <button onClick={() => renameProvider(p.id)} className="text-xs text-green-600">✓</button>
+                          <button onClick={() => setEditingId(null)} className="text-xs text-muted-foreground">✕</button>
+                        </div>
+                      ) : (
+                        <span
+                          className="cursor-pointer hover:underline"
+                          onClick={() => { setEditingId(p.id); setEditName(p.name); }}
+                          title="Click to rename"
+                        >
+                          {p.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative inline-block">
+                      <button
+                        onClick={() => setOpenMenuId(openMenuId === p.id ? null : p.id)}
+                        className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        ⋯
+                      </button>
+                      {openMenuId === p.id && (
+                        <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
+                          <button
+                            onClick={() => { openSettings(p); setOpenMenuId(null); }}
+                            className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                          >
+                            Settings
+                          </button>
+                          {p.isActive ? (
+                            <button
+                              onClick={() => { toggleProvider(p.id, false); setOpenMenuId(null); }}
+                              className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-muted hover:text-red-400"
+                            >
+                              Deactivate
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { toggleProvider(p.id, true); setOpenMenuId(null); }}
+                              className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800"
+                            >
+                              Activate
+                            </button>
+                          )}
+                          <div className="my-1 border-t border-border" />
+                          <button
+                            onClick={() => { deleteProvider(p.id, p.name); setOpenMenuId(null); }}
+                            className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-muted-foreground">User Key</span>
+                    <div className="flex items-center gap-2">
+                      <code className="font-mono text-xs text-muted-foreground break-all">{masked(p.key)}</code>
+                      <button
+                        onClick={() => copyKey(p.key)}
+                        className="shrink-0 text-xs text-violet-600 hover:text-violet-800"
+                      >
+                        {copied === p.key ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <span className="text-xs text-muted-foreground">Clients</span>
+                      <div className="text-sm text-muted-foreground">{p._count.apiKeys}</div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">IP Status</span>
+                      <div>
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            !p.isActive
+                              ? "bg-red-950/60 text-red-300"
+                              : p.ipEvents?.some((e) => e.status === "allowed")
+                                ? "bg-green-950/60 text-green-300"
+                                : "bg-orange-950/60 text-orange-300"
+                          }`}
+                        >
+                          {!p.isActive
+                            ? "Inactive"
+                            : p.ipEvents?.some((e) => e.status === "allowed")
+                              ? "Bound"
+                              : "No binding yet"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-muted-foreground">Created</span>
+                    <div className="text-sm text-muted-foreground">{new Date(p.createdAt).toLocaleDateString()}</div>
+                  </div>
+                </div>
+
+                {/* Settings inline panel (mobile) */}
+                {settingsId === p.id && (
+                  <div className="border-b border-border bg-muted px-4 py-3">
+                    {/* Timezone Section */}
+                    <div className="mb-4">
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">Timezone</p>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="text"
+                          placeholder="Filter timezones…"
+                          value={timezoneFilter}
+                          onChange={(e) => setTimezoneFilter(e.target.value)}
+                          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                        />
+                        <select
+                          value={editTimezone}
+                          onChange={(e) => setEditTimezone(e.target.value)}
+                          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                        >
+                          {(timezoneFilter
+                            ? timezones.filter((tz) =>
+                                tz.toLowerCase().includes(timezoneFilter.toLowerCase())
+                              )
+                            : timezones
+                          ).map((tz) => (
+                            <option key={tz} value={tz}>
+                              {tz}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => saveProviderSettings(p.id)}
+                          disabled={saving}
+                          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                        >
+                          {saving ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* IP Security Section */}
+                    <div className="border-t border-border pt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-medium text-muted-foreground">IP Security</p>
+                        {p.ipEvents?.length > 0 && (
+                          <button
+                            onClick={async () => {
+                              if (!window.confirm("Reset all IP bindings for this provider? The next request will bind a new IP.")) return;
+                              await Promise.all(
+                                p.ipEvents.map((evt) =>
+                                  fetch(`/api/providers/ip-events/${evt.id}`, { method: "DELETE" })
+                                )
+                              );
+                              loadProviders();
+                            }}
+                            className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40"
+                          >
+                            Reset All Bindings
+                          </button>
+                        )}
+                      </div>
+
+                      {!p.ipEvents || p.ipEvents.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          No IP bindings yet. The first API request from this provider will automatically bind its IP.
+                        </p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-left text-muted-foreground">
+                                <th className="pb-1 pr-4 font-medium">IP Address</th>
+                                <th className="pb-1 pr-4 font-medium">Status</th>
+                                <th className="pb-1 pr-4 font-medium">Attempts</th>
+                                <th className="pb-1 pr-4 font-medium">First Seen</th>
+                                <th className="pb-1 pr-4 font-medium">Last Seen</th>
+                                <th className="pb-1 font-medium" />
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {p.ipEvents.map((evt) => (
+                                <tr key={evt.id} className="border-t border-border">
+                                  <td className="py-1.5 pr-4 font-mono text-muted-foreground">{evt.ip}</td>
+                                  <td className="py-1.5 pr-4">
+                                    <span
+                                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                        evt.status === "allowed"
+                                          ? "bg-green-950/60 text-green-300"
+                                          : evt.status === "pending"
+                                            ? "bg-amber-950/60 text-amber-300"
+                                            : "bg-red-950/60 text-red-300"
+                                      }`}
+                                    >
+                                      {evt.status}
+                                    </span>
+                                  </td>
+                                  <td className="py-1.5 pr-4 text-muted-foreground">{evt.attempts}</td>
+                                  <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.firstSeen).toLocaleString()}</td>
+                                  <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.lastSeen).toLocaleString()}</td>
+                                  <td className="py-1.5 text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                      {evt.status !== "allowed" && (
+                                        <button
+                                          onClick={async () => {
+                                            await fetch(`/api/providers/ip-events/${evt.id}`, {
+                                              method: "PATCH",
+                                              headers: { "Content-Type": "application/json" },
+                                              body: JSON.stringify({ status: "allowed" }),
+                                            });
+                                            loadProviders();
+                                          }}
+                                          className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50"
+                                        >
+                                          Allow
+                                        </button>
+                                      )}
+                                      {evt.status !== "blacklisted" && (
+                                        <button
+                                          onClick={async () => {
+                                            await fetch(`/api/providers/ip-events/${evt.id}`, {
+                                              method: "PATCH",
+                                              headers: { "Content-Type": "application/json" },
+                                              body: JSON.stringify({ status: "blacklisted" }),
+                                            });
+                                            loadProviders();
+                                          }}
+                                          className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
+                                        >
+                                          Blacklist
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={async () => {
+                                          await fetch(`/api/providers/ip-events/${evt.id}`, { method: "DELETE" });
+                                          loadProviders();
+                                        }}
+                                        className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0] hover:text-muted-foreground"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </Fragment>
+            ))}
+          </div>
+
+          {/* Desktop table view */}
+          <table className="hidden md:table w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Name</th>
@@ -499,6 +793,7 @@ export default function ProvidersPage() {
               ))}
             </tbody>
           </table>
+          </>
         )}
       </div>
     </div>

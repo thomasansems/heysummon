@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --port 3425",
     "db:studio": "prisma studio",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",

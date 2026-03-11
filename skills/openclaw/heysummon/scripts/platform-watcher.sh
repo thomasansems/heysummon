@@ -63,8 +63,22 @@ send_notification() {
       -d "$PAYLOAD" \
       >/dev/null 2>&1
 
-    # Note: agent wake is handled by the heysummon-responder workspace hook
-    # which fires on message:sent and calls /hooks/agent automatically.
+    # Wake the agent via sessions_send → directly into Sandy's active session
+    if [ -n "$RESPONSE_TEXT" ]; then
+      SESSION_KEY="${HEYSUMMON_SESSION_KEY:-agent:tertiary:telegram:group:-5080163376}"
+      curl -s "http://127.0.0.1:${OPENCLAW_PORT}/tools/invoke" \
+        -H "Authorization: Bearer ${OPENCLAW_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d "$(node -e "console.log(JSON.stringify({
+          tool: 'sessions_send',
+          args: {
+            sessionKey: process.argv[2],
+            message: process.argv[1],
+            timeoutSeconds: 0
+          }
+        }))" "$WAKE_TEXT" "$SESSION_KEY" 2>/dev/null)" \
+        >/dev/null 2>&1
+    fi
   fi
 }
 

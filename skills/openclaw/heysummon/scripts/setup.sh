@@ -34,6 +34,41 @@ fi
 # Ensure active-requests directory exists
 mkdir -p "${HEYSUMMON_REQUESTS_DIR:-$SKILL_DIR/.requests}"
 
+# === Install workspace hook ===
+# Auto-install the heysummon-responder hook into the agent's workspace hooks dir
+HOOK_SRC="$SKILL_DIR/hooks/heysummon-responder"
+if [ -d "$HOOK_SRC" ]; then
+  # Load .env to get HEYSUMMON_AGENT_ID
+  [ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
+  AGENT_ID="${HEYSUMMON_AGENT_ID:-tertiary}"
+
+  # Resolve workspace dir from openclaw.json
+  OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
+  WORKSPACE_DIR=""
+  if [ -f "$OPENCLAW_CONFIG" ]; then
+    WORKSPACE_DIR=$(node -e "
+      try {
+        const cfg = JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'));
+        const agent = (cfg.agents?.list || []).find(a => a.id === process.argv[2]);
+        const ws = agent?.workspace || cfg.agents?.defaults?.workspace || '';
+        console.log(ws);
+      } catch(e) { console.log(''); }
+    " "$OPENCLAW_CONFIG" "$AGENT_ID" 2>/dev/null)
+  fi
+
+  # Install to managed hooks dir (~/.openclaw/hooks/) — shared across all agents
+  MANAGED_HOOKS="$HOME/.openclaw/hooks"
+  mkdir -p "$MANAGED_HOOKS"
+  HOOK_DEST="$MANAGED_HOOKS/heysummon-responder"
+  rm -rf "$HOOK_DEST"
+  cp -r "$HOOK_SRC" "$HOOK_DEST"
+  echo "🦞 Hook installed: $HOOK_DEST"
+  echo "⚠️  Restart the OpenClaw gateway to activate the hook:"
+  echo "   openclaw gateway restart"
+else
+  echo "⚠️  Hook source not found at $HOOK_SRC"
+fi
+
 if command -v pm2 &>/dev/null; then
   pm2 delete "$NAME" 2>/dev/null
   pm2 start "$WATCHER" --name "$NAME" --interpreter bash

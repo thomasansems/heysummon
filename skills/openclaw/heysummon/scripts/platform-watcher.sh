@@ -167,9 +167,10 @@ process_event() {
   fi
 
   if [ -n "$MSG" ]; then
-    # Deduplication
+    # Deduplication — include "from" so consumer send ≠ provider response
     EVENT_TYPE=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).type||'?')}catch(e){console.log('?')}})" 2>/dev/null)
-    DEDUP_KEY="${EVENT_TYPE}:${EVENT_REQ_ID}"
+    EVENT_FROM=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).from||'unknown')}catch(e){console.log('unknown')}})" 2>/dev/null)
+    DEDUP_KEY="${EVENT_TYPE}:${EVENT_FROM}:${EVENT_REQ_ID}"
     if grep -qF "$DEDUP_KEY" "$SEEN_FILE" 2>/dev/null; then
       echo "⏭️ Skip duplicate: $DEDUP_KEY"
     else

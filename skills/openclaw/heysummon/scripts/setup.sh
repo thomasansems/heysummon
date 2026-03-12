@@ -34,6 +34,71 @@ fi
 # Ensure active-requests directory exists
 mkdir -p "${HEYSUMMON_REQUESTS_DIR:-$SKILL_DIR/.requests}"
 
+# === Generate & register hooks token ===
+# A unique token is generated once at install time. It is stored in .env and
+# registered in ~/.openclaw/openclaw.json so the OpenClaw gateway accepts it.
+[ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
+
+HOOKS_TOKEN="${HEYSUMMON_HOOKS_TOKEN:-}"
+if [ -z "$HOOKS_TOKEN" ]; then
+  HOOKS_TOKEN=$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))" 2>/dev/null)
+  echo "🔑 Generated new hooks token: ${HOOKS_TOKEN:0:8}..."
+  # Persist to .env
+  if grep -q "HEYSUMMON_HOOKS_TOKEN" "$SKILL_DIR/.env" 2>/dev/null; then
+    sed -i "s|^HEYSUMMON_HOOKS_TOKEN=.*|HEYSUMMON_HOOKS_TOKEN=$HOOKS_TOKEN|" "$SKILL_DIR/.env"
+  else
+    echo "HEYSUMMON_HOOKS_TOKEN=$HOOKS_TOKEN" >> "$SKILL_DIR/.env"
+  fi
+fi
+
+# Auto-detect session key from OpenClaw config if not set
+OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
+if [ -f "$OPENCLAW_CONFIG" ]; then
+  # Detect the agent's primary session key from active sessions
+  DETECTED_SESSION_KEY=$(node -e "
+    try {
+      const cfg = JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'));
+      const agentId = process.env.HEYSUMMON_AGENT_ID || 'tertiary';
+      // Build expected session key pattern
+      const agent = (cfg.agents?.list||[]).find(a=>a.id===agentId);
+      console.log(cfg.hooks?.defaultSessionKey || '');
+    } catch(e) { console.log(''); }
+  " "$OPENCLAW_CONFIG" 2>/dev/null)
+
+  # Update or create hooks config in openclaw.json
+  node -e "
+    const fs = require('fs');
+    const path = process.argv[1];
+    const token = process.argv[2];
+    const sessionKey = process.argv[3] || process.env.HEYSUMMON_SESSION_KEY || '';
+    const agentId = process.env.HEYSUMMON_AGENT_ID || 'tertiary';
+
+    try {
+      const cfg = JSON.parse(fs.readFileSync(path, 'utf8'));
+      if (!cfg.hooks) cfg.hooks = {};
+      cfg.hooks.enabled = true;
+      cfg.hooks.token = token;
+      if (sessionKey) cfg.hooks.defaultSessionKey = sessionKey;
+      cfg.hooks.allowRequestSessionKey = true;
+      if (sessionKey) {
+        // Allow only this agent's session prefix
+        const prefix = sessionKey.split(':').slice(0,2).join(':');
+        cfg.hooks.allowedSessionKeyPrefixes = [prefix];
+      }
+      if (!cfg.hooks.allowedAgentIds) cfg.hooks.allowedAgentIds = [];
+      if (!cfg.hooks.allowedAgentIds.includes(agentId)) {
+        cfg.hooks.allowedAgentIds.push(agentId);
+      }
+      fs.writeFileSync(path, JSON.stringify(cfg, null, 2));
+      console.log('✅ openclaw.json hooks config updated');
+    } catch(e) {
+      console.error('⚠️  Could not update openclaw.json:', e.message);
+    }
+  " "$OPENCLAW_CONFIG" "$HOOKS_TOKEN" "$DETECTED_SESSION_KEY" 2>/dev/null
+
+  echo "⚠️  Run: openclaw gateway restart  (to activate new hooks token)"
+fi
+
 # === Install workspace hook ===
 # Auto-install the heysummon-responder hook into the agent's workspace hooks dir
 HOOK_SRC="$SKILL_DIR/hooks/heysummon-responder"

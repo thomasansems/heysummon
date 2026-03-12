@@ -51,45 +51,52 @@ send_notification() {
       -d "{\"text\":\"$WAKE_TEXT\",\"mode\":\"now\",\"agentId\":\"secondary\"}" \
       >/dev/null 2>&1
   else
-    # 1. Send Telegram notification
-    local PAYLOAD
-    PAYLOAD=$(node -e "console.log(JSON.stringify({
-      tool:'message',
-      args:{action:'send',message:process.argv[1],target:process.argv[2]}
-    }))" "$MSG" "$NOTIFY_TARGET" 2>/dev/null)
-    curl -s "http://127.0.0.1:${OPENCLAW_PORT}/tools/invoke" \
-      -H "Authorization: Bearer ${OPENCLAW_TOKEN}" \
-      -H "Content-Type: application/json" \
-      -d "$PAYLOAD" \
-      >/dev/null 2>&1
-
-    # Wake the agent via /hooks/agent → runs in Sandy's existing session with full history
     if [ -n "$RESPONSE_TEXT" ]; then
-      SESSION_KEY="${HEYSUMMON_SESSION_KEY:-agent:tertiary:telegram:group:-5080163376}"
+      # Provider response: wake agent via /hooks/agent (no raw Telegram notification)
+      # Sandy receives the response in her existing session with full context
+      SESSION_KEY="${HEYSUMMON_SESSION_KEY}"
       AGENT_ID="${HEYSUMMON_AGENT_ID:-tertiary}"
-      NOTIFY_CHAT="${HEYSUMMON_NOTIFY_TARGET:--5080163376}"
-      HOOKS_TOKEN=$(node -e "try{const p=require('path').join(require('os').homedir(),'.openclaw/openclaw.json');console.log(JSON.parse(require('fs').readFileSync(p,'utf8')).hooks?.token||'')}catch(e){}" 2>/dev/null)
+      NOTIFY_CHAT="${HEYSUMMON_NOTIFY_TARGET}"
+      HOOKS_TOKEN="${HEYSUMMON_HOOKS_TOKEN}"
+      # Fallback: read from openclaw.json if not set in env
+      if [ -z "$HOOKS_TOKEN" ]; then
+        HOOKS_TOKEN=$(node -e "try{const p=require('path').join(require('os').homedir(),'.openclaw/openclaw.json');console.log(JSON.parse(require('fs').readFileSync(p,'utf8')).hooks?.token||'')}catch(e){}" 2>/dev/null)
+      fi
 
       HOOK_PAYLOAD=$(node -e "
         const msg = process.argv[1];
         const sessionKey = process.argv[2];
         const agentId = process.argv[3];
         const to = process.argv[4];
-        console.log(JSON.stringify({
+        const payload = {
           message: msg,
           agentId: agentId,
-          sessionKey: sessionKey,
           deliver: true,
           channel: 'telegram',
           to: to,
           wakeMode: 'now'
-        }));
+        };
+        // Only add sessionKey if explicitly configured
+        if (sessionKey) payload.sessionKey = sessionKey;
+        console.log(JSON.stringify(payload));
       " "$WAKE_TEXT" "$SESSION_KEY" "$AGENT_ID" "$NOTIFY_CHAT" 2>/dev/null)
 
       curl -s -X POST "http://127.0.0.1:${OPENCLAW_PORT}/hooks/agent" \
         -H "Authorization: Bearer ${HOOKS_TOKEN}" \
         -H "Content-Type: application/json" \
         -d "$HOOK_PAYLOAD" \
+        >/dev/null 2>&1
+    else
+      # Non-response events (key exchange, closed, etc.): send plain Telegram notification
+      local PAYLOAD
+      PAYLOAD=$(node -e "console.log(JSON.stringify({
+        tool:'message',
+        args:{action:'send',message:process.argv[1],target:process.argv[2]}
+      }))" "$MSG" "$NOTIFY_TARGET" 2>/dev/null)
+      curl -s "http://127.0.0.1:${OPENCLAW_PORT}/tools/invoke" \
+        -H "Authorization: Bearer ${OPENCLAW_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d "$PAYLOAD" \
         >/dev/null 2>&1
     fi
   fi

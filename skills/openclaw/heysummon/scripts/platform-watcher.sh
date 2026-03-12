@@ -63,20 +63,33 @@ send_notification() {
       -d "$PAYLOAD" \
       >/dev/null 2>&1
 
-    # Wake the agent via sessions_send → directly into Sandy's active session
+    # Wake the agent via /hooks/agent → runs in Sandy's existing session with full history
     if [ -n "$RESPONSE_TEXT" ]; then
       SESSION_KEY="${HEYSUMMON_SESSION_KEY:-agent:tertiary:telegram:group:-5080163376}"
-      curl -s "http://127.0.0.1:${OPENCLAW_PORT}/tools/invoke" \
-        -H "Authorization: Bearer ${OPENCLAW_TOKEN}" \
+      AGENT_ID="${HEYSUMMON_AGENT_ID:-tertiary}"
+      NOTIFY_CHAT="${HEYSUMMON_NOTIFY_TARGET:--5080163376}"
+      HOOKS_TOKEN=$(node -e "try{const p=require('path').join(require('os').homedir(),'.openclaw/openclaw.json');console.log(JSON.parse(require('fs').readFileSync(p,'utf8')).hooks?.token||'')}catch(e){}" 2>/dev/null)
+
+      HOOK_PAYLOAD=$(node -e "
+        const msg = process.argv[1];
+        const sessionKey = process.argv[2];
+        const agentId = process.argv[3];
+        const to = process.argv[4];
+        console.log(JSON.stringify({
+          message: msg,
+          agentId: agentId,
+          sessionKey: sessionKey,
+          deliver: true,
+          channel: 'telegram',
+          to: to,
+          wakeMode: 'now'
+        }));
+      " "$WAKE_TEXT" "$SESSION_KEY" "$AGENT_ID" "$NOTIFY_CHAT" 2>/dev/null)
+
+      curl -s -X POST "http://127.0.0.1:${OPENCLAW_PORT}/hooks/agent" \
+        -H "Authorization: Bearer ${HOOKS_TOKEN}" \
         -H "Content-Type: application/json" \
-        -d "$(node -e "console.log(JSON.stringify({
-          tool: 'sessions_send',
-          args: {
-            sessionKey: process.argv[2],
-            message: process.argv[1],
-            timeoutSeconds: 0
-          }
-        }))" "$WAKE_TEXT" "$SESSION_KEY" 2>/dev/null)" \
+        -d "$HOOK_PAYLOAD" \
         >/dev/null 2>&1
     fi
   fi
@@ -164,8 +177,22 @@ process_event() {
 
       # Build a rich wake message for the agent to act on
       WAKE_TEXT="HeySummon antwoord ontvangen. $MSG"
-      if [ -n "$RESPONSE_TEXT" ]; then
-        WAKE_TEXT="HeySummon provider heeft geantwoord op verzoek $FILE_REF: \"$RESPONSE_TEXT\". Verwerk dit antwoord en ga verder met de bijbehorende actie."
+      if [ -n "$RESPONSE_TEXT" ] && [ -n "$EVENT_REQ_ID" ]; then
+        # Fetch original question from HeySummon (server decrypts it)
+        ORIGINAL_QUESTION=$(curl -s "${BASE_URL}/api/v1/requests/by-ref/${FILE_REF:-$EVENT_REQ_ID}" \
+          -H "x-api-key: ${API_KEY}" 2>/dev/null | \
+          node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.question||'')}catch(e){console.log('')}})" 2>/dev/null)
+
+        WAKE_TEXT=$(node -e "
+          const ref = process.argv[1];
+          const q = process.argv[2];
+          const ans = process.argv[3];
+          let msg = 'HeySummon antwoord ontvangen voor ' + ref + '.';
+          if (q) msg += '\n\nJouw oorspronkelijke vraag was:\n' + q;
+          msg += '\n\nAntwoord van de provider: ' + ans;
+          msg += '\n\nGa nu verder op basis van dit antwoord.';
+          console.log(msg);
+        " "$FILE_REF" "$ORIGINAL_QUESTION" "$RESPONSE_TEXT" 2>/dev/null)
       fi
 
       send_notification "$MSG" "$WAKE_TEXT"

@@ -171,7 +171,23 @@ process_event() {
     EVENT_TYPE=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).type||'?')}catch(e){console.log('?')}})" 2>/dev/null)
     EVENT_FROM=$(echo "$data" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).from||'unknown')}catch(e){console.log('unknown')}})" 2>/dev/null)
     DEDUP_KEY="${EVENT_TYPE}:${EVENT_FROM}:${EVENT_REQ_ID}"
-    if grep -qF "$DEDUP_KEY" "$SEEN_FILE" 2>/dev/null; then
+
+    # Age check: skip provider responses older than 30 minutes (avoids re-processing old events after restart)
+    IS_STALE=$(echo "$data" | node -e "
+      let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
+        try {
+          const j=JSON.parse(d);
+          const ts=j.createdAt||j.updatedAt||j.timestamp||null;
+          if(!ts) { console.log(''); return; }
+          const age=(Date.now()-new Date(ts).getTime())/1000/60; // minutes
+          console.log(age>30?'yes':'');
+        } catch(e){ console.log(''); }
+      });
+    " 2>/dev/null)
+    if [ "$IS_STALE" = "yes" ]; then
+      echo "$DEDUP_KEY" >> "$SEEN_FILE"
+      echo "⏭️ Skip stale (>30min): $DEDUP_KEY"
+    elif grep -qF "$DEDUP_KEY" "$SEEN_FILE" 2>/dev/null; then
       echo "⏭️ Skip duplicate: $DEDUP_KEY"
     else
       echo "$DEDUP_KEY" >> "$SEEN_FILE"

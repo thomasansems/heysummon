@@ -72,19 +72,18 @@ send_notification() {
 
       HOOK_PAYLOAD=$(node -e "
         const msg = process.argv[1];
-        const sessionKey = process.argv[2];
-        const agentId = process.argv[3];
-        const to = process.argv[4];
+        const agentId = process.argv[2];
+        const to = process.argv[3];
+        // No sessionKey — OpenClaw uses hooks.defaultSessionKey from config
         console.log(JSON.stringify({
           message: msg,
           agentId: agentId,
-          sessionKey: sessionKey,
           deliver: true,
           channel: 'telegram',
           to: to,
           wakeMode: 'now'
         }));
-      " "$WAKE_TEXT" "$SESSION_KEY" "$AGENT_ID" "$NOTIFY_CHAT" 2>/dev/null)
+      " "$WAKE_TEXT" "$AGENT_ID" "$NOTIFY_CHAT" 2>/dev/null)
 
       curl -s -X POST "http://127.0.0.1:${OPENCLAW_PORT}/hooks/agent" \
         -H "Authorization: Bearer ${HOOKS_TOKEN}" \

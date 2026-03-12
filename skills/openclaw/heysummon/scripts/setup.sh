@@ -78,6 +78,8 @@ if [ -f "$OPENCLAW_CONFIG" ]; then
       if (!cfg.hooks) cfg.hooks = {};
       cfg.hooks.enabled = true;
       cfg.hooks.token = token;
+      cfg.hooks.path = '/hooks';
+      cfg.hooks.mappings = [{ wakeMode: 'now' }];
       if (sessionKey) cfg.hooks.defaultSessionKey = sessionKey;
       cfg.hooks.allowRequestSessionKey = true;
       if (sessionKey) {

@@ -46,6 +46,42 @@ const channelLabel = (channel: string | null, sub: string | null) => {
 type WizardChannel = "openclaw" | "claudecode" | null;
 type WizardSubChannel = "telegram" | "whatsapp" | null;
 
+const CLIENT_CHANNELS = [
+  {
+    id: "openclaw" as const,
+    label: "OpenClaw",
+    icon: "/icons/openclaw.svg",
+    description: "AI agent via Telegram or WhatsApp",
+    disabled: false,
+  },
+  {
+    id: "claudecode" as const,
+    label: "Claude Code",
+    icon: "/icons/claudecode.svg",
+    description: "MCP server — inline in editor",
+    disabled: false,
+  },
+  {
+    id: null,
+    label: "Signal",
+    icon: "/icons/signal.svg",
+    description: "Coming soon",
+    disabled: true,
+  },
+  {
+    id: null,
+    label: "Slack",
+    icon: "/icons/slack.svg",
+    description: "Coming soon",
+    disabled: true,
+  },
+];
+
+const OPENCLAW_PLATFORMS = [
+  { id: "telegram" as const, label: "Telegram", icon: "/icons/telegram.svg" },
+  { id: "whatsapp" as const, label: "WhatsApp", icon: "/icons/whatsapp.svg" },
+];
+
 type WizardStep = 0 | 1 | 2 | 3; // 0=closed, 1=channel, 2=details, 3=done
 
 const SCOPE_OPTIONS = ["full", "read", "write", "admin"] as const;
@@ -294,63 +330,52 @@ export default function ClientsPage() {
                 Which channel does this client use?
               </p>
 
-              <div className="mb-6 grid grid-cols-2 gap-3">
-                {/* OpenClaw */}
-                <button
-                  onClick={() => { setWizardChannel("openclaw"); setWizardSubChannel(null); }}
-                  className={`rounded-lg border p-4 text-left transition-colors ${
-                    wizardChannel === "openclaw"
-                      ? "border-violet-600 bg-violet-950/30"
-                      : "border-border hover:border-muted-foreground"
-                  }`}
-                >
-                  <div className="mb-1 text-2xl">🦑</div>
-                  <div className="text-sm font-medium text-foreground">OpenClaw</div>
-                  <div className="text-xs text-muted-foreground">AI agent — Telegram or WhatsApp</div>
-                </button>
-
-                {/* Claude Code */}
-                <button
-                  onClick={() => { setWizardChannel("claudecode"); setWizardSubChannel(null); }}
-                  className={`rounded-lg border p-4 text-left transition-colors ${
-                    wizardChannel === "claudecode"
-                      ? "border-violet-600 bg-violet-950/30"
-                      : "border-border hover:border-muted-foreground"
-                  }`}
-                >
-                  <div className="mb-1 text-2xl">⚡</div>
-                  <div className="text-sm font-medium text-foreground">Claude Code</div>
-                  <div className="text-xs text-muted-foreground">MCP server — inline in editor</div>
-                </button>
+              {/* Channel grid */}
+              <div className="mb-5 grid grid-cols-2 gap-3">
+                {CLIENT_CHANNELS.map((ch) => (
+                  <button
+                    key={ch.label}
+                    disabled={ch.disabled}
+                    onClick={() => { if (!ch.disabled && ch.id) { setWizardChannel(ch.id); setWizardSubChannel(null); } }}
+                    className={`relative rounded-lg border p-4 text-left transition-colors ${
+                      ch.disabled
+                        ? "cursor-not-allowed opacity-50 border-border"
+                        : wizardChannel === ch.id
+                          ? "border-violet-600 bg-violet-950/30"
+                          : "border-border hover:border-muted-foreground"
+                    }`}
+                  >
+                    {ch.disabled && (
+                      <span className="absolute right-2 top-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Soon</span>
+                    )}
+                    <div className="mb-2 flex items-center gap-2">
+                      <img src={ch.icon} alt={ch.label} className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      <span className="text-sm font-medium text-foreground">{ch.label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{ch.description}</p>
+                  </button>
+                ))}
               </div>
 
               {/* Sub-channel for OpenClaw */}
               {wizardChannel === "openclaw" && (
-                <div className="mb-6">
+                <div className="mb-5">
                   <p className="mb-3 text-sm text-muted-foreground">Where does the client use OpenClaw?</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setWizardSubChannel("telegram")}
-                      className={`rounded-lg border p-3 text-left transition-colors ${
-                        wizardSubChannel === "telegram"
-                          ? "border-blue-500 bg-blue-950/30"
-                          : "border-border hover:border-muted-foreground"
-                      }`}
-                    >
-                      <div className="mb-0.5 text-xl">✈️</div>
-                      <div className="text-sm font-medium text-foreground">Telegram</div>
-                    </button>
-                    <button
-                      onClick={() => setWizardSubChannel("whatsapp")}
-                      className={`rounded-lg border p-3 text-left transition-colors ${
-                        wizardSubChannel === "whatsapp"
-                          ? "border-green-500 bg-green-950/30"
-                          : "border-border hover:border-muted-foreground"
-                      }`}
-                    >
-                      <div className="mb-0.5 text-xl">💬</div>
-                      <div className="text-sm font-medium text-foreground">WhatsApp</div>
-                    </button>
+                    {OPENCLAW_PLATFORMS.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setWizardSubChannel(p.id)}
+                        className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
+                          wizardSubChannel === p.id
+                            ? "border-violet-600 bg-violet-950/30"
+                            : "border-border hover:border-muted-foreground"
+                        }`}
+                      >
+                        <img src={p.icon} alt={p.label} className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        <span className="text-sm font-medium text-foreground">{p.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}

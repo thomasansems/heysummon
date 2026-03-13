@@ -60,10 +60,16 @@ interface Provider {
 export default function ProvidersPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newName, setNewName] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Wizard state
+  const [wizardStep, setWizardStep] = useState<0 | 1 | 2 | 3>(0);
+  const [wizardName, setWizardName] = useState("");
+  const [wizardChannel, setWizardChannel] = useState<"openclaw" | "telegram" | null>(null);
+  const [wizardBotToken, setWizardBotToken] = useState("");
+  const [wizardCreating, setWizardCreating] = useState(false);
+  const [wizardError, setWizardError] = useState("");
+  const [wizardResult, setWizardResult] = useState<{ providerId: string; providerKey: string; channel: "openclaw" | "telegram" } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
@@ -82,17 +88,61 @@ export default function ProvidersPage() {
 
   useEffect(() => { loadProviders(); }, []);
 
-  const createProvider = async () => {
-    if (!newName.trim()) return;
-    setCreating(true);
-    await fetch("/api/providers", {
+  const openWizard = () => {
+    setWizardStep(1);
+    setWizardName("");
+    setWizardChannel(null);
+    setWizardBotToken("");
+    setWizardError("");
+    setWizardResult(null);
+  };
+
+  const closeWizard = () => {
+    setWizardStep(0);
+    setWizardResult(null);
+  };
+
+  const createProviderWizard = async () => {
+    if (!wizardName.trim() || !wizardChannel) return;
+    if (wizardChannel === "telegram" && !wizardBotToken.trim()) {
+      setWizardError("Bot token is required for Telegram");
+      return;
+    }
+    setWizardCreating(true);
+    setWizardError("");
+
+    // 1. Create provider
+    const provRes = await fetch("/api/providers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName }),
+      body: JSON.stringify({ name: wizardName.trim() }),
     });
-    setNewName("");
-    setShowCreate(false);
-    setCreating(false);
+    const provData = await provRes.json();
+    const providerId: string = provData.provider?.id || provData.id;
+    const providerKey: string = provData.provider?.key || provData.key;
+
+    // 2. Create channel
+    const channelRes = await fetch("/api/channels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        profileId: providerId,
+        type: wizardChannel,
+        name: `${wizardName.trim()} — ${wizardChannel === "telegram" ? "Telegram" : "OpenClaw"}`,
+        config: wizardChannel === "telegram" ? { botToken: wizardBotToken.trim() } : {},
+      }),
+    });
+
+    if (!channelRes.ok) {
+      const err = await channelRes.json().catch(() => ({}));
+      setWizardError(err.error || "Failed to create channel");
+      setWizardCreating(false);
+      return;
+    }
+
+    setWizardResult({ providerId, providerKey, channel: wizardChannel });
+    setWizardCreating(false);
+    setWizardStep(3);
     loadProviders();
   };
 
@@ -153,43 +203,172 @@ export default function ProvidersPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-foreground">Users</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black/90"
-        >
-          Create User
-        </button>
-      </div>
+      {/* Provider wizard modal */}
+      {wizardStep > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl">
+            <button onClick={closeWizard} className="absolute right-4 top-4 text-muted-foreground hover:text-foreground">✕</button>
 
-      {showCreate && (
-        <div className="mb-6 rounded-lg border border-border bg-card p-4">
-          <h3 className="mb-3 text-sm font-medium text-foreground">New User</h3>
-          <div className="flex gap-2">
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="User name"
-              className="flex-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-              onKeyDown={(e) => e.key === "Enter" && createProvider()}
-            />
-            <button
-              onClick={createProvider}
-              disabled={creating || !newName.trim()}
-              className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {creating ? "Creating..." : "Create"}
-            </button>
-            <button
-              onClick={() => setShowCreate(false)}
-              className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground"
-            >
-              Cancel
-            </button>
+            {/* Step 1 — Name + Channel */}
+            {wizardStep === 1 && (
+              <div>
+                <h2 className="mb-1 text-lg font-semibold text-foreground">Add New Provider</h2>
+                <p className="mb-5 text-sm text-muted-foreground">Choose how this provider receives help requests.</p>
+
+                <div className="mb-4 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Provider name <span className="text-red-400">*</span></label>
+                    <input
+                      value={wizardName}
+                      onChange={(e) => setWizardName(e.target.value)}
+                      placeholder="e.g. Thomas — Support"
+                      className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-muted-foreground">Notification channel <span className="text-red-400">*</span></label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* OpenClaw */}
+                      <button
+                        onClick={() => setWizardChannel("openclaw")}
+                        className={`rounded-lg border p-4 text-left transition-colors ${wizardChannel === "openclaw" ? "border-violet-600 bg-violet-950/30" : "border-border hover:border-muted-foreground"}`}
+                      >
+                        <div className="mb-2 flex items-center gap-2">
+                          <img src="/icons/openclaw.svg" alt="OpenClaw" className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
+                          <span className="text-sm font-medium text-foreground">OpenClaw</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Receive in your existing OpenClaw chat (Telegram or WhatsApp)</p>
+                      </button>
+
+                      {/* Telegram Bot */}
+                      <button
+                        onClick={() => setWizardChannel("telegram")}
+                        className={`rounded-lg border p-4 text-left transition-colors ${wizardChannel === "telegram" ? "border-blue-500 bg-blue-950/30" : "border-border hover:border-muted-foreground"}`}
+                      >
+                        <div className="mb-2 flex items-center gap-2">
+                          <img src="/icons/telegram.svg" alt="Telegram" className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
+                          <span className="text-sm font-medium text-foreground">Telegram Bot</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Dedicated Telegram bot — forward requests directly to a chat</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Telegram bot token */}
+                  {wizardChannel === "telegram" && (
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Bot token <span className="text-red-400">*</span></label>
+                      <input
+                        value={wizardBotToken}
+                        onChange={(e) => setWizardBotToken(e.target.value)}
+                        placeholder="123456789:ABCdef..."
+                        className="w-full rounded-md border border-border bg-background px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Get a token from <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">@BotFather</a> on Telegram. Send <code className="rounded bg-muted px-1">/newbot</code> and copy the token.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* OpenClaw info */}
+                  {wizardChannel === "openclaw" && (
+                    <div className="rounded-lg border border-violet-800 bg-violet-950/20 p-3 text-xs text-violet-300">
+                      <p className="mb-1 font-medium">How OpenClaw works:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-violet-400">
+                        <li>A provider key will be generated after creation</li>
+                        <li>Install the HeySummon provider skill from <a href="https://clawhub.ai/thomasansems/heysummon-provider" target="_blank" rel="noopener noreferrer" className="underline">clawhub.ai</a></li>
+                        <li>Configure it with your provider key — done!</li>
+                      </ol>
+                      <p className="mt-2 text-violet-500">Help requests will arrive as messages in your OpenClaw chat (Telegram or WhatsApp).</p>
+                    </div>
+                  )}
+
+                  {wizardError && <p className="text-sm text-red-500">{wizardError}</p>}
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button onClick={closeWizard} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
+                  <button
+                    onClick={createProviderWizard}
+                    disabled={wizardCreating || !wizardName.trim() || !wizardChannel || (wizardChannel === "telegram" && !wizardBotToken.trim())}
+                    className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+                  >
+                    {wizardCreating ? "Creating..." : "Create Provider"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3 — Done */}
+            {wizardStep === 3 && wizardResult && (
+              <div>
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="text-2xl">✅</span>
+                  <h2 className="text-lg font-semibold text-foreground">Provider created!</h2>
+                </div>
+
+                {wizardResult.channel === "openclaw" && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Follow these steps to connect your OpenClaw agent:
+                    </p>
+                    <div className="rounded-lg border border-border bg-black p-4 space-y-3 text-xs">
+                      <div>
+                        <p className="mb-1 text-muted-foreground font-medium">Step 1 — Install the provider skill</p>
+                        <p className="text-zinc-400 mb-1">In your OpenClaw chat (Telegram or WhatsApp), run:</p>
+                        <code className="text-green-400">/skill install https://clawhub.ai/thomasansems/heysummon-provider</code>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-muted-foreground font-medium">Step 2 — Configure with your provider key</p>
+                        <p className="text-zinc-400 mb-1">Your provider key:</p>
+                        <div className="flex items-center gap-2">
+                          <code className="text-green-400 break-all">{wizardResult.providerKey}</code>
+                          <button onClick={() => { copyToClipboard(wizardResult.providerKey); setCopied(wizardResult.providerKey); setTimeout(() => setCopied(null), 2000); }} className="shrink-0 text-violet-400 hover:text-violet-300">{copied === wizardResult.providerKey ? "Copied!" : "Copy"}</button>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-muted-foreground font-medium">Step 3 — Start receiving requests</p>
+                        <p className="text-zinc-400">Help requests will appear as messages in your OpenClaw chat. Reply to respond.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {wizardResult.channel === "telegram" && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">Your Telegram bot is connected! Here&apos;s what happens next:</p>
+                    <div className="rounded-lg border border-border bg-black p-4 space-y-3 text-xs">
+                      <div>
+                        <p className="mb-1 text-muted-foreground font-medium">How it works</p>
+                        <p className="text-zinc-400">When a client sends a help request, your Telegram bot will forward it with inline approve/decline buttons. Reply directly in Telegram to respond.</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-muted-foreground font-medium">Activate the bot</p>
+                        <p className="text-zinc-400">Open your Telegram bot and send <code className="rounded bg-zinc-800 px-1 text-zinc-300">/start</code> — the bot will bind to your chat ID automatically.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-5 flex justify-end">
+                  <button onClick={closeWizard} className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white">Done</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-foreground">Providers</h1>
+        <button
+          onClick={openWizard}
+          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black/90"
+        >
+          Add New Provider
+        </button>
+      </div>
 
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (

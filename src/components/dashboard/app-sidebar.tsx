@@ -48,7 +48,6 @@ const mainNav = [
 
 const providerNav = [
   { label: "Providers", href: "/dashboard/providers", icon: Users },
-  { label: "Channels", href: "/dashboard/channels", icon: MessageSquare },
   { label: "Clients", href: "/dashboard/clients", icon: Building2 },
 ];
 

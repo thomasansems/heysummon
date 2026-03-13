@@ -227,7 +227,7 @@ agent:{agentId}:{channel}:{type}:{id}
 
 Example for a Telegram group:
 ```
-agent:tertiary:telegram:group:-5080163376
+agent:tertiary:telegram:group:-1234567890
 ```
 
 To find the current session key, ask the agent:

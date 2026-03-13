@@ -69,9 +69,8 @@ export default function ClientsPage() {
   const [wizardSubChannel, setWizardSubChannel] = useState<WizardSubChannel>(null);
   const [wizardName, setWizardName] = useState("");
   const [wizardProviderId, setWizardProviderId] = useState("");
-  const [wizardRateLimit, setWizardRateLimit] = useState(100);
   const [wizardCreating, setWizardCreating] = useState(false);
-  const [wizardResult, setWizardResult] = useState<{ keyId: string; key: string; skillInstallUrl: string; mcpSnippet?: string } | null>(null);
+  const [wizardResult, setWizardResult] = useState<{ keyId: string; key: string; setupUrl: string; expiresAt: string } | null>(null);
 
   const loadKeys = () =>
     fetch("/api/v1/keys")
@@ -110,7 +109,6 @@ export default function ClientsPage() {
     setWizardSubChannel(null);
     setWizardName("");
     setWizardProviderId("");
-    setWizardRateLimit(100);
     setWizardResult(null);
   };
 
@@ -130,41 +128,45 @@ export default function ClientsPage() {
     }
   };
 
+  const DEFAULT_RATE_LIMIT = parseInt(process.env.NEXT_PUBLIC_DEFAULT_RATE_LIMIT ?? "150");
+
   const createWizardKey = async () => {
     if (!wizardProviderId) return;
     setWizardCreating(true);
 
-    const res = await fetch("/api/v1/keys", {
+    // Create the key (rate limit defaults to env var or 150)
+    const keyRes = await fetch("/api/v1/keys", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: wizardName || undefined,
         providerId: wizardProviderId,
         scope: "full",
-        rateLimitPerMinute: wizardRateLimit,
+        rateLimitPerMinute: DEFAULT_RATE_LIMIT,
       }),
     });
 
-    const data = await res.json();
-    const keyId: string = data.id || data.key?.id;
-    const keyValue: string = data.key?.key || data.key;
+    const keyData = await keyRes.json();
+    const keyId: string = keyData.id || keyData.key?.id;
 
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    // Generate temporary setup link (10 min expiry)
+    const linkRes = await fetch("/api/v1/setup-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        keyId,
+        channel: wizardChannel,
+        subChannel: wizardSubChannel,
+      }),
+    });
 
-    let mcpSnippet: string | undefined;
-    if (wizardChannel === "claudecode") {
-      const mcpRes = await fetch(`/api/v1/mcp-install/${keyId}`);
-      if (mcpRes.ok) {
-        const mcpData = await mcpRes.json();
-        mcpSnippet = mcpData.snippet;
-      }
-    }
+    const linkData = await linkRes.json();
 
     setWizardResult({
       keyId,
-      key: keyValue,
-      skillInstallUrl: `${origin}/api/v1/skill-install/${keyId}`,
-      mcpSnippet,
+      key: keyData.key?.key || keyData.key,
+      setupUrl: linkData.setupUrl,
+      expiresAt: linkData.expiresAt,
     });
     setWizardCreating(false);
     setWizardStep(3);
@@ -394,18 +396,10 @@ export default function ClientsPage() {
                   )}
                 </div>
 
-                {/* Rate limit */}
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Rate limit (requests / min)</label>
-                  <input
-                    type="number"
-                    value={wizardRateLimit}
-                    onChange={(e) => setWizardRateLimit(parseInt(e.target.value) || 100)}
-                    min={1}
-                    max={10000}
-                    className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                  />
-                </div>
+                {/* Rate limit note */}
+                <p className="text-xs text-muted-foreground">
+                  Default rate limit: <strong>150 req/min</strong>. Configure <code className="rounded bg-muted px-1">HEYSUMMON_DEFAULT_RATE_LIMIT</code> in your environment to override.
+                </p>
               </div>
 
               <div className="flex justify-between gap-2">
@@ -436,59 +430,48 @@ export default function ClientsPage() {
                 <h2 className="text-lg font-semibold text-foreground">Client created!</h2>
               </div>
 
-              {wizardChannel === "openclaw" ? (
-                <div>
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    Share this setup URL with your client. They can paste it into their OpenClaw chat to install the HeySummon skill automatically.
-                  </p>
-                  <div className="mb-2 rounded-md border border-border bg-black p-3">
-                    <p className="mb-1 text-xs text-muted-foreground">Setup URL ({wizardSubChannel})</p>
-                    <code className="break-all text-xs text-green-400">{wizardResult.skillInstallUrl}</code>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => copyKey(wizardResult.skillInstallUrl)}
-                      className="text-xs text-violet-600 hover:text-violet-800"
-                    >
-                      {copied === wizardResult.skillInstallUrl ? "Copied!" : "Copy URL"}
-                    </button>
-                    <span className="text-muted-foreground">|</span>
-                    <a
-                      href={wizardResult.skillInstallUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      Preview SKILL.md →
-                    </a>
-                  </div>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    💡 The client pastes the URL in their OpenClaw chat → Octo installs and configures the skill automatically.
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    Share this snippet with your client. They run it once to register the HeySummon MCP server in Claude Code.
-                  </p>
-                  {wizardResult.mcpSnippet && (
-                    <>
-                      <pre className="mb-2 overflow-x-auto rounded-md bg-black p-3 font-mono text-xs text-green-400">
-                        {wizardResult.mcpSnippet}
-                      </pre>
-                      <button
-                        onClick={() => copyKey(wizardResult.mcpSnippet!)}
-                        className="text-xs text-violet-600 hover:text-violet-800"
-                      >
-                        {copied === wizardResult.mcpSnippet ? "Copied!" : "Copy snippet"}
-                      </button>
-                    </>
-                  )}
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    💡 After running the command, Claude Code can call <code className="rounded bg-muted px-1 py-0.5">heysummon</code> to ask for expert help inline.
-                  </p>
-                </div>
-              )}
+              {/* Expiry warning */}
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-700 bg-amber-950/30 px-3 py-2 text-xs text-amber-400">
+                <span>⏱</span>
+                <span>
+                  This setup link expires at{" "}
+                  <strong>{new Date(wizardResult.expiresAt).toLocaleTimeString()}</strong> (10 minutes).
+                  Share it now — credentials are embedded.
+                </span>
+              </div>
+
+              <p className="mb-3 text-sm text-muted-foreground">
+                Share this link with your client. It opens step-by-step setup instructions with their credentials pre-filled.
+              </p>
+
+              <div className="mb-3 rounded-md border border-border bg-black p-3">
+                <p className="mb-1 text-xs text-muted-foreground">
+                  Setup link ({wizardChannel === "openclaw" ? `OpenClaw · ${wizardSubChannel}` : "Claude Code · MCP"})
+                </p>
+                <code className="break-all text-xs text-green-400">{wizardResult.setupUrl}</code>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => copyKey(wizardResult.setupUrl)}
+                  className="rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white"
+                >
+                  {copied === wizardResult.setupUrl ? "Copied!" : "📋 Copy link"}
+                </button>
+                <a
+                  href={wizardResult.setupUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Preview →
+                </a>
+              </div>
+
+              <p className="mt-3 text-xs text-muted-foreground">
+                💡 After the link expires, generate a new one via the{" "}
+                <strong>Share</strong> option in the client&apos;s action menu.
+              </p>
 
               <div className="mt-5 flex justify-end">
                 <button

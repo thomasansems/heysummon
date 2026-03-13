@@ -52,6 +52,7 @@ export async function POST(request: Request) {
   const parsed = validateBody(keyCreateSchema, raw);
   if (!parsed.success) return parsed.response;
 
+  const DEFAULT_RATE_LIMIT = parseInt(process.env.HEYSUMMON_DEFAULT_RATE_LIMIT ?? "150");
   const { name, providerId, scope, rateLimitPerMinute } = parsed.data;
 
   if (providerId) {
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
       name: name || null,
       user: { connect: { id: user.id } },
       ...(scope && { scope }),
-      ...(rateLimitPerMinute && { rateLimitPerMinute }),
+      rateLimitPerMinute: rateLimitPerMinute ?? DEFAULT_RATE_LIMIT,
       ...(providerId && { provider: { connect: { id: providerId } } }),
     },
   });

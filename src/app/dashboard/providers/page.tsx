@@ -60,6 +60,8 @@ interface Provider {
   isActive: boolean;
   createdAt: string;
   timezone: string;
+  quietHoursStart: string | null;
+  quietHoursEnd: string | null;
   ipEvents: IpEvent[];
   _count: { apiKeys: number };
   apiKeys: LinkedClient[];
@@ -84,6 +86,9 @@ export default function ProvidersPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [editTimezone, setEditTimezone] = useState("");
   const [timezoneFilter, setTimezoneFilter] = useState("");
+  const [editQuietEnabled, setEditQuietEnabled] = useState(false);
+  const [editQuietStart, setEditQuietStart] = useState("22:00");
+  const [editQuietEnd, setEditQuietEnd] = useState("08:00");
   const [saving, setSaving] = useState(false);
 
   const timezones = getTimezones();
@@ -201,6 +206,9 @@ export default function ProvidersPage() {
     setSettingsId(settingsId === p.id ? null : p.id);
     if (settingsId !== p.id) {
       setEditTimezone(p.timezone || "UTC");
+      setEditQuietEnabled(!!(p.quietHoursStart && p.quietHoursEnd));
+      setEditQuietStart(p.quietHoursStart || "22:00");
+      setEditQuietEnd(p.quietHoursEnd || "08:00");
     }
     setTimezoneFilter("");
   };
@@ -210,7 +218,11 @@ export default function ProvidersPage() {
     await fetch(`/api/providers/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ timezone: editTimezone }),
+      body: JSON.stringify({
+        timezone: editTimezone,
+        quietHoursStart: editQuietEnabled ? editQuietStart : null,
+        quietHoursEnd: editQuietEnabled ? editQuietEnd : null,
+      }),
     });
     setSaving(false);
     loadProviders();
@@ -557,42 +569,50 @@ export default function ProvidersPage() {
                 {/* Settings inline panel (mobile) */}
                 {settingsId === p.id && (
                   <div className="border-b border-border bg-muted px-4 py-3">
-                    {/* Timezone Section */}
-                    <div className="mb-4">
-                      <p className="mb-2 text-xs font-medium text-muted-foreground">Timezone</p>
-                      <div className="flex flex-col gap-2">
-                        <input
-                          type="text"
-                          placeholder="Filter timezones…"
-                          value={timezoneFilter}
-                          onChange={(e) => setTimezoneFilter(e.target.value)}
-                          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                        />
-                        <select
-                          value={editTimezone}
-                          onChange={(e) => setEditTimezone(e.target.value)}
-                          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                        >
-                          {(timezoneFilter
-                            ? timezones.filter((tz) =>
-                                tz.toLowerCase().includes(timezoneFilter.toLowerCase())
-                              )
-                            : timezones
-                          ).map((tz) => (
-                            <option key={tz} value={tz}>
-                              {tz}
-                            </option>
-                          ))}
-                        </select>
+                    {/* Timezone */}
+                    <div className="mb-3">
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">Timezone</p>
+                      <select
+                        value={editTimezone}
+                        onChange={(e) => setEditTimezone(e.target.value)}
+                        className="w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                      >
+                        {timezones.map((tz) => (
+                          <option key={tz} value={tz}>{tz}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Quiet Hours */}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-medium text-muted-foreground">Don&apos;t bother me</p>
                         <button
-                          onClick={() => saveProviderSettings(p.id)}
-                          disabled={saving}
-                          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                          type="button"
+                          onClick={() => setEditQuietEnabled((v) => !v)}
+                          className={`relative inline-flex h-4 w-8 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${editQuietEnabled ? "bg-black" : "bg-muted"}`}
                         >
-                          {saving ? "Saving..." : "Save"}
+                          <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-card shadow transition duration-200 ${editQuietEnabled ? "translate-x-4" : "translate-x-0"}`} />
                         </button>
                       </div>
+                      {editQuietEnabled && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <input type="time" value={editQuietStart} onChange={(e) => setEditQuietStart(e.target.value)}
+                            className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground outline-none focus:border-ring" />
+                          <span className="text-xs text-muted-foreground">→</span>
+                          <input type="time" value={editQuietEnd} onChange={(e) => setEditQuietEnd(e.target.value)}
+                            className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground outline-none focus:border-ring" />
+                        </div>
+                      )}
                     </div>
+
+                    <button
+                      onClick={() => saveProviderSettings(p.id)}
+                      disabled={saving}
+                      className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 mb-3"
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
 
                     {/* Linked Clients Section */}
                     <div className="border-t border-border pt-3">
@@ -873,42 +893,50 @@ export default function ProvidersPage() {
                   {settingsId === p.id && (
                     <tr key={`${p.id}-settings`} className="border-b border-border">
                       <td colSpan={6} className="bg-muted px-4 py-3">
-                        {/* Timezone Section */}
-                        <div className="mb-4">
-                          <p className="mb-2 text-xs font-medium text-muted-foreground">Timezone</p>
-                          <div className="flex flex-col gap-2">
-                            <input
-                              type="text"
-                              placeholder="Filter timezones…"
-                              value={timezoneFilter}
-                              onChange={(e) => setTimezoneFilter(e.target.value)}
-                              className="max-w-xs rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                            />
-                            <select
-                              value={editTimezone}
-                              onChange={(e) => setEditTimezone(e.target.value)}
-                              className="max-w-xs rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                            >
-                              {(timezoneFilter
-                                ? timezones.filter((tz) =>
-                                    tz.toLowerCase().includes(timezoneFilter.toLowerCase())
-                                  )
-                                : timezones
-                              ).map((tz) => (
-                                <option key={tz} value={tz}>
-                                  {tz}
-                                </option>
-                              ))}
-                            </select>
+                        {/* Timezone */}
+                        <div className="mb-3">
+                          <p className="mb-1 text-xs font-medium text-muted-foreground">Timezone</p>
+                          <select
+                            value={editTimezone}
+                            onChange={(e) => setEditTimezone(e.target.value)}
+                            className="max-w-xs rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                          >
+                            {timezones.map((tz) => (
+                              <option key={tz} value={tz}>{tz}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Quiet Hours */}
+                        <div className="mb-3">
+                          <div className="flex items-center gap-3 mb-1">
+                            <p className="text-xs font-medium text-muted-foreground">Don&apos;t bother me</p>
                             <button
-                              onClick={() => saveProviderSettings(p.id)}
-                              disabled={saving}
-                              className="max-w-xs rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                              type="button"
+                              onClick={() => setEditQuietEnabled((v) => !v)}
+                              className={`relative inline-flex h-4 w-8 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${editQuietEnabled ? "bg-black" : "bg-muted"}`}
                             >
-                              {saving ? "Saving..." : "Save"}
+                              <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-card shadow transition duration-200 ${editQuietEnabled ? "translate-x-4" : "translate-x-0"}`} />
                             </button>
                           </div>
+                          {editQuietEnabled && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <input type="time" value={editQuietStart} onChange={(e) => setEditQuietStart(e.target.value)}
+                                className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground outline-none focus:border-ring" />
+                              <span className="text-xs text-muted-foreground">→</span>
+                              <input type="time" value={editQuietEnd} onChange={(e) => setEditQuietEnd(e.target.value)}
+                                className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground outline-none focus:border-ring" />
+                            </div>
+                          )}
                         </div>
+
+                        <button
+                          onClick={() => saveProviderSettings(p.id)}
+                          disabled={saving}
+                          className="max-w-xs rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 mb-3"
+                        >
+                          {saving ? "Saving..." : "Save"}
+                        </button>
 
                         {/* Linked Clients Section */}
                         <div className="border-t border-border pt-3">

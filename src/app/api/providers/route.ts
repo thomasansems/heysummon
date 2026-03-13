@@ -10,7 +10,15 @@ export async function GET() {
 
   const providers = await prisma.userProfile.findMany({
     where: { userId: user.id },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      key: true,
+      isActive: true,
+      createdAt: true,
+      timezone: true,
+      quietHoursStart: true,
+      quietHoursEnd: true,
       _count: { select: { apiKeys: true } },
       ipEvents: { orderBy: { lastSeen: "desc" } },
       apiKeys: {
@@ -19,7 +27,7 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "desc" } as Parameters<typeof prisma.userProfile.findMany>[0]["orderBy"],
   });
 
   return NextResponse.json({ providers });

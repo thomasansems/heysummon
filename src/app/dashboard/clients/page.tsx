@@ -33,6 +33,11 @@ interface ApiKey {
   _count: { requests: number };
 }
 
+type WizardChannel = "openclaw" | "claudecode" | null;
+type WizardSubChannel = "telegram" | "whatsapp" | null;
+
+type WizardStep = 0 | 1 | 2 | 3; // 0=closed, 1=channel, 2=details, 3=done
+
 const SCOPE_OPTIONS = ["full", "read", "write", "admin"] as const;
 
 const scopeBadgeColors: Record<string, string> = {
@@ -46,12 +51,6 @@ export default function ClientsPage() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newName, setNewName] = useState("");
-  const [selectedProviderId, setSelectedProviderId] = useState("");
-  const [newScope, setNewScope] = useState<string>("full");
-  const [newRateLimit, setNewRateLimit] = useState(100);
-  const [creating, setCreating] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -63,6 +62,16 @@ export default function ClientsPage() {
   const [rotating, setRotating] = useState<string | null>(null);
   const [rotationResult, setRotationResult] = useState<{ key: string; deviceSecret: string; expiresAt: string } | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Wizard state
+  const [wizardStep, setWizardStep] = useState<WizardStep>(0);
+  const [wizardChannel, setWizardChannel] = useState<WizardChannel>(null);
+  const [wizardSubChannel, setWizardSubChannel] = useState<WizardSubChannel>(null);
+  const [wizardName, setWizardName] = useState("");
+  const [wizardProviderId, setWizardProviderId] = useState("");
+  const [wizardRateLimit, setWizardRateLimit] = useState(100);
+  const [wizardCreating, setWizardCreating] = useState(false);
+  const [wizardResult, setWizardResult] = useState<{ keyId: string; key: string; skillInstallUrl: string; mcpSnippet?: string } | null>(null);
 
   const loadKeys = () =>
     fetch("/api/v1/keys")
@@ -95,25 +104,70 @@ export default function ClientsPage() {
     loadProviders();
   }, []);
 
-  const createKey = async () => {
-    if (!selectedProviderId) return;
-    setCreating(true);
-    await fetch("/api/v1/keys", {
+  const openWizard = () => {
+    setWizardStep(1);
+    setWizardChannel(null);
+    setWizardSubChannel(null);
+    setWizardName("");
+    setWizardProviderId("");
+    setWizardRateLimit(100);
+    setWizardResult(null);
+  };
+
+  const closeWizard = () => {
+    setWizardStep(0);
+    setWizardResult(null);
+  };
+
+  const wizardNext = () => {
+    if (wizardStep === 1) {
+      // Validate channel selected
+      if (!wizardChannel) return;
+      if (wizardChannel === "openclaw" && !wizardSubChannel) return;
+      setWizardStep(2);
+    } else if (wizardStep === 2) {
+      createWizardKey();
+    }
+  };
+
+  const createWizardKey = async () => {
+    if (!wizardProviderId) return;
+    setWizardCreating(true);
+
+    const res = await fetch("/api/v1/keys", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: newName || undefined,
-        providerId: selectedProviderId,
-        scope: newScope,
-        rateLimitPerMinute: newRateLimit,
+        name: wizardName || undefined,
+        providerId: wizardProviderId,
+        scope: "full",
+        rateLimitPerMinute: wizardRateLimit,
       }),
     });
-    setNewName("");
-    setSelectedProviderId("");
-    setNewScope("full");
-    setNewRateLimit(100);
-    setShowCreate(false);
-    setCreating(false);
+
+    const data = await res.json();
+    const keyId: string = data.id || data.key?.id;
+    const keyValue: string = data.key?.key || data.key;
+
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+    let mcpSnippet: string | undefined;
+    if (wizardChannel === "claudecode") {
+      const mcpRes = await fetch(`/api/v1/mcp-install/${keyId}`);
+      if (mcpRes.ok) {
+        const mcpData = await mcpRes.json();
+        mcpSnippet = mcpData.snippet;
+      }
+    }
+
+    setWizardResult({
+      keyId,
+      key: keyValue,
+      skillInstallUrl: `${origin}/api/v1/skill-install/${keyId}`,
+      mcpSnippet,
+    });
+    setWizardCreating(false);
+    setWizardStep(3);
     loadKeys();
   };
 
@@ -192,16 +246,284 @@ export default function ClientsPage() {
     key.slice(0, 8) + "•".repeat(16) + key.slice(-4);
 
   const configSnippet = (key: string) =>
-    `# HeySummon API configuration
-heysummon:
-  api_key: "${key}"
-  endpoint: "${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1/help"`;
+    `# HeySummon API configuration\nheysummon:\n  api_key: "${key}"\n  endpoint: "${typeof window !== "undefined" ? window.location.origin : ""}/api/v1/help"`;
 
   const isInGracePeriod = (k: ApiKey) =>
     k.previousKeyExpiresAt && new Date(k.previousKeyExpiresAt) > new Date();
 
+  // ─── Wizard Modal ────────────────────────────────────────────────────────────
+  const renderWizard = () => {
+    if (wizardStep === 0) return null;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl">
+          {/* Close */}
+          <button
+            onClick={closeWizard}
+            className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+          >
+            ✕
+          </button>
+
+          {/* Step 1 — Channel */}
+          {wizardStep === 1 && (
+            <div>
+              <h2 className="mb-1 text-lg font-semibold text-foreground">Create New Client</h2>
+              <p className="mb-6 text-sm text-muted-foreground">
+                Which channel does this client use?
+              </p>
+
+              <div className="mb-6 grid grid-cols-2 gap-3">
+                {/* OpenClaw */}
+                <button
+                  onClick={() => { setWizardChannel("openclaw"); setWizardSubChannel(null); }}
+                  className={`rounded-lg border p-4 text-left transition-colors ${
+                    wizardChannel === "openclaw"
+                      ? "border-violet-600 bg-violet-950/30"
+                      : "border-border hover:border-muted-foreground"
+                  }`}
+                >
+                  <div className="mb-1 text-2xl">🦑</div>
+                  <div className="text-sm font-medium text-foreground">OpenClaw</div>
+                  <div className="text-xs text-muted-foreground">AI agent — Telegram or WhatsApp</div>
+                </button>
+
+                {/* Claude Code */}
+                <button
+                  onClick={() => { setWizardChannel("claudecode"); setWizardSubChannel(null); }}
+                  className={`rounded-lg border p-4 text-left transition-colors ${
+                    wizardChannel === "claudecode"
+                      ? "border-violet-600 bg-violet-950/30"
+                      : "border-border hover:border-muted-foreground"
+                  }`}
+                >
+                  <div className="mb-1 text-2xl">⚡</div>
+                  <div className="text-sm font-medium text-foreground">Claude Code</div>
+                  <div className="text-xs text-muted-foreground">MCP server — inline in editor</div>
+                </button>
+              </div>
+
+              {/* Sub-channel for OpenClaw */}
+              {wizardChannel === "openclaw" && (
+                <div className="mb-6">
+                  <p className="mb-3 text-sm text-muted-foreground">Where does the client use OpenClaw?</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setWizardSubChannel("telegram")}
+                      className={`rounded-lg border p-3 text-left transition-colors ${
+                        wizardSubChannel === "telegram"
+                          ? "border-blue-500 bg-blue-950/30"
+                          : "border-border hover:border-muted-foreground"
+                      }`}
+                    >
+                      <div className="mb-0.5 text-xl">✈️</div>
+                      <div className="text-sm font-medium text-foreground">Telegram</div>
+                    </button>
+                    <button
+                      onClick={() => setWizardSubChannel("whatsapp")}
+                      className={`rounded-lg border p-3 text-left transition-colors ${
+                        wizardSubChannel === "whatsapp"
+                          ? "border-green-500 bg-green-950/30"
+                          : "border-border hover:border-muted-foreground"
+                      }`}
+                    >
+                      <div className="mb-0.5 text-xl">💬</div>
+                      <div className="text-sm font-medium text-foreground">WhatsApp</div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2">
+                <button onClick={closeWizard} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">
+                  Cancel
+                </button>
+                <button
+                  onClick={wizardNext}
+                  disabled={!wizardChannel || (wizardChannel === "openclaw" && !wizardSubChannel)}
+                  className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2 — Details */}
+          {wizardStep === 2 && (
+            <div>
+              <h2 className="mb-1 text-lg font-semibold text-foreground">Client Details</h2>
+              <p className="mb-5 text-sm text-muted-foreground">
+                {wizardChannel === "claudecode"
+                  ? "Configure your Claude Code MCP client"
+                  : `Configure your OpenClaw ${wizardSubChannel} client`}
+              </p>
+
+              <div className="mb-4 space-y-3">
+                {/* Name */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Client name</label>
+                  <input
+                    value={wizardName}
+                    onChange={(e) => setWizardName(e.target.value)}
+                    placeholder="e.g. John's Assistant"
+                    className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                  />
+                </div>
+
+                {/* Provider */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Provider <span className="text-red-400">*</span></label>
+                  {providers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No providers yet.{" "}
+                      <a href="/dashboard/providers" className="text-violet-600 hover:text-violet-800">Create one first</a>.
+                    </p>
+                  ) : (
+                    <select
+                      value={wizardProviderId}
+                      onChange={(e) => setWizardProviderId(e.target.value)}
+                      className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                    >
+                      <option value="">Select provider...</option>
+                      {providers.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {/* Rate limit */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Rate limit (requests / min)</label>
+                  <input
+                    type="number"
+                    value={wizardRateLimit}
+                    onChange={(e) => setWizardRateLimit(parseInt(e.target.value) || 100)}
+                    min={1}
+                    max={10000}
+                    className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between gap-2">
+                <button onClick={() => setWizardStep(1)} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">
+                  ← Back
+                </button>
+                <div className="flex gap-2">
+                  <button onClick={closeWizard} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={wizardNext}
+                    disabled={wizardCreating || !wizardProviderId}
+                    className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+                  >
+                    {wizardCreating ? "Creating..." : "Create Client"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3 — Done / Setup URL */}
+          {wizardStep === 3 && wizardResult && (
+            <div>
+              <div className="mb-4 flex items-center gap-2">
+                <span className="text-2xl">✅</span>
+                <h2 className="text-lg font-semibold text-foreground">Client created!</h2>
+              </div>
+
+              {wizardChannel === "openclaw" ? (
+                <div>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    Share this setup URL with your client. They can paste it into their OpenClaw chat to install the HeySummon skill automatically.
+                  </p>
+                  <div className="mb-2 rounded-md border border-border bg-black p-3">
+                    <p className="mb-1 text-xs text-muted-foreground">Setup URL ({wizardSubChannel})</p>
+                    <code className="break-all text-xs text-green-400">{wizardResult.skillInstallUrl}</code>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => copyKey(wizardResult.skillInstallUrl)}
+                      className="text-xs text-violet-600 hover:text-violet-800"
+                    >
+                      {copied === wizardResult.skillInstallUrl ? "Copied!" : "Copy URL"}
+                    </button>
+                    <span className="text-muted-foreground">|</span>
+                    <a
+                      href={wizardResult.skillInstallUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Preview SKILL.md →
+                    </a>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    💡 The client pastes the URL in their OpenClaw chat → Octo installs and configures the skill automatically.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    Share this snippet with your client. They run it once to register the HeySummon MCP server in Claude Code.
+                  </p>
+                  {wizardResult.mcpSnippet && (
+                    <>
+                      <pre className="mb-2 overflow-x-auto rounded-md bg-black p-3 font-mono text-xs text-green-400">
+                        {wizardResult.mcpSnippet}
+                      </pre>
+                      <button
+                        onClick={() => copyKey(wizardResult.mcpSnippet!)}
+                        className="text-xs text-violet-600 hover:text-violet-800"
+                      >
+                        {copied === wizardResult.mcpSnippet ? "Copied!" : "Copy snippet"}
+                      </button>
+                    </>
+                  )}
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    💡 After running the command, Claude Code can call <code className="rounded bg-muted px-1 py-0.5">heysummon</code> to ask for expert help inline.
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={closeWizard}
+                  className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step indicator */}
+          {wizardStep < 3 && (
+            <div className="mt-6 flex justify-center gap-2">
+              {[1, 2].map((s) => (
+                <div
+                  key={s}
+                  className={`h-1.5 w-8 rounded-full transition-colors ${
+                    s <= wizardStep ? "bg-violet-600" : "bg-muted"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
+      {/* Wizard modal */}
+      {renderWizard()}
+
       {/* Rotation result modal */}
       {rotationResult && (
         <div className="mb-6 rounded-lg border border-amber-800 bg-amber-950/40 p-4">
@@ -238,85 +560,12 @@ heysummon:
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
         <button
-          onClick={() => setShowCreate(true)}
+          onClick={openWizard}
           className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black/90"
         >
-          Create Client Key
+          Create New Client
         </button>
       </div>
-
-      {showCreate && (
-        <div className="mb-6 rounded-lg border border-border bg-card p-4">
-          <h3 className="mb-3 text-sm font-medium text-foreground">New Client Key</h3>
-          {providers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No providers yet.{" "}
-              <a href="/dashboard/providers" className="text-violet-600 hover:text-violet-800">
-                Create a provider
-              </a>{" "}
-              first.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <div className="flex gap-2">
-                <select
-                  value={selectedProviderId}
-                  onChange={(e) => setSelectedProviderId(e.target.value)}
-                  className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                >
-                  <option value="">Select provider...</option>
-                  {providers.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Client name (optional)"
-                  className="flex-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                />
-              </div>
-              <div className="flex gap-2">
-                <select
-                  value={newScope}
-                  onChange={(e) => setNewScope(e.target.value)}
-                  className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                >
-                  {SCOPE_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  value={newRateLimit}
-                  onChange={(e) => setNewRateLimit(parseInt(e.target.value) || 100)}
-                  min={1}
-                  max={10000}
-                  className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                  title="Rate limit (req/min)"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={createKey}
-                  disabled={creating || !selectedProviderId}
-                  className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                >
-                  {creating ? "Creating..." : "Create"}
-                </button>
-                <button
-                  onClick={() => setShowCreate(false)}
-                  className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="overflow-visible overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (
@@ -357,30 +606,14 @@ heysummon:
               <tbody>
                 {[1, 2, 3].map((i) => (
                   <tr key={i} className="border-b border-border animate-pulse">
-                    <td className="px-4 py-2.5">
-                      <div className="h-4 w-24 rounded bg-muted"></div>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="h-4 w-20 rounded bg-muted"></div>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="h-4 w-32 rounded bg-muted"></div>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="h-5 w-16 rounded-full bg-muted"></div>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="h-4 w-8 rounded bg-muted"></div>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="h-5 w-20 rounded-full bg-muted"></div>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="h-4 w-20 rounded bg-muted"></div>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="ml-auto h-6 w-8 rounded bg-muted"></div>
-                    </td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-24 rounded bg-muted"></div></td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-20 rounded bg-muted"></div></td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-32 rounded bg-muted"></div></td>
+                    <td className="px-4 py-2.5"><div className="h-5 w-16 rounded-full bg-muted"></div></td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-8 rounded bg-muted"></div></td>
+                    <td className="px-4 py-2.5"><div className="h-5 w-20 rounded-full bg-muted"></div></td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-20 rounded bg-muted"></div></td>
+                    <td className="px-4 py-2.5 text-right"><div className="ml-auto h-6 w-8 rounded bg-muted"></div></td>
                   </tr>
                 ))}
               </tbody>
@@ -388,7 +621,7 @@ heysummon:
           </>
         ) : keys.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            No client keys yet. Create one to get started.
+            No clients yet. Click <strong>Create New Client</strong> to get started.
           </div>
         ) : (
           <>
@@ -433,49 +666,20 @@ heysummon:
                         </button>
                         {openMenuId === k.id && (
                           <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
-                            <button
-                              onClick={() => { openSettings(k); setOpenMenuId(null); }}
-                              className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              Settings
-                            </button>
-                            <button
-                              onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }}
-                              className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                            >
-                              Share
-                            </button>
+                            <button onClick={() => { openSettings(k); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Settings</button>
+                            <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Share</button>
                             {k.isActive && (
-                              <button
-                                onClick={() => { rotateKey(k.id); setOpenMenuId(null); }}
-                                disabled={rotating === k.id}
-                                className="block w-full px-3 py-1.5 text-left text-xs text-violet-600 hover:bg-muted hover:text-violet-800 disabled:opacity-50"
-                              >
+                              <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-violet-600 hover:bg-muted hover:text-violet-800 disabled:opacity-50">
                                 {rotating === k.id ? "Rotating..." : "Rotate"}
                               </button>
                             )}
                             {k.isActive ? (
-                              <button
-                                onClick={() => { deactivate(k.id); setOpenMenuId(null); }}
-                                className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-muted hover:text-red-400"
-                              >
-                                Deactivate
-                              </button>
+                              <button onClick={() => { deactivate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-muted hover:text-red-400">Deactivate</button>
                             ) : (
-                              <button
-                                onClick={() => { activate(k.id); setOpenMenuId(null); }}
-                                className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800"
-                              >
-                                Activate
-                              </button>
+                              <button onClick={() => { activate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800">Activate</button>
                             )}
                             <div className="my-1 border-t border-border" />
-                            <button
-                              onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }}
-                              className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300"
-                            >
-                              Delete
-                            </button>
+                            <button onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300">Delete</button>
                           </div>
                         )}
                       </div>
@@ -487,25 +691,14 @@ heysummon:
                     <div>
                       <span className="text-xs text-muted-foreground">Key</span>
                       <div className="flex items-center gap-2">
-                        <code className="font-mono text-xs text-muted-foreground break-all">
-                          {masked(k.key)}
-                        </code>
-                        <button
-                          onClick={() => copyKey(k.key)}
-                          className="shrink-0 text-xs text-violet-600 hover:text-violet-800"
-                        >
-                          {copied === k.key ? "Copied!" : "Copy"}
-                        </button>
+                        <code className="font-mono text-xs text-muted-foreground break-all">{masked(k.key)}</code>
+                        <button onClick={() => copyKey(k.key)} className="shrink-0 text-xs text-violet-600 hover:text-violet-800">{copied === k.key ? "Copied!" : "Copy"}</button>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <span className="text-xs text-muted-foreground">Scope</span>
-                        <div>
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-muted text-muted-foreground"}`}>
-                            {k.scope}
-                          </span>
-                        </div>
+                        <div><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-muted text-muted-foreground"}`}>{k.scope}</span></div>
                       </div>
                       <div>
                         <span className="text-xs text-muted-foreground">Requests</span>
@@ -514,21 +707,11 @@ heysummon:
                       <div>
                         <span className="text-xs text-muted-foreground">Status</span>
                         <div className="flex items-center gap-1">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                              !k.isActive
-                                ? "bg-red-950/60 text-red-300"
-                                : k.ipEvents?.some((e) => e.status === "allowed")
-                                  ? "bg-green-950/60 text-green-300"
-                                  : "bg-orange-950/60 text-orange-300"
-                            }`}
-                          >
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-950/60 text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-950/60 text-green-300" : "bg-orange-950/60 text-orange-300"}`}>
                             {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
                           </span>
                           {isInGracePeriod(k) && (
-                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-300" title={`Old key valid until ${new Date(k.previousKeyExpiresAt!).toLocaleString()}`}>
-                              Grace
-                            </span>
+                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-300">Grace</span>
                           )}
                         </div>
                       </div>
@@ -544,120 +727,39 @@ heysummon:
                       <div className="flex flex-wrap items-end gap-3">
                         <div>
                           <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
-                          <select
-                            value={editScope}
-                            onChange={(e) => setEditScope(e.target.value)}
-                            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                          >
-                            {SCOPE_OPTIONS.map((s) => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
+                          <select value={editScope} onChange={(e) => setEditScope(e.target.value)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
+                            {SCOPE_OPTIONS.map((s) => (<option key={s} value={s}>{s}</option>))}
                           </select>
                         </div>
                         <div>
                           <label className="mb-1 block text-xs text-muted-foreground">Rate Limit (req/min)</label>
-                          <input
-                            type="number"
-                            value={editRateLimit}
-                            onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)}
-                            min={1}
-                            max={10000}
-                            className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                          />
+                          <input type="number" value={editRateLimit} onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)} min={1} max={10000} className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring" />
                         </div>
-                        <button
-                          onClick={() => saveSettings(k.id)}
-                          disabled={saving}
-                          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                        >
-                          {saving ? "Saving..." : "Save"}
-                        </button>
-                        <button
-                          onClick={() => setSettingsId(null)}
-                          className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground"
-                        >
-                          Cancel
-                        </button>
+                        <button onClick={() => saveSettings(k.id)} disabled={saving} className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
+                        <button onClick={() => setSettingsId(null)} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
                       </div>
                       <div className="mt-4 border-t border-border pt-3">
                         <div className="mb-2 flex items-center justify-between">
                           <p className="text-xs font-medium text-muted-foreground">IP Bindings</p>
                           {k.ipEvents?.length > 0 && (
-                            <button
-                              onClick={async () => {
-                                if (!window.confirm("Reset all IP bindings? The next request will bind a new IP.")) return;
-                                await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" });
-                                loadKeys();
-                              }}
-                              className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40"
-                            >
-                              Reset All Bindings
-                            </button>
+                            <button onClick={async () => { if (!window.confirm("Reset all IP bindings?")) return; await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" }); loadKeys(); }} className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40">Reset All Bindings</button>
                           )}
                         </div>
                         {!k.ipEvents || k.ipEvents.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">No IP bindings yet. The first API request will automatically bind its IP.</p>
+                          <p className="text-xs text-muted-foreground">No IP bindings yet.</p>
                         ) : (
                           <div className="space-y-2">
                             {k.ipEvents.map((evt) => (
                               <div key={evt.id} className="rounded border border-border p-2 text-xs">
                                 <div className="flex items-center justify-between">
                                   <span className="font-mono text-muted-foreground">{evt.ip}</span>
-                                  <span
-                                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                                      evt.status === "allowed"
-                                        ? "bg-green-950/60 text-green-300"
-                                        : evt.status === "pending"
-                                          ? "bg-amber-950/60 text-amber-300"
-                                          : "bg-red-950/60 text-red-300"
-                                    }`}
-                                  >
-                                    {evt.status}
-                                  </span>
+                                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${evt.status === "allowed" ? "bg-green-950/60 text-green-300" : evt.status === "pending" ? "bg-amber-950/60 text-amber-300" : "bg-red-950/60 text-red-300"}`}>{evt.status}</span>
                                 </div>
-                                <div className="mt-1 text-muted-foreground">
-                                  {evt.attempts} attempts &middot; {new Date(evt.lastSeen).toLocaleString()}
-                                </div>
+                                <div className="mt-1 text-muted-foreground">{evt.attempts} attempts · {new Date(evt.lastSeen).toLocaleString()}</div>
                                 <div className="mt-1 flex items-center gap-1">
-                                  {evt.status !== "allowed" && (
-                                    <button
-                                      onClick={async () => {
-                                        await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
-                                          method: "PATCH",
-                                          headers: { "Content-Type": "application/json" },
-                                          body: JSON.stringify({ status: "allowed" }),
-                                        });
-                                        loadKeys();
-                                      }}
-                                      className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50"
-                                    >
-                                      Allow
-                                    </button>
-                                  )}
-                                  {evt.status !== "blacklisted" && (
-                                    <button
-                                      onClick={async () => {
-                                        await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
-                                          method: "PATCH",
-                                          headers: { "Content-Type": "application/json" },
-                                          body: JSON.stringify({ status: "blacklisted" }),
-                                        });
-                                        loadKeys();
-                                      }}
-                                      className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
-                                    >
-                                      Blacklist
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={async () => {
-                                      await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" });
-                                      loadKeys();
-                                    }}
-                                    className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0] hover:text-muted-foreground"
-                                  >
-                                    Remove
-                                  </button>
+                                  {evt.status !== "allowed" && <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "allowed" }) }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50">Allow</button>}
+                                  {evt.status !== "blacklisted" && <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "blacklisted" }) }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50">Blacklist</button>}
+                                  <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0]">Remove</button>
                                 </div>
                               </div>
                             ))}
@@ -668,32 +770,17 @@ heysummon:
                   )}
                   {showInstructions === k.id && (
                     <div className="border-b border-border bg-muted px-4 py-3">
-                      <p className="mb-2 text-xs font-medium text-muted-foreground">
-                        OpenClaw Configuration
-                      </p>
-                      <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400 overflow-x-auto">
-                        {configSnippet(k.key)}
-                      </pre>
-                      <button
-                        onClick={() => copyToClipboard(configSnippet(k.key))}
-                        className="mt-2 text-xs text-violet-600 hover:text-violet-800"
-                      >
-                        Copy snippet
-                      </button>
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">OpenClaw Configuration</p>
+                      <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400 overflow-x-auto">{configSnippet(k.key)}</pre>
+                      <button onClick={() => copyToClipboard(configSnippet(k.key))} className="mt-2 text-xs text-violet-600 hover:text-violet-800">Copy snippet</button>
                       <span className="mx-2 text-gray-400">|</span>
-                      <a
-                        href={`/api/v1/skill-install/${k.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2 text-xs text-blue-600 hover:text-blue-800"
-                      >
-                        Install in OpenClaw →
-                      </a>
+                      <a href={`/api/v1/skill-install/${k.id}`} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-blue-600 hover:text-blue-800">Install in OpenClaw →</a>
                     </div>
                   )}
                 </Fragment>
               ))}
             </div>
+
             {/* Desktop table view */}
             <table className="hidden md:table w-full text-sm">
               <thead>
@@ -711,138 +798,64 @@ heysummon:
               <tbody>
                 {keys.map((k) => (
                   <Fragment key={k.id}>
-                    <tr
-                      className="border-b border-border last:border-0"
-                    >
+                    <tr className="border-b border-border last:border-0">
                       <td className="px-4 py-2.5 font-medium text-foreground">
                         {editingId === k.id ? (
                           <div className="flex items-center gap-1">
-                            <input
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                              onKeyDown={(e) => { if (e.key === "Enter") renameKey(k.id); if (e.key === "Escape") setEditingId(null); }}
-                              className="w-32 rounded border border-border px-2 py-0.5 text-sm outline-none focus:border-ring"
-                              autoFocus
-                            />
+                            <input value={editName} onChange={(e) => setEditName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") renameKey(k.id); if (e.key === "Escape") setEditingId(null); }} className="w-32 rounded border border-border px-2 py-0.5 text-sm outline-none focus:border-ring" autoFocus />
                             <button onClick={() => renameKey(k.id)} className="text-xs text-green-600">OK</button>
                             <button onClick={() => setEditingId(null)} className="text-xs text-muted-foreground">X</button>
                           </div>
                         ) : (
-                          <span
-                            className="cursor-pointer hover:underline"
-                            onClick={() => { setEditingId(k.id); setEditName(k.name || ""); }}
-                            title="Click to rename"
-                          >
-                            {k.name || "Unnamed"}
-                          </span>
+                          <span className="cursor-pointer hover:underline" onClick={() => { setEditingId(k.id); setEditName(k.name || ""); }} title="Click to rename">{k.name || "Unnamed"}</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {k.provider?.name || "-"}
-                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{k.provider?.name || "-"}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
-                          <code className="font-mono text-xs text-muted-foreground">
-                            {masked(k.key)}
-                          </code>
-                          <button
-                            onClick={() => copyKey(k.key)}
-                            className="text-xs text-violet-600 hover:text-violet-800"
-                          >
-                            {copied === k.key ? "Copied!" : "Copy"}
-                          </button>
+                          <code className="font-mono text-xs text-muted-foreground">{masked(k.key)}</code>
+                          <button onClick={() => copyKey(k.key)} className="text-xs text-violet-600 hover:text-violet-800">{copied === k.key ? "Copied!" : "Copy"}</button>
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-muted text-muted-foreground"}`}>
-                          {k.scope}
-                        </span>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-muted text-muted-foreground"}`}>{k.scope}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {k._count.requests}
-                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{k._count.requests}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                              !k.isActive
-                                ? "bg-red-950/60 text-red-300"
-                                : k.ipEvents?.some((e) => e.status === "allowed")
-                                  ? "bg-green-950/60 text-green-300"
-                                  : "bg-orange-950/60 text-orange-300"
-                            }`}
-                          >
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-950/60 text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-950/60 text-green-300" : "bg-orange-950/60 text-orange-300"}`}>
                             {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
                           </span>
                           {isInGracePeriod(k) && (
-                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-300" title={`Old key valid until ${new Date(k.previousKeyExpiresAt!).toLocaleString()}`}>
-                              Grace
-                            </span>
+                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-300" title={`Old key valid until ${new Date(k.previousKeyExpiresAt!).toLocaleString()}`}>Grace</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {new Date(k.createdAt).toLocaleDateString()}
-                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{new Date(k.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-2.5 text-right">
                         <div className="relative inline-block">
-                          <button
-                            onClick={() => setOpenMenuId(openMenuId === k.id ? null : k.id)}
-                            className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                          >
-                            ⋯
-                          </button>
+                          <button onClick={() => setOpenMenuId(openMenuId === k.id ? null : k.id)} className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">⋯</button>
                           {openMenuId === k.id && (
                             <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
-                              <button
-                                onClick={() => { openSettings(k); setOpenMenuId(null); }}
-                                className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                              >
-                                Settings
-                              </button>
-                              <button
-                                onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }}
-                                className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                              >
-                                Share
-                              </button>
+                              <button onClick={() => { openSettings(k); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Settings</button>
+                              <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Share</button>
                               {k.isActive && (
-                                <button
-                                  onClick={() => { rotateKey(k.id); setOpenMenuId(null); }}
-                                  disabled={rotating === k.id}
-                                  className="block w-full px-3 py-1.5 text-left text-xs text-violet-600 hover:bg-muted hover:text-violet-800 disabled:opacity-50"
-                                >
+                                <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-violet-600 hover:bg-muted hover:text-violet-800 disabled:opacity-50">
                                   {rotating === k.id ? "Rotating..." : "Rotate"}
                                 </button>
                               )}
                               {k.isActive ? (
-                                <button
-                                  onClick={() => { deactivate(k.id); setOpenMenuId(null); }}
-                                  className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-muted hover:text-red-400"
-                                >
-                                  Deactivate
-                                </button>
+                                <button onClick={() => { deactivate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-muted hover:text-red-400">Deactivate</button>
                               ) : (
-                                <button
-                                  onClick={() => { activate(k.id); setOpenMenuId(null); }}
-                                  className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800"
-                                >
-                                  Activate
-                                </button>
+                                <button onClick={() => { activate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800">Activate</button>
                               )}
                               <div className="my-1 border-t border-border" />
-                              <button
-                                onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }}
-                                className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300"
-                              >
-                                Delete
-                              </button>
+                              <button onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300">Delete</button>
                             </div>
                           )}
                         </div>
                       </td>
                     </tr>
-                    {/* Settings row */}
                     {settingsId === k.id && (
                       <tr key={`${k.id}-settings`} className="border-b border-border">
                         <td colSpan={8} className="bg-muted px-4 py-3">
@@ -850,57 +863,22 @@ heysummon:
                           <div className="flex flex-wrap items-end gap-3">
                             <div>
                               <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
-                              <select
-                                value={editScope}
-                                onChange={(e) => setEditScope(e.target.value)}
-                                className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                              >
-                                {SCOPE_OPTIONS.map((s) => (
-                                  <option key={s} value={s}>{s}</option>
-                                ))}
+                              <select value={editScope} onChange={(e) => setEditScope(e.target.value)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
+                                {SCOPE_OPTIONS.map((s) => (<option key={s} value={s}>{s}</option>))}
                               </select>
                             </div>
                             <div>
                               <label className="mb-1 block text-xs text-muted-foreground">Rate Limit (req/min)</label>
-                              <input
-                                type="number"
-                                value={editRateLimit}
-                                onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)}
-                                min={1}
-                                max={10000}
-                                className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                              />
+                              <input type="number" value={editRateLimit} onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)} min={1} max={10000} className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring" />
                             </div>
-                            <button
-                              onClick={() => saveSettings(k.id)}
-                              disabled={saving}
-                              className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                            >
-                              {saving ? "Saving..." : "Save"}
-                            </button>
-                            <button
-                              onClick={() => setSettingsId(null)}
-                              className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground"
-                            >
-                              Cancel
-                            </button>
+                            <button onClick={() => saveSettings(k.id)} disabled={saving} className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
+                            <button onClick={() => setSettingsId(null)} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
                           </div>
-
-                          {/* IP Events Section */}
                           <div className="mt-4 border-t border-border pt-3">
                             <div className="mb-2 flex items-center justify-between">
                               <p className="text-xs font-medium text-muted-foreground">IP Bindings</p>
                               {k.ipEvents?.length > 0 && (
-                                <button
-                                  onClick={async () => {
-                                    if (!window.confirm("Reset all IP bindings? The next request will bind a new IP.")) return;
-                                    await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" });
-                                    loadKeys();
-                                  }}
-                                  className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40"
-                                >
-                                  Reset All Bindings
-                                </button>
+                                <button onClick={async () => { if (!window.confirm("Reset all IP bindings?")) return; await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" }); loadKeys(); }} className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40">Reset All Bindings</button>
                               )}
                             </div>
                             {!k.ipEvents || k.ipEvents.length === 0 ? (
@@ -912,7 +890,6 @@ heysummon:
                                     <th className="pb-1 pr-4 font-medium">IP Address</th>
                                     <th className="pb-1 pr-4 font-medium">Status</th>
                                     <th className="pb-1 pr-4 font-medium">Attempts</th>
-                                    <th className="pb-1 pr-4 font-medium">First Seen</th>
                                     <th className="pb-1 pr-4 font-medium">Last Seen</th>
                                     <th className="pb-1 font-medium" />
                                   </tr>
@@ -922,62 +899,15 @@ heysummon:
                                     <tr key={evt.id} className="border-t border-border">
                                       <td className="py-1.5 pr-4 font-mono text-muted-foreground">{evt.ip}</td>
                                       <td className="py-1.5 pr-4">
-                                        <span
-                                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                                            evt.status === "allowed"
-                                              ? "bg-green-950/60 text-green-300"
-                                              : evt.status === "pending"
-                                                ? "bg-amber-950/60 text-amber-300"
-                                                : "bg-red-950/60 text-red-300"
-                                          }`}
-                                        >
-                                          {evt.status}
-                                        </span>
+                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${evt.status === "allowed" ? "bg-green-950/60 text-green-300" : evt.status === "pending" ? "bg-amber-950/60 text-amber-300" : "bg-red-950/60 text-red-300"}`}>{evt.status}</span>
                                       </td>
                                       <td className="py-1.5 pr-4 text-muted-foreground">{evt.attempts}</td>
-                                      <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.firstSeen).toLocaleString()}</td>
                                       <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.lastSeen).toLocaleString()}</td>
                                       <td className="py-1.5 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                          {evt.status !== "allowed" && (
-                                            <button
-                                              onClick={async () => {
-                                                await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
-                                                  method: "PATCH",
-                                                  headers: { "Content-Type": "application/json" },
-                                                  body: JSON.stringify({ status: "allowed" }),
-                                                });
-                                                loadKeys();
-                                              }}
-                                              className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50"
-                                            >
-                                              Allow
-                                            </button>
-                                          )}
-                                          {evt.status !== "blacklisted" && (
-                                            <button
-                                              onClick={async () => {
-                                                await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, {
-                                                  method: "PATCH",
-                                                  headers: { "Content-Type": "application/json" },
-                                                  body: JSON.stringify({ status: "blacklisted" }),
-                                                });
-                                                loadKeys();
-                                              }}
-                                              className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50"
-                                            >
-                                              Blacklist
-                                            </button>
-                                          )}
-                                          <button
-                                            onClick={async () => {
-                                              await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" });
-                                              loadKeys();
-                                            }}
-                                            className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0] hover:text-muted-foreground"
-                                          >
-                                            Remove
-                                          </button>
+                                          {evt.status !== "allowed" && <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "allowed" }) }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50">Allow</button>}
+                                          {evt.status !== "blacklisted" && <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "blacklisted" }) }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50">Blacklist</button>}
+                                          <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0]">Remove</button>
                                         </div>
                                       </td>
                                     </tr>
@@ -992,29 +922,11 @@ heysummon:
                     {showInstructions === k.id && (
                       <tr key={`${k.id}-instructions`} className="border-b border-border">
                         <td colSpan={8} className="bg-muted px-4 py-3">
-                          <p className="mb-2 text-xs font-medium text-muted-foreground">
-                            OpenClaw Configuration
-                          </p>
-                          <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400">
-                            {configSnippet(k.key)}
-                          </pre>
-                          <button
-                            onClick={() =>
-                              copyToClipboard(configSnippet(k.key))
-                            }
-                            className="mt-2 text-xs text-violet-600 hover:text-violet-800"
-                          >
-                            Copy snippet
-                          </button>
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">OpenClaw Configuration</p>
+                          <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400">{configSnippet(k.key)}</pre>
+                          <button onClick={() => copyToClipboard(configSnippet(k.key))} className="mt-2 text-xs text-violet-600 hover:text-violet-800">Copy snippet</button>
                           <span className="mx-2 text-gray-400">|</span>
-                          <a
-                            href={`/api/v1/skill-install/${k.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 text-xs text-blue-600 hover:text-blue-800"
-                          >
-                            Install in OpenClaw →
-                          </a>
+                          <a href={`/api/v1/skill-install/${k.id}`} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-blue-600 hover:text-blue-800">Install in OpenClaw →</a>
                         </td>
                       </tr>
                     )}

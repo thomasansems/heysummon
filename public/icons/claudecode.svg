@@ -1,0 +1,13 @@
+<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="120" rx="24" fill="#1a1a2e"/>
+  <!-- Terminal prompt > -->
+  <path d="M22 60 L42 45 L42 75 Z" fill="#d97706"/>
+  <!-- Cursor block -->
+  <rect x="50" y="50" width="16" height="20" rx="2" fill="#f59e0b"/>
+  <!-- Code lines -->
+  <rect x="72" y="52" width="28" height="4" rx="2" fill="#4b5563"/>
+  <rect x="72" y="62" width="20" height="4" rx="2" fill="#4b5563"/>
+  <!-- Bottom lines -->
+  <rect x="22" y="88" width="76" height="3" rx="1.5" fill="#374151"/>
+  <rect x="22" y="96" width="52" height="3" rx="1.5" fill="#374151"/>
+</svg>

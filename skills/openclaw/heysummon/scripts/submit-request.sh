@@ -110,6 +110,8 @@ RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/help" \
 
 REQUEST_ID=$(echo "$RESPONSE" | jq -r '.requestId // empty')
 REF_CODE=$(echo "$RESPONSE" | jq -r '.refCode // empty')
+PROVIDER_UNAVAILABLE=$(echo "$RESPONSE" | jq -r '.providerUnavailable // false')
+NEXT_AVAILABLE_AT=$(echo "$RESPONSE" | jq -r '.nextAvailableAt // empty')
 
 if [ -z "$REQUEST_ID" ]; then
   echo "❌ Request failed:" >&2
@@ -125,10 +127,44 @@ if [ -n "$RESOLVED_PROVIDER" ]; then
   echo "$RESOLVED_PROVIDER" > "$REQUESTS_DIR/${REQUEST_ID}.provider"
 fi
 
-echo "✅ Request submitted"
-echo "📨 Request ID: $REQUEST_ID"
-echo "🔖 Ref Code: $REF_CODE"
-echo "⏳ Status: pending"
+echo "✅ Your question has been sent to the provider."
+echo "🔖 Ref: $REF_CODE"
+
+# Availability notice
+if [ "$PROVIDER_UNAVAILABLE" = "true" ]; then
+  if [ -n "$NEXT_AVAILABLE_AT" ]; then
+    # Format the ISO timestamp into a human-readable local time
+    HUMAN_TIME=$(node -e "
+      try {
+        const d = new Date(process.argv[1]);
+        const now = new Date();
+        const diffMs = d - now;
+        const diffH = Math.floor(diffMs / 3600000);
+        const diffM = Math.round((diffMs % 3600000) / 60000);
+        const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dateStr = d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+        const today = new Date(); today.setHours(0,0,0,0);
+        const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
+        const dDay = new Date(d); dDay.setHours(0,0,0,0);
+        let when = '';
+        if (dDay.getTime() === today.getTime()) when = 'today at ' + timeStr;
+        else if (dDay.getTime() === tomorrow.getTime()) when = 'tomorrow at ' + timeStr;
+        else when = 'on ' + dateStr + ' at ' + timeStr;
+        if (diffH > 0) when += ' (in ' + diffH + 'h ' + diffM + 'm)';
+        else if (diffM > 0) when += ' (in ' + diffM + 'm)';
+        console.log(when);
+      } catch(e) { console.log(process.argv[1]); }
+    " "$NEXT_AVAILABLE_AT" 2>/dev/null)
+    echo "⚠️  The provider is not available right now."
+    echo "🕐 They will be available ${HUMAN_TIME}."
+    echo "📬 Your request is queued and will be delivered when they come online."
+  else
+    echo "⚠️  The provider is not available right now (no schedule configured)."
+    echo "📬 Your request is queued and will be delivered when they become available."
+  fi
+else
+  echo "⏳ Waiting for provider response..."
+fi
 
 # Sync provider name from platform (update providers.json if name changed)
 if [ -f "$PROVIDERS_FILE" ] && [ -n "$API_KEY" ]; then

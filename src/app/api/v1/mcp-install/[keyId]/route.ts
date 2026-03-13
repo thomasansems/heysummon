@@ -49,19 +49,17 @@ function buildMcpSnippet(baseUrl: string, apiKey: string): string {
   return `# HeySummon MCP — Claude Code setup
 # Run this command to register the HeySummon MCP server:
 
-HEYSUMMON_BASE_URL="${baseUrl}" \\
-HEYSUMMON_API_KEY="${apiKey}" \\
 claude mcp add heysummon \\
   --env HEYSUMMON_BASE_URL="${baseUrl}" \\
   --env HEYSUMMON_API_KEY="${apiKey}" \\
-  -- node $(npm root -g)/@heysummon/claude-code-mcp/index.js
+  -- npx @heysummon/mcp
 
 # Or add manually to ~/.claude/settings.json:
 # {
 #   "mcpServers": {
 #     "heysummon": {
-#       "command": "node",
-#       "args": ["/path/to/heysummon/skills/claudecode/mcp-server/index.js"],
+#       "command": "npx",
+#       "args": ["@heysummon/mcp"],
 #       "env": {
 #         "HEYSUMMON_BASE_URL": "${baseUrl}",
 #         "HEYSUMMON_API_KEY": "${apiKey}"

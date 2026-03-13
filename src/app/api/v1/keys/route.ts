@@ -19,6 +19,8 @@ export async function GET() {
       isActive: true,
       scope: true,
       rateLimitPerMinute: true,
+      clientChannel: true,
+      clientSubChannel: true,
       previousKeyExpiresAt: true,
       createdAt: true,
       machineId: true,
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return parsed.response;
 
   const DEFAULT_RATE_LIMIT = parseInt(process.env.HEYSUMMON_DEFAULT_RATE_LIMIT ?? "150");
-  const { name, providerId, scope, rateLimitPerMinute } = parsed.data;
+  const { name, providerId, scope, rateLimitPerMinute, clientChannel, clientSubChannel } = parsed.data;
 
   if (providerId) {
     const provider = await prisma.userProfile.findFirst({
@@ -71,6 +73,8 @@ export async function POST(request: Request) {
       user: { connect: { id: user.id } },
       ...(scope && { scope }),
       rateLimitPerMinute: rateLimitPerMinute ?? DEFAULT_RATE_LIMIT,
+      ...(clientChannel && { clientChannel }),
+      ...(clientSubChannel && { clientSubChannel }),
       ...(providerId && { provider: { connect: { id: providerId } } }),
     },
   });

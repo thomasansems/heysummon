@@ -51,19 +51,17 @@ Or tell your AI agent:
 
   // Claude Code: MCP snippet
   const mcpSnippet = `# Option 1 — via claude CLI (recommended)
-HEYSUMMON_BASE_URL="${payload.baseUrl}" \\
-HEYSUMMON_API_KEY="${payload.key}" \\
 claude mcp add heysummon \\
   --env HEYSUMMON_BASE_URL="${payload.baseUrl}" \\
   --env HEYSUMMON_API_KEY="${payload.key}" \\
-  -- npx @heysummon/claude-code-mcp
+  -- npx @heysummon/mcp
 
 # Option 2 — manual ~/.claude/settings.json
 {
   "mcpServers": {
     "heysummon": {
       "command": "npx",
-      "args": ["@heysummon/claude-code-mcp"],
+      "args": ["@heysummon/mcp"],
       "env": {
         "HEYSUMMON_BASE_URL": "${payload.baseUrl}",
         "HEYSUMMON_API_KEY": "${payload.key}"
@@ -165,7 +163,7 @@ claude mcp add heysummon \\
               <div className="rounded-lg bg-black p-3">
                 <code className="font-mono text-sm text-green-400">claude mcp list</code>
               </div>
-              <p className="mt-2 text-xs text-zinc-500">You should see <code className="rounded bg-zinc-800 px-1 text-zinc-300">heysummon</code> in the list.</p>
+              <p className="mt-2 text-xs text-zinc-500">You should see <code className="rounded bg-zinc-800 px-1 text-zinc-300">heysummon</code> in the list. Package: <a href="https://www.npmjs.com/package/@heysummon/mcp" target="_blank" rel="noopener noreferrer" className="text-violet-400 underline">@heysummon/mcp</a> on npm.</p>
             </div>
 
             {/* Step 3 */}

@@ -25,6 +25,8 @@ interface ApiKey {
   isActive: boolean;
   scope: string;
   rateLimitPerMinute: number;
+  clientChannel: string | null;
+  clientSubChannel: string | null;
   previousKeyExpiresAt: string | null;
   createdAt: string;
   machineId: string | null;
@@ -32,6 +34,14 @@ interface ApiKey {
   ipEvents: IpEvent[];
   _count: { requests: number };
 }
+
+const channelLabel = (channel: string | null, sub: string | null) => {
+  if (!channel) return null;
+  if (channel === "claudecode") return { icon: "⚡", label: "Claude Code", color: "bg-yellow-950/60 text-yellow-300" };
+  if (channel === "openclaw" && sub === "whatsapp") return { icon: "💬", label: "OpenClaw · WhatsApp", color: "bg-green-950/60 text-green-300" };
+  if (channel === "openclaw") return { icon: "✈️", label: "OpenClaw · Telegram", color: "bg-blue-950/60 text-blue-300" };
+  return null;
+};
 
 type WizardChannel = "openclaw" | "claudecode" | null;
 type WizardSubChannel = "telegram" | "whatsapp" | null;
@@ -57,7 +67,9 @@ export default function ClientsPage() {
   const [editName, setEditName] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [editScope, setEditScope] = useState("full");
-  const [editRateLimit, setEditRateLimit] = useState(100);
+  const [editRateLimit, setEditRateLimit] = useState(150);
+  const [editChannel, setEditChannel] = useState<string | null>(null);
+  const [editSubChannel, setEditSubChannel] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [rotating, setRotating] = useState<string | null>(null);
   const [rotationResult, setRotationResult] = useState<{ key: string; deviceSecret: string; expiresAt: string } | null>(null);
@@ -143,6 +155,8 @@ export default function ClientsPage() {
         providerId: wizardProviderId,
         scope: "full",
         rateLimitPerMinute: DEFAULT_RATE_LIMIT,
+        clientChannel: wizardChannel,
+        clientSubChannel: wizardSubChannel ?? undefined,
       }),
     });
 
@@ -221,6 +235,8 @@ export default function ClientsPage() {
       body: JSON.stringify({
         scope: editScope,
         rateLimitPerMinute: editRateLimit,
+        clientChannel: editChannel,
+        clientSubChannel: editSubChannel,
       }),
     });
     setSaving(false);
@@ -236,6 +252,8 @@ export default function ClientsPage() {
     setSettingsId(k.id);
     setEditScope(k.scope);
     setEditRateLimit(k.rateLimitPerMinute);
+    setEditChannel(k.clientChannel);
+    setEditSubChannel(k.clientSubChannel);
   };
 
   const copyKey = (key: string) => {
@@ -709,6 +727,24 @@ export default function ClientsPage() {
                       <p className="mb-2 text-xs font-medium text-muted-foreground">Key Settings</p>
                       <div className="flex flex-wrap items-end gap-3">
                         <div>
+                          <label className="mb-1 block text-xs text-muted-foreground">Channel</label>
+                          <select value={editChannel ?? ""} onChange={(e) => { setEditChannel(e.target.value || null); setEditSubChannel(null); }} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
+                            <option value="">— not set —</option>
+                            <option value="openclaw">OpenClaw</option>
+                            <option value="claudecode">Claude Code</option>
+                          </select>
+                        </div>
+                        {editChannel === "openclaw" && (
+                          <div>
+                            <label className="mb-1 block text-xs text-muted-foreground">Platform</label>
+                            <select value={editSubChannel ?? ""} onChange={(e) => setEditSubChannel(e.target.value || null)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
+                              <option value="">— select —</option>
+                              <option value="telegram">Telegram</option>
+                              <option value="whatsapp">WhatsApp</option>
+                            </select>
+                          </div>
+                        )}
+                        <div>
                           <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
                           <select value={editScope} onChange={(e) => setEditScope(e.target.value)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
                             {SCOPE_OPTIONS.map((s) => (<option key={s} value={s}>{s}</option>))}
@@ -716,7 +752,7 @@ export default function ClientsPage() {
                         </div>
                         <div>
                           <label className="mb-1 block text-xs text-muted-foreground">Rate Limit (req/min)</label>
-                          <input type="number" value={editRateLimit} onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)} min={1} max={10000} className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring" />
+                          <input type="number" value={editRateLimit} onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 150)} min={1} max={10000} className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring" />
                         </div>
                         <button onClick={() => saveSettings(k.id)} disabled={saving} className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
                         <button onClick={() => setSettingsId(null)} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
@@ -793,15 +829,15 @@ export default function ClientsPage() {
                           <span className="cursor-pointer hover:underline" onClick={() => { setEditingId(k.id); setEditName(k.name || ""); }} title="Click to rename">{k.name || "Unnamed"}</span>
                         )}
                       </td>
+                      <td className="px-4 py-2.5">
+                        {(() => { const ch = channelLabel(k.clientChannel, k.clientSubChannel); return ch ? <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${ch.color}`}><span>{ch.icon}</span>{ch.label}</span> : <span className="text-xs text-muted-foreground">—</span>; })()}
+                      </td>
                       <td className="px-4 py-2.5 text-muted-foreground">{k.provider?.name || "-"}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <code className="font-mono text-xs text-muted-foreground">{masked(k.key)}</code>
                           <button onClick={() => copyKey(k.key)} className="text-xs text-violet-600 hover:text-violet-800">{copied === k.key ? "Copied!" : "Copy"}</button>
                         </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-muted text-muted-foreground"}`}>{k.scope}</span>
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">{k._count.requests}</td>
                       <td className="px-4 py-2.5">
@@ -845,6 +881,24 @@ export default function ClientsPage() {
                           <p className="mb-2 text-xs font-medium text-muted-foreground">Key Settings</p>
                           <div className="flex flex-wrap items-end gap-3">
                             <div>
+                              <label className="mb-1 block text-xs text-muted-foreground">Channel</label>
+                              <select value={editChannel ?? ""} onChange={(e) => { setEditChannel(e.target.value || null); setEditSubChannel(null); }} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
+                                <option value="">— not set —</option>
+                                <option value="openclaw">OpenClaw</option>
+                                <option value="claudecode">Claude Code</option>
+                              </select>
+                            </div>
+                            {editChannel === "openclaw" && (
+                              <div>
+                                <label className="mb-1 block text-xs text-muted-foreground">Platform</label>
+                                <select value={editSubChannel ?? ""} onChange={(e) => setEditSubChannel(e.target.value || null)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
+                                  <option value="">— select —</option>
+                                  <option value="telegram">Telegram</option>
+                                  <option value="whatsapp">WhatsApp</option>
+                                </select>
+                              </div>
+                            )}
+                            <div>
                               <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
                               <select value={editScope} onChange={(e) => setEditScope(e.target.value)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
                                 {SCOPE_OPTIONS.map((s) => (<option key={s} value={s}>{s}</option>))}
@@ -852,7 +906,7 @@ export default function ClientsPage() {
                             </div>
                             <div>
                               <label className="mb-1 block text-xs text-muted-foreground">Rate Limit (req/min)</label>
-                              <input type="number" value={editRateLimit} onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 100)} min={1} max={10000} className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring" />
+                              <input type="number" value={editRateLimit} onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 150)} min={1} max={10000} className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring" />
                             </div>
                             <button onClick={() => saveSettings(k.id)} disabled={saving} className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
                             <button onClick={() => setSettingsId(null)} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>

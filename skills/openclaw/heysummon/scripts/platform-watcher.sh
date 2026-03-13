@@ -202,22 +202,28 @@ process_event() {
       # Build a rich wake message for the agent to act on
       WAKE_TEXT="HeySummon antwoord ontvangen. $MSG"
       if [ -n "$RESPONSE_TEXT" ] && [ -n "$EVENT_REQ_ID" ]; then
-        # Fetch original question from HeySummon (server decrypts it)
-        ORIGINAL_QUESTION=$(curl -s "${BASE_URL}/api/v1/requests/by-ref/${FILE_REF:-$EVENT_REQ_ID}" \
-          -H "x-api-key: ${API_KEY}" 2>/dev/null | \
+        # Fetch original question + provider name from HeySummon
+        REQ_DATA=$(curl -s "${BASE_URL}/api/v1/requests/by-ref/${FILE_REF:-$EVENT_REQ_ID}" \
+          -H "x-api-key: ${API_KEY}" 2>/dev/null)
+        
+        ORIGINAL_QUESTION=$(echo "$REQ_DATA" | \
           node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.question||'')}catch(e){console.log('')}})" 2>/dev/null)
+        
+        PROVIDER_NAME=$(echo "$REQ_DATA" | \
+          node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);console.log(j.provider?.name||j.providerName||'de provider')}catch(e){console.log('de provider')}})" 2>/dev/null)
 
         WAKE_TEXT=$(node -e "
           const ref = process.argv[1];
           const q = process.argv[2];
           const ans = process.argv[3];
-          let msg = '📩 ' + ref + ' — Antwoord ontvangen van de provider!';
+          const provider = process.argv[4];
+          let msg = '📩 ' + ref + ' — ' + provider + ' antwoordde!';
           if (q) msg += '\n\nJouw vraag was: ' + q;
-          msg += '\n\nProvider antwoordde: ' + ans;
+          msg += '\n\nAntwoord: ' + ans;
           msg += '\n\n**In je reactie: begin altijd met \"📩 ' + ref + '\" zodat het duidelijk is welke vraag je beantwoordt.**';
           msg += '\n\nGa nu verder op basis van dit antwoord.';
           console.log(msg);
-        " "$FILE_REF" "$ORIGINAL_QUESTION" "$RESPONSE_TEXT" 2>/dev/null)
+        " "$FILE_REF" "$ORIGINAL_QUESTION" "$RESPONSE_TEXT" "$PROVIDER_NAME" 2>/dev/null)
       fi
 
       send_notification "$MSG" "$WAKE_TEXT"

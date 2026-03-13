@@ -118,6 +118,7 @@ export default function ClientsPage() {
   const [wizardName, setWizardName] = useState("");
   const [wizardProviderId, setWizardProviderId] = useState("");
   const [wizardCreating, setWizardCreating] = useState(false);
+  const [wizardError, setWizardError] = useState<string | null>(null);
   const [wizardResult, setWizardResult] = useState<{ keyId: string; key: string; setupUrl: string; expiresAt: string } | null>(null);
 
   const loadKeys = () =>
@@ -157,6 +158,7 @@ export default function ClientsPage() {
     setWizardSubChannel(null);
     setWizardName("");
     setWizardProviderId("");
+    setWizardError(null);
     setWizardResult(null);
   };
 
@@ -196,8 +198,22 @@ export default function ClientsPage() {
       }),
     });
 
+    if (!keyRes.ok) {
+      const errText = await keyRes.text().catch(() => "");
+      const errData = errText ? JSON.parse(errText) : {};
+      setWizardError(errData.error || `Failed to create key (${keyRes.status})`);
+      setWizardCreating(false);
+      return;
+    }
+
     const keyData = await keyRes.json();
-    const keyId: string = keyData.id || keyData.key?.id;
+    const keyId: string = keyData.key?.id ?? keyData.id;
+
+    if (!keyId) {
+      setWizardError("Unexpected response from server — no key ID returned");
+      setWizardCreating(false);
+      return;
+    }
 
     // Generate temporary setup link (10 min expiry)
     const linkRes = await fetch("/api/v1/setup-link", {
@@ -209,6 +225,14 @@ export default function ClientsPage() {
         subChannel: wizardSubChannel,
       }),
     });
+
+    if (!linkRes.ok) {
+      setWizardError("Key created, but failed to generate setup link. Use 'Share' from the client menu.");
+      setWizardCreating(false);
+      setWizardStep(3);
+      loadKeys();
+      return;
+    }
 
     const linkData = await linkRes.json();
 
@@ -458,6 +482,9 @@ export default function ClientsPage() {
                     {wizardCreating ? "Creating..." : "Create Client"}
                   </button>
                 </div>
+                {wizardError && (
+                  <p className="mt-2 text-xs text-red-500">{wizardError}</p>
+                )}
               </div>
             </div>
           )}

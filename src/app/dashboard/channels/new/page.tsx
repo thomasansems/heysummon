@@ -186,7 +186,7 @@ export default function NewChannelPage() {
             {profiles.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No user profiles yet.{" "}
-                <a href="/dashboard/providers" className="text-violet-600 hover:text-violet-800">
+                <a href="/dashboard/providers" className="text-orange-600 hover:text-orange-800">
                   Create one
                 </a>{" "}
                 first.
@@ -240,7 +240,7 @@ export default function NewChannelPage() {
                         href="https://t.me/BotFather"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-violet-600 hover:text-violet-800"
+                        className="text-orange-600 hover:text-orange-800"
                       >
                         @BotFather
                       </a>{" "}

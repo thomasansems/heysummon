@@ -69,7 +69,7 @@ function AvailabilityPanel({
           type="button"
           onClick={onToggle}
           className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${
-            enabled ? "bg-violet-600" : "bg-zinc-600 dark:bg-zinc-500"
+            enabled ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
           }`}
           aria-pressed={enabled}
         >
@@ -92,14 +92,14 @@ function AvailabilityPanel({
                 type="time"
                 value={from}
                 onChange={(e) => onFromChange(e.target.value)}
-                className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-violet-500"
+                className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-orange-500"
               />
               <span className="text-xs text-muted-foreground">to</span>
               <input
                 type="time"
                 value={until}
                 onChange={(e) => onUntilChange(e.target.value)}
-                className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-violet-500"
+                className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-orange-500"
               />
             </div>
           </div>
@@ -117,8 +117,8 @@ function AvailabilityPanel({
                     onClick={() => toggleDay(i)}
                     className={`flex h-8 w-9 items-center justify-center rounded-md text-xs font-medium transition-colors ${
                       active
-                        ? "bg-violet-600 text-white"
-                        : "border border-border bg-card text-muted-foreground hover:border-violet-400 hover:text-foreground"
+                        ? "bg-orange-600 text-white"
+                        : "border border-border bg-card text-muted-foreground hover:border-orange-400 hover:text-foreground"
                     }`}
                   >
                     {label.slice(0, 2)}
@@ -363,7 +363,7 @@ export default function ProvidersPage() {
                       {/* OpenClaw */}
                       <button
                         onClick={() => setWizardChannel("openclaw")}
-                        className={`rounded-lg border p-4 text-left transition-colors ${wizardChannel === "openclaw" ? "border-violet-600 bg-violet-950/30" : "border-border hover:border-muted-foreground"}`}
+                        className={`rounded-lg border p-4 text-left transition-colors ${wizardChannel === "openclaw" ? "border-orange-600 bg-orange-100/80 dark:bg-orange-950/30" : "border-border hover:border-muted-foreground"}`}
                       >
                         <div className="mb-2 flex items-center gap-2">
                           <img src="/icons/openclaw.svg" alt="OpenClaw" className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
@@ -397,21 +397,21 @@ export default function ProvidersPage() {
                         className="w-full rounded-md border border-border bg-background px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
                       />
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Get a token from <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">@BotFather</a> on Telegram. Send <code className="rounded bg-muted px-1">/newbot</code> and copy the token.
+                        Get a token from <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">@BotFather</a> on Telegram. Send <code className="rounded bg-muted px-1">/newbot</code> and copy the token.
                       </p>
                     </div>
                   )}
 
                   {/* OpenClaw info */}
                   {wizardChannel === "openclaw" && (
-                    <div className="rounded-lg border border-violet-800 bg-violet-950/20 p-3 text-xs text-violet-300">
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20 p-3 text-xs text-orange-700 dark:text-orange-300">
                       <p className="mb-1 font-medium">How OpenClaw works:</p>
-                      <ol className="list-decimal list-inside space-y-1 text-violet-400">
+                      <ol className="list-decimal list-inside space-y-1 text-orange-700 dark:text-orange-400">
                         <li>A provider key will be generated after creation</li>
                         <li>Install the HeySummon provider skill from <a href="https://clawhub.ai/thomasansems/heysummon-provider" target="_blank" rel="noopener noreferrer" className="underline">clawhub.ai</a></li>
                         <li>Configure it with your provider key — done!</li>
                       </ol>
-                      <p className="mt-2 text-violet-500">Help requests will arrive as messages in your OpenClaw chat (Telegram or WhatsApp).</p>
+                      <p className="mt-2 text-orange-500">Help requests will arrive as messages in your OpenClaw chat (Telegram or WhatsApp).</p>
                     </div>
                   )}
 
@@ -455,7 +455,7 @@ export default function ProvidersPage() {
                         <p className="text-zinc-400 mb-1">Your provider key:</p>
                         <div className="flex items-center gap-2">
                           <code className="text-green-400 break-all">{wizardResult.providerKey}</code>
-                          <button onClick={() => { copyToClipboard(wizardResult.providerKey); setCopied(wizardResult.providerKey); setTimeout(() => setCopied(null), 2000); }} className="shrink-0 text-violet-400 hover:text-violet-300">{copied === wizardResult.providerKey ? "Copied!" : "Copy"}</button>
+                          <button onClick={() => { copyToClipboard(wizardResult.providerKey); setCopied(wizardResult.providerKey); setTimeout(() => setCopied(null), 2000); }} className="shrink-0 text-orange-400 hover:text-orange-300">{copied === wizardResult.providerKey ? "Copied!" : "Copy"}</button>
                         </div>
                       </div>
                       <div>
@@ -476,7 +476,7 @@ export default function ProvidersPage() {
                       </div>
                       <div>
                         <p className="mb-1 text-muted-foreground font-medium">Activate the bot</p>
-                        <p className="text-zinc-400">Open your Telegram bot and send <code className="rounded bg-zinc-800 px-1 text-zinc-300">/start</code> — the bot will bind to your chat ID automatically.</p>
+                        <p className="text-zinc-400">Open your Telegram bot and send <code className="rounded bg-muted px-1 text-foreground">/start</code> — the bot will bind to your chat ID automatically.</p>
                       </div>
                     </div>
                   </div>
@@ -615,7 +615,7 @@ export default function ProvidersPage() {
                           <div className="my-1 border-t border-border" />
                           <button
                             onClick={() => { deleteProvider(p.id, p.name); setOpenMenuId(null); }}
-                            className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300"
+                            className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                           >
                             Delete
                           </button>
@@ -630,7 +630,7 @@ export default function ProvidersPage() {
                       <code className="font-mono text-xs text-muted-foreground break-all">{masked(p.key)}</code>
                       <button
                         onClick={() => copyKey(p.key)}
-                        className="shrink-0 text-xs text-violet-600 hover:text-violet-800"
+                        className="shrink-0 text-xs text-orange-600 hover:text-orange-800"
                       >
                         {copied === p.key ? "Copied!" : "Copy"}
                       </button>
@@ -648,10 +648,10 @@ export default function ProvidersPage() {
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                             !p.isActive
-                              ? "bg-red-950/60 text-red-300"
+                              ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                               : p.ipEvents?.some((e) => e.status === "allowed")
-                                ? "bg-green-950/60 text-green-300"
-                                : "bg-orange-950/60 text-orange-300"
+                                ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
+                                : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"
                           }`}
                         >
                           {!p.isActive
@@ -791,10 +791,10 @@ export default function ProvidersPage() {
                                     <span
                                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                                         evt.status === "allowed"
-                                          ? "bg-green-950/60 text-green-300"
+                                          ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
                                           : evt.status === "pending"
-                                            ? "bg-amber-950/60 text-amber-300"
-                                            : "bg-red-950/60 text-red-300"
+                                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                                            : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                                       }`}
                                     >
                                       {evt.status}
@@ -907,7 +907,7 @@ export default function ProvidersPage() {
                         <code className="font-mono text-xs text-muted-foreground">{masked(p.key)}</code>
                         <button
                           onClick={() => copyKey(p.key)}
-                          className="text-xs text-violet-600 hover:text-violet-800"
+                          className="text-xs text-orange-600 hover:text-orange-800"
                         >
                           {copied === p.key ? "Copied!" : "Copy"}
                         </button>
@@ -920,10 +920,10 @@ export default function ProvidersPage() {
                       <span
                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                           !p.isActive
-                            ? "bg-red-950/60 text-red-300"
+                            ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                             : p.ipEvents?.some((e) => e.status === "allowed")
-                              ? "bg-green-950/60 text-green-300"
-                              : "bg-orange-950/60 text-orange-300"
+                              ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
+                              : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"
                         }`}
                       >
                         {!p.isActive
@@ -972,7 +972,7 @@ export default function ProvidersPage() {
                             <div className="my-1 border-t border-border" />
                             <button
                               onClick={() => { deleteProvider(p.id, p.name); setOpenMenuId(null); }}
-                              className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300"
+                              className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                             >
                               Delete
                             </button>
@@ -1103,10 +1103,10 @@ export default function ProvidersPage() {
                                       <span
                                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                                           evt.status === "allowed"
-                                            ? "bg-green-950/60 text-green-300"
+                                            ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
                                             : evt.status === "pending"
-                                              ? "bg-amber-950/60 text-amber-300"
-                                              : "bg-red-950/60 text-red-300"
+                                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                                              : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                                         }`}
                                       >
                                         {evt.status}

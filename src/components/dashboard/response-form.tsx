@@ -78,14 +78,14 @@ export function ResponseForm({
         placeholder="Write a response the user can forward to their AI..."
         rows={6}
         disabled={!canRespond}
-        className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500 disabled:opacity-50"
+        className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500 disabled:opacity-50"
       />
 
       <div className="mt-3 flex justify-end">
         <button
           type="submit"
           disabled={sending || !response.trim() || !canRespond}
-          className="rounded-lg bg-violet-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+          className="rounded-lg bg-orange-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
         >
           {sending ? "Sending..." : "Send Response"}
         </button>

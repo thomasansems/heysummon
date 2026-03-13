@@ -37,9 +37,9 @@ interface ApiKey {
 
 const channelLabel = (channel: string | null, sub: string | null) => {
   if (!channel) return null;
-  if (channel === "claudecode") return { label: "Claude Code", color: "bg-yellow-950/60 text-yellow-300" };
-  if (channel === "openclaw" && sub === "whatsapp") return { label: "OpenClaw · WhatsApp", color: "bg-green-950/60 text-green-300" };
-  if (channel === "openclaw") return { label: "OpenClaw · Telegram", color: "bg-blue-950/60 text-blue-300" };
+  if (channel === "claudecode") return { label: "Claude Code", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300" };
+  if (channel === "openclaw" && sub === "whatsapp") return { label: "OpenClaw · WhatsApp", color: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" };
+  if (channel === "openclaw") return { label: "OpenClaw · Telegram", color: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" };
   return null;
 };
 
@@ -87,10 +87,10 @@ type WizardStep = 0 | 1 | 2 | 3; // 0=closed, 1=channel, 2=details, 3=done
 const SCOPE_OPTIONS = ["full", "read", "write", "admin"] as const;
 
 const scopeBadgeColors: Record<string, string> = {
-  full: "bg-blue-950/60 text-blue-300",
-  read: "bg-green-950/60 text-green-300",
-  write: "bg-amber-950/60 text-amber-300",
-  admin: "bg-purple-950/60 text-purple-300",
+  full: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+  read: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300",
+  write: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
+  admin: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300",
 };
 
 export default function ClientsPage() {
@@ -365,7 +365,7 @@ export default function ClientsPage() {
                       ch.disabled
                         ? "cursor-not-allowed opacity-50 border-border"
                         : wizardChannel === ch.id
-                          ? "border-violet-600 bg-violet-950/30"
+                          ? "border-orange-600 bg-orange-100/80 dark:bg-orange-950/30"
                           : "border-border hover:border-muted-foreground"
                     }`}
                   >
@@ -392,7 +392,7 @@ export default function ClientsPage() {
                         onClick={() => setWizardSubChannel(p.id)}
                         className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
                           wizardSubChannel === p.id
-                            ? "border-violet-600 bg-violet-950/30"
+                            ? "border-orange-600 bg-orange-100/80 dark:bg-orange-950/30"
                             : "border-border hover:border-muted-foreground"
                         }`}
                       >
@@ -447,7 +447,7 @@ export default function ClientsPage() {
                   {providers.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       No providers yet.{" "}
-                      <a href="/dashboard/providers" className="text-violet-600 hover:text-violet-800">Create one first</a>.
+                      <a href="/dashboard/providers" className="text-orange-600 hover:text-orange-800">Create one first</a>.
                     </p>
                   ) : (
                     <select
@@ -498,7 +498,7 @@ export default function ClientsPage() {
               </div>
 
               {/* Expiry warning */}
-              <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-700 bg-amber-950/30 px-3 py-2 text-xs text-amber-400">
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
                 <span>⏱</span>
                 <span>
                   This setup link expires at{" "}
@@ -558,7 +558,7 @@ export default function ClientsPage() {
                 <div
                   key={s}
                   className={`h-1.5 w-8 rounded-full transition-colors ${
-                    s <= wizardStep ? "bg-violet-600" : "bg-muted"
+                    s <= wizardStep ? "bg-orange-600" : "bg-muted"
                   }`}
                 />
               ))}
@@ -587,14 +587,14 @@ export default function ClientsPage() {
               <label className="text-xs font-medium text-amber-300">New API Key</label>
               <div className="flex items-center gap-2">
                 <code className="block rounded bg-card px-2 py-1 font-mono text-xs text-foreground">{rotationResult.key}</code>
-                <button onClick={() => copyKey(rotationResult.key)} className="text-xs text-violet-600 hover:text-violet-800">Copy</button>
+                <button onClick={() => copyKey(rotationResult.key)} className="text-xs text-orange-600 hover:text-orange-800">Copy</button>
               </div>
             </div>
             <div>
               <label className="text-xs font-medium text-amber-300">New Device Secret</label>
               <div className="flex items-center gap-2">
                 <code className="block rounded bg-card px-2 py-1 font-mono text-xs text-foreground">{rotationResult.deviceSecret}</code>
-                <button onClick={() => copyKey(rotationResult.deviceSecret)} className="text-xs text-violet-600 hover:text-violet-800">Copy</button>
+                <button onClick={() => copyKey(rotationResult.deviceSecret)} className="text-xs text-orange-600 hover:text-orange-800">Copy</button>
               </div>
             </div>
           </div>
@@ -719,7 +719,7 @@ export default function ClientsPage() {
                             <button onClick={() => { openSettings(k); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Settings</button>
                             <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Share</button>
                             {k.isActive && (
-                              <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-violet-600 hover:bg-muted hover:text-violet-800 disabled:opacity-50">
+                              <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-orange-600 hover:bg-muted hover:text-orange-800 disabled:opacity-50">
                                 {rotating === k.id ? "Rotating..." : "Rotate"}
                               </button>
                             )}
@@ -729,7 +729,7 @@ export default function ClientsPage() {
                               <button onClick={() => { activate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800">Activate</button>
                             )}
                             <div className="my-1 border-t border-border" />
-                            <button onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300">Delete</button>
+                            <button onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300">Delete</button>
                           </div>
                         )}
                       </div>
@@ -746,7 +746,7 @@ export default function ClientsPage() {
                       <span className="text-xs text-muted-foreground">Key</span>
                       <div className="flex items-center gap-2">
                         <code className="font-mono text-xs text-muted-foreground break-all">{masked(k.key)}</code>
-                        <button onClick={() => copyKey(k.key)} className="shrink-0 text-xs text-violet-600 hover:text-violet-800">{copied === k.key ? "Copied!" : "Copy"}</button>
+                        <button onClick={() => copyKey(k.key)} className="shrink-0 text-xs text-orange-600 hover:text-orange-800">{copied === k.key ? "Copied!" : "Copy"}</button>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -761,7 +761,7 @@ export default function ClientsPage() {
                       <div>
                         <span className="text-xs text-muted-foreground">Status</span>
                         <div className="flex items-center gap-1">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-950/60 text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-950/60 text-green-300" : "bg-orange-950/60 text-orange-300"}`}>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"}`}>
                             {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
                           </span>
                           {isInGracePeriod(k) && (
@@ -825,7 +825,7 @@ export default function ClientsPage() {
                               <div key={evt.id} className="rounded border border-border p-2 text-xs">
                                 <div className="flex items-center justify-between">
                                   <span className="font-mono text-muted-foreground">{evt.ip}</span>
-                                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${evt.status === "allowed" ? "bg-green-950/60 text-green-300" : evt.status === "pending" ? "bg-amber-950/60 text-amber-300" : "bg-red-950/60 text-red-300"}`}>{evt.status}</span>
+                                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${evt.status === "allowed" ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : evt.status === "pending" ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300" : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"}`}>{evt.status}</span>
                                 </div>
                                 <div className="mt-1 text-muted-foreground">{evt.attempts} attempts · {new Date(evt.lastSeen).toLocaleString()}</div>
                                 <div className="mt-1 flex items-center gap-1">
@@ -844,7 +844,7 @@ export default function ClientsPage() {
                     <div className="border-b border-border bg-muted px-4 py-3">
                       <p className="mb-2 text-xs font-medium text-muted-foreground">OpenClaw Configuration</p>
                       <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400 overflow-x-auto">{configSnippet(k.key)}</pre>
-                      <button onClick={() => copyToClipboard(configSnippet(k.key))} className="mt-2 text-xs text-violet-600 hover:text-violet-800">Copy snippet</button>
+                      <button onClick={() => copyToClipboard(configSnippet(k.key))} className="mt-2 text-xs text-orange-600 hover:text-orange-800">Copy snippet</button>
                       <span className="mx-2 text-gray-400">|</span>
                       <a href={`/api/v1/skill-install/${k.id}`} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-blue-600 hover:text-blue-800">Install in OpenClaw →</a>
                     </div>
@@ -889,13 +889,13 @@ export default function ClientsPage() {
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <code className="font-mono text-xs text-muted-foreground">{masked(k.key)}</code>
-                          <button onClick={() => copyKey(k.key)} className="text-xs text-violet-600 hover:text-violet-800">{copied === k.key ? "Copied!" : "Copy"}</button>
+                          <button onClick={() => copyKey(k.key)} className="text-xs text-orange-600 hover:text-orange-800">{copied === k.key ? "Copied!" : "Copy"}</button>
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">{k._count.requests}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-950/60 text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-950/60 text-green-300" : "bg-orange-950/60 text-orange-300"}`}>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"}`}>
                             {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
                           </span>
                           {isInGracePeriod(k) && (
@@ -912,7 +912,7 @@ export default function ClientsPage() {
                               <button onClick={() => { openSettings(k); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Settings</button>
                               <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Share</button>
                               {k.isActive && (
-                                <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-violet-600 hover:bg-muted hover:text-violet-800 disabled:opacity-50">
+                                <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-orange-600 hover:bg-muted hover:text-orange-800 disabled:opacity-50">
                                   {rotating === k.id ? "Rotating..." : "Rotate"}
                                 </button>
                               )}
@@ -922,7 +922,7 @@ export default function ClientsPage() {
                                 <button onClick={() => { activate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800">Activate</button>
                               )}
                               <div className="my-1 border-t border-border" />
-                              <button onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300">Delete</button>
+                              <button onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300">Delete</button>
                             </div>
                           )}
                         </div>
@@ -989,7 +989,7 @@ export default function ClientsPage() {
                                     <tr key={evt.id} className="border-t border-border">
                                       <td className="py-1.5 pr-4 font-mono text-muted-foreground">{evt.ip}</td>
                                       <td className="py-1.5 pr-4">
-                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${evt.status === "allowed" ? "bg-green-950/60 text-green-300" : evt.status === "pending" ? "bg-amber-950/60 text-amber-300" : "bg-red-950/60 text-red-300"}`}>{evt.status}</span>
+                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${evt.status === "allowed" ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : evt.status === "pending" ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300" : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"}`}>{evt.status}</span>
                                       </td>
                                       <td className="py-1.5 pr-4 text-muted-foreground">{evt.attempts}</td>
                                       <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.lastSeen).toLocaleString()}</td>
@@ -1014,7 +1014,7 @@ export default function ClientsPage() {
                         <td colSpan={8} className="bg-muted px-4 py-3">
                           <p className="mb-2 text-xs font-medium text-muted-foreground">OpenClaw Configuration</p>
                           <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400">{configSnippet(k.key)}</pre>
-                          <button onClick={() => copyToClipboard(configSnippet(k.key))} className="mt-2 text-xs text-violet-600 hover:text-violet-800">Copy snippet</button>
+                          <button onClick={() => copyToClipboard(configSnippet(k.key))} className="mt-2 text-xs text-orange-600 hover:text-orange-800">Copy snippet</button>
                           <span className="mx-2 text-gray-400">|</span>
                           <a href={`/api/v1/skill-install/${k.id}`} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-blue-600 hover:text-blue-800">Install in OpenClaw →</a>
                         </td>

@@ -15,7 +15,7 @@ export function ModeToggle({ mode, onToggle }: ModeToggleProps) {
         animate={{ opacity: 1, y: 0 }}
         className={`flex items-center gap-1 rounded-full p-1 shadow-lg backdrop-blur-md ${
           mode === "ai"
-            ? "border border-violet-500/30 bg-zinc-900/90"
+            ? "border border-orange-500/30 bg-zinc-900/90"
             : "border border-amber-200/30 bg-white/90"
         }`}
       >
@@ -23,7 +23,7 @@ export function ModeToggle({ mode, onToggle }: ModeToggleProps) {
           onClick={() => onToggle("ai")}
           className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-all ${
             mode === "ai"
-              ? "bg-violet-600 text-white shadow-md"
+              ? "bg-orange-600 text-white shadow-md"
               : "text-zinc-500 hover:text-zinc-700"
           }`}
         >

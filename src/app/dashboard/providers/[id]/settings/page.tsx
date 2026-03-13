@@ -138,7 +138,7 @@ export default function ProviderSettingsPage() {
               type="button"
               onClick={() => setAvailEnabled((v) => !v)}
               className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${
-                availEnabled ? "bg-violet-600" : "bg-zinc-600 dark:bg-zinc-500"
+                availEnabled ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
               }`}
               aria-pressed={availEnabled}
             >
@@ -154,10 +154,10 @@ export default function ProviderSettingsPage() {
                 <p className="mb-2 text-xs font-medium text-muted-foreground">Hours</p>
                 <div className="flex items-center gap-3">
                   <input type="time" value={availFrom} onChange={(e) => setAvailFrom(e.target.value)}
-                    className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-violet-500" />
+                    className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-orange-500" />
                   <span className="text-sm text-muted-foreground">to</span>
                   <input type="time" value={availUntil} onChange={(e) => setAvailUntil(e.target.value)}
-                    className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-violet-500" />
+                    className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-orange-500" />
                 </div>
               </div>
 
@@ -174,8 +174,8 @@ export default function ProviderSettingsPage() {
                         onClick={() => toggleDay(i)}
                         className={`flex h-9 w-10 items-center justify-center rounded-md text-xs font-semibold transition-colors ${
                           active
-                            ? "bg-violet-600 text-white"
-                            : "border border-border bg-card text-muted-foreground hover:border-violet-400 hover:text-foreground"
+                            ? "bg-orange-600 text-white"
+                            : "border border-border bg-card text-muted-foreground hover:border-orange-400 hover:text-foreground"
                         }`}
                       >
                         {label.slice(0, 2)}
@@ -213,7 +213,7 @@ export default function ProviderSettingsPage() {
             <button
               type="button"
               onClick={() => setTaglineEnabled((v) => !v)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${taglineEnabled ? "bg-violet-600" : "bg-zinc-600 dark:bg-zinc-500"}`}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${taglineEnabled ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"}`}
               aria-pressed={taglineEnabled}
             >
               <span className="sr-only">{taglineEnabled ? "Enabled" : "Disabled"}</span>

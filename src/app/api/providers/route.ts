@@ -28,7 +28,7 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
       },
     },
-    orderBy: { createdAt: "desc" } as Parameters<typeof prisma.userProfile.findMany>[0]["orderBy"],
+    orderBy: { createdAt: "desc" },
   });
 
   return NextResponse.json({ providers });

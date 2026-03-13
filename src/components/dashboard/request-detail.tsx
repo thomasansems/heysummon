@@ -64,7 +64,7 @@ export function RequestDetail({ id }: { id: string }) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3">
         <p className="text-zinc-500">{error || "Request not found"}</p>
-        <Link href="/dashboard/requests" className="text-sm text-violet-400 hover:text-violet-300">
+        <Link href="/dashboard/requests" className="text-sm text-orange-400 hover:text-orange-300">
           Back to requests
         </Link>
       </div>
@@ -108,7 +108,7 @@ export function RequestDetail({ id }: { id: string }) {
                 ✓ Delivered
               </span>
             ) : request.status !== "closed" && request.status !== "expired" ? (
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-400">
                 ⏳ Not delivered
               </span>
             ) : null}
@@ -127,7 +127,7 @@ export function RequestDetail({ id }: { id: string }) {
             <button
               onClick={handleResend}
               disabled={resending}
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
             >
               {resending ? "Resending..." : "🔔 Resend Notification"}
             </button>
@@ -139,8 +139,8 @@ export function RequestDetail({ id }: { id: string }) {
       </div>
 
       {request.question && (
-        <div className="mb-6 rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-violet-400">
+        <div className="mb-6 rounded-xl border border-orange-500/20 bg-orange-500/5 p-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-orange-700 dark:text-orange-400">
             User&apos;s Question
           </p>
           <p className="text-sm text-zinc-200">{request.question}</p>
@@ -151,7 +151,7 @@ export function RequestDetail({ id }: { id: string }) {
         <h2 className="mb-3 text-sm font-semibold text-zinc-400">
           Chat History ({request.messages.length} messages)
         </h2>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-5">
+        <div className="rounded-xl border border-border bg-card/30 p-5">
           <ChatDisplay messages={request.messages} />
         </div>
       </div>

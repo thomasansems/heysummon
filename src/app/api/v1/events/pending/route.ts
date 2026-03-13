@@ -41,8 +41,56 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
 }
 
+/** Check if the current time falls within quiet hours for a provider */
+function isInQuietHours(
+  quietStart: string | null,
+  quietEnd: string | null,
+  timezone: string | null
+): boolean {
+  if (!quietStart || !quietEnd) return false;
+  try {
+    const tz = timezone || "UTC";
+    // Get current time in provider's timezone as HH:MM
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: tz,
+    });
+    const parts = formatter.formatToParts(now);
+    const h = parts.find((p) => p.type === "hour")?.value ?? "00";
+    const m = parts.find((p) => p.type === "minute")?.value ?? "00";
+    const current = `${h}:${m}`;
+
+    // Compare HH:MM strings — handle overnight ranges (e.g. 22:00 → 08:00)
+    if (quietStart <= quietEnd) {
+      return current >= quietStart && current < quietEnd;
+    } else {
+      // Overnight: quiet from 22:00 until 08:00 next day
+      return current >= quietStart || current < quietEnd;
+    }
+  } catch {
+    return false;
+  }
+}
+
 /** Provider: return undelivered pending requests */
 async function handleProviderPending(provider: { id: string; userId: string }) {
+  // Check quiet hours
+  const profile = await prisma.userProfile.findUnique({
+    where: { id: provider.id },
+    select: { quietHoursStart: true, quietHoursEnd: true, timezone: true },
+  });
+
+  if (profile && isInQuietHours(profile.quietHoursStart, profile.quietHoursEnd, profile.timezone)) {
+    // Provider is in quiet hours — return empty with hint to slow polling
+    return NextResponse.json(
+      { events: [], quietHours: true },
+      { headers: { "Retry-After": "60" } }
+    );
+  }
+
   const requests = await prisma.helpRequest.findMany({
     where: {
       expertId: provider.userId,

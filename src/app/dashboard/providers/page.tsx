@@ -372,7 +372,7 @@ export default function ProvidersPage() {
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <div className="overflow-visible rounded-lg border border-border bg-card">
         {loading ? (
           <>
           {/* Mobile loading skeleton */}
@@ -461,7 +461,7 @@ export default function ProvidersPage() {
                         ⋯
                       </button>
                       {openMenuId === p.id && (
-                        <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
+                        <div className="absolute right-0 top-full z-50 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
                           <button
                             onClick={() => { openSettings(p); setOpenMenuId(null); }}
                             className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -784,7 +784,7 @@ export default function ProvidersPage() {
                           ⋯
                         </button>
                         {openMenuId === p.id && (
-                          <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
+                          <div className="absolute right-0 top-full z-50 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
                             <button
                               onClick={() => { openSettings(p); setOpenMenuId(null); }}
                               className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"

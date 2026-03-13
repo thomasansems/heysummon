@@ -41,6 +41,8 @@ interface ProviderData {
   id: string;
   name: string;
   timezone: string;
+  quietHoursStart: string | null;
+  quietHoursEnd: string | null;
   tagline: string | null;
   taglineEnabled: boolean;
 }
@@ -52,10 +54,12 @@ export default function ProviderSettingsPage() {
   const [timezone, setTimezone] = useState("UTC");
   const [tagline, setTagline] = useState("");
   const [taglineEnabled, setTaglineEnabled] = useState(false);
+  const [quietEnabled, setQuietEnabled] = useState(false);
+  const [quietStart, setQuietStart] = useState("22:00");
+  const [quietEnd, setQuietEnd] = useState("08:00");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
-  const [timezoneFilter, setTimezoneFilter] = useState("");
 
   const timezones = getTimezones();
 
@@ -70,6 +74,11 @@ export default function ProviderSettingsPage() {
         setTimezone(p.timezone || "UTC");
         setTagline(p.tagline || "");
         setTaglineEnabled(p.taglineEnabled ?? false);
+        if (p.quietHoursStart && p.quietHoursEnd) {
+          setQuietEnabled(true);
+          setQuietStart(p.quietHoursStart);
+          setQuietEnd(p.quietHoursEnd);
+        }
       })
       .catch(() => router.push("/dashboard/providers"));
   }, [params.id, router]);
@@ -79,7 +88,13 @@ export default function ProviderSettingsPage() {
     setError("");
     setSaved(false);
 
-    const body: Record<string, unknown> = { timezone, tagline, taglineEnabled };
+    const body: Record<string, unknown> = {
+      timezone,
+      tagline,
+      taglineEnabled,
+      quietHoursStart: quietEnabled ? quietStart : null,
+      quietHoursEnd: quietEnabled ? quietEnd : null,
+    };
 
     const res = await fetch(`/api/providers/${params.id}`, {
       method: "PATCH",
@@ -105,12 +120,6 @@ export default function ProviderSettingsPage() {
     );
   }
 
-  const filteredTimezones = timezoneFilter
-    ? timezones.filter((tz) =>
-        tz.toLowerCase().includes(timezoneFilter.toLowerCase())
-      )
-    : timezones;
-
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
@@ -126,30 +135,80 @@ export default function ProviderSettingsPage() {
       </div>
 
       <div className="space-y-6">
-        {/* Timezone — community */}
+        {/* Timezone */}
         <div className="rounded-lg border border-border bg-card p-5">
           <h2 className="mb-1 text-sm font-medium text-foreground">Timezone</h2>
           <p className="mb-3 text-xs text-muted-foreground">
-            Used for scheduling and display.
+            Used for quiet hours scheduling and display.
           </p>
-          <input
-            type="text"
-            placeholder="Filter timezones…"
-            value={timezoneFilter}
-            onChange={(e) => setTimezoneFilter(e.target.value)}
-            className="mb-2 w-full max-w-sm rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-          />
           <select
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
             className="w-full max-w-sm rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
           >
-            {filteredTimezones.map((tz) => (
+            {timezones.map((tz) => (
               <option key={tz} value={tz}>
                 {tz}
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Quiet Hours */}
+        <div className="rounded-lg border border-border bg-card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-medium text-foreground">Don&apos;t bother me</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                When active, new requests are queued and not delivered until outside these hours.
+                The polling watcher also backs off during this window.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setQuietEnabled((v) => !v)}
+              className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                quietEnabled ? "bg-black" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-card shadow ring-0 transition duration-200 ${
+                  quietEnabled ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
+          {quietEnabled && (
+            <div className="mt-3 flex items-center gap-3">
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">From</label>
+                <input
+                  type="time"
+                  value={quietStart}
+                  onChange={(e) => setQuietStart(e.target.value)}
+                  className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                />
+              </div>
+              <span className="mt-5 text-xs text-muted-foreground">until</span>
+              <div>
+                <label className="mb-1 block text-xs text-muted-foreground">Until</label>
+                <input
+                  type="time"
+                  value={quietEnd}
+                  onChange={(e) => setQuietEnd(e.target.value)}
+                  className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                />
+              </div>
+            </div>
+          )}
+
+          {quietEnabled && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Requests received between <span className="font-medium text-foreground">{quietStart}</span> and{" "}
+              <span className="font-medium text-foreground">{quietEnd}</span> ({timezone}) will be held and delivered when your quiet window ends.
+            </p>
+          )}
         </div>
 
         {/* Response Tagline */}

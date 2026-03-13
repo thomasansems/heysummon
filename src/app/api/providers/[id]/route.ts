@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { providerUpdateSchema, validateBody } from "@/lib/validations";
-import { isCloud } from "@/lib/edition";
 
 export async function GET(
   _request: Request,
@@ -66,12 +65,10 @@ export async function PATCH(
   if (body.tagline !== undefined) data.tagline = (body.tagline as string).slice(0, 160) || null;
   if (body.taglineEnabled !== undefined) data.taglineEnabled = body.taglineEnabled;
 
-  // Quiet hours & digest are cloud-only
-  if (isCloud()) {
-    if (body.quietHoursStart !== undefined) data.quietHoursStart = body.quietHoursStart;
-    if (body.quietHoursEnd !== undefined) data.quietHoursEnd = body.quietHoursEnd;
-    if (body.digestTime !== undefined) data.digestTime = body.digestTime;
-  }
+  // Quiet hours & digest
+  if (body.quietHoursStart !== undefined) data.quietHoursStart = body.quietHoursStart;
+  if (body.quietHoursEnd !== undefined) data.quietHoursEnd = body.quietHoursEnd;
+  if (body.digestTime !== undefined) data.digestTime = body.digestTime;
 
   const updated = await prisma.userProfile.update({
     where: { id },

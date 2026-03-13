@@ -1,7 +1,7 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-
+import { X, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Stats {
@@ -69,6 +69,23 @@ function CopyableRefCode({ code }: { code: string | null }) {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  async function handleCancel(id: string) {
+    setActionLoading(id);
+    await fetch(`/api/v1/dashboard/requests/${id}/cancel`, { method: "POST" }).catch(() => null);
+    setActionLoading(null);
+    // Refresh stats
+    fetch("/api/v1/dashboard/stats").then((r) => r.json()).then(setStats).catch(() => null);
+  }
+
+  async function handleResend(id: string) {
+    setActionLoading(id);
+    await fetch(`/api/v1/dashboard/requests/${id}/resend`, { method: "POST" }).catch(() => null);
+    setActionLoading(null);
+    fetch("/api/v1/dashboard/stats").then((r) => r.json()).then(setStats).catch(() => null);
+  }
+
   useEffect(() => {
     fetch("/api/dashboard/stats")
       .then((r) => r.json())
@@ -124,16 +141,31 @@ export default function DashboardPage() {
             <>
               {/* Mobile card layout */}
               <div className="md:hidden">
-                {stats.openRequests.map((req) => (
+                {stats.openRequests.map((req) => {
+                  const isLoading = actionLoading === req.id;
+                  const canCancel = req.status === "pending" || req.status === "active";
+                  return (
                   <div
                     key={req.id}
                     className="border-b border-border p-4 space-y-2 last:border-0 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <CopyableRefCode code={req.refCode} />
-                      <span className="text-muted-foreground text-sm">
-                        {timeAgo(req.createdAt)}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        {canCancel && (
+                          <button onClick={() => handleCancel(req.id)} disabled={isLoading} title="Cancel"
+                            className="rounded p-1 text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-40 transition-colors">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        <button onClick={() => handleResend(req.id)} disabled={isLoading} title="Resend"
+                          className="rounded p-1 text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-40 transition-colors">
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="text-muted-foreground text-sm ml-1">
+                          {timeAgo(req.createdAt)}
+                        </span>
+                      </div>
                     </div>
                     <div>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">
@@ -156,7 +188,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Desktop table layout */}
@@ -168,10 +201,14 @@ export default function DashboardPage() {
                   <th className="px-4 py-2.5 font-medium">Messages</th>
                   <th className="px-4 py-2.5 font-medium">Client</th>
                   <th className="px-4 py-2.5 font-medium text-right">Time</th>
+                  <th className="px-4 py-2.5 font-medium w-16" />
                 </tr>
               </thead>
               <tbody>
-                {stats.openRequests.map((req) => (
+                {stats.openRequests.map((req) => {
+                  const isLoading = actionLoading === req.id;
+                  const canCancel = req.status === "pending" || req.status === "active";
+                  return (
                   <tr
                     key={req.id}
                     className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
@@ -186,9 +223,7 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">
-                      {req.messageCount > 0
-                        ? `${req.messageCount} berichten`
-                        : "—"}
+                      {req.messageCount > 0 ? `${req.messageCount} msgs` : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">
                       {req.apiKey.name || "Unnamed"}
@@ -196,8 +231,31 @@ export default function DashboardPage() {
                     <td className="px-4 py-2.5 text-right text-muted-foreground">
                       {timeAgo(req.createdAt)}
                     </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-1">
+                        {canCancel && (
+                          <button
+                            onClick={() => handleCancel(req.id)}
+                            disabled={isLoading}
+                            title="Cancel"
+                            className="rounded p-1 text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-40 transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleResend(req.id)}
+                          disabled={isLoading}
+                          title="Resend"
+                          className="rounded p-1 text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-40 transition-colors"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             </>

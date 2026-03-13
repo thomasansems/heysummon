@@ -211,9 +211,10 @@ process_event() {
           const ref = process.argv[1];
           const q = process.argv[2];
           const ans = process.argv[3];
-          let msg = 'HeySummon antwoord ontvangen voor ' + ref + '.';
-          if (q) msg += '\n\nJouw oorspronkelijke vraag was:\n' + q;
-          msg += '\n\nAntwoord van de provider: ' + ans;
+          let msg = '📩 ' + ref + ' — Antwoord ontvangen van de provider!';
+          if (q) msg += '\n\nJouw vraag was: ' + q;
+          msg += '\n\nProvider antwoordde: ' + ans;
+          msg += '\n\n**In je reactie: begin altijd met \"📩 ' + ref + '\" zodat het duidelijk is welke vraag je beantwoordt.**';
           msg += '\n\nGa nu verder op basis van dit antwoord.';
           console.log(msg);
         " "$FILE_REF" "$ORIGINAL_QUESTION" "$RESPONSE_TEXT" 2>/dev/null)

@@ -114,6 +114,12 @@ export function proxy(request: NextRequest) {
     }
   }
 
+  // Skip rate limiting for localhost (development + test runners)
+  const isLocalhost = ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
+  if (isLocalhost) {
+    return applySecurityHeaders(NextResponse.next());
+  }
+
   const limitKey = isApiV1 ? `api:${ip}` : `page:${ip}`;
   const maxReqs = isApiV1 ? RATE_LIMIT_API_MAX : RATE_LIMIT_MAX_REQUESTS;
 

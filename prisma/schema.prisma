@@ -122,7 +122,9 @@ model ApiKey {
   previousKeyHash      String?                            // SHA-256 of rotated-out key
   previousKeyExpiresAt DateTime?                           // 24h grace window
   allowedIps           String?                             // comma-separated CIDR/IPs
-  rateLimitPerMinute   Int           @default(100)
+  rateLimitPerMinute   Int           @default(150)
+  clientChannel        String?       // "openclaw" | "claudecode"
+  clientSubChannel     String?       // "telegram" | "whatsapp" (only for openclaw)
   requests             HelpRequest[]
   ipEvents             IpEvent[]
   createdAt            DateTime      @default(now())

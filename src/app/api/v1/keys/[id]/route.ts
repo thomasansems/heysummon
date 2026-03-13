@@ -31,11 +31,13 @@ export async function PATCH(
   if (body.scope !== undefined) data.scope = body.scope;
   if (body.allowedIps !== undefined) data.allowedIps = body.allowedIps || null;
   if (body.rateLimitPerMinute !== undefined) data.rateLimitPerMinute = body.rateLimitPerMinute;
+  if (body.clientChannel !== undefined) data.clientChannel = body.clientChannel;
+  if (body.clientSubChannel !== undefined) data.clientSubChannel = body.clientSubChannel;
 
   const updated = await prisma.apiKey.update({
     where: { id },
     data,
-    select: { id: true, name: true, isActive: true, scope: true, allowedIps: true, rateLimitPerMinute: true },
+    select: { id: true, name: true, isActive: true, scope: true, allowedIps: true, rateLimitPerMinute: true, clientChannel: true, clientSubChannel: true },
   });
 
   logAuditEvent({

@@ -7,6 +7,7 @@ interface SetupPayload {
   baseUrl: string;
   channel: "openclaw" | "claudecode";
   subChannel?: "telegram" | "whatsapp" | null;
+  providerName?: string | null;
 }
 
 async function verifyToken(token: string): Promise<SetupPayload | null> {
@@ -36,18 +37,14 @@ export default async function SetupPage({
 
   const clawhubSlug = "thomasansems/heysummon";
   const clawhubUrl = `https://clawhub.ai/${clawhubSlug}`;
+  const providerName = payload.providerName ?? "your provider";
 
-  // OpenClaw: instruction for pasting into chat
-  const openClawInstruction = `Install the HeySummon skill from ClawHub:
-
-\`\`\`
-/install ${clawhubUrl}
-\`\`\`
-
-Or tell your AI agent:
-> Hey, install the HeySummon skill from ${clawhubUrl} and configure it with:
-> HEYSUMMON_BASE_URL=${payload.baseUrl}
-> HEYSUMMON_API_KEY=${payload.key}`;
+  // OpenClaw: install + configure + add-provider commands
+  const installCmd = `npx clawhub@latest install heysummon`;
+  const configureCmd = `HEYSUMMON_BASE_URL=${payload.baseUrl}
+HEYSUMMON_API_KEY=${payload.key}`;
+  const addProviderCmd = `bash skills/heysummon/scripts/add-provider.sh ${payload.key} "${providerName}"`;
+  const startWatcherCmd = `bash skills/heysummon/scripts/setup.sh`;
 
   // Claude Code: MCP snippet
   const mcpSnippet = `# Option 1 — via claude CLI (recommended)
@@ -90,6 +87,16 @@ claude mcp add heysummon \\
 
         {isOpenClaw && (
           <div className="space-y-6">
+            {/* Provider intro */}
+            <div className="rounded-xl border border-violet-800/50 bg-violet-950/20 p-4">
+              <p className="text-sm text-zinc-300">
+                You&apos;re connecting to provider{" "}
+                <span className="font-semibold text-white">&quot;{providerName}&quot;</span>.
+                Your AI agent will route help requests to them automatically.
+                If you have multiple providers, you can add them all — they each get their own key.
+              </p>
+            </div>
+
             {/* Step 1 */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
               <div className="mb-3 flex items-center gap-2">
@@ -97,15 +104,14 @@ claude mcp add heysummon \\
                 <h2 className="font-semibold text-white">Install the HeySummon skill</h2>
               </div>
               <p className="mb-3 text-sm text-zinc-400">
-                Open your OpenClaw chat ({payload.subChannel === "whatsapp" ? "WhatsApp" : "Telegram"}) and run:
+                Run this command in your terminal (requires Node.js):
               </p>
               <div className="rounded-lg bg-black p-3">
-                <code className="font-mono text-sm text-green-400">
-                  /skill install {clawhubUrl}
-                </code>
+                <code className="font-mono text-sm text-green-400">{installCmd}</code>
               </div>
               <p className="mt-2 text-xs text-zinc-500">
-                Or visit <a href={clawhubUrl} target="_blank" rel="noopener noreferrer" className="text-violet-400 underline">{clawhubUrl}</a> to install manually.
+                Or browse on ClawHub:{" "}
+                <a href={clawhubUrl} target="_blank" rel="noopener noreferrer" className="text-violet-400 underline">{clawhubUrl}</a>
               </p>
             </div>
 
@@ -113,13 +119,14 @@ claude mcp add heysummon \\
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
               <div className="mb-3 flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">2</span>
-                <h2 className="font-semibold text-white">Configure credentials</h2>
+                <h2 className="font-semibold text-white">Configure your credentials</h2>
               </div>
               <p className="mb-3 text-sm text-zinc-400">
-                After installing, configure the skill with these credentials. Paste this into your chat:
+                Add these to your skill&apos;s <code className="rounded bg-zinc-800 px-1 text-zinc-300">.env</code> file (inside{" "}
+                <code className="rounded bg-zinc-800 px-1 text-zinc-300">skills/heysummon/</code>):
               </p>
               <div className="rounded-lg bg-black p-3">
-                <pre className="overflow-x-auto font-mono text-xs text-green-400">{openClawInstruction}</pre>
+                <pre className="overflow-x-auto font-mono text-xs text-green-400">{configureCmd}</pre>
               </div>
             </div>
 
@@ -127,11 +134,44 @@ claude mcp add heysummon \\
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
               <div className="mb-3 flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">3</span>
-                <h2 className="font-semibold text-white">Start using HeySummon</h2>
+                <h2 className="font-semibold text-white">Register this provider</h2>
+              </div>
+              <p className="mb-3 text-sm text-zinc-400">
+                Register <span className="font-medium text-white">&quot;{providerName}&quot;</span> so your agent can route to them by name. Run:
+              </p>
+              <div className="rounded-lg bg-black p-3">
+                <code className="font-mono text-sm text-green-400">{addProviderCmd}</code>
+              </div>
+              <p className="mt-2 text-xs text-zinc-500">
+                Have multiple providers? Run this command once per provider key — each one gets registered separately.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">4</span>
+                <h2 className="font-semibold text-white">Start the event watcher</h2>
+              </div>
+              <p className="mb-3 text-sm text-zinc-400">
+                Start the background listener so your agent receives provider responses via{" "}
+                {payload.subChannel === "whatsapp" ? "WhatsApp" : "Telegram"}:
+              </p>
+              <div className="rounded-lg bg-black p-3">
+                <code className="font-mono text-sm text-green-400">{startWatcherCmd}</code>
+              </div>
+            </div>
+
+            {/* Step 5 */}
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">5</span>
+                <h2 className="font-semibold text-white">You&apos;re all set!</h2>
               </div>
               <p className="text-sm text-zinc-400">
-                Once configured, your AI agent can request expert help by saying{" "}
-                <em>&quot;Hey summon help with...&quot;</em> — the request routes directly to your provider.
+                Your AI agent can now summon <span className="font-medium text-white">&quot;{providerName}&quot;</span> when it needs expert input —
+                just say <em>&quot;Hey summon {providerName} to help with...&quot;</em> or simply{" "}
+                <em>&quot;Hey summon help with...&quot;</em> to route to the default provider.
               </p>
             </div>
           </div>

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   // Verify ownership
   const apiKey = await prisma.apiKey.findFirst({
     where: { id: keyId, provider: { userId: user.id } },
-    select: { id: true, key: true, name: true },
+    select: { id: true, key: true, name: true, provider: { select: { name: true } } },
   });
 
   if (!apiKey) {
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       baseUrl,
       channel,
       subChannel: subChannel ?? null,
+      providerName: apiKey.provider?.name ?? null,
     },
     secret,
     { expiresIn: SETUP_LINK_TTL_SECONDS }

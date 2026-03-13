@@ -197,9 +197,9 @@ test.describe("Provider settings — timezone", () => {
   });
 });
 
-// ── 4. Provider settings — quiet hours ───────────────────────────────────────
+// ── 4. Provider settings — availability ───────────────────────────────────────
 
-test.describe("Provider settings — quiet hours", () => {
+test.describe("Provider settings — availability", () => {
   test.describe.configure({ mode: "serial" });
   let providerId: string;
 
@@ -212,7 +212,7 @@ test.describe("Provider settings — quiet hours", () => {
     }
   });
 
-  test("quiet hours toggle and time pickers are present", async ({ page }) => {
+  test("availability toggle and time pickers are present", async ({ page }) => {
     if (!providerId) {
       test.skip();
       return;
@@ -221,15 +221,15 @@ test.describe("Provider settings — quiet hours", () => {
     await page.goto(`${BASE}/dashboard/providers/${providerId}/settings`);
     await page.waitForLoadState("networkidle");
 
-    // "Don't bother me" heading should be visible
-    await expect(page.locator("text=Don't bother me").first()).toBeVisible({ timeout: 5000 });
+    // "Availability" heading should be visible
+    await expect(page.locator("text=Availability").first()).toBeVisible({ timeout: 5000 });
 
     // Toggle button should be present
-    const toggle = page.locator('button[class*="rounded-full"]').first();
+    const toggle = page.locator('button[aria-pressed]').first();
     await expect(toggle).toBeVisible();
   });
 
-  test("enabling quiet hours shows time pickers", async ({ page }) => {
+  test("enabling availability shows time pickers and weekdays", async ({ page }) => {
     if (!providerId) {
       test.skip();
       return;
@@ -243,20 +243,26 @@ test.describe("Provider settings — quiet hours", () => {
     const initialCount = await timeInputs.count();
 
     // Click the quiet hours toggle
-    const toggle = page.locator('button[class*="rounded-full"]').first();
+    const toggle = page.locator('button[aria-pressed]').first();
     await toggle.click();
 
     // After toggle, time inputs should appear (if they weren't already shown)
     const afterCount = await page.locator('input[type="time"]').count();
     if (initialCount === 0) {
       expect(afterCount).toBe(2); // From + Until
+      // Weekday chips should be visible
+      await expect(page.locator('text=Days').first()).toBeVisible();
+      // Should have 7 day chips (Su Mo Tu We Th Fr Sa)
+      const dayChips = page.locator('button:has-text("Mo"), button:has-text("Tu"), button:has-text("We"), button:has-text("Th"), button:has-text("Fr"), button:has-text("Sa"), button:has-text("Su")');
+      const chipCount = await dayChips.count();
+      expect(chipCount).toBeGreaterThanOrEqual(5);
     } else {
       // Was already enabled — now disabled, inputs gone
       expect(afterCount).toBe(0);
     }
   });
 
-  test("can enable quiet hours, set times, and save", async ({ page }) => {
+  test("can enable availability, set times, and save", async ({ page }) => {
     if (!providerId) {
       test.skip();
       return;
@@ -271,7 +277,7 @@ test.describe("Provider settings — quiet hours", () => {
 
     if (!isEnabled) {
       // Enable quiet hours
-      const toggle = page.locator('button[class*="rounded-full"]').first();
+      const toggle = page.locator('button[aria-pressed]').first();
       await toggle.click();
       await expect(page.locator('input[type="time"]').first()).toBeVisible({ timeout: 3000 });
     }
@@ -280,8 +286,8 @@ test.describe("Provider settings — quiet hours", () => {
     const fromInput = page.locator('input[type="time"]').first();
     const untilInput = page.locator('input[type="time"]').nth(1);
 
-    await fromInput.fill("23:00");
-    await untilInput.fill("07:00");
+    await fromInput.fill("09:00");
+    await untilInput.fill("17:00");
 
     // Save
     await page.locator('button:has-text("Save")').click();
@@ -293,11 +299,11 @@ test.describe("Provider settings — quiet hours", () => {
 
     const fromAfter = await page.locator('input[type="time"]').first().inputValue().catch(() => null);
     if (fromAfter !== null) {
-      expect(fromAfter).toBe("23:00");
+      expect(fromAfter).toBe("09:00");
     }
   });
 
-  test("can disable quiet hours and save", async ({ page }) => {
+  test("can disable availability and save", async ({ page }) => {
     if (!providerId) {
       test.skip();
       return;
@@ -309,13 +315,13 @@ test.describe("Provider settings — quiet hours", () => {
     // Enable if not already enabled
     let isEnabled = (await page.locator('input[type="time"]').count()) > 0;
     if (!isEnabled) {
-      await page.locator('button[class*="rounded-full"]').first().click();
+      await page.locator('button[aria-pressed]').first().click();
       await expect(page.locator('input[type="time"]').first()).toBeVisible({ timeout: 3000 });
       isEnabled = true;
     }
 
     // Now disable
-    await page.locator('button[class*="rounded-full"]').first().click();
+    await page.locator('button[aria-pressed]').first().click();
     await expect(page.locator('input[type="time"]').first()).not.toBeVisible({ timeout: 3000 });
 
     // Save
@@ -323,7 +329,7 @@ test.describe("Provider settings — quiet hours", () => {
     await expect(page.locator("text=Settings saved ✓").first()).toBeVisible({ timeout: 5000 });
   });
 
-  test("quiet hours preview text updates with selected times", async ({ page }) => {
+  test("availability preview text updates with selected times", async ({ page }) => {
     if (!providerId) {
       test.skip();
       return;
@@ -335,16 +341,16 @@ test.describe("Provider settings — quiet hours", () => {
     // Enable if not already
     const isEnabled = (await page.locator('input[type="time"]').count()) > 0;
     if (!isEnabled) {
-      await page.locator('button[class*="rounded-full"]').first().click();
+      await page.locator('button[aria-pressed]').first().click();
       await expect(page.locator('input[type="time"]').first()).toBeVisible({ timeout: 3000 });
     }
 
-    await page.locator('input[type="time"]').first().fill("22:00");
-    await page.locator('input[type="time"]').nth(1).fill("08:00");
+    await page.locator('input[type="time"]').first().fill("09:00");
+    await page.locator('input[type="time"]').nth(1).fill("17:00");
 
-    // Preview text should show the times
-    await expect(page.locator("text=22:00").first()).toBeVisible();
-    await expect(page.locator("text=08:00").first()).toBeVisible();
+    // Summary text should show the times
+    await expect(page.locator("text=09:00").first()).toBeVisible();
+    await expect(page.locator("text=17:00").first()).toBeVisible();
   });
 });
 

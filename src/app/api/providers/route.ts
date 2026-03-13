@@ -19,6 +19,7 @@ export async function GET() {
       timezone: true,
       quietHoursStart: true,
       quietHoursEnd: true,
+      availableDays: true,
       _count: { select: { apiKeys: true } },
       ipEvents: { orderBy: { lastSeen: "desc" } },
       apiKeys: {

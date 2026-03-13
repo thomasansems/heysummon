@@ -23,6 +23,7 @@ export async function GET(
       timezone: true,
       quietHoursStart: true,
       quietHoursEnd: true,
+      availableDays: true,
       digestTime: true,
       tagline: true,
       taglineEnabled: true,
@@ -68,6 +69,7 @@ export async function PATCH(
   // Quiet hours & digest
   if (body.quietHoursStart !== undefined) data.quietHoursStart = body.quietHoursStart;
   if (body.quietHoursEnd !== undefined) data.quietHoursEnd = body.quietHoursEnd;
+  if (body.availableDays !== undefined) data.availableDays = body.availableDays;
   if (body.digestTime !== undefined) data.digestTime = body.digestTime;
 
   const updated = await prisma.userProfile.update({
@@ -80,6 +82,7 @@ export async function PATCH(
       timezone: true,
       quietHoursStart: true,
       quietHoursEnd: true,
+      availableDays: true,
       digestTime: true,
       tagline: true,
       taglineEnabled: true,

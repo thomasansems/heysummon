@@ -37,6 +37,104 @@ function getTimezones(): string[] {
   return COMMON_TIMEZONES;
 }
 
+// ── Availability Panel component ────────────────────────────────────────────
+
+const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function AvailabilityPanel({
+  enabled, onToggle, from, until, days, onFromChange, onUntilChange, onDaysChange,
+}: {
+  enabled: boolean;
+  onToggle: () => void;
+  from: string;
+  until: string;
+  days: number[];
+  onFromChange: (v: string) => void;
+  onUntilChange: (v: string) => void;
+  onDaysChange: (v: number[]) => void;
+}) {
+  const toggleDay = (d: number) =>
+    onDaysChange(days.includes(d) ? days.filter((x) => x !== d) : [...days, d]);
+
+  return (
+    <div className="mb-3 rounded-lg border border-border bg-background p-3">
+      {/* Header row with toggle */}
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="text-sm font-medium text-foreground">Availability</p>
+          <p className="text-xs text-muted-foreground">When you&apos;re available to receive messages</p>
+        </div>
+        {/* Bigger, clearer toggle */}
+        <button
+          type="button"
+          onClick={onToggle}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+            enabled ? "bg-violet-600" : "bg-zinc-600 dark:bg-zinc-500"
+          }`}
+          aria-pressed={enabled}
+        >
+          <span className="sr-only">{enabled ? "Enabled" : "Disabled"}</span>
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${
+              enabled ? "translate-x-5" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
+      {enabled && (
+        <div className="space-y-3 mt-3">
+          {/* Time range */}
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Hours</p>
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={from}
+                onChange={(e) => onFromChange(e.target.value)}
+                className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-violet-500"
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <input
+                type="time"
+                value={until}
+                onChange={(e) => onUntilChange(e.target.value)}
+                className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-violet-500"
+              />
+            </div>
+          </div>
+
+          {/* Weekday chips */}
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Days</p>
+            <div className="flex gap-1">
+              {DAYS_SHORT.map((label, i) => {
+                const active = days.includes(i);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => toggleDay(i)}
+                    className={`flex h-8 w-9 items-center justify-center rounded-md text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-violet-600 text-white"
+                        : "border border-border bg-card text-muted-foreground hover:border-violet-400 hover:text-foreground"
+                    }`}
+                  >
+                    {label.slice(0, 2)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Interfaces ───────────────────────────────────────────────────────────────
+
 interface IpEvent {
   id: string;
   ip: string;
@@ -62,6 +160,7 @@ interface Provider {
   timezone: string;
   quietHoursStart: string | null;
   quietHoursEnd: string | null;
+  availableDays: string | null;
   ipEvents: IpEvent[];
   _count: { apiKeys: number };
   apiKeys: LinkedClient[];
@@ -86,9 +185,11 @@ export default function ProvidersPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [editTimezone, setEditTimezone] = useState("");
   const [timezoneFilter, setTimezoneFilter] = useState("");
-  const [editQuietEnabled, setEditQuietEnabled] = useState(false);
-  const [editQuietStart, setEditQuietStart] = useState("22:00");
-  const [editQuietEnd, setEditQuietEnd] = useState("08:00");
+  const [editAvailEnabled, setEditAvailEnabled] = useState(false);
+  const [editAvailFrom, setEditAvailFrom] = useState("09:00");
+  const [editAvailUntil, setEditAvailUntil] = useState("18:00");
+  // Days: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  const [editAvailDays, setEditAvailDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [saving, setSaving] = useState(false);
 
   const timezones = getTimezones();
@@ -206,9 +307,11 @@ export default function ProvidersPage() {
     setSettingsId(settingsId === p.id ? null : p.id);
     if (settingsId !== p.id) {
       setEditTimezone(p.timezone || "UTC");
-      setEditQuietEnabled(!!(p.quietHoursStart && p.quietHoursEnd));
-      setEditQuietStart(p.quietHoursStart || "22:00");
-      setEditQuietEnd(p.quietHoursEnd || "08:00");
+      const hasAvail = !!(p.quietHoursStart || p.quietHoursEnd || p.availableDays);
+      setEditAvailEnabled(hasAvail);
+      setEditAvailFrom(p.quietHoursStart || "09:00");
+      setEditAvailUntil(p.quietHoursEnd || "18:00");
+      setEditAvailDays(p.availableDays ? p.availableDays.split(",").map(Number) : [1, 2, 3, 4, 5]);
     }
     setTimezoneFilter("");
   };
@@ -220,8 +323,9 @@ export default function ProvidersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         timezone: editTimezone,
-        quietHoursStart: editQuietEnabled ? editQuietStart : null,
-        quietHoursEnd: editQuietEnabled ? editQuietEnd : null,
+        quietHoursStart: editAvailEnabled ? editAvailFrom : null,
+        quietHoursEnd: editAvailEnabled ? editAvailUntil : null,
+        availableDays: editAvailEnabled ? editAvailDays.sort((a, b) => a - b).join(",") : null,
       }),
     });
     setSaving(false);
@@ -583,28 +687,17 @@ export default function ProvidersPage() {
                       </select>
                     </div>
 
-                    {/* Quiet Hours */}
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-medium text-muted-foreground">Don&apos;t bother me</p>
-                        <button
-                          type="button"
-                          onClick={() => setEditQuietEnabled((v) => !v)}
-                          className={`relative inline-flex h-4 w-8 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${editQuietEnabled ? "bg-black" : "bg-muted"}`}
-                        >
-                          <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-card shadow transition duration-200 ${editQuietEnabled ? "translate-x-4" : "translate-x-0"}`} />
-                        </button>
-                      </div>
-                      {editQuietEnabled && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <input type="time" value={editQuietStart} onChange={(e) => setEditQuietStart(e.target.value)}
-                            className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground outline-none focus:border-ring" />
-                          <span className="text-xs text-muted-foreground">→</span>
-                          <input type="time" value={editQuietEnd} onChange={(e) => setEditQuietEnd(e.target.value)}
-                            className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground outline-none focus:border-ring" />
-                        </div>
-                      )}
-                    </div>
+                    {/* Availability */}
+                    <AvailabilityPanel
+                      enabled={editAvailEnabled}
+                      onToggle={() => setEditAvailEnabled((v) => !v)}
+                      from={editAvailFrom}
+                      until={editAvailUntil}
+                      days={editAvailDays}
+                      onFromChange={setEditAvailFrom}
+                      onUntilChange={setEditAvailUntil}
+                      onDaysChange={setEditAvailDays}
+                    />
 
                     <button
                       onClick={() => saveProviderSettings(p.id)}
@@ -907,28 +1000,17 @@ export default function ProvidersPage() {
                           </select>
                         </div>
 
-                        {/* Quiet Hours */}
-                        <div className="mb-3">
-                          <div className="flex items-center gap-3 mb-1">
-                            <p className="text-xs font-medium text-muted-foreground">Don&apos;t bother me</p>
-                            <button
-                              type="button"
-                              onClick={() => setEditQuietEnabled((v) => !v)}
-                              className={`relative inline-flex h-4 w-8 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${editQuietEnabled ? "bg-black" : "bg-muted"}`}
-                            >
-                              <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-card shadow transition duration-200 ${editQuietEnabled ? "translate-x-4" : "translate-x-0"}`} />
-                            </button>
-                          </div>
-                          {editQuietEnabled && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <input type="time" value={editQuietStart} onChange={(e) => setEditQuietStart(e.target.value)}
-                                className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground outline-none focus:border-ring" />
-                              <span className="text-xs text-muted-foreground">→</span>
-                              <input type="time" value={editQuietEnd} onChange={(e) => setEditQuietEnd(e.target.value)}
-                                className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground outline-none focus:border-ring" />
-                            </div>
-                          )}
-                        </div>
+                        {/* Availability */}
+                        <AvailabilityPanel
+                          enabled={editAvailEnabled}
+                          onToggle={() => setEditAvailEnabled((v) => !v)}
+                          from={editAvailFrom}
+                          until={editAvailUntil}
+                          days={editAvailDays}
+                          onFromChange={setEditAvailFrom}
+                          onUntilChange={setEditAvailUntil}
+                          onDaysChange={setEditAvailDays}
+                        />
 
                         <button
                           onClick={() => saveProviderSettings(p.id)}

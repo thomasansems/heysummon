@@ -13,6 +13,11 @@ export async function GET() {
     include: {
       _count: { select: { apiKeys: true } },
       ipEvents: { orderBy: { lastSeen: "desc" } },
+      apiKeys: {
+        where: { isActive: true },
+        select: { id: true, name: true, clientChannel: true, clientSubChannel: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
     orderBy: { createdAt: "desc" },
   });

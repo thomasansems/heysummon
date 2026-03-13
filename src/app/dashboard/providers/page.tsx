@@ -46,6 +46,13 @@ interface IpEvent {
   lastSeen: string;
 }
 
+interface LinkedClient {
+  id: string;
+  name: string | null;
+  clientChannel: string | null;
+  clientSubChannel: string | null;
+}
+
 interface Provider {
   id: string;
   name: string;
@@ -55,6 +62,7 @@ interface Provider {
   timezone: string;
   ipEvents: IpEvent[];
   _count: { apiKeys: number };
+  apiKeys: LinkedClient[];
 }
 
 export default function ProvidersPage() {
@@ -166,6 +174,11 @@ export default function ProvidersPage() {
     });
     setEditingId(null);
     setEditName("");
+    loadProviders();
+  };
+
+  const unlinkClient = async (keyId: string) => {
+    await fetch(`/api/v1/keys/${keyId}/unlink`, { method: "POST" });
     loadProviders();
   };
 
@@ -581,6 +594,43 @@ export default function ProvidersPage() {
                       </div>
                     </div>
 
+                    {/* Linked Clients Section */}
+                    <div className="border-t border-border pt-3">
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">
+                        Linked Clients ({p.apiKeys?.length ?? 0})
+                      </p>
+                      {!p.apiKeys?.length ? (
+                        <p className="text-xs text-muted-foreground">No clients linked to this provider.</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {p.apiKeys.map((client) => (
+                            <div key={client.id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5">
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="font-medium text-foreground">{client.name || "Unnamed"}</span>
+                                {client.clientChannel && (
+                                  <span className="text-muted-foreground">
+                                    {client.clientChannel === "claudecode" ? "Claude Code" :
+                                      client.clientChannel === "openclaw" && client.clientSubChannel === "whatsapp" ? "OpenClaw · WhatsApp" :
+                                      "OpenClaw · Telegram"}
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Unlink "${client.name || "Unnamed"}" from this provider?`)) {
+                                    unlinkClient(client.id);
+                                  }
+                                }}
+                                className="text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded px-1.5 py-0.5 transition-colors"
+                              >
+                                Unlink
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {/* IP Security Section */}
                     <div className="border-t border-border pt-3">
                       <div className="flex items-center justify-between mb-2">
@@ -858,6 +908,43 @@ export default function ProvidersPage() {
                               {saving ? "Saving..." : "Save"}
                             </button>
                           </div>
+                        </div>
+
+                        {/* Linked Clients Section */}
+                        <div className="border-t border-border pt-3">
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">
+                            Linked Clients ({p.apiKeys?.length ?? 0})
+                          </p>
+                          {!p.apiKeys?.length ? (
+                            <p className="text-xs text-muted-foreground">No clients linked to this provider.</p>
+                          ) : (
+                            <div className="space-y-1">
+                              {p.apiKeys.map((client) => (
+                                <div key={client.id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5">
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <span className="font-medium text-foreground">{client.name || "Unnamed"}</span>
+                                    {client.clientChannel && (
+                                      <span className="text-muted-foreground">
+                                        {client.clientChannel === "claudecode" ? "Claude Code" :
+                                          client.clientChannel === "openclaw" && client.clientSubChannel === "whatsapp" ? "OpenClaw · WhatsApp" :
+                                          "OpenClaw · Telegram"}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm(`Unlink "${client.name || "Unnamed"}" from this provider?`)) {
+                                        unlinkClient(client.id);
+                                      }
+                                    }}
+                                    className="text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded px-1.5 py-0.5 transition-colors"
+                                  >
+                                    Unlink
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         {/* IP Security Section */}

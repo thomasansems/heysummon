@@ -37,9 +37,9 @@ interface ApiKey {
 
 const channelLabel = (channel: string | null, sub: string | null) => {
   if (!channel) return null;
-  if (channel === "claudecode") return { icon: "⚡", label: "Claude Code", color: "bg-yellow-950/60 text-yellow-300" };
-  if (channel === "openclaw" && sub === "whatsapp") return { icon: "💬", label: "OpenClaw · WhatsApp", color: "bg-green-950/60 text-green-300" };
-  if (channel === "openclaw") return { icon: "✈️", label: "OpenClaw · Telegram", color: "bg-blue-950/60 text-blue-300" };
+  if (channel === "claudecode") return { label: "Claude Code", color: "bg-yellow-950/60 text-yellow-300" };
+  if (channel === "openclaw" && sub === "whatsapp") return { label: "OpenClaw · WhatsApp", color: "bg-green-950/60 text-green-300" };
+  if (channel === "openclaw") return { label: "OpenClaw · Telegram", color: "bg-blue-950/60 text-blue-300" };
   return null;
 };
 
@@ -644,8 +644,8 @@ export default function ClientsPage() {
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Channel</th>
                   <th className="px-4 py-2.5 font-medium">Provider</th>
-                  <th className="px-4 py-2.5 font-medium">Key</th>
                   <th className="px-4 py-2.5 font-medium">Scope</th>
                   <th className="px-4 py-2.5 font-medium">Requests</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
@@ -737,6 +737,10 @@ export default function ClientsPage() {
                     <div>
                       <span className="text-xs text-muted-foreground">Provider</span>
                       <div className="text-muted-foreground">{k.provider?.name || "-"}</div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Channel</span>
+                      <div>{(() => { const ch = channelLabel(k.clientChannel, k.clientSubChannel); return ch ? <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ch.color}`}>{ch.label}</span> : <span className="text-xs text-muted-foreground">—</span>; })()}</div>
                     </div>
                     <div>
                       <span className="text-xs text-muted-foreground">Key</span>
@@ -854,8 +858,8 @@ export default function ClientsPage() {
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Channel</th>
                   <th className="px-4 py-2.5 font-medium">Provider</th>
-                  <th className="px-4 py-2.5 font-medium">Key</th>
                   <th className="px-4 py-2.5 font-medium">Scope</th>
                   <th className="px-4 py-2.5 font-medium">Requests</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
@@ -879,7 +883,7 @@ export default function ClientsPage() {
                         )}
                       </td>
                       <td className="px-4 py-2.5">
-                        {(() => { const ch = channelLabel(k.clientChannel, k.clientSubChannel); return ch ? <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${ch.color}`}><span>{ch.icon}</span>{ch.label}</span> : <span className="text-xs text-muted-foreground">—</span>; })()}
+                        {(() => { const ch = channelLabel(k.clientChannel, k.clientSubChannel); return ch ? <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ch.color}`}>{ch.label}</span> : <span className="text-xs text-muted-foreground">—</span>; })()}
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">{k.provider?.name || "-"}</td>
                       <td className="px-4 py-2.5">

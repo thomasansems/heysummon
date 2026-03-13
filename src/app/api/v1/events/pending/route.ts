@@ -87,7 +87,7 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
     // Provider is in quiet hours — return empty with hint to slow polling
     return NextResponse.json(
       { events: [], quietHours: true },
-      { headers: { "Retry-After": "60" } }
+      { headers: { "Retry-After": "600" } }
     );
   }
 

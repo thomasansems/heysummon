@@ -183,8 +183,8 @@ while true; do
     quiet=$(echo "$response" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).quietHours===true?'yes':'no')}catch(e){console.log('no')}})" 2>/dev/null)
     if [[ "$quiet" == "yes" ]]; then
       if [[ "$CURRENT_INTERVAL" != "60" ]]; then
-        echo "🌙 Quiet hours active — slowing poll to 60s"
-        CURRENT_INTERVAL="60"
+        echo "🌙 Quiet hours active — slowing poll to 10 min"
+        CURRENT_INTERVAL="600"
       fi
     else
       if [[ "$CURRENT_INTERVAL" != "$POLL_INTERVAL" ]]; then

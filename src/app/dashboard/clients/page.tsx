@@ -46,7 +46,7 @@ const channelLabel = (channel: string | null, sub: string | null) => {
 type WizardChannel = "openclaw" | "claudecode" | null;
 type WizardSubChannel = "telegram" | "whatsapp" | null;
 
-const CLIENT_CHANNELS = [
+const CLIENT_CHANNELS: { id: "openclaw" | "claudecode" | null; label: string; icon: string; iconWide?: boolean; description: string; disabled: boolean }[] = [
   {
     id: "openclaw" as const,
     label: "OpenClaw",
@@ -56,8 +56,9 @@ const CLIENT_CHANNELS = [
   },
   {
     id: "claudecode" as const,
-    label: "Claude Code",
+    label: "",
     icon: "/icons/claudecode.svg",
+    iconWide: true,
     description: "MCP server — inline in editor",
     disabled: false,
   },
@@ -348,9 +349,15 @@ export default function ClientsPage() {
                     {ch.disabled && (
                       <span className="absolute right-2 top-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Soon</span>
                     )}
-                    <div className="mb-2 flex items-center gap-2">
-                      <img src={ch.icon} alt={ch.label} className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                      <span className="text-sm font-medium text-foreground">{ch.label}</span>
+                    <div className="mb-2">
+                      {ch.iconWide ? (
+                        <img src={ch.icon} alt={ch.label || "Claude Code"} className="h-5 w-auto max-w-[120px]" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <img src={ch.icon} alt={ch.label} className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          <span className="text-sm font-medium text-foreground">{ch.label}</span>
+                        </div>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">{ch.description}</p>
                   </button>
@@ -439,10 +446,7 @@ export default function ClientsPage() {
                   )}
                 </div>
 
-                {/* Rate limit note */}
-                <p className="text-xs text-muted-foreground">
-                  Default rate limit: <strong>150 req/min</strong>. Configure <code className="rounded bg-muted px-1">HEYSUMMON_DEFAULT_RATE_LIMIT</code> in your environment to override.
-                </p>
+
               </div>
 
               <div className="flex justify-between gap-2">

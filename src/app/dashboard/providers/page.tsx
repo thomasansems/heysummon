@@ -121,23 +121,25 @@ export default function ProvidersPage() {
     const providerId: string = provData.provider?.id || provData.id;
     const providerKey: string = provData.provider?.key || provData.key;
 
-    // 2. Create channel
-    const channelRes = await fetch("/api/channels", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        profileId: providerId,
-        type: wizardChannel,
-        name: `${wizardName.trim()} — ${wizardChannel === "telegram" ? "Telegram" : "OpenClaw"}`,
-        config: wizardChannel === "telegram" ? { botToken: wizardBotToken.trim() } : {},
-      }),
-    });
+    // 2. Create channel (Telegram only — OpenClaw channel is auto-created when the skill connects)
+    if (wizardChannel === "telegram") {
+      const channelRes = await fetch("/api/channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId: providerId,
+          type: "telegram",
+          name: `${wizardName.trim()} — Telegram`,
+          config: { botToken: wizardBotToken.trim() },
+        }),
+      });
 
-    if (!channelRes.ok) {
-      const err = await channelRes.json().catch(() => ({}));
-      setWizardError(err.error || "Failed to create channel");
-      setWizardCreating(false);
-      return;
+      if (!channelRes.ok) {
+        const err = await channelRes.json().catch(() => ({}));
+        setWizardError(err.error || "Failed to connect Telegram bot");
+        setWizardCreating(false);
+        return;
+      }
     }
 
     setWizardResult({ providerId, providerKey, channel: wizardChannel });

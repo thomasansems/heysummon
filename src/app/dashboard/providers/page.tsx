@@ -37,6 +37,104 @@ function getTimezones(): string[] {
   return COMMON_TIMEZONES;
 }
 
+// ── Availability Panel component ────────────────────────────────────────────
+
+const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function AvailabilityPanel({
+  enabled, onToggle, from, until, days, onFromChange, onUntilChange, onDaysChange,
+}: {
+  enabled: boolean;
+  onToggle: () => void;
+  from: string;
+  until: string;
+  days: number[];
+  onFromChange: (v: string) => void;
+  onUntilChange: (v: string) => void;
+  onDaysChange: (v: number[]) => void;
+}) {
+  const toggleDay = (d: number) =>
+    onDaysChange(days.includes(d) ? days.filter((x) => x !== d) : [...days, d]);
+
+  return (
+    <div className="mb-3 rounded-lg border border-border bg-background p-3">
+      {/* Header row with toggle */}
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="text-sm font-medium text-foreground">Availability</p>
+          <p className="text-xs text-muted-foreground">When you&apos;re available to receive messages</p>
+        </div>
+        {/* Bigger, clearer toggle */}
+        <button
+          type="button"
+          onClick={onToggle}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+            enabled ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
+          }`}
+          aria-pressed={enabled}
+        >
+          <span className="sr-only">{enabled ? "Enabled" : "Disabled"}</span>
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${
+              enabled ? "translate-x-5" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
+      {enabled && (
+        <div className="space-y-3 mt-3">
+          {/* Time range */}
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Hours</p>
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={from}
+                onChange={(e) => onFromChange(e.target.value)}
+                className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-orange-500"
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <input
+                type="time"
+                value={until}
+                onChange={(e) => onUntilChange(e.target.value)}
+                className="rounded-md border border-border bg-card px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-orange-500"
+              />
+            </div>
+          </div>
+
+          {/* Weekday chips */}
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Days</p>
+            <div className="flex gap-1">
+              {DAYS_SHORT.map((label, i) => {
+                const active = days.includes(i);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => toggleDay(i)}
+                    className={`flex h-8 w-9 items-center justify-center rounded-md text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-orange-600 text-white"
+                        : "border border-border bg-card text-muted-foreground hover:border-orange-400 hover:text-foreground"
+                    }`}
+                  >
+                    {label.slice(0, 2)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Interfaces ───────────────────────────────────────────────────────────────
+
 interface IpEvent {
   id: string;
   ip: string;
@@ -46,6 +144,13 @@ interface IpEvent {
   lastSeen: string;
 }
 
+interface LinkedClient {
+  id: string;
+  name: string | null;
+  clientChannel: string | null;
+  clientSubChannel: string | null;
+}
+
 interface Provider {
   id: string;
   name: string;
@@ -53,8 +158,12 @@ interface Provider {
   isActive: boolean;
   createdAt: string;
   timezone: string;
+  quietHoursStart: string | null;
+  quietHoursEnd: string | null;
+  availableDays: string | null;
   ipEvents: IpEvent[];
   _count: { apiKeys: number };
+  apiKeys: LinkedClient[];
 }
 
 export default function ProvidersPage() {
@@ -76,6 +185,11 @@ export default function ProvidersPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [editTimezone, setEditTimezone] = useState("");
   const [timezoneFilter, setTimezoneFilter] = useState("");
+  const [editAvailEnabled, setEditAvailEnabled] = useState(false);
+  const [editAvailFrom, setEditAvailFrom] = useState("09:00");
+  const [editAvailUntil, setEditAvailUntil] = useState("18:00");
+  // Days: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  const [editAvailDays, setEditAvailDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [saving, setSaving] = useState(false);
 
   const timezones = getTimezones();
@@ -169,6 +283,11 @@ export default function ProvidersPage() {
     loadProviders();
   };
 
+  const unlinkClient = async (keyId: string) => {
+    await fetch(`/api/v1/keys/${keyId}/unlink`, { method: "POST" });
+    loadProviders();
+  };
+
   const deleteProvider = async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to permanently delete "${name}"?\n\nAll linked clients will be unlinked. This cannot be undone.`)) return;
     await fetch(`/api/providers/${id}`, { method: "DELETE" });
@@ -188,6 +307,11 @@ export default function ProvidersPage() {
     setSettingsId(settingsId === p.id ? null : p.id);
     if (settingsId !== p.id) {
       setEditTimezone(p.timezone || "UTC");
+      const hasAvail = !!(p.quietHoursStart || p.quietHoursEnd || p.availableDays);
+      setEditAvailEnabled(hasAvail);
+      setEditAvailFrom(p.quietHoursStart || "09:00");
+      setEditAvailUntil(p.quietHoursEnd || "18:00");
+      setEditAvailDays(p.availableDays ? p.availableDays.split(",").map(Number) : [1, 2, 3, 4, 5]);
     }
     setTimezoneFilter("");
   };
@@ -197,7 +321,12 @@ export default function ProvidersPage() {
     await fetch(`/api/providers/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ timezone: editTimezone }),
+      body: JSON.stringify({
+        timezone: editTimezone,
+        quietHoursStart: editAvailEnabled ? editAvailFrom : null,
+        quietHoursEnd: editAvailEnabled ? editAvailUntil : null,
+        availableDays: editAvailEnabled ? editAvailDays.sort((a, b) => a - b).join(",") : null,
+      }),
     });
     setSaving(false);
     loadProviders();
@@ -234,7 +363,7 @@ export default function ProvidersPage() {
                       {/* OpenClaw */}
                       <button
                         onClick={() => setWizardChannel("openclaw")}
-                        className={`rounded-lg border p-4 text-left transition-colors ${wizardChannel === "openclaw" ? "border-violet-600 bg-violet-950/30" : "border-border hover:border-muted-foreground"}`}
+                        className={`rounded-lg border p-4 text-left transition-colors ${wizardChannel === "openclaw" ? "border-orange-600 bg-orange-100/80 dark:bg-orange-950/30" : "border-border hover:border-muted-foreground"}`}
                       >
                         <div className="mb-2 flex items-center gap-2">
                           <img src="/icons/openclaw.svg" alt="OpenClaw" className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
@@ -268,21 +397,21 @@ export default function ProvidersPage() {
                         className="w-full rounded-md border border-border bg-background px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
                       />
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Get a token from <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">@BotFather</a> on Telegram. Send <code className="rounded bg-muted px-1">/newbot</code> and copy the token.
+                        Get a token from <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">@BotFather</a> on Telegram. Send <code className="rounded bg-muted px-1">/newbot</code> and copy the token.
                       </p>
                     </div>
                   )}
 
                   {/* OpenClaw info */}
                   {wizardChannel === "openclaw" && (
-                    <div className="rounded-lg border border-violet-800 bg-violet-950/20 p-3 text-xs text-violet-300">
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20 p-3 text-xs text-orange-700 dark:text-orange-300">
                       <p className="mb-1 font-medium">How OpenClaw works:</p>
-                      <ol className="list-decimal list-inside space-y-1 text-violet-400">
+                      <ol className="list-decimal list-inside space-y-1 text-orange-700 dark:text-orange-400">
                         <li>A provider key will be generated after creation</li>
                         <li>Install the HeySummon provider skill from <a href="https://clawhub.ai/thomasansems/heysummon-provider" target="_blank" rel="noopener noreferrer" className="underline">clawhub.ai</a></li>
                         <li>Configure it with your provider key — done!</li>
                       </ol>
-                      <p className="mt-2 text-violet-500">Help requests will arrive as messages in your OpenClaw chat (Telegram or WhatsApp).</p>
+                      <p className="mt-2 text-orange-500">Help requests will arrive as messages in your OpenClaw chat (Telegram or WhatsApp).</p>
                     </div>
                   )}
 
@@ -326,7 +455,7 @@ export default function ProvidersPage() {
                         <p className="text-zinc-400 mb-1">Your provider key:</p>
                         <div className="flex items-center gap-2">
                           <code className="text-green-400 break-all">{wizardResult.providerKey}</code>
-                          <button onClick={() => { copyToClipboard(wizardResult.providerKey); setCopied(wizardResult.providerKey); setTimeout(() => setCopied(null), 2000); }} className="shrink-0 text-violet-400 hover:text-violet-300">{copied === wizardResult.providerKey ? "Copied!" : "Copy"}</button>
+                          <button onClick={() => { copyToClipboard(wizardResult.providerKey); setCopied(wizardResult.providerKey); setTimeout(() => setCopied(null), 2000); }} className="shrink-0 text-orange-400 hover:text-orange-300">{copied === wizardResult.providerKey ? "Copied!" : "Copy"}</button>
                         </div>
                       </div>
                       <div>
@@ -347,7 +476,7 @@ export default function ProvidersPage() {
                       </div>
                       <div>
                         <p className="mb-1 text-muted-foreground font-medium">Activate the bot</p>
-                        <p className="text-zinc-400">Open your Telegram bot and send <code className="rounded bg-zinc-800 px-1 text-zinc-300">/start</code> — the bot will bind to your chat ID automatically.</p>
+                        <p className="text-zinc-400">Open your Telegram bot and send <code className="rounded bg-muted px-1 text-foreground">/start</code> — the bot will bind to your chat ID automatically.</p>
                       </div>
                     </div>
                   </div>
@@ -372,7 +501,7 @@ export default function ProvidersPage() {
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <div className="overflow-visible rounded-lg border border-border bg-card">
         {loading ? (
           <>
           {/* Mobile loading skeleton */}
@@ -461,7 +590,7 @@ export default function ProvidersPage() {
                         ⋯
                       </button>
                       {openMenuId === p.id && (
-                        <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
+                        <div className="absolute right-0 top-full z-50 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
                           <button
                             onClick={() => { openSettings(p); setOpenMenuId(null); }}
                             className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -486,7 +615,7 @@ export default function ProvidersPage() {
                           <div className="my-1 border-t border-border" />
                           <button
                             onClick={() => { deleteProvider(p.id, p.name); setOpenMenuId(null); }}
-                            className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300"
+                            className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                           >
                             Delete
                           </button>
@@ -501,7 +630,7 @@ export default function ProvidersPage() {
                       <code className="font-mono text-xs text-muted-foreground break-all">{masked(p.key)}</code>
                       <button
                         onClick={() => copyKey(p.key)}
-                        className="shrink-0 text-xs text-violet-600 hover:text-violet-800"
+                        className="shrink-0 text-xs text-orange-600 hover:text-orange-800"
                       >
                         {copied === p.key ? "Copied!" : "Copy"}
                       </button>
@@ -519,10 +648,10 @@ export default function ProvidersPage() {
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                             !p.isActive
-                              ? "bg-red-950/60 text-red-300"
+                              ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                               : p.ipEvents?.some((e) => e.status === "allowed")
-                                ? "bg-green-950/60 text-green-300"
-                                : "bg-orange-950/60 text-orange-300"
+                                ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
+                                : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"
                           }`}
                         >
                           {!p.isActive
@@ -544,41 +673,75 @@ export default function ProvidersPage() {
                 {/* Settings inline panel (mobile) */}
                 {settingsId === p.id && (
                   <div className="border-b border-border bg-muted px-4 py-3">
-                    {/* Timezone Section */}
-                    <div className="mb-4">
-                      <p className="mb-2 text-xs font-medium text-muted-foreground">Timezone</p>
-                      <div className="flex flex-col gap-2">
-                        <input
-                          type="text"
-                          placeholder="Filter timezones…"
-                          value={timezoneFilter}
-                          onChange={(e) => setTimezoneFilter(e.target.value)}
-                          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                        />
-                        <select
-                          value={editTimezone}
-                          onChange={(e) => setEditTimezone(e.target.value)}
-                          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                        >
-                          {(timezoneFilter
-                            ? timezones.filter((tz) =>
-                                tz.toLowerCase().includes(timezoneFilter.toLowerCase())
-                              )
-                            : timezones
-                          ).map((tz) => (
-                            <option key={tz} value={tz}>
-                              {tz}
-                            </option>
+                    {/* Timezone */}
+                    <div className="mb-3">
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">Timezone</p>
+                      <select
+                        value={editTimezone}
+                        onChange={(e) => setEditTimezone(e.target.value)}
+                        className="w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                      >
+                        {timezones.map((tz) => (
+                          <option key={tz} value={tz}>{tz}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Availability */}
+                    <AvailabilityPanel
+                      enabled={editAvailEnabled}
+                      onToggle={() => setEditAvailEnabled((v) => !v)}
+                      from={editAvailFrom}
+                      until={editAvailUntil}
+                      days={editAvailDays}
+                      onFromChange={setEditAvailFrom}
+                      onUntilChange={setEditAvailUntil}
+                      onDaysChange={setEditAvailDays}
+                    />
+
+                    <button
+                      onClick={() => saveProviderSettings(p.id)}
+                      disabled={saving}
+                      className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 mb-3"
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+
+                    {/* Linked Clients Section */}
+                    <div className="border-t border-border pt-3">
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">
+                        Linked Clients ({p.apiKeys?.length ?? 0})
+                      </p>
+                      {!p.apiKeys?.length ? (
+                        <p className="text-xs text-muted-foreground">No clients linked to this provider.</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {p.apiKeys.map((client) => (
+                            <div key={client.id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5">
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="font-medium text-foreground">{client.name || "Unnamed"}</span>
+                                {client.clientChannel && (
+                                  <span className="text-muted-foreground">
+                                    {client.clientChannel === "claudecode" ? "Claude Code" :
+                                      client.clientChannel === "openclaw" && client.clientSubChannel === "whatsapp" ? "OpenClaw · WhatsApp" :
+                                      "OpenClaw · Telegram"}
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Unlink "${client.name || "Unnamed"}" from this provider?`)) {
+                                    unlinkClient(client.id);
+                                  }
+                                }}
+                                className="text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded px-1.5 py-0.5 transition-colors"
+                              >
+                                Unlink
+                              </button>
+                            </div>
                           ))}
-                        </select>
-                        <button
-                          onClick={() => saveProviderSettings(p.id)}
-                          disabled={saving}
-                          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                        >
-                          {saving ? "Saving..." : "Save"}
-                        </button>
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* IP Security Section */}
@@ -628,10 +791,10 @@ export default function ProvidersPage() {
                                     <span
                                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                                         evt.status === "allowed"
-                                          ? "bg-green-950/60 text-green-300"
+                                          ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
                                           : evt.status === "pending"
-                                            ? "bg-amber-950/60 text-amber-300"
-                                            : "bg-red-950/60 text-red-300"
+                                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                                            : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                                       }`}
                                     >
                                       {evt.status}
@@ -744,7 +907,7 @@ export default function ProvidersPage() {
                         <code className="font-mono text-xs text-muted-foreground">{masked(p.key)}</code>
                         <button
                           onClick={() => copyKey(p.key)}
-                          className="text-xs text-violet-600 hover:text-violet-800"
+                          className="text-xs text-orange-600 hover:text-orange-800"
                         >
                           {copied === p.key ? "Copied!" : "Copy"}
                         </button>
@@ -757,10 +920,10 @@ export default function ProvidersPage() {
                       <span
                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                           !p.isActive
-                            ? "bg-red-950/60 text-red-300"
+                            ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                             : p.ipEvents?.some((e) => e.status === "allowed")
-                              ? "bg-green-950/60 text-green-300"
-                              : "bg-orange-950/60 text-orange-300"
+                              ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
+                              : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"
                         }`}
                       >
                         {!p.isActive
@@ -784,7 +947,7 @@ export default function ProvidersPage() {
                           ⋯
                         </button>
                         {openMenuId === p.id && (
-                          <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
+                          <div className="absolute right-0 top-full z-50 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
                             <button
                               onClick={() => { openSettings(p); setOpenMenuId(null); }}
                               className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -809,7 +972,7 @@ export default function ProvidersPage() {
                             <div className="my-1 border-t border-border" />
                             <button
                               onClick={() => { deleteProvider(p.id, p.name); setOpenMenuId(null); }}
-                              className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-950/40 hover:text-red-300"
+                              className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                             >
                               Delete
                             </button>
@@ -823,41 +986,75 @@ export default function ProvidersPage() {
                   {settingsId === p.id && (
                     <tr key={`${p.id}-settings`} className="border-b border-border">
                       <td colSpan={6} className="bg-muted px-4 py-3">
-                        {/* Timezone Section */}
-                        <div className="mb-4">
-                          <p className="mb-2 text-xs font-medium text-muted-foreground">Timezone</p>
-                          <div className="flex flex-col gap-2">
-                            <input
-                              type="text"
-                              placeholder="Filter timezones…"
-                              value={timezoneFilter}
-                              onChange={(e) => setTimezoneFilter(e.target.value)}
-                              className="max-w-xs rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                            />
-                            <select
-                              value={editTimezone}
-                              onChange={(e) => setEditTimezone(e.target.value)}
-                              className="max-w-xs rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                            >
-                              {(timezoneFilter
-                                ? timezones.filter((tz) =>
-                                    tz.toLowerCase().includes(timezoneFilter.toLowerCase())
-                                  )
-                                : timezones
-                              ).map((tz) => (
-                                <option key={tz} value={tz}>
-                                  {tz}
-                                </option>
+                        {/* Timezone */}
+                        <div className="mb-3">
+                          <p className="mb-1 text-xs font-medium text-muted-foreground">Timezone</p>
+                          <select
+                            value={editTimezone}
+                            onChange={(e) => setEditTimezone(e.target.value)}
+                            className="max-w-xs rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                          >
+                            {timezones.map((tz) => (
+                              <option key={tz} value={tz}>{tz}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Availability */}
+                        <AvailabilityPanel
+                          enabled={editAvailEnabled}
+                          onToggle={() => setEditAvailEnabled((v) => !v)}
+                          from={editAvailFrom}
+                          until={editAvailUntil}
+                          days={editAvailDays}
+                          onFromChange={setEditAvailFrom}
+                          onUntilChange={setEditAvailUntil}
+                          onDaysChange={setEditAvailDays}
+                        />
+
+                        <button
+                          onClick={() => saveProviderSettings(p.id)}
+                          disabled={saving}
+                          className="max-w-xs rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 mb-3"
+                        >
+                          {saving ? "Saving..." : "Save"}
+                        </button>
+
+                        {/* Linked Clients Section */}
+                        <div className="border-t border-border pt-3">
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">
+                            Linked Clients ({p.apiKeys?.length ?? 0})
+                          </p>
+                          {!p.apiKeys?.length ? (
+                            <p className="text-xs text-muted-foreground">No clients linked to this provider.</p>
+                          ) : (
+                            <div className="space-y-1">
+                              {p.apiKeys.map((client) => (
+                                <div key={client.id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5">
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <span className="font-medium text-foreground">{client.name || "Unnamed"}</span>
+                                    {client.clientChannel && (
+                                      <span className="text-muted-foreground">
+                                        {client.clientChannel === "claudecode" ? "Claude Code" :
+                                          client.clientChannel === "openclaw" && client.clientSubChannel === "whatsapp" ? "OpenClaw · WhatsApp" :
+                                          "OpenClaw · Telegram"}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm(`Unlink "${client.name || "Unnamed"}" from this provider?`)) {
+                                        unlinkClient(client.id);
+                                      }
+                                    }}
+                                    className="text-xs text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded px-1.5 py-0.5 transition-colors"
+                                  >
+                                    Unlink
+                                  </button>
+                                </div>
                               ))}
-                            </select>
-                            <button
-                              onClick={() => saveProviderSettings(p.id)}
-                              disabled={saving}
-                              className="max-w-xs rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                            >
-                              {saving ? "Saving..." : "Save"}
-                            </button>
-                          </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* IP Security Section */}
@@ -906,10 +1103,10 @@ export default function ProvidersPage() {
                                       <span
                                         className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                                           evt.status === "allowed"
-                                            ? "bg-green-950/60 text-green-300"
+                                            ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
                                             : evt.status === "pending"
-                                              ? "bg-amber-950/60 text-amber-300"
-                                              : "bg-red-950/60 text-red-300"
+                                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                                              : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
                                         }`}
                                       >
                                         {evt.status}

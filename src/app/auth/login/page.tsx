@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { LobsterBackground } from "@/components/auth/lobster-background";
 
 // Direct signIn call without SessionProvider dependency
 async function doSignIn(provider: string, options: Record<string, unknown>): Promise<{ error?: string; url?: string } | undefined> {
@@ -152,7 +153,8 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
+      <LobsterBackground />
+      <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link
             href="/"
@@ -200,7 +202,7 @@ function LoginForm() {
               </p>
               <button
                 onClick={() => { setMagicSent(false); setEmail(""); }}
-                className="mt-4 text-sm text-violet-600 hover:text-violet-500"
+                className="mt-4 text-sm text-orange-600 hover:text-orange-500"
               >
                 Use a different email
               </button>
@@ -223,7 +225,7 @@ function LoginForm() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Your name (optional)"
-                        className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                        className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                       />
                     </>
                   )}
@@ -238,7 +240,7 @@ function LoginForm() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="you@example.com"
-                    className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                    className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
 
                   <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
@@ -252,13 +254,13 @@ function LoginForm() {
                     required
                     minLength={8}
                     placeholder={mode === "register" ? "Min. 8 characters" : "••••••••"}
-                    className="mb-4 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                    className="mb-4 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
 
                   <button
                     type="submit"
                     disabled={loading || !email || !password}
-                    className="w-full rounded-md bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                    className="w-full rounded-md bg-orange-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
                   >
                     {loading
                       ? mode === "login" ? "Signing in..." : "Creating account..."
@@ -272,7 +274,7 @@ function LoginForm() {
                         <button
                           type="button"
                           onClick={() => { setMode("register"); setError(""); setSuccess(""); }}
-                          className="text-violet-600 hover:text-violet-500"
+                          className="text-orange-600 hover:text-orange-500"
                         >
                           Sign up
                         </button>
@@ -283,7 +285,7 @@ function LoginForm() {
                         <button
                           type="button"
                           onClick={() => { setMode("login"); setError(""); setSuccess(""); }}
-                          className="text-violet-600 hover:text-violet-500"
+                          className="text-orange-600 hover:text-orange-500"
                         >
                           Sign in
                         </button>
@@ -318,12 +320,12 @@ function LoginForm() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="you@example.com"
-                    className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                    className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
                   <button
                     type="submit"
                     disabled={loading || !email}
-                    className="w-full rounded-md bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                    className="w-full rounded-md bg-orange-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
                   >
                     {loading ? "Sending..." : "Send Magic Link"}
                   </button>

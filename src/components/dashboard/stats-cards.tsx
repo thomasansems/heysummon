@@ -22,7 +22,7 @@ export function StatsCards() {
   }, []);
 
   const cards = [
-    { label: "Total Requests", value: stats?.totalRequests ?? 0, color: "text-violet-400" },
+    { label: "Total Requests", value: stats?.totalRequests ?? 0, color: "text-orange-400" },
     { label: "Pending", value: stats?.pending ?? 0, color: "text-yellow-400" },
     { label: "Responded", value: stats?.responded ?? 0, color: "text-green-400" },
     { label: "API Keys", value: stats?.apiKeys ?? 0, color: "text-blue-400" },
@@ -33,7 +33,7 @@ export function StatsCards() {
       {cards.map((card) => (
         <div
           key={card.label}
-          className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5"
+          className="rounded-xl border border-border bg-card p-5"
         >
           <p className="text-sm text-zinc-400">{card.label}</p>
           <p className={`mt-1 text-3xl font-bold ${card.color}`}>

@@ -26,7 +26,7 @@ export function RecentActivity() {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+      <div className="rounded-xl border border-border bg-muted/30 p-8 text-center text-muted-foreground">
         Loading...
       </div>
     );
@@ -34,14 +34,14 @@ export function RecentActivity() {
 
   if (requests.length === 0) {
     return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+      <div className="rounded-xl border border-border bg-muted/30 p-8 text-center text-muted-foreground">
         No help requests yet. Share your API key to start receiving requests.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50">
+    <div className="rounded-xl border border-border bg-card">
       {requests.map((req) => (
         <Link
           key={req.id}

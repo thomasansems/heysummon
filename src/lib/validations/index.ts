@@ -50,9 +50,10 @@ export const providerUpdateSchema = z.object({
   name: z.string().optional(),
   isActive: z.boolean().optional(),
   timezone: z.string().optional(),
-  quietHoursStart: z.string().optional(),
-  quietHoursEnd: z.string().optional(),
-  digestTime: z.string().optional(),
+  quietHoursStart: z.string().nullable().optional(),
+  quietHoursEnd: z.string().nullable().optional(),
+  availableDays: z.string().nullable().optional(),
+  digestTime: z.string().nullable().optional(),
   tagline: z.string().max(160).optional(),
   taglineEnabled: z.boolean().optional(),
 });

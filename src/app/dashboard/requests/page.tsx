@@ -14,7 +14,7 @@ function CopyableRefCode({ code }: { code: string | null }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="font-mono text-xs text-foreground hover:text-violet-600 cursor-pointer relative"
+      className="font-mono text-xs text-foreground hover:text-orange-600 cursor-pointer relative"
       title="Click to copy"
     >
       {code}
@@ -50,13 +50,13 @@ const FILTERS = [
 ] as const;
 
 const statusStyles: Record<string, string> = {
-  pending: "bg-yellow-950/60 text-yellow-300",
-  delivered: "bg-teal-950/60 text-teal-300",
-  responded: "bg-emerald-950/60 text-emerald-300",
-  approved: "bg-emerald-950/60 text-emerald-300",
-  denied: "bg-red-950/60 text-red-300",
-  expired: "bg-slate-950/60 text-slate-300",
-  failed: "bg-red-950/60 text-red-300",
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300",
+  delivered: "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300",
+  responded: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+  approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+  denied: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+  expired: "bg-slate-100 text-slate-600 dark:bg-slate-950/60 dark:text-slate-300",
+  failed: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
   cancelled: "bg-red-950/60 text-red-400",
 };
 
@@ -324,7 +324,7 @@ export default function RequestsPage() {
                           <button
                             onClick={() => handleResend(req.id)}
                             disabled={isLoading}
-                            className="rounded px-2 py-1 text-xs font-medium text-violet-400 hover:bg-violet-950/40 transition-colors disabled:opacity-50"
+                            className="rounded px-2 py-1 text-xs font-medium text-orange-400 hover:bg-orange-950/40 transition-colors disabled:opacity-50"
                           >
                             Resend
                           </button>
@@ -352,7 +352,7 @@ export default function RequestsPage() {
                           {statusLabels[display] || req.status}
                         </span>
                         {req.requiresApproval && !req.approvalDecision && (
-                          <span className="inline-flex items-center rounded-full bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-300">
+                          <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 px-2 py-0.5 text-xs font-medium">
                             Approval Required
                           </span>
                         )}
@@ -449,7 +449,7 @@ export default function RequestsPage() {
                             {statusLabels[display] || req.status}
                           </span>
                           {req.requiresApproval && !req.approvalDecision && (
-                            <span className="inline-flex items-center rounded-full bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-300">
+                            <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 px-2 py-0.5 text-xs font-medium">
                               Approval Required
                             </span>
                           )}
@@ -511,7 +511,7 @@ export default function RequestsPage() {
                             <button
                               onClick={() => handleResend(req.id)}
                               disabled={isLoading}
-                              className="rounded px-2 py-1 text-xs font-medium text-violet-400 hover:bg-violet-950/40 transition-colors disabled:opacity-50"
+                              className="rounded px-2 py-1 text-xs font-medium text-orange-400 hover:bg-orange-950/40 transition-colors disabled:opacity-50"
                             >
                               Resend
                             </button>

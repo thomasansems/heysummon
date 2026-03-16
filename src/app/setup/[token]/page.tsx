@@ -79,7 +79,7 @@ claude mcp add heysummon \\
           <p className="text-sm text-zinc-400">
             You&apos;ve been invited to connect to a HeySummon provider. Follow the steps below to get started.
           </p>
-          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-700 bg-amber-950/40 px-3 py-1 text-xs text-amber-400">
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-700 bg-amber-950/40 px-3 py-1 text-xs text-amber-700 dark:text-amber-400">
             <span>⏱</span>
             <span>This link expires in 10 minutes — set it up now</span>
           </div>
@@ -88,7 +88,7 @@ claude mcp add heysummon \\
         {isOpenClaw && (
           <div className="space-y-6">
             {/* Provider intro */}
-            <div className="rounded-xl border border-violet-800/50 bg-violet-950/20 p-4">
+            <div className="rounded-xl border border-orange-800/50 bg-orange-950/20 p-4">
               <p className="text-sm text-zinc-300">
                 You&apos;re connecting to provider{" "}
                 <span className="font-semibold text-white">&quot;{providerName}&quot;</span>.
@@ -98,9 +98,9 @@ claude mcp add heysummon \\
             </div>
 
             {/* Step 1 */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">1</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-xs font-bold">1</span>
                 <h2 className="font-semibold text-white">Install the HeySummon skill</h2>
               </div>
               <p className="mb-3 text-sm text-zinc-400">
@@ -111,19 +111,19 @@ claude mcp add heysummon \\
               </div>
               <p className="mt-2 text-xs text-zinc-500">
                 Or browse on ClawHub:{" "}
-                <a href={clawhubUrl} target="_blank" rel="noopener noreferrer" className="text-violet-400 underline">{clawhubUrl}</a>
+                <a href={clawhubUrl} target="_blank" rel="noopener noreferrer" className="text-orange-400 underline">{clawhubUrl}</a>
               </p>
             </div>
 
             {/* Step 2 */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">2</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-xs font-bold">2</span>
                 <h2 className="font-semibold text-white">Configure your credentials</h2>
               </div>
               <p className="mb-3 text-sm text-zinc-400">
-                Add these to your skill&apos;s <code className="rounded bg-zinc-800 px-1 text-zinc-300">.env</code> file (inside{" "}
-                <code className="rounded bg-zinc-800 px-1 text-zinc-300">skills/heysummon/</code>):
+                Add these to your skill&apos;s <code className="rounded bg-muted px-1 text-foreground">.env</code> file (inside{" "}
+                <code className="rounded bg-muted px-1 text-foreground">skills/heysummon/</code>):
               </p>
               <div className="rounded-lg bg-black p-3">
                 <pre className="overflow-x-auto font-mono text-xs text-green-400">{configureCmd}</pre>
@@ -131,9 +131,9 @@ claude mcp add heysummon \\
             </div>
 
             {/* Step 3 */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">3</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-xs font-bold">3</span>
                 <h2 className="font-semibold text-white">Register this provider</h2>
               </div>
               <p className="mb-3 text-sm text-zinc-400">
@@ -148,9 +148,9 @@ claude mcp add heysummon \\
             </div>
 
             {/* Step 4 */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">4</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-xs font-bold">4</span>
                 <h2 className="font-semibold text-white">Start the event watcher</h2>
               </div>
               <p className="mb-3 text-sm text-zinc-400">
@@ -163,9 +163,9 @@ claude mcp add heysummon \\
             </div>
 
             {/* Step 5 */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">5</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-xs font-bold">5</span>
                 <h2 className="font-semibold text-white">You&apos;re all set!</h2>
               </div>
               <p className="text-sm text-zinc-400">
@@ -180,9 +180,9 @@ claude mcp add heysummon \\
         {isClaudeCode && (
           <div className="space-y-6">
             {/* Step 1 */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">1</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-xs font-bold">1</span>
                 <h2 className="font-semibold text-white">Add the HeySummon MCP server</h2>
               </div>
               <p className="mb-3 text-sm text-zinc-400">
@@ -194,22 +194,22 @@ claude mcp add heysummon \\
             </div>
 
             {/* Step 2 */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">2</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-xs font-bold">2</span>
                 <h2 className="font-semibold text-white">Verify installation</h2>
               </div>
               <p className="mb-3 text-sm text-zinc-400">Check that the MCP server is registered:</p>
               <div className="rounded-lg bg-black p-3">
                 <code className="font-mono text-sm text-green-400">claude mcp list</code>
               </div>
-              <p className="mt-2 text-xs text-zinc-500">You should see <code className="rounded bg-zinc-800 px-1 text-zinc-300">heysummon</code> in the list. Package: <a href="https://www.npmjs.com/package/@heysummon/mcp" target="_blank" rel="noopener noreferrer" className="text-violet-400 underline">@heysummon/mcp</a> on npm.</p>
+              <p className="mt-2 text-xs text-zinc-500">You should see <code className="rounded bg-muted px-1 text-foreground">heysummon</code> in the list. Package: <a href="https://www.npmjs.com/package/@heysummon/mcp" target="_blank" rel="noopener noreferrer" className="text-orange-400 underline">@heysummon/mcp</a> on npm.</p>
             </div>
 
             {/* Step 3 */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-bold">3</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-xs font-bold">3</span>
                 <h2 className="font-semibold text-white">Use it in Claude Code</h2>
               </div>
               <p className="text-sm text-zinc-400">
@@ -218,7 +218,7 @@ claude mcp add heysummon \\
             </div>
 
             {/* ClawHub link */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <h2 className="mb-2 font-semibold text-white">📦 Also available on ClawHub</h2>
               <p className="mb-3 text-sm text-zinc-400">
                 Install the full HeySummon skill (for OpenClaw agents) from ClawHub:
@@ -227,7 +227,7 @@ claude mcp add heysummon \\
                 href={clawhubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-violet-700 bg-violet-950/40 px-4 py-2 text-sm font-medium text-violet-300 hover:bg-violet-950/70"
+                className="inline-flex items-center gap-2 rounded-lg border border-violet-700 bg-orange-950/40 px-4 py-2 text-sm font-medium text-orange-300 hover:bg-orange-950/70"
               >
                 View on ClawHub →
               </a>

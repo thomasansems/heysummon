@@ -41,8 +41,74 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
 }
 
+/**
+ * Check if the provider is currently within their availability window.
+ * availableFrom/Until = HH:MM strings (the AVAILABLE period).
+ * availableDays = comma-separated weekday numbers (0=Sun, 1=Mon … 6=Sat).
+ * Returns true if provider is UNAVAILABLE (should back off).
+ */
+function isUnavailable(
+  availableFrom: string | null,
+  availableUntil: string | null,
+  availableDays: string | null,
+  timezone: string | null
+): boolean {
+  if (!availableFrom && !availableUntil && !availableDays) return false;
+  try {
+    const tz = timezone || "UTC";
+    const now = new Date();
+
+    // Get current time + weekday in provider's timezone
+    const timeFmt = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz,
+    });
+    const parts = timeFmt.formatToParts(now);
+    const h = parts.find((p) => p.type === "hour")?.value ?? "00";
+    const m = parts.find((p) => p.type === "minute")?.value ?? "00";
+    const current = `${h}:${m}`;
+
+    const dayFmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: tz });
+    const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const currentDay = dayMap[dayFmt.format(now)] ?? now.getDay();
+
+    // Check weekday availability
+    if (availableDays) {
+      const days = availableDays.split(",").map((d) => parseInt(d.trim(), 10));
+      if (!days.includes(currentDay)) return true; // Not an available day
+    }
+
+    // Check time availability
+    if (availableFrom && availableUntil) {
+      if (availableFrom <= availableUntil) {
+        // Normal range e.g. 09:00 → 17:00
+        if (current < availableFrom || current >= availableUntil) return true;
+      } else {
+        // Overnight range e.g. 22:00 → 06:00 (rare for availability but supported)
+        if (current < availableFrom && current >= availableUntil) return true;
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 /** Provider: return undelivered pending requests */
 async function handleProviderPending(provider: { id: string; userId: string }) {
+  // Check availability window
+  const profile = await prisma.userProfile.findUnique({
+    where: { id: provider.id },
+    select: { quietHoursStart: true, quietHoursEnd: true, availableDays: true, timezone: true },
+  });
+
+  if (profile && isUnavailable(profile.quietHoursStart, profile.quietHoursEnd, profile.availableDays, profile.timezone)) {
+    return NextResponse.json(
+      { events: [], quietHours: true },
+      { headers: { "Retry-After": "600" } }
+    );
+  }
+
   const requests = await prisma.helpRequest.findMany({
     where: {
       expertId: provider.userId,

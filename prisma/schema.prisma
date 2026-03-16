@@ -73,6 +73,7 @@ model UserProfile {
   timezone         String?
   quietHoursStart  String?
   quietHoursEnd    String?
+  availableDays    String?
   digestTime       String?
   deviceSecret     String?
   machineId        String?

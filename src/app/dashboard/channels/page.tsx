@@ -30,9 +30,9 @@ const typeLabels: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    connected: "bg-green-950/60 text-green-300",
+    connected: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300",
     disconnected: "bg-zinc-100 text-zinc-600",
-    error: "bg-red-950/60 text-red-300",
+    error: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
   };
   return (
     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${styles[status] || styles.disconnected}`}>
@@ -195,7 +195,7 @@ export default function ChannelsPage() {
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/dashboard/channels/${ch.id}/settings`}
-                      className="text-xs text-violet-600 hover:text-violet-800"
+                      className="text-xs text-orange-600 hover:text-orange-800"
                     >
                       Settings
                     </Link>
@@ -270,7 +270,7 @@ export default function ChannelsPage() {
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         href={`/dashboard/channels/${ch.id}/settings`}
-                        className="text-xs text-violet-600 hover:text-violet-800"
+                        className="text-xs text-orange-600 hover:text-orange-800"
                       >
                         Settings
                       </Link>

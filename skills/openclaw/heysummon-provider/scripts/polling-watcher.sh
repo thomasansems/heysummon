@@ -174,26 +174,40 @@ process_event() {
 }
 
 # Main polling loop
+CURRENT_INTERVAL="$POLL_INTERVAL"
 while true; do
   response=$(curl -s -H "x-api-key: ${API_KEY}" "${PENDING_URL}" 2>/dev/null)
 
   if [[ -n "$response" ]]; then
-    # Process each event from the response
-    echo "$response" | node -e "
-      let d='';
-      process.stdin.on('data',c=>d+=c);
-      process.stdin.on('end',()=>{
-        try {
-          const j=JSON.parse(d);
-          for(const e of (j.events||[])) {
-            console.log(JSON.stringify(e));
-          }
-        } catch(e){}
-      });
-    " 2>/dev/null | while IFS= read -r event_json; do
-      process_event "$event_json"
-    done
+    # Check for quiet hours flag — back off to 60s when in quiet window
+    quiet=$(echo "$response" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).quietHours===true?'yes':'no')}catch(e){console.log('no')}})" 2>/dev/null)
+    if [[ "$quiet" == "yes" ]]; then
+      if [[ "$CURRENT_INTERVAL" != "60" ]]; then
+        echo "🌙 Quiet hours active — slowing poll to 10 min"
+        CURRENT_INTERVAL="600"
+      fi
+    else
+      if [[ "$CURRENT_INTERVAL" != "$POLL_INTERVAL" ]]; then
+        echo "☀️  Quiet hours ended — resuming normal poll (${POLL_INTERVAL}s)"
+        CURRENT_INTERVAL="$POLL_INTERVAL"
+      fi
+      # Process each event from the response
+      echo "$response" | node -e "
+        let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+          try {
+            const j=JSON.parse(d);
+            for(const e of (j.events||[])) {
+              console.log(JSON.stringify(e));
+            }
+          } catch(e){}
+        });
+      " 2>/dev/null | while IFS= read -r event_json; do
+        process_event "$event_json"
+      done
+    fi
   fi
 
-  sleep "$POLL_INTERVAL"
+  sleep "$CURRENT_INTERVAL"
 done

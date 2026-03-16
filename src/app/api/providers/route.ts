@@ -10,9 +10,23 @@ export async function GET() {
 
   const providers = await prisma.userProfile.findMany({
     where: { userId: user.id },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      key: true,
+      isActive: true,
+      createdAt: true,
+      timezone: true,
+      quietHoursStart: true,
+      quietHoursEnd: true,
+      availableDays: true,
       _count: { select: { apiKeys: true } },
       ipEvents: { orderBy: { lastSeen: "desc" } },
+      apiKeys: {
+        where: { isActive: true },
+        select: { id: true, name: true, clientChannel: true, clientSubChannel: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
     orderBy: { createdAt: "desc" },
   });

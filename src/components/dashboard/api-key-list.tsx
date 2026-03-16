@@ -67,12 +67,12 @@ export function ApiKeyList() {
           value={newKeyName}
           onChange={(e) => setNewKeyName(e.target.value)}
           placeholder="Key name (optional)"
-          className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-colors focus:border-violet-500"
+          className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500"
         />
         <button
           type="submit"
           disabled={creating}
-          className="whitespace-nowrap rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+          className="whitespace-nowrap rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
         >
           {creating ? "Creating..." : "Create Key"}
         </button>
@@ -86,7 +86,7 @@ export function ApiKeyList() {
               <p className="text-sm font-semibold text-amber-300">
                 Device Token — Save this now!
               </p>
-              <p className="mt-1 text-xs text-amber-400/80">
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-400/80">
                 This token is shown only once and cannot be retrieved later. Store it securely.
               </p>
               <div className="mt-2 flex items-center gap-2">
@@ -99,7 +99,7 @@ export function ApiKeyList() {
                     setCopiedDeviceSecret(true);
                     setTimeout(() => setCopiedDeviceSecret(false), 2000);
                   }}
-                  className="whitespace-nowrap text-xs text-amber-400 hover:text-amber-300"
+                  className="whitespace-nowrap text-xs text-amber-700 dark:text-amber-400 hover:text-amber-300"
                 >
                   {copiedDeviceSecret ? "Copied!" : "Copy"}
                 </button>
@@ -116,11 +116,11 @@ export function ApiKeyList() {
       )}
 
       {loading ? (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+        <div className="rounded-xl border border-border bg-muted/30 p-8 text-center text-muted-foreground">
           Loading...
         </div>
       ) : keys.length === 0 ? (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+        <div className="rounded-xl border border-border bg-muted/30 p-8 text-center text-muted-foreground">
           No API keys yet. Create one to start receiving help requests.
         </div>
       ) : (
@@ -145,12 +145,12 @@ export function ApiKeyList() {
                     )}
                   </div>
                   <div className="mt-1.5 flex items-center gap-2">
-                    <code className="rounded bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300">
+                    <code className="rounded bg-muted px-2.5 py-1 text-xs text-muted-foreground">
                       {k.key}
                     </code>
                     <button
                       onClick={() => handleCopy(k.key, k.id)}
-                      className="text-xs text-violet-400 hover:text-violet-300"
+                      className="text-xs text-orange-400 hover:text-orange-300"
                     >
                       {copiedId === k.id ? "Copied!" : "Copy"}
                     </button>

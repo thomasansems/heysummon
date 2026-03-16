@@ -1,8 +1,27 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-
+import { X, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+interface DayActivity {
+  day: string;
+  current: number;
+  previous: number;
+  avgResponse: number;
+}
 
 interface Stats {
   total: number;
@@ -10,7 +29,8 @@ interface Stats {
   resolved: number;
   expired: number;
   avgResponseTime: number;
-  activity: number[];
+  activity: DayActivity[];
+  topClients: { name: string; count: number }[];
   openRequests: {
     id: string;
     refCode: string | null;
@@ -23,9 +43,7 @@ interface Stats {
 }
 
 function timeAgo(date: string) {
-  const seconds = Math.floor(
-    (Date.now() - new Date(date).getTime()) / 1000
-  );
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
   if (seconds < 60) return `${seconds}s ago`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
@@ -38,10 +56,8 @@ function formatTime(seconds: number) {
   if (seconds === 0) return "—";
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return `${m}m ${s}s`;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
-
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -54,12 +70,12 @@ function CopyableRefCode({ code }: { code: string | null }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="font-mono text-xs text-foreground hover:text-violet-600 cursor-pointer relative"
+      className="font-mono text-xs text-foreground hover:text-primary cursor-pointer relative"
       title="Click to copy"
     >
       {code}
       {copied && (
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-foreground px-2 py-0.5 text-xs text-background whitespace-nowrap">
+        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-foreground px-2 py-0.5 text-xs text-background whitespace-nowrap z-10">
           Copied!
         </span>
       )}
@@ -67,8 +83,69 @@ function CopyableRefCode({ code }: { code: string | null }) {
   );
 }
 
+// CSS variable colors for recharts (resolved at render time)
+const CHART_COLORS = [
+  "hsl(35 55% 68%)",   // chart-1: peach
+  "hsl(28 48% 52%)",   // chart-2: burnt orange
+  "hsl(23 44% 42%)",   // chart-3: deeper
+  "hsl(19 40% 34%)",   // chart-4: dark brown-orange
+  "hsl(15 33% 26%)",   // chart-5: darkest
+];
+
+function CustomBarTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: { name: string; value: number; color: string }[];
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2.5 text-sm shadow-lg">
+      <p className="mb-2 font-semibold text-foreground">{label}</p>
+      {payload.map((p) => (
+        <div key={p.name} className="flex items-center justify-between gap-6">
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: p.color }} />
+            {p.name}
+          </span>
+          <span className="text-xs font-bold text-foreground">{p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CustomPieTooltip({ active, payload }: {
+  active?: boolean;
+  payload?: { name: string; value: number }[];
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-lg">
+      <p className="font-medium text-foreground">{payload[0].name}</p>
+      <p className="text-xs text-muted-foreground">{payload[0].value} requests</p>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [activeClientIdx, setActiveClientIdx] = useState<number | null>(null);
+
+  async function handleCancel(id: string) {
+    setActionLoading(id);
+    await fetch(`/api/v1/dashboard/requests/${id}/cancel`, { method: "POST" }).catch(() => null);
+    setActionLoading(null);
+    fetch("/api/dashboard/stats").then((r) => r.json()).then(setStats).catch(() => null);
+  }
+
+  async function handleResend(id: string) {
+    setActionLoading(id);
+    await fetch(`/api/v1/dashboard/requests/${id}/resend`, { method: "POST" }).catch(() => null);
+    setActionLoading(null);
+    fetch("/api/dashboard/stats").then((r) => r.json()).then(setStats).catch(() => null);
+  }
+
   useEffect(() => {
     fetch("/api/dashboard/stats")
       .then((r) => r.json())
@@ -83,150 +160,290 @@ export default function DashboardPage() {
     );
   }
 
-  const maxActivity = Math.max(...stats.activity, 1);
+  const totalThisWeek = (stats.activity || []).reduce((s, d) => s + d.current, 0);
+  const totalPrevWeek = (stats.activity || []).reduce((s, d) => s + d.previous, 0);
+  const deltaPct = totalPrevWeek > 0
+    ? Math.round(((totalThisWeek - totalPrevWeek) / totalPrevWeek) * 100)
+    : null;
+  const deltaStr = deltaPct === null ? "—" : deltaPct >= 0 ? `+${deltaPct}%` : `${deltaPct}%`;
+
+  const totalClients = (stats.topClients || []).reduce((s, c) => s + c.count, 0);
+
+  const highlighted = activeClientIdx !== null ? stats.topClients[activeClientIdx] : null;
+  const highlightedPct = highlighted && totalClients > 0
+    ? Math.round((highlighted.count / totalClients) * 100)
+    : null;
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-semibold text-foreground">Overview</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold text-foreground">Overview</h1>
 
       {/* Stat cards */}
-      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: "Total Requests", value: stats.total },
           { label: "Open", value: stats.open },
-          { label: "Resolved", value: stats.resolved },
-          {
-            label: "Avg Response",
-            value: formatTime(stats.avgResponseTime),
-          },
+          { label: "Resolved", value: stats.resolved ?? 0 },
+          { label: "Avg Response", value: formatTime(stats.avgResponseTime) },
         ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-lg border border-border bg-card p-4"
-          >
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
-            <p className="mt-1 text-2xl font-semibold text-foreground">
-              {stat.value}
-            </p>
+          <div key={stat.label} className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.label}</p>
+            <p className="mt-1.5 text-2xl font-semibold text-foreground">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Open Requests */}
-      <div className="mb-8">
-        <h2 className="mb-3 text-sm font-medium text-foreground">Open Requests</h2>
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
-          {stats.openRequests.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              No open requests
+      {/* Charts row */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+
+        {/* Traffic Channels-style bar chart — 3/5 */}
+        <div className="lg:col-span-3 rounded-xl border border-border bg-card p-5">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-foreground">Requests per day</h2>
+            <p className="text-sm text-muted-foreground">This week vs. last week</p>
+          </div>
+
+          <div style={{ height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.activity} barGap={4} barCategoryGap="20%">
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="day"
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis hide allowDecimals={false} />
+                <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.5)" }} />
+                <Bar dataKey="current" name="This week" fill={CHART_COLORS[0]} radius={[8, 8, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="previous" name="Last week" fill={CHART_COLORS[1]} radius={[8, 8, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-3 flex items-center justify-center gap-5 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: CHART_COLORS[0] }} />
+              This week
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: CHART_COLORS[1] }} />
+              Last week
+            </span>
+          </div>
+
+          {/* Summary stats */}
+          <div className="mt-4 grid grid-cols-3 divide-x divide-border border-t border-border pt-4">
+            <div className="px-3 text-center first:pl-0 last:pr-0">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">This week</p>
+              <p className="mt-0.5 text-xl font-bold text-foreground">{totalThisWeek}</p>
+            </div>
+            <div className="px-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Last week</p>
+              <p className="mt-0.5 text-xl font-bold text-foreground">{totalPrevWeek}</p>
+            </div>
+            <div className="px-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Delta</p>
+              <p className={`mt-0.5 text-xl font-bold ${deltaPct !== null && deltaPct >= 0 ? "text-primary" : "text-muted-foreground"}`}>
+                {deltaStr}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Top 5 clients donut chart — 2/5 */}
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5">
+          <div className="mb-2">
+            <h2 className="text-base font-semibold text-foreground">Top Clients</h2>
+            <p className="text-sm text-muted-foreground">Most active — all time</p>
+          </div>
+
+          {stats.topClients.length === 0 ? (
+            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+              No requests yet
             </div>
           ) : (
             <>
-              {/* Mobile card layout */}
-              <div className="md:hidden">
-                {stats.openRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="border-b border-border p-4 space-y-2 last:border-0 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <CopyableRefCode code={req.refCode} />
-                      <span className="text-muted-foreground text-sm">
-                        {timeAgo(req.createdAt)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">
-                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
-                        Awaiting Response
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-xs text-muted-foreground">Messages</span>
-                        <div className="text-muted-foreground">
-                          {req.messageCount > 0 ? `${req.messageCount} berichten` : "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Client</span>
-                        <div className="text-muted-foreground">
-                          {req.apiKey.name || "Unnamed"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              {/* Donut */}
+              <div className="relative flex items-center justify-center" style={{ height: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.topClients}
+                      dataKey="count"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      onMouseEnter={(_, idx) => setActiveClientIdx(idx)}
+                      onMouseLeave={() => setActiveClientIdx(null)}
+                    >
+                      {stats.topClients.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill={CHART_COLORS[i % CHART_COLORS.length]}
+                          opacity={activeClientIdx === null || activeClientIdx === i ? 1 : 0.5}
+                          stroke="none"
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomPieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center label */}
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-foreground">
+                    {highlighted ? highlighted.count : totalClients}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {highlighted ? "requests" : "total"}
+                  </span>
+                </div>
               </div>
 
-              {/* Desktop table layout */}
-              <table className="hidden md:table w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="px-4 py-2.5 font-medium">Ref Code</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                  <th className="px-4 py-2.5 font-medium">Messages</th>
-                  <th className="px-4 py-2.5 font-medium">Client</th>
-                  <th className="px-4 py-2.5 font-medium text-right">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.openRequests.map((req) => (
-                  <tr
-                    key={req.id}
-                    className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
-                  >
-                    <td className="px-4 py-2.5">
-                      <CopyableRefCode code={req.refCode} />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">
-                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
-                        Awaiting Response
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {req.messageCount > 0
-                        ? `${req.messageCount} berichten`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {req.apiKey.name || "Unnamed"}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-muted-foreground">
-                      {timeAgo(req.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              {/* Legend */}
+              <div className="mt-2 space-y-1.5">
+                {stats.topClients.map((client, i) => {
+                  const pct = totalClients > 0 ? Math.round((client.count / totalClients) * 100) : 0;
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                        style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
+                      />
+                      <span className="flex-1 truncate text-xs text-muted-foreground">{client.name}</span>
+                      <span className="text-xs font-medium text-foreground">{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Highlighted client bar */}
+              {highlighted && (
+                <div className="mt-3 border-t border-border pt-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground truncate">{highlighted.name}</span>
+                    <span>{highlightedPct}%</span>
+                  </div>
+                  <div className="mt-1.5 h-1 w-full rounded-full bg-muted">
+                    <div
+                      className="h-1 rounded-full transition-all"
+                      style={{
+                        width: `${highlightedPct}%`,
+                        background: CHART_COLORS[activeClientIdx! % CHART_COLORS.length],
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
       </div>
 
-      {/* Activity Chart */}
+      {/* Open Requests */}
       <div>
-        <h2 className="mb-3 text-sm font-medium text-foreground">
-          Activity (7 days)
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
+          Open Requests
+          {stats.open > 0 && (
+            <span className="ml-2 inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+              {stats.open}
+            </span>
+          )}
         </h2>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="flex items-end justify-between gap-2" style={{ height: 120 }}>
-            {stats.activity.map((count, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-sm bg-violet-500 transition-all"
-                  style={{
-                    height: `${(count / maxActivity) * 100}%`,
-                    minHeight: count > 0 ? 4 : 0,
-                  }}
-                />
-                <span className="text-xs text-muted-foreground">
-                  {DAYS[(new Date().getDay() + i - 5) % 7] || DAYS[i]}
-                </span>
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+          {stats.openRequests.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              No open requests 🎉
+            </div>
+          ) : (
+            <>
+              {/* Mobile */}
+              <div className="md:hidden">
+                {stats.openRequests.map((req) => {
+                  const isLoading = actionLoading === req.id;
+                  const canCancel = req.status === "pending" || req.status === "active";
+                  return (
+                    <div key={req.id} className="border-b border-border p-4 space-y-2 last:border-0 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CopyableRefCode code={req.refCode} />
+                        <div className="flex items-center gap-1">
+                          {canCancel && (
+                            <button onClick={() => handleCancel(req.id)} disabled={isLoading} title="Cancel"
+                              className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors">
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <button onClick={() => handleResend(req.id)} disabled={isLoading} title="Resend"
+                            className="rounded p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors">
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="text-xs text-muted-foreground ml-1">{timeAgo(req.createdAt)}</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{req.question || "—"}</p>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>{req.apiKey.name || "Unnamed"}</span>
+                        {req.messageCount > 0 && <span>{req.messageCount} msgs</span>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+
+              {/* Desktop */}
+              <table className="hidden md:table w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-muted-foreground">
+                    <th className="px-4 py-3 font-medium">Ref</th>
+                    <th className="px-4 py-3 font-medium">Question</th>
+                    <th className="px-4 py-3 font-medium">Client</th>
+                    <th className="px-4 py-3 font-medium text-right">Time</th>
+                    <th className="px-4 py-3 font-medium w-16" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.openRequests.map((req) => {
+                    const isLoading = actionLoading === req.id;
+                    const canCancel = req.status === "pending" || req.status === "active";
+                    return (
+                      <tr key={req.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <CopyableRefCode code={req.refCode} />
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">
+                          {req.question || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                          {req.apiKey.name || "Unnamed"}
+                        </td>
+                        <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
+                          {timeAgo(req.createdAt)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            {canCancel && (
+                              <button onClick={() => handleCancel(req.id)} disabled={isLoading} title="Cancel"
+                                className="rounded p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            <button onClick={() => handleResend(req.id)} disabled={isLoading} title="Resend"
+                              className="rounded p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors">
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          )}
         </div>
       </div>
     </div>

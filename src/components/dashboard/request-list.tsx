@@ -57,8 +57,8 @@ export function RequestList({ providerId }: { providerId?: string }) {
             onClick={() => setFilter(opt.value)}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
               filter === opt.value
-                ? "bg-violet-600 text-white"
-                : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                ? "bg-orange-600 text-white"
+                : "bg-muted text-muted-foreground hover:text-foreground"
             }`}
           >
             {opt.label}
@@ -67,15 +67,15 @@ export function RequestList({ providerId }: { providerId?: string }) {
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+        <div className="rounded-xl border border-border bg-muted/30 p-8 text-center text-muted-foreground">
           Loading...
         </div>
       ) : requests.length === 0 ? (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+        <div className="rounded-xl border border-border bg-muted/30 p-8 text-center text-muted-foreground">
           No requests found.
         </div>
       ) : (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50">
+        <div className="rounded-xl border border-border bg-card">
           {requests.map((req) => (
             <Link
               key={req.id}
@@ -93,7 +93,7 @@ export function RequestList({ providerId }: { providerId?: string }) {
               </div>
               <div className="flex items-center gap-2">
                 {!req.deliveredAt && req.status === "pending" && (
-                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-400">
                     ⏳
                   </span>
                 )}

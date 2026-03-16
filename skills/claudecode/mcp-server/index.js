@@ -112,8 +112,38 @@ server.tool(
       }
 
       const data = await res.json();
-      requestId = data.id;
+      requestId = data.requestId || data.id;
       refCode = data.refCode;
+
+      // Show availability notice if provider is currently unavailable
+      if (data.providerUnavailable) {
+        let availMsg = "⚠️ The provider is not available right now.";
+        if (data.nextAvailableAt) {
+          try {
+            const next = new Date(data.nextAvailableAt);
+            const now = new Date();
+            const diffMs = next - now;
+            const diffH = Math.floor(diffMs / 3600000);
+            const diffM = Math.round((diffMs % 3600000) / 60000);
+            const timeStr = next.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+            const nextDay = new Date(next); nextDay.setHours(0, 0, 0, 0);
+            let when = nextDay.getTime() === today.getTime() ? `today at ${timeStr}`
+              : nextDay.getTime() === tomorrow.getTime() ? `tomorrow at ${timeStr}`
+              : `on ${next.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })} at ${timeStr}`;
+            if (diffH > 0) when += ` (in ${diffH}h ${diffM}m)`;
+            else if (diffM > 0) when += ` (in ${diffM}m)`;
+            availMsg += `\n🕐 They will be available ${when}.\n📬 Your request is queued and will be delivered when they come online.`;
+          } catch {
+            availMsg += "\n📬 Your request is queued and will be delivered when they become available.";
+          }
+        } else {
+          availMsg += "\n📬 Your request is queued and will be delivered when they become available.";
+        }
+        // Log availability notice but continue polling (request IS queued)
+        console.error(`[HeySummon] ${availMsg}`);
+      }
     } catch (err) {
       return {
         content: [{ type: "text", text: `❌ Failed to submit request: ${err.message}` }],

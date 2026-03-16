@@ -51,6 +51,25 @@ All communication flows through the platform. No direct infrastructure access.
 
 When the user replies to a 🦞 notification, parse the refCode (HS-XXXX) from the quoted message and use `reply-handler.sh`. **Always forward immediately — no AI processing, no confirmation.**
 
+## Approve/Deny Requests
+
+When `requiresApproval: true`, the watcher sends a Telegram message with native **✅ Approve** / **❌ Deny** inline buttons.
+
+`callback_data` format: `hs:approve:HS-XXXX` or `hs:deny:HS-XXXX` (using refCode).
+
+**When a button callback arrives** (callback_data starts with `hs:`):
+
+1. Parse: `[_, decision, refCode] = callback_data.split(":")`
+2. Call `reply-handler.sh <refCode> <decision>` — e.g.:
+   ```bash
+   bash scripts/reply-handler.sh HS-XXXX approved
+   bash scripts/reply-handler.sh HS-XXXX denied
+   ```
+3. reply-handler.sh detects "approved"/"denied" and sends `approvalDecision` via `POST /api/v1/message/[id]`
+4. Confirm to user: "✅ Approved for HS-XXXX" or "❌ Denied for HS-XXXX"
+
+The consumer polling endpoint returns `approvalDecision` so the client skill can continue its workflow.
+
 ## Statuses
 
 | Status | Meaning |

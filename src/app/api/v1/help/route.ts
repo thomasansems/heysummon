@@ -10,8 +10,67 @@ import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 
+/**
+ * Returns whether the provider is currently unavailable and when they'll next be available.
+ * availableFrom/Until are "HH:MM" strings (the AVAILABLE window).
+ * availableDays is comma-separated weekday numbers (0=Sun … 6=Sat).
+ */
+function getProviderAvailability(
+  availableFrom: string | null,
+  availableUntil: string | null,
+  availableDays: string | null,
+  timezone: string | null
+): { unavailable: boolean; nextAvailableAt: string | null } {
+  if (!availableFrom && !availableUntil && !availableDays) {
+    return { unavailable: false, nextAvailableAt: null };
+  }
+  try {
+    const tz = timezone || "UTC";
+    const now = new Date();
+    const timeFmt = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz,
+    });
+    const dayFmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: tz });
+    const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+    const getTimeParts = (d: Date) => {
+      const parts = timeFmt.formatToParts(d);
+      const h = parts.find((p) => p.type === "hour")?.value ?? "00";
+      const mi = parts.find((p) => p.type === "minute")?.value ?? "00";
+      return { time: `${h}:${mi}`, day: dayMap[dayFmt.format(d)] ?? d.getDay() };
+    };
+
+    const days = availableDays
+      ? availableDays.split(",").map((d) => parseInt(d.trim(), 10)).filter((d) => !isNaN(d))
+      : null;
+    const from = availableFrom ?? "00:00";
+    const until = availableUntil ?? "23:59";
+
+    const isAvailable = (d: Date) => {
+      const { time, day } = getTimeParts(d);
+      const dayOk = !days || days.includes(day);
+      const timeOk = from <= until ? time >= from && time < until : time >= from || time < until;
+      return dayOk && timeOk;
+    };
+
+    if (isAvailable(now)) return { unavailable: false, nextAvailableAt: null };
+
+    // Walk forward in 15-min steps up to 8 days to find next slot
+    for (let i = 15; i <= 8 * 24 * 60; i += 15) {
+      const candidate = new Date(now.getTime() + i * 60 * 1000);
+      if (isAvailable(candidate)) {
+        return { unavailable: true, nextAvailableAt: candidate.toISOString() };
+      }
+    }
+    return { unavailable: true, nextAvailableAt: null };
+  } catch {
+    return { unavailable: false, nextAvailableAt: null };
+  }
+}
+
 const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
 const REQUEST_TTL_MS = parseInt(process.env.HEYSUMMON_REQUEST_TTL_MS || String(72 * 60 * 60 * 1000), 10);
+const DEBUG = process.env.DEBUG === "true";
 
 /**
  * POST /api/v1/help — Submit a help request.
@@ -37,9 +96,25 @@ export async function POST(request: Request) {
       encryptPublicKey,
       messages,
       question,
+      requiresApproval,
       publicKey,
       messageCount,
     } = body;
+
+    // Debug logging
+    if (DEBUG) {
+      console.log("[POST /api/v1/help] Request received:", {
+        question: question,
+        requiresApproval,
+        apiKey: apiKey ? apiKey.slice(0, 20) + "..." : null,
+        hasQuestion: !!question,
+        hasMessages: !!messages && Array.isArray(messages) && messages.length > 0,
+        messageCount,
+        hasSignPublicKey: !!signPublicKey,
+        hasEncryptPublicKey: !!encryptPublicKey,
+        hasPublicKey: !!publicKey,
+      });
+    }
 
     if (!apiKey) {
       return NextResponse.json(
@@ -129,10 +204,23 @@ export async function POST(request: Request) {
         serverPublicKey: serverKeyPair?.publicKey || null,
         serverPrivateKey: serverKeyPair?.privateKey || null,
 
+        requiresApproval: requiresApproval ?? false,
         contentFlags: null,
         guardVerified,
       },
     });
+
+    // Debug logging — show what was stored
+    if (DEBUG) {
+      console.log("[POST /api/v1/help] Request created:", {
+        id: helpRequest.id,
+        refCode: helpRequest.refCode,
+        question: helpRequest.question || null,
+        requiresApproval: helpRequest.requiresApproval,
+        expiresAt: helpRequest.expiresAt.toISOString(),
+        expertId: helpRequest.expertId,
+      });
+    }
 
     logAuditEvent({
       eventType: AuditEventTypes.HELP_REQUEST_SUBMITTED,
@@ -148,12 +236,29 @@ export async function POST(request: Request) {
       request,
     });
 
+    // Check provider availability to inform consumer
+    const providerProfile = await prisma.userProfile.findFirst({
+      where: { userId: key.userId },
+      select: { quietHoursStart: true, quietHoursEnd: true, availableDays: true, timezone: true },
+    });
+
+    const availability = providerProfile
+      ? getProviderAvailability(
+          providerProfile.quietHoursStart,
+          providerProfile.quietHoursEnd,
+          providerProfile.availableDays,
+          providerProfile.timezone
+        )
+      : { unavailable: false, nextAvailableAt: null };
+
     return NextResponse.json({
       requestId: helpRequest.id,
       refCode: helpRequest.refCode,
       status: "pending",
       expiresAt: helpRequest.expiresAt.toISOString(),
       ...(serverKeyPair && { serverPublicKey: serverKeyPair.publicKey }),
+      providerUnavailable: availability.unavailable,
+      nextAvailableAt: availability.nextAvailableAt,
     });
   } catch (err) {
     console.error("Help request error:", sanitizeError(err));

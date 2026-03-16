@@ -50,9 +50,10 @@ export const providerUpdateSchema = z.object({
   name: z.string().optional(),
   isActive: z.boolean().optional(),
   timezone: z.string().optional(),
-  quietHoursStart: z.string().optional(),
-  quietHoursEnd: z.string().optional(),
-  digestTime: z.string().optional(),
+  quietHoursStart: z.string().nullable().optional(),
+  quietHoursEnd: z.string().nullable().optional(),
+  availableDays: z.string().nullable().optional(),
+  digestTime: z.string().nullable().optional(),
   tagline: z.string().max(160).optional(),
   taglineEnabled: z.boolean().optional(),
 });
@@ -67,6 +68,8 @@ export const keyCreateSchema = z.object({
   scope: apiKeyScopeEnum.optional(),
   allowedIps: z.string().nullable().optional(),
   rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
+  clientChannel: z.enum(["openclaw", "claudecode"]).nullable().optional(),
+  clientSubChannel: z.enum(["telegram", "whatsapp"]).nullable().optional(),
 });
 
 export const keyUpdateSchema = z.object({
@@ -75,6 +78,8 @@ export const keyUpdateSchema = z.object({
   scope: apiKeyScopeEnum.optional(),
   allowedIps: z.string().nullable().optional(),
   rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
+  clientChannel: z.enum(["openclaw", "claudecode"]).nullable().optional(),
+  clientSubChannel: z.enum(["telegram", "whatsapp"]).nullable().optional(),
 });
 
 // ── Request PATCH schema ──
@@ -92,6 +97,8 @@ export const helpCreateSchema = z.object({
   publicKey: z.string().optional(),
   messages: z.array(z.any()).optional(),
   question: z.string().optional(),
+  questionPreview: z.string().optional(),
+  requiresApproval: z.boolean().optional(),
   messageCount: z.number().int().min(0).optional(),
 });
 

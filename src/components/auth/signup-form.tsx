@@ -41,13 +41,13 @@ export function SignupForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       <div>
-        <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-zinc-300">
+        <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
           Name
         </label>
         <input
@@ -55,13 +55,13 @@ export function SignupForm() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-zinc-100 placeholder-zinc-500 outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+          className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground placeholder-muted-foreground outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="Your name"
         />
       </div>
 
       <div>
-        <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-zinc-300">
+        <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
           Email
         </label>
         <input
@@ -70,13 +70,13 @@ export function SignupForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-zinc-100 placeholder-zinc-500 outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+          className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground placeholder-muted-foreground outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="you@example.com"
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-zinc-300">
+        <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
           Password
         </label>
         <input
@@ -86,7 +86,7 @@ export function SignupForm() {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-zinc-100 placeholder-zinc-500 outline-none transition-colors focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+          className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground placeholder-muted-foreground outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="At least 8 characters"
         />
       </div>
@@ -94,7 +94,7 @@ export function SignupForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-violet-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+        className="w-full rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
       >
         {loading ? "Creating account..." : "Create Account"}
       </button>

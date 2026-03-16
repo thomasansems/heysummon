@@ -73,6 +73,7 @@ model UserProfile {
   timezone         String?
   quietHoursStart  String?
   quietHoursEnd    String?
+  availableDays    String?
   digestTime       String?
   deviceSecret     String?
   machineId        String?
@@ -122,7 +123,9 @@ model ApiKey {
   previousKeyHash      String?                            // SHA-256 of rotated-out key
   previousKeyExpiresAt DateTime?                           // 24h grace window
   allowedIps           String?                             // comma-separated CIDR/IPs
-  rateLimitPerMinute   Int           @default(100)
+  rateLimitPerMinute   Int           @default(150)
+  clientChannel        String?       // "openclaw" | "claudecode"
+  clientSubChannel     String?       // "telegram" | "whatsapp" (only for openclaw)
   requests             HelpRequest[]
   ipEvents             IpEvent[]
   createdAt            DateTime      @default(now())
@@ -172,6 +175,13 @@ model HelpRequest {
   providerSignPubKey     String?   // Provider's Ed25519 signing public key (after key exchange)
   providerEncryptPubKey  String?   // Provider's X25519 encryption public key (after key exchange)
   
+  // Optional plaintext preview for notifications (max 200 chars)
+  questionPreview        String?
+
+  // Approval workflow
+  requiresApproval       Boolean   @default(false)
+  approvalDecision       String?   // "approved" | "denied" | null
+
   // Content safety (guard service)
   contentFlags           String?   // JSON array of safety flags from guard
   guardVerified          Boolean   @default(false) // true if content was validated by guard sidecar

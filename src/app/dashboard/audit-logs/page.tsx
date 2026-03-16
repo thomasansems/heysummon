@@ -41,18 +41,18 @@ function formatDate(date: string) {
 
 function EventTypeBadge({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    LOGIN_SUCCESS: "bg-green-950/60 text-green-300",
-    LOGIN_FAILURE: "bg-red-950/60 text-red-300",
-    ACCOUNT_CREATED: "bg-blue-950/60 text-blue-300",
-    API_KEY_CREATED: "bg-violet-950/60 text-violet-300",
-    API_KEY_ROTATED: "bg-amber-950/60 text-amber-300",
-    API_KEY_DELETED: "bg-red-950/60 text-red-300",
-    KEY_EXCHANGE: "bg-cyan-950/60 text-cyan-300",
-    PERMISSION_CHANGED: "bg-orange-950/60 text-orange-300",
-    HELP_REQUEST_SUBMITTED: "bg-indigo-950/60 text-indigo-300",
-    NOTIFICATION_DELIVERED: "bg-emerald-950/60 text-emerald-300",
-    NOTIFICATION_RESENT: "bg-amber-950/60 text-amber-300",
-    PROVIDER_RESPONSE: "bg-emerald-950/60 text-emerald-300",
+    LOGIN_SUCCESS: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300",
+    LOGIN_FAILURE: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+    ACCOUNT_CREATED: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+    API_KEY_CREATED: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300",
+    API_KEY_ROTATED: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
+    API_KEY_DELETED: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+    KEY_EXCHANGE: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300",
+    PERMISSION_CHANGED: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300",
+    HELP_REQUEST_SUBMITTED: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300",
+    NOTIFICATION_DELIVERED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+    NOTIFICATION_RESENT: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
+    PROVIDER_RESPONSE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
   };
 
   const label = type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -66,12 +66,12 @@ function EventTypeBadge({ type }: { type: string }) {
 
 function SuccessBadge({ success }: { success: boolean }) {
   return success ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-950/60 px-2 py-0.5 text-xs font-medium text-emerald-300">
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 text-xs font-medium">
       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
       Success
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded-full bg-red-950/60 px-2 py-0.5 text-xs font-medium text-red-300">
+    <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 px-2 py-0.5 text-xs font-medium">
       <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
       Failed
     </span>
@@ -189,7 +189,7 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (
           <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
             Loading...
@@ -199,71 +199,125 @@ export default function AuditLogsPage() {
             No audit logs found
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="px-4 py-2.5 font-medium">Timestamp</th>
-                <th className="px-4 py-2.5 font-medium">Event</th>
-                <th className="px-4 py-2.5 font-medium">User</th>
-                <th className="px-4 py-2.5 font-medium">IP</th>
-                <th className="px-4 py-2.5 font-medium text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Mobile card view */}
+            <div className="md:hidden">
               {logs.map((log) => (
-                <tr key={log.id} className="group">
-                  <td colSpan={5} className="p-0">
-                    <button
-                      onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-                      className="flex w-full items-center border-b border-border text-left hover:bg-muted transition-colors"
-                    >
-                      <span className="px-4 py-2.5 w-[160px] shrink-0 text-muted-foreground">
-                        {formatDate(log.createdAt)}
-                      </span>
-                      <span className="px-4 py-2.5 w-[220px] shrink-0">
-                        <EventTypeBadge type={log.eventType} />
-                      </span>
-                      <span className="px-4 py-2.5 flex-1 truncate text-foreground font-mono text-xs">
-                        {log.userId || "—"}
-                      </span>
-                      <span className="px-4 py-2.5 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">
-                        {log.ip || "—"}
-                      </span>
-                      <span className="px-4 py-2.5 w-[100px] shrink-0 text-right">
-                        <SuccessBadge success={log.success} />
-                      </span>
-                    </button>
-                    {expandedId === log.id && (
-                      <div className="border-b border-border bg-muted px-4 py-3">
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
-                          <div>
-                            <span className="font-medium text-muted-foreground">Event ID:</span>{" "}
-                            <span className="font-mono text-foreground">{log.id}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-muted-foreground">API Key ID:</span>{" "}
-                            <span className="font-mono text-foreground">{log.apiKeyId || "—"}</span>
-                          </div>
-                          <div className="col-span-2">
-                            <span className="font-medium text-muted-foreground">User Agent:</span>{" "}
-                            <span className="text-foreground break-all">{log.userAgent || "—"}</span>
-                          </div>
-                          {log.metadata && (
-                            <div className="col-span-2">
-                              <span className="font-medium text-muted-foreground">Metadata:</span>
-                              <pre className="mt-1 overflow-x-auto rounded bg-card p-2 text-xs text-foreground border border-border">
-                                {JSON.stringify(log.metadata, null, 2)}
-                              </pre>
-                            </div>
-                          )}
+                <div
+                  key={log.id}
+                  onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                  className="border-b border-border p-4 space-y-2 cursor-pointer hover:bg-muted transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{formatDate(log.createdAt)}</span>
+                    <SuccessBadge success={log.success} />
+                  </div>
+                  <div><EventTypeBadge type={log.eventType} /></div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">User</span>
+                    <div className="font-mono text-xs text-foreground">{log.userId || "—"}</div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">IP</span>
+                    <div className="font-mono text-xs text-muted-foreground">{log.ip || "—"}</div>
+                  </div>
+                  {expandedId === log.id && (
+                    <div className="mt-2 border-t border-border pt-2">
+                      <div className="grid grid-cols-1 gap-y-2 text-xs">
+                        <div>
+                          <span className="font-medium text-muted-foreground">Event ID:</span>{" "}
+                          <span className="font-mono text-foreground">{log.id}</span>
                         </div>
+                        <div>
+                          <span className="font-medium text-muted-foreground">API Key ID:</span>{" "}
+                          <span className="font-mono text-foreground">{log.apiKeyId || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-muted-foreground">User Agent:</span>{" "}
+                          <span className="text-foreground break-all">{log.userAgent || "—"}</span>
+                        </div>
+                        {log.metadata && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">Metadata:</span>
+                            <pre className="mt-1 overflow-x-auto rounded bg-card p-2 text-xs text-foreground border border-border">
+                              {JSON.stringify(log.metadata, null, 2)}
+                            </pre>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </td>
-                </tr>
+                    </div>
+                  )}
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            {/* Desktop table view */}
+            <table className="hidden md:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Timestamp</th>
+                  <th className="px-4 py-2.5 font-medium">Event</th>
+                  <th className="px-4 py-2.5 font-medium">User</th>
+                  <th className="px-4 py-2.5 font-medium">IP</th>
+                  <th className="px-4 py-2.5 font-medium text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log) => (
+                  <tr key={log.id} className="group">
+                    <td colSpan={5} className="p-0">
+                      <button
+                        onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                        className="flex w-full items-center border-b border-border text-left hover:bg-muted transition-colors"
+                      >
+                        <span className="px-4 py-2.5 w-[160px] shrink-0 text-muted-foreground">
+                          {formatDate(log.createdAt)}
+                        </span>
+                        <span className="px-4 py-2.5 w-[220px] shrink-0">
+                          <EventTypeBadge type={log.eventType} />
+                        </span>
+                        <span className="px-4 py-2.5 flex-1 truncate text-foreground font-mono text-xs">
+                          {log.userId || "—"}
+                        </span>
+                        <span className="px-4 py-2.5 w-[140px] shrink-0 text-muted-foreground font-mono text-xs">
+                          {log.ip || "—"}
+                        </span>
+                        <span className="px-4 py-2.5 w-[100px] shrink-0 text-right">
+                          <SuccessBadge success={log.success} />
+                        </span>
+                      </button>
+                      {expandedId === log.id && (
+                        <div className="border-b border-border bg-muted px-4 py-3">
+                          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
+                            <div>
+                              <span className="font-medium text-muted-foreground">Event ID:</span>{" "}
+                              <span className="font-mono text-foreground">{log.id}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">API Key ID:</span>{" "}
+                              <span className="font-mono text-foreground">{log.apiKeyId || "—"}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="font-medium text-muted-foreground">User Agent:</span>{" "}
+                              <span className="text-foreground break-all">{log.userAgent || "—"}</span>
+                            </div>
+                            {log.metadata && (
+                              <div className="col-span-2">
+                                <span className="font-medium text-muted-foreground">Metadata:</span>
+                                <pre className="mt-1 overflow-x-auto rounded bg-card p-2 text-xs text-foreground border border-border">
+                                  {JSON.stringify(log.metadata, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
 

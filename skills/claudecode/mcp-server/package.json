@@ -1,9 +1,12 @@
 {
-  "name": "@heysummon/claude-code-mcp",
+  "name": "@heysummon/mcp",
   "version": "0.1.0",
   "description": "HeySummon MCP server for Claude Code — request human expert help inline",
   "type": "module",
   "main": "index.js",
+  "bin": {
+    "heysummon-mcp": "index.js"
+  },
   "scripts": {
     "start": "node index.js"
   },
@@ -15,5 +18,13 @@
     "node": ">=18"
   },
   "keywords": ["heysummon", "mcp", "claude-code", "human-in-the-loop"],
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomasansems/heysummon.git",
+    "directory": "skills/claudecode/mcp-server"
+  }
 }

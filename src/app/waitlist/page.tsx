@@ -38,7 +38,7 @@ export default function WaitlistPage() {
         {/* Logo */}
         <div className="mb-8">
           <span className="text-3xl font-bold tracking-tight text-black">
-            hey<span className="text-violet-600">Summon</span>
+            hey<span className="text-orange-600">Summon</span>
           </span>
         </div>
 

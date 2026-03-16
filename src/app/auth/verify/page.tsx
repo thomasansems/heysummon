@@ -8,7 +8,7 @@ export default function VerifyPage() {
           href="/"
           className="mb-4 inline-flex items-center gap-2 text-lg font-bold text-black"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-sm text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-600 text-sm text-white">
             H
           </span>
           HeySummon
@@ -24,7 +24,7 @@ export default function VerifyPage() {
           </p>
           <p className="mt-4 text-xs text-[#999]">
             Didn&apos;t receive it? Check your spam folder or{" "}
-            <Link href="/auth/login" className="text-violet-600 hover:text-violet-500">
+            <Link href="/auth/login" className="text-orange-600 hover:text-orange-500">
               try again
             </Link>
             .

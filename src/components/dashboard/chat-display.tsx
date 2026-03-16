@@ -14,8 +14,8 @@ export function ChatDisplay({ messages }: { messages: Message[] }) {
           <div
             className={`max-w-[80%] rounded-2xl px-4 py-3 ${
               msg.role === "user"
-                ? "rounded-br-md bg-violet-600/30 text-violet-100"
-                : "rounded-bl-md bg-zinc-800 text-zinc-200"
+                ? "rounded-br-md bg-orange-600/30 text-orange-100"
+                : "rounded-bl-md bg-muted text-foreground"
             }`}
           >
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider opacity-60">

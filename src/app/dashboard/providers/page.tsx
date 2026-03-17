@@ -1,7 +1,8 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, useCallback } from "react";
+import { AlertTriangle } from "lucide-react";
 
 const COMMON_TIMEZONES = [
   "UTC",
@@ -179,6 +180,13 @@ export default function ProvidersPage() {
   const [wizardCreating, setWizardCreating] = useState(false);
   const [wizardError, setWizardError] = useState("");
   const [wizardResult, setWizardResult] = useState<{ providerId: string; providerKey: string; channel: "openclaw" | "telegram" } | null>(null);
+  const [tunnelActive, setTunnelActive] = useState<boolean | null>(null);
+
+  const fetchTunnelStatus = useCallback(() => {
+    fetch("/api/admin/tunnel/status").then(r => r.json()).then(d => setTunnelActive(d.active ?? false)).catch(() => setTunnelActive(false));
+  }, []);
+
+  useEffect(() => { if (wizardChannel === "telegram") fetchTunnelStatus(); }, [wizardChannel, fetchTunnelStatus]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
@@ -399,6 +407,23 @@ export default function ProvidersPage() {
                       <p className="mt-1 text-xs text-muted-foreground">
                         Get a token from <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">@BotFather</a> on Telegram. Send <code className="rounded bg-muted px-1">/newbot</code> and copy the token.
                       </p>
+
+                      {/* Tunnel warning */}
+                      {tunnelActive === false && (
+                        <div className="mt-3 flex items-start gap-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2.5 text-xs text-orange-700 dark:text-orange-300">
+                          <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span>
+                            <strong>Public access required.</strong> Telegram bot webhooks need a public HTTPS URL to deliver messages to your local server.{" "}
+                            <a href="/dashboard/settings" className="underline font-medium">Go to Settings → Public Access</a> to enable Tailscale Funnel first.
+                          </span>
+                        </div>
+                      )}
+                      {tunnelActive === true && (
+                        <div className="mt-3 flex items-center gap-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 px-3 py-2 text-xs text-green-700 dark:text-green-300">
+                          <span>✅</span>
+                          <span>Tailscale Funnel is active — webhooks will be registered automatically.</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -479,6 +504,15 @@ export default function ProvidersPage() {
                         <p className="text-zinc-400">Open your Telegram bot and send <code className="rounded bg-muted px-1 text-foreground">/start</code> — the bot will bind to your chat ID automatically.</p>
                       </div>
                     </div>
+                    {!tunnelActive && (
+                      <div className="flex items-start gap-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2.5 text-xs text-orange-700 dark:text-orange-300">
+                        <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <span>
+                          <strong>Action needed:</strong> Tailscale Funnel is not active yet. The bot won&apos;t receive messages until you enable it.{" "}
+                          <a href="/dashboard/settings" className="underline font-medium">Go to Settings → Public Access →</a>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 

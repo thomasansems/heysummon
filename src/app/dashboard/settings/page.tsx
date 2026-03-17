@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
-import { Globe, Wifi, WifiOff, Copy, Check } from "lucide-react";
+import { Globe, Wifi, WifiOff, Copy, Check, FlaskConical, ShieldCheck, AlertTriangle } from "lucide-react";
 
 interface IpEvent {
   id: string;
@@ -62,6 +62,19 @@ export default function SettingsPage() {
 
   const copyUrl = () => {
     if (tunnel?.hostname) { navigator.clipboard.writeText(tunnel.hostname); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+  };
+
+  // Test webhook state
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message?: string; error?: string; webhooks?: { channel: string; ok: boolean; lastError?: string | null }[] } | null>(null);
+
+  const testWebhook = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+    const res = await fetch("/api/admin/tunnel/test", { method: "POST" });
+    const data = await res.json();
+    setTestResult(data);
+    setTestLoading(false);
   };
 
   const fetchProviderIpEvents = useCallback(() => {
@@ -131,32 +144,47 @@ export default function SettingsPage() {
 
       {/* Public Access / Tailscale Funnel */}
       <div className="mb-6 rounded-lg border border-border bg-card p-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-1">
           <Globe className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-sm font-medium text-foreground">Public Access</h2>
-          <span className="text-xs text-muted-foreground ml-1">— required for Telegram bot webhooks</span>
+          <span className={`ml-auto text-xs font-medium px-2 py-0.5 rounded-full ${tunnel?.active ? "bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>
+            {tunnel?.active ? "● Active" : "○ Inactive"}
+          </span>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          Use <strong>Tailscale Funnel</strong> to expose HeySummon publicly over HTTPS. This is required when running locally and using Telegram bot channels.
-          Never use localtunnel — Tailscale Funnel is the only supported method.
+          Required when using <strong>Telegram Bot</strong> channels while running locally. Telegram's servers need to reach your HeySummon instance over HTTPS to deliver messages.
         </p>
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`h-2 w-2 rounded-full ${tunnel?.active ? "bg-green-500" : "bg-zinc-400"}`} />
-          <span className="text-sm text-muted-foreground">
-            {tunnel?.active ? "Funnel active" : "Funnel inactive"}
-          </span>
-          {tunnel?.active && (
-            <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground">
-              {tunnel.hostname}
-            </span>
-          )}
-          {tunnel?.active && (
-            <button onClick={copyUrl} className="p-1 rounded hover:bg-muted text-muted-foreground" title="Copy URL">
+
+        {/* Security explanation */}
+        <div className="mb-4 rounded-md border border-border bg-muted/40 p-3 flex gap-2.5">
+          <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">Why this is safe</p>
+            <p><strong>Tailscale Funnel</strong> creates an HTTPS reverse proxy from your Tailscale hostname to your local port 3425. Only traffic to that port is exposed.</p>
+            <p>Every incoming webhook request is validated against a <strong>secret token</strong> (<code className="rounded bg-muted px-1 font-mono">x-telegram-bot-api-secret-token</code> header) — only genuine Telegram requests pass through. Spoofed requests are rejected with 403.</p>
+          </div>
+        </div>
+
+        {/* URL + copy */}
+        {tunnel?.active && (
+          <div className="mb-4 flex items-center gap-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 px-3 py-2">
+            <span className="text-xs font-mono text-foreground flex-1 truncate">{tunnel.hostname}</span>
+            <button onClick={copyUrl} className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground" title="Copy URL">
               {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
             </button>
-          )}
-        </div>
-        <div className="flex gap-2">
+          </div>
+        )}
+
+        {/* Note: requires sudo once */}
+        {!tunnel?.active && (
+          <div className="mb-4 flex items-start gap-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>First-time setup requires running <code className="rounded bg-orange-100 dark:bg-orange-950 px-1 font-mono">sudo tailscale set --operator=$USER</code> once in a terminal to allow non-root Funnel access.</span>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={startTunnel}
             disabled={tunnelLoading || tunnel?.active === true}
@@ -173,11 +201,29 @@ export default function SettingsPage() {
             <WifiOff className="h-3.5 w-3.5" />
             Stop Funnel
           </button>
+          <button
+            onClick={testWebhook}
+            disabled={testLoading || !tunnel?.active}
+            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+            title="Verify webhook URLs are reachable and correctly registered"
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            {testLoading ? "Testing…" : "Test Webhooks"}
+          </button>
         </div>
-        {tunnel?.publicUrl && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Active URL: <span className="font-mono text-foreground">{tunnel.publicUrl}</span>
-          </p>
+
+        {/* Test results */}
+        {testResult && (
+          <div className={`mt-3 rounded-md border p-3 text-xs ${testResult.ok ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300" : "border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300"}`}>
+            <p className="font-medium mb-1">{testResult.message ?? testResult.error}</p>
+            {testResult.webhooks && testResult.webhooks.map((w, i) => (
+              <div key={i} className="flex items-center gap-1.5 mt-1">
+                <span>{w.ok ? "✅" : "❌"}</span>
+                <span className="font-mono">{w.channel}</span>
+                {w.lastError && <span className="text-red-500 dark:text-red-400">— {w.lastError}</span>}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

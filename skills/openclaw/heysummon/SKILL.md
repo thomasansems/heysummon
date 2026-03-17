@@ -8,25 +8,33 @@ When someone requests help, the skill submits a request to the HeySummon platfor
 
 ### Step 1: Configure Environment
 
-Create `.env` in the skill directory with your HeySummon platform details:
+Create or update `.env` in the skill directory with your HeySummon platform details:
 
 ```env
-HEYSUMMON_BASE_URL=http://localhost:3445
+HEYSUMMON_BASE_URL=http://thomas-pc.tail38a1e7.ts.net:3425
 HEYSUMMON_API_KEY=hs_cli_your_key_here
 HEYSUMMON_NOTIFY_MODE=message
 HEYSUMMON_NOTIFY_TARGET=your_chat_id
 ```
 
 **Platform Options:**
-- **Self-hosted:** Use your local/server URL (e.g., `http://localhost:3445`)
-- **Cloud:** Use `https://cloud.heysummon.ai`
+- **Self-hosted:** Use your local/server URL (e.g., `http://localhost:3425`)
+- **Cloud:** Use the provided cloud URL from setup link
 
-**Get API Key:**
-1. Go to your HeySummon dashboard
-2. Navigate to Users → Create user profile (or ask provider for client key)
-3. Create a **client key** (starts with `hs_cli_...`)
+**Get API Key from Setup Link:**
+When you receive a HeySummon setup link, extract the API key from the JWT token:
+1. The URL contains a JWT: `setup/eyJhbGc...`
+2. Decode the JWT payload to find: `"key": "hs_cli_XXXXX"`
+3. Use that `hs_cli_XXXXX` value in `.env`
 
-⚠️ **Security:** API keys starting with `hs_prov_` are provider keys (not client keys). These will be rejected.
+**⚠️ If You Already Have a Setup:**
+If you've already configured HeySummon with one API key and receive a NEW setup link:
+- **Option A:** Update `.env` with the new key (replaces old consumer)
+- **Option B:** Keep multiple providers in `providers.json` and update `.env` to use the new key when you want to submit new requests
+
+Each setup link creates a new **consumer context**. Multiple providers can respond to the same consumer.
+
+⚠️ **Security:** API keys starting with `hs_prov_` are provider keys (not client keys). Use only `hs_cli_...` keys in `.env`.
 
 ### Step 2: Register Provider(s)
 
@@ -227,7 +235,7 @@ agent:{agentId}:{channel}:{type}:{id}
 
 Example for a Telegram group:
 ```
-agent:tertiary:telegram:group:-1234567890
+agent:tertiary:telegram:group:-5080163376
 ```
 
 To find the current session key, ask the agent:

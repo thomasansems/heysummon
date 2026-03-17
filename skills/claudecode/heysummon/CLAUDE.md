@@ -1,0 +1,36 @@
+# HeySummon — Human in the Loop
+
+You have access to a human expert via HeySummon. Use it when:
+- You need approval before doing something irreversible (deleting data, deploying, etc.)
+- You're genuinely stuck and need a human decision
+- The task requires information only the human has
+- You're unsure which approach to take and want guidance
+
+## How to ask
+
+```bash
+bash skills/claudecode/heysummon/scripts/ask.sh "Your question here"
+```
+
+The script **blocks and returns the human's answer** on stdout. Read the response and continue accordingly.
+
+## Examples
+
+```bash
+# Ask for approval
+ANSWER=$(bash skills/claudecode/heysummon/scripts/ask.sh "Should I drop the old 'sessions' table? It appears unused but I'm not 100% sure.")
+echo "Human said: $ANSWER"
+
+# Ask with context
+ANSWER=$(bash skills/claudecode/heysummon/scripts/ask.sh "Which approach should I use for the caching layer?" "I'm choosing between Redis and in-memory cache.")
+
+# Ask a specific provider
+ANSWER=$(bash skills/claudecode/heysummon/scripts/ask.sh "Review this SQL migration" "" "Thomas")
+```
+
+## Rules
+
+- **Always wait** for the response before continuing
+- **Be specific** — include relevant context in your question
+- **Don't spam** — one request at a time; don't ask trivial questions
+- If the response is `PROVIDER_UNAVAILABLE`, note it and continue with your best judgment or pause the task

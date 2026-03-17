@@ -10,11 +10,11 @@ export async function GET() {
   const hostname = "https://thomas-pc.tail38a1e7.ts.net";
 
   try {
-    const raw = execSync("tailscale funnel status --json 2>/dev/null", { timeout: 5000 }).toString();
-    const data = JSON.parse(raw);
-    const active = JSON.stringify(data).includes("3425");
-    return NextResponse.json({ active, publicUrl, hostname });
+    const raw = execSync("tailscale funnel status 2>/dev/null", { timeout: 5000 }).toString();
+    // Check if our specific path (/api/adapters/telegram → 3425) is active
+    const active = raw.includes("/api/adapters/telegram") && raw.includes("3425");
+    return NextResponse.json({ active, publicUrl: active ? hostname : null, hostname });
   } catch {
-    return NextResponse.json({ active: !!publicUrl, publicUrl, hostname });
+    return NextResponse.json({ active: false, publicUrl: null, hostname });
   }
 }

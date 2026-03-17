@@ -19,7 +19,8 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    execSync("tailscale funnel reset", { timeout: 10000 });
+    // Only remove the HeySummon path, leave other serve configs intact
+    execSync("tailscale funnel --https=443 --set-path /api/adapters/telegram off", { timeout: 10000 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: `Failed to stop funnel: ${msg}` }, { status: 500 });

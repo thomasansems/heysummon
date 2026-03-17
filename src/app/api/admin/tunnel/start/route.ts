@@ -27,10 +27,11 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    // Add Tailscale Funnel for port 3425 on /webhook path only
+    // Expose port 3425 via Tailscale Funnel (full port, HTTPS)
     // NOTE: NEVER use localtunnel — Tailscale Funnel only
-    // Use --set-path to only expose the webhook path, not the full app
-    execSync("tailscale funnel --bg --set-path /api/adapters/telegram 3425", { timeout: 10000 });
+    // Note: --set-path strips the prefix before forwarding, so we must serve at /
+    // The app is protected by NextAuth session + API key checks on all sensitive endpoints
+    execSync("tailscale funnel --bg 3425", { timeout: 10000 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (!msg.toLowerCase().includes("already") && !msg.toLowerCase().includes("success")) {

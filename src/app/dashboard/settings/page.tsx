@@ -160,8 +160,8 @@ export default function SettingsPage() {
           <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
           <div className="text-xs text-muted-foreground space-y-1">
             <p className="font-medium text-foreground">Why this is safe</p>
-            <p><strong>Tailscale Funnel</strong> creates an HTTPS reverse proxy from your Tailscale hostname to your local port 3425. Only traffic to that port is exposed.</p>
-            <p>Every incoming webhook request is validated against a <strong>secret token</strong> (<code className="rounded bg-muted px-1 font-mono">x-telegram-bot-api-secret-token</code> header) — only genuine Telegram requests pass through. Spoofed requests are rejected with 403.</p>
+            <p><strong>Tailscale Funnel</strong> creates a public HTTPS endpoint for your local HeySummon instance — equivalent to a Vercel deployment. Your dashboard and API remain protected by session authentication.</p>
+            <p>Telegram webhook requests are validated against a per-bot <strong>secret token</strong> (<code className="rounded bg-muted px-1 font-mono">x-telegram-bot-api-secret-token</code> header) — spoofed requests are rejected with 403. Only genuine Telegram deliveries are processed.</p>
           </div>
         </div>
 

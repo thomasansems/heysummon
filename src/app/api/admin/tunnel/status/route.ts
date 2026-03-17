@@ -11,8 +11,8 @@ export async function GET() {
 
   try {
     const raw = execSync("tailscale funnel status 2>/dev/null", { timeout: 5000 }).toString();
-    // Check if our specific path (/api/adapters/telegram → 3425) is active
-    const active = raw.includes("/api/adapters/telegram") && raw.includes("3425");
+    // Check if port 3425 is actively funneled
+    const active = raw.includes("3425") && raw.includes("Funnel on");
     return NextResponse.json({ active, publicUrl: active ? hostname : null, hostname });
   } catch {
     return NextResponse.json({ active: false, publicUrl: null, hostname });

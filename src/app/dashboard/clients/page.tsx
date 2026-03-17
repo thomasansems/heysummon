@@ -110,6 +110,8 @@ export default function ClientsPage() {
   const [rotating, setRotating] = useState<string | null>(null);
   const [rotationResult, setRotationResult] = useState<{ key: string; deviceSecret: string; expiresAt: string } | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [generatingSetupLink, setGeneratingSetupLink] = useState<string | null>(null);
+  const [setupLinks, setSetupLinks] = useState<Record<string, { url: string; expiresAt: string }>>({});
 
   // Wizard state
   const [wizardStep, setWizardStep] = useState<WizardStep>(0);
@@ -285,6 +287,22 @@ export default function ClientsPage() {
       loadKeys();
     }
     setRotating(null);
+  };
+
+  const generateSetupLink = async (keyId: string) => {
+    setGeneratingSetupLink(keyId);
+    const k = keys.find(k => k.id === keyId);
+    const providerName = k?.provider?.name ?? "Your Provider";
+    const res = await fetch("/api/v1/setup-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keyId, providerName }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setSetupLinks(prev => ({ ...prev, [keyId]: { url: data.setupUrl, expiresAt: data.expiresAt } }));
+    }
+    setGeneratingSetupLink(null);
   };
 
   const saveSettings = async (id: string) => {
@@ -537,7 +555,7 @@ export default function ClientsPage() {
 
               <p className="mt-3 text-xs text-muted-foreground">
                 💡 After the link expires, generate a new one via the{" "}
-                <strong>Share</strong> option in the client&apos;s action menu.
+                <strong>Setup</strong> option in the client&apos;s action menu.
               </p>
 
               <div className="mt-5 flex justify-end">
@@ -574,36 +592,57 @@ export default function ClientsPage() {
       {/* Wizard modal */}
       {renderWizard()}
 
-      {/* Rotation result modal */}
+      {/* Key rotation result modal */}
       {rotationResult && (
-        <div className="mb-6 rounded-lg border border-amber-800 bg-amber-950/40 p-4">
-          <h3 className="mb-2 text-sm font-medium text-amber-900">Key Rotated Successfully</h3>
-          <p className="mb-3 text-xs text-amber-800">
-            Save these credentials now — the device secret will not be shown again.
-            The old key remains valid until {new Date(rotationResult.expiresAt).toLocaleString()}.
-          </p>
-          <div className="space-y-2">
-            <div>
-              <label className="text-xs font-medium text-amber-300">New API Key</label>
-              <div className="flex items-center gap-2">
-                <code className="block rounded bg-card px-2 py-1 font-mono text-xs text-foreground">{rotationResult.key}</code>
-                <button onClick={() => copyKey(rotationResult.key)} className="text-xs text-orange-600 hover:text-orange-800">Copy</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/60">
+                <span className="text-base">🔑</span>
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Key Rotated Successfully</h2>
+                <p className="text-xs text-muted-foreground">Save these credentials — the secret won&apos;t be shown again</p>
               </div>
             </div>
-            <div>
-              <label className="text-xs font-medium text-amber-300">New Device Secret</label>
-              <div className="flex items-center gap-2">
-                <code className="block rounded bg-card px-2 py-1 font-mono text-xs text-foreground">{rotationResult.deviceSecret}</code>
-                <button onClick={() => copyKey(rotationResult.deviceSecret)} className="text-xs text-orange-600 hover:text-orange-800">Copy</button>
+            {/* Body */}
+            <div className="space-y-4 px-5 py-4">
+              <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                The old key remains valid until <strong>{new Date(rotationResult.expiresAt).toLocaleString()}</strong> to allow seamless migration.
               </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">New API Key</label>
+                <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2">
+                  <code className="flex-1 truncate font-mono text-xs text-foreground">{rotationResult.key}</code>
+                  <button onClick={() => copyKey(rotationResult.key)} className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-500">
+                    {copied === rotationResult.key ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">New Device Secret</label>
+                <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2">
+                  <code className="flex-1 truncate font-mono text-xs text-foreground">{rotationResult.deviceSecret}</code>
+                  <button onClick={() => copyKey(rotationResult.deviceSecret)} className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-500">
+                    {copied === rotationResult.deviceSecret ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Send a new setup link to your client via Settings → Setup Link after closing this.
+              </p>
+            </div>
+            {/* Footer */}
+            <div className="flex justify-end border-t border-border px-5 py-3">
+              <button
+                onClick={() => setRotationResult(null)}
+                className="rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Done
+              </button>
             </div>
           </div>
-          <button
-            onClick={() => setRotationResult(null)}
-            className="mt-3 rounded-md bg-amber-900 px-3 py-1 text-xs font-medium text-white"
-          >
-            Dismiss
-          </button>
         </div>
       )}
 
@@ -717,7 +756,7 @@ export default function ClientsPage() {
                         {openMenuId === k.id && (
                           <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
                             <button onClick={() => { openSettings(k); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Settings</button>
-                            <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Share</button>
+                            <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Setup</button>
                             {k.isActive && (
                               <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-orange-600 hover:bg-muted hover:text-orange-800 disabled:opacity-50">
                                 {rotating === k.id ? "Rotating..." : "Rotate"}
@@ -841,12 +880,23 @@ export default function ClientsPage() {
                     </div>
                   )}
                   {showInstructions === k.id && (
-                    <div className="border-b border-border bg-muted px-4 py-3">
-                      <p className="mb-2 text-xs font-medium text-muted-foreground">OpenClaw Configuration</p>
-                      <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400 overflow-x-auto">{configSnippet(k.key)}</pre>
-                      <button onClick={() => copyToClipboard(configSnippet(k.key))} className="mt-2 text-xs text-orange-600 hover:text-orange-800">Copy snippet</button>
-                      <span className="mx-2 text-gray-400">|</span>
-                      <a href={`/api/v1/skill-install/${k.id}`} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-blue-600 hover:text-blue-800">Install in OpenClaw →</a>
+                    <div className="border-b border-border bg-muted/50 px-4 py-4 space-y-3">
+                      <p className="text-xs font-semibold text-foreground">Setup Link</p>
+                      <p className="text-xs text-muted-foreground">Generate a 10-minute setup link to send to your client. It contains all credentials and step-by-step instructions.</p>
+                      {setupLinks[k.id] ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+                            <span className="flex-1 truncate font-mono text-xs text-foreground">{setupLinks[k.id].url}</span>
+                            <button onClick={() => { copyKey(setupLinks[k.id].url); }} className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-500">{copied === setupLinks[k.id].url ? "Copied!" : "Copy"}</button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Expires at {new Date(setupLinks[k.id].expiresAt).toLocaleTimeString()}</p>
+                          <button onClick={() => generateSetupLink(k.id)} disabled={generatingSetupLink === k.id} className="text-xs text-orange-600 hover:text-orange-500 disabled:opacity-50">↻ Regenerate link</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => generateSetupLink(k.id)} disabled={generatingSetupLink === k.id} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                          {generatingSetupLink === k.id ? "Generating…" : "Generate Setup Link"}
+                        </button>
+                      )}
                     </div>
                   )}
                 </Fragment>
@@ -910,7 +960,7 @@ export default function ClientsPage() {
                           {openMenuId === k.id && (
                             <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
                               <button onClick={() => { openSettings(k); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Settings</button>
-                              <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Share</button>
+                              <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Setup</button>
                               {k.isActive && (
                                 <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-orange-600 hover:bg-muted hover:text-orange-800 disabled:opacity-50">
                                   {rotating === k.id ? "Rotating..." : "Rotate"}
@@ -1011,12 +1061,27 @@ export default function ClientsPage() {
                     )}
                     {showInstructions === k.id && (
                       <tr key={`${k.id}-instructions`} className="border-b border-border">
-                        <td colSpan={8} className="bg-muted px-4 py-3">
-                          <p className="mb-2 text-xs font-medium text-muted-foreground">OpenClaw Configuration</p>
-                          <pre className="rounded-md bg-black p-3 font-mono text-xs text-green-400">{configSnippet(k.key)}</pre>
-                          <button onClick={() => copyToClipboard(configSnippet(k.key))} className="mt-2 text-xs text-orange-600 hover:text-orange-800">Copy snippet</button>
-                          <span className="mx-2 text-gray-400">|</span>
-                          <a href={`/api/v1/skill-install/${k.id}`} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-blue-600 hover:text-blue-800">Install in OpenClaw →</a>
+                        <td colSpan={8} className="bg-muted/50 px-4 py-4">
+                          <div className="max-w-lg space-y-2">
+                            <p className="text-xs font-semibold text-foreground">Setup Link</p>
+                            <p className="text-xs text-muted-foreground">Generate a 10-minute link with embedded credentials and step-by-step instructions for your client.</p>
+                            {setupLinks[k.id] ? (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+                                  <span className="flex-1 truncate font-mono text-xs text-foreground">{setupLinks[k.id].url}</span>
+                                  <button onClick={() => copyKey(setupLinks[k.id].url)} className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-500">{copied === setupLinks[k.id].url ? "Copied!" : "Copy"}</button>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs text-muted-foreground">Expires {new Date(setupLinks[k.id].expiresAt).toLocaleTimeString()}</span>
+                                  <button onClick={() => generateSetupLink(k.id)} disabled={generatingSetupLink === k.id} className="text-xs text-orange-600 hover:text-orange-500 disabled:opacity-50">↻ Regenerate</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button onClick={() => generateSetupLink(k.id)} disabled={generatingSetupLink === k.id} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                                {generatingSetupLink === k.id ? "Generating…" : "Generate Setup Link"}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )}

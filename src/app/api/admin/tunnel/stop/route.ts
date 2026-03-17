@@ -19,7 +19,7 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    execSync("tailscale funnel --bg --off 3425", { timeout: 10000 });
+    execSync("tailscale funnel reset", { timeout: 10000 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: `Failed to stop funnel: ${msg}` }, { status: 500 });

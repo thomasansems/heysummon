@@ -23,31 +23,37 @@ export async function POST() {
   }
 
   // Test 2: Verify Telegram webhooks are registered correctly
+  // Only check channels with a valid-looking bot token (not test/fake tokens)
   const channels = await prisma.channelProvider.findMany({
-    where: { type: "telegram", isActive: true },
+    where: { type: "telegram", isActive: true, status: { not: "error" } },
     select: { id: true, name: true, config: true, status: true },
   });
 
   const results = [];
   for (const ch of channels) {
     const cfg = JSON.parse(ch.config) as TelegramConfig;
-    if (!cfg.botToken) continue;
+    // Skip fake/placeholder tokens (real tokens are at least 40 chars)
+    if (!cfg.botToken || cfg.botToken.startsWith("123456789") || cfg.botToken.length < 40) continue;
     try {
-      const res = await fetch(`https://api.telegram.org/bot${cfg.botToken}/getWebhookInfo`);
+      const res = await fetch(`https://api.telegram.org/bot${cfg.botToken}/getWebhookInfo`, { signal: AbortSignal.timeout(5000) });
       const data = await res.json();
+      if (!data.ok) {
+        results.push({ channel: ch.name, ok: false, lastError: "Invalid bot token" });
+        continue;
+      }
       const expectedUrl = `${publicUrl}/api/adapters/telegram/${ch.id}/webhook`;
       const currentUrl = data.result?.url ?? "";
       const ok = currentUrl === expectedUrl;
       results.push({
         channel: ch.name,
         ok,
-        webhookUrl: currentUrl || "(none)",
+        webhookUrl: currentUrl || "(none set)",
         expectedUrl,
         pendingCount: data.result?.pending_update_count ?? 0,
         lastError: data.result?.last_error_message ?? null,
       });
     } catch {
-      results.push({ channel: ch.name, ok: false, error: "Could not reach Telegram API" });
+      results.push({ channel: ch.name, ok: false, lastError: "Could not reach Telegram API" });
     }
   }
 

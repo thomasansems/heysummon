@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { LobsterBackground } from "@/components/auth/lobster-background";
 
 // Direct signIn call without SessionProvider dependency
 async function doSignIn(provider: string, options: Record<string, unknown>): Promise<{ error?: string; url?: string } | undefined> {
@@ -152,7 +153,8 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
+      <LobsterBackground />
+      <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link
             href="/"

@@ -43,12 +43,19 @@ export async function POST(request: NextRequest) {
 
   const secret = process.env.JWT_SECRET ?? process.env.NEXTAUTH_SECRET ?? "heysummon-setup-secret";
 
-  const proto = request.headers.get("x-forwarded-proto") || "https";
-  const host =
-    request.headers.get("x-forwarded-host") ||
-    request.headers.get("host") ||
-    "localhost:3425";
-  const baseUrl = `${proto}://${host}`;
+  // Prefer public URL (Tailscale Funnel / Cloudflare) over local hostname
+  const publicUrl = process.env.HEYSUMMON_PUBLIC_URL;
+  let baseUrl: string;
+  if (publicUrl) {
+    baseUrl = publicUrl.replace(/\/$/, "");
+  } else {
+    const proto = request.headers.get("x-forwarded-proto") || "https";
+    const host =
+      request.headers.get("x-forwarded-host") ||
+      request.headers.get("host") ||
+      "localhost:3425";
+    baseUrl = `${proto}://${host}`;
+  }
 
   const token = jwt.sign(
     {

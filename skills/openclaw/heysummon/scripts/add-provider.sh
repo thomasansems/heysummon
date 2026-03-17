@@ -14,6 +14,17 @@ PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$SKILL_DIR/providers.json}"
 
 API_KEY="$1"
 ALIAS="$2"
+OVERRIDE_URL="$3"  # Optional: override HEYSUMMON_BASE_URL for first-time setup
+
+# If a URL override is provided, use it and persist to .env if not already set
+if [ -n "$OVERRIDE_URL" ]; then
+  BASE_URL="$OVERRIDE_URL"
+  ENV_FILE="$SKILL_DIR/.env"
+  if [ ! -f "$ENV_FILE" ] || ! grep -q "^HEYSUMMON_BASE_URL=" "$ENV_FILE" 2>/dev/null; then
+    echo "HEYSUMMON_BASE_URL=$OVERRIDE_URL" >> "$ENV_FILE"
+    echo "ℹ️  Saved HEYSUMMON_BASE_URL to $ENV_FILE"
+  fi
+fi
 
 if [ -z "$API_KEY" ]; then
   echo "Usage: add-provider.sh <api-key> [alias]" >&2

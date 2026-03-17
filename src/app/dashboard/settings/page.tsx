@@ -217,10 +217,15 @@ export default function SettingsPage() {
           <div className={`mt-3 rounded-md border p-3 text-xs ${testResult.ok ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300" : "border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300"}`}>
             <p className="font-medium mb-1">{testResult.message ?? testResult.error}</p>
             {testResult.webhooks && testResult.webhooks.map((w, i) => (
-              <div key={i} className="flex items-center gap-1.5 mt-1">
+              <div key={i} className="flex items-center gap-1.5 mt-1 flex-wrap">
                 <span>{w.ok ? "✅" : "❌"}</span>
                 <span className="font-mono">{w.channel}</span>
-                {w.lastError && <span className="text-red-500 dark:text-red-400">— {w.lastError}</span>}
+                {w.lastError && w.ok && (
+                  <span className="text-muted-foreground italic">— (historical: {w.lastError})</span>
+                )}
+                {w.lastError && !w.ok && (
+                  <span className="text-red-500 dark:text-red-400">— {w.lastError}</span>
+                )}
               </div>
             ))}
           </div>

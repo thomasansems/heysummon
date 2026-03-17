@@ -36,7 +36,7 @@ export default function SettingsPage() {
   const [providerProfiles, setProviderProfiles] = useState<ProviderProfile[]>([]);
 
   // Tunnel state
-  const [tunnel, setTunnel] = useState<{ active: boolean; publicUrl: string | null; hostname: string } | null>(null);
+  const [tunnel, setTunnel] = useState<{ active: boolean; publicUrl: string | null; hostname: string; needsOperatorSetup?: boolean } | null>(null);
   const [tunnelLoading, setTunnelLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -175,8 +175,8 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Note: requires sudo once */}
-        {!tunnel?.active && (
+        {/* Note: requires sudo once — only shown if operator not yet set */}
+        {tunnel?.needsOperatorSetup && (
           <div className="mb-4 flex items-start gap-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
             <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>First-time setup requires running <code className="rounded bg-orange-100 dark:bg-orange-950 px-1 font-mono">sudo tailscale set --operator=$USER</code> once in a terminal to allow non-root Funnel access.</span>

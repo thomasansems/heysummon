@@ -10,11 +10,15 @@ export async function GET() {
   const hostname = "https://thomas-pc.tail38a1e7.ts.net";
 
   try {
-    const raw = execSync("tailscale funnel status 2>/dev/null", { timeout: 5000 }).toString();
+    const raw = execSync("tailscale funnel status 2>&1", { timeout: 5000 }).toString();
+    // If we get a permission error, operator is not set
+    const needsOperatorSetup = raw.includes("permission denied") || raw.includes("operator") || raw.includes("not allowed");
     // Check if port 3425 is actively funneled
     const active = raw.includes("3425") && raw.includes("Funnel on");
-    return NextResponse.json({ active, publicUrl: active ? hostname : null, hostname });
-  } catch {
-    return NextResponse.json({ active: false, publicUrl: null, hostname });
+    return NextResponse.json({ active, publicUrl: active ? hostname : null, hostname, needsOperatorSetup });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const needsOperatorSetup = msg.includes("permission denied") || msg.includes("operator");
+    return NextResponse.json({ active: false, publicUrl: null, hostname, needsOperatorSetup });
   }
 }

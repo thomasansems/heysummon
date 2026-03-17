@@ -292,11 +292,13 @@ export default function ClientsPage() {
   const generateSetupLink = async (keyId: string) => {
     setGeneratingSetupLink(keyId);
     const k = keys.find(k => k.id === keyId);
-    const providerName = k?.provider?.name ?? "Your Provider";
+    // Map clientChannel to API channel field
+    const channel = k?.clientChannel === "claudecode" ? "claudecode" : "openclaw";
+    const subChannel = k?.clientSubChannel as "telegram" | "whatsapp" | undefined ?? undefined;
     const res = await fetch("/api/v1/setup-link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keyId, providerName }),
+      body: JSON.stringify({ keyId, channel, subChannel }),
     });
     const data = await res.json();
     if (res.ok) {

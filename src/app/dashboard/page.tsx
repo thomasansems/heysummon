@@ -25,13 +25,13 @@ interface DayActivity {
 
 interface Stats {
   total: number;
-  open: number;
-  resolved: number;
-  expired: number;
-  avgResponseTime: number;
-  activity: DayActivity[];
-  topClients: { name: string; count: number }[];
-  openRequests: {
+  open?: number;
+  resolved?: number;
+  expired?: number;
+  avgResponseTime?: number;
+  activity?: DayActivity[];
+  topClients?: { name: string; count: number }[];
+  openRequests?: {
     id: string;
     refCode: string | null;
     status: string;
@@ -160,16 +160,21 @@ export default function DashboardPage() {
     );
   }
 
-  const totalThisWeek = (stats.activity || []).reduce((s, d) => s + d.current, 0);
-  const totalPrevWeek = (stats.activity || []).reduce((s, d) => s + d.previous, 0);
+  // Normalize — guard against partial/missing fields from API
+  const openRequests = stats.openRequests ?? [];
+  const activity = stats.activity ?? [];
+
+  const totalThisWeek = activity.reduce((s, d) => s + d.current, 0);
+  const totalPrevWeek = activity.reduce((s, d) => s + d.previous, 0);
   const deltaPct = totalPrevWeek > 0
     ? Math.round(((totalThisWeek - totalPrevWeek) / totalPrevWeek) * 100)
     : null;
   const deltaStr = deltaPct === null ? "—" : deltaPct >= 0 ? `+${deltaPct}%` : `${deltaPct}%`;
 
-  const totalClients = (stats.topClients || []).reduce((s, c) => s + c.count, 0);
+  const topClients = stats.topClients ?? [];
+  const totalClients = topClients.reduce((s, c) => s + c.count, 0);
 
-  const highlighted = activeClientIdx !== null ? stats.topClients[activeClientIdx] : null;
+  const highlighted = activeClientIdx !== null ? topClients[activeClientIdx] : null;
   const highlightedPct = highlighted && totalClients > 0
     ? Math.round((highlighted.count / totalClients) * 100)
     : null;
@@ -181,10 +186,10 @@ export default function DashboardPage() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Total Requests", value: stats.total },
-          { label: "Open", value: stats.open },
+          { label: "Total Requests", value: stats.total ?? 0 },
+          { label: "Open", value: stats.open ?? 0 },
           { label: "Resolved", value: stats.resolved ?? 0 },
-          { label: "Avg Response", value: formatTime(stats.avgResponseTime) },
+          { label: "Avg Response", value: formatTime(stats.avgResponseTime ?? 0) },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-border bg-card p-4">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.label}</p>
@@ -205,7 +210,7 @@ export default function DashboardPage() {
 
           <div style={{ height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.activity} barGap={4} barCategoryGap="20%">
+              <BarChart data={activity} barGap={4} barCategoryGap="20%">
                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="day"
@@ -259,7 +264,7 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground">Most active — all time</p>
           </div>
 
-          {stats.topClients.length === 0 ? (
+          {(topClients ?? []).length === 0 ? (
             <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
               No requests yet
             </div>
@@ -270,7 +275,7 @@ export default function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={stats.topClients}
+                      data={topClients}
                       dataKey="count"
                       nameKey="name"
                       cx="50%"
@@ -281,7 +286,7 @@ export default function DashboardPage() {
                       onMouseEnter={(_, idx) => setActiveClientIdx(idx)}
                       onMouseLeave={() => setActiveClientIdx(null)}
                     >
-                      {stats.topClients.map((_, i) => (
+                      {topClients.map((_, i) => (
                         <Cell
                           key={i}
                           fill={CHART_COLORS[i % CHART_COLORS.length]}
@@ -306,7 +311,7 @@ export default function DashboardPage() {
 
               {/* Legend */}
               <div className="mt-2 space-y-1.5">
-                {stats.topClients.map((client, i) => {
+                {topClients.map((client, i) => {
                   const pct = totalClients > 0 ? Math.round((client.count / totalClients) * 100) : 0;
                   return (
                     <div key={i} className="flex items-center gap-2">
@@ -348,14 +353,14 @@ export default function DashboardPage() {
       <div>
         <h2 className="mb-3 text-sm font-semibold text-foreground">
           Open Requests
-          {stats.open > 0 && (
+          {(stats.open ?? 0) > 0 && (
             <span className="ml-2 inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
-              {stats.open}
+              {stats.open ?? 0}
             </span>
           )}
         </h2>
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          {stats.openRequests.length === 0 ? (
+          {openRequests.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
               No open requests 🎉
             </div>
@@ -363,7 +368,7 @@ export default function DashboardPage() {
             <>
               {/* Mobile */}
               <div className="md:hidden">
-                {stats.openRequests.map((req) => {
+                {openRequests.map((req) => {
                   const isLoading = actionLoading === req.id;
                   const canCancel = req.status === "pending" || req.status === "active";
                   return (
@@ -406,7 +411,7 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.openRequests.map((req) => {
+                  {openRequests.map((req) => {
                     const isLoading = actionLoading === req.id;
                     const canCancel = req.status === "pending" || req.status === "active";
                     return (

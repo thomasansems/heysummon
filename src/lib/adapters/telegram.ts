@@ -125,7 +125,9 @@ export const telegramAdapter: ChannelAdapter = {
 
     // Generate webhook secret
     const webhookSecret = crypto.randomBytes(32).toString("hex");
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    // Use HEYSUMMON_PUBLIC_URL for webhook registration (Tailscale Funnel URL)
+    // NEVER use localtunnel — use `tailscale funnel 3425` instead
+    const baseUrl = process.env.HEYSUMMON_PUBLIC_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
     const webhookUrl = `${baseUrl}/api/adapters/telegram/${channelId}/webhook`;
 
     // Set webhook

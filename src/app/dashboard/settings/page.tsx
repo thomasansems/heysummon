@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
+import { Globe, Wifi, WifiOff, Copy, Check } from "lucide-react";
 
 interface IpEvent {
   id: string;
@@ -33,6 +34,35 @@ export default function SettingsPage() {
   const [cleanupRunning, setCleanupRunning] = useState(false);
   const [cleanupDone, setCleanupDone] = useState(false);
   const [providerProfiles, setProviderProfiles] = useState<ProviderProfile[]>([]);
+
+  // Tunnel state
+  const [tunnel, setTunnel] = useState<{ active: boolean; publicUrl: string | null; hostname: string } | null>(null);
+  const [tunnelLoading, setTunnelLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const fetchTunnelStatus = useCallback(() => {
+    fetch("/api/admin/tunnel/status").then(r => r.json()).then(setTunnel).catch(() => {});
+  }, []);
+
+  useEffect(() => { fetchTunnelStatus(); }, [fetchTunnelStatus]);
+
+  const startTunnel = async () => {
+    setTunnelLoading(true);
+    await fetch("/api/admin/tunnel/start", { method: "POST" });
+    await fetchTunnelStatus();
+    setTunnelLoading(false);
+  };
+
+  const stopTunnel = async () => {
+    setTunnelLoading(true);
+    await fetch("/api/admin/tunnel/stop", { method: "POST" });
+    await fetchTunnelStatus();
+    setTunnelLoading(false);
+  };
+
+  const copyUrl = () => {
+    if (tunnel?.hostname) { navigator.clipboard.writeText(tunnel.hostname); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+  };
 
   const fetchProviderIpEvents = useCallback(() => {
     fetch("/api/providers/ip-events")
@@ -98,6 +128,58 @@ export default function SettingsPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-foreground">Settings</h1>
+
+      {/* Public Access / Tailscale Funnel */}
+      <div className="mb-6 rounded-lg border border-border bg-card p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-medium text-foreground">Public Access</h2>
+          <span className="text-xs text-muted-foreground ml-1">— required for Telegram bot webhooks</span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          Use <strong>Tailscale Funnel</strong> to expose HeySummon publicly over HTTPS. This is required when running locally and using Telegram bot channels.
+          Never use localtunnel — Tailscale Funnel is the only supported method.
+        </p>
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`h-2 w-2 rounded-full ${tunnel?.active ? "bg-green-500" : "bg-zinc-400"}`} />
+          <span className="text-sm text-muted-foreground">
+            {tunnel?.active ? "Funnel active" : "Funnel inactive"}
+          </span>
+          {tunnel?.active && (
+            <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground">
+              {tunnel.hostname}
+            </span>
+          )}
+          {tunnel?.active && (
+            <button onClick={copyUrl} className="p-1 rounded hover:bg-muted text-muted-foreground" title="Copy URL">
+              {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={startTunnel}
+            disabled={tunnelLoading || tunnel?.active === true}
+            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            <Wifi className="h-3.5 w-3.5" />
+            {tunnelLoading ? "Starting…" : "Start Tailscale Funnel"}
+          </button>
+          <button
+            onClick={stopTunnel}
+            disabled={tunnelLoading || tunnel?.active === false}
+            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+          >
+            <WifiOff className="h-3.5 w-3.5" />
+            Stop Funnel
+          </button>
+        </div>
+        {tunnel?.publicUrl && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Active URL: <span className="font-mono text-foreground">{tunnel.publicUrl}</span>
+          </p>
+        )}
+      </div>
 
       {/* Profile */}
       <div className="mb-6 rounded-lg border border-border bg-card p-6">

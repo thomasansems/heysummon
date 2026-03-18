@@ -232,6 +232,75 @@ docker compose -f docker-compose.dev.yml up -d
 - **Tailwind CSS** + shadcn/ui — Dashboard UI
 - **RSA-OAEP + AES-256-GCM** — Hybrid E2E encryption
 
+## Quick Start by Role
+
+### As a Provider (Human Expert)
+
+1. Deploy HeySummon (Docker recommended, see above)
+2. Sign up at `http://localhost:3445` — first user becomes admin
+3. Go to **Providers** → create a provider profile
+4. Go to **Clients** → create an API key, choose a channel (OpenClaw or Claude Code)
+5. Click **Generate Setup Link** → send the URL to your client
+6. Go to **Channels** → connect Telegram if you want push notifications
+
+### As a Consumer (AI Agent — OpenClaw)
+
+1. Paste the setup link from your provider in your chat
+2. Follow the guided steps: install skill → register provider → start watcher → configure hook
+3. Use the `heysummon` skill in OpenClaw: `Ask provider: how do I ...?`
+4. Your agent will pause and resume when the expert responds
+
+### As a Consumer (AI Agent — Claude Code)
+
+1. Paste the setup link from your provider in your chat
+2. Follow the guided steps: add MCP server → verify connection
+3. Use the `heysummon` tool inside Claude Code naturally
+4. Claude will wait up to 5 minutes for your expert's response
+
+---
+
+## Environment Variables
+
+All `HEYSUMMON_*` variables are optional unless marked required.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `file:./dev.db` | Prisma connection string (SQLite or PostgreSQL) |
+| `NEXTAUTH_SECRET` | — | **Required.** Random secret for session signing |
+| `NEXTAUTH_URL` | `http://localhost:3445` | Public base URL (used in OAuth callbacks) |
+| `HEYSUMMON_PUBLIC_URL` | auto-detected | URL sent to consumers in setup links |
+| `ALLOW_REGISTRATION` | `false` | Set `true` to allow multiple users to register |
+| `HEYSUMMON_RETENTION_DAYS` | disabled | Auto-delete requests older than N days |
+| `DEBUG` | `false` | Set `true` for verbose API logging |
+| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | — | GitHub OAuth credentials (optional) |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | — | Google OAuth credentials (optional) |
+| `GUARD_SIGNING_KEY` | — | Ed25519 private key for Guard (auto-generated in Docker) |
+| `GUARD_PUBLIC_KEY` | — | Ed25519 public key for Platform (auto-generated in Docker) |
+| `REQUIRE_GUARD` | `false` | Set `true` to reject requests not signed by Guard |
+| `CLOUDFLARE_TUNNEL_TOKEN` | — | Token for Cloudflare tunnel profile |
+| `TAILSCALE_AUTHKEY` | — | Auth key for Tailscale tunnel profile |
+| `NGROK_AUTHTOKEN` | — | Token for Ngrok tunnel profile |
+
+**Consumer-side variables** (in `~/.heysummon/.env`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HEYSUMMON_BASE_URL` | — | **Required.** URL of your HeySummon instance |
+| `HEYSUMMON_PROVIDERS_FILE` | `~/.heysummon/providers.json` | Path to registered providers file |
+| `HEYSUMMON_POLL_INTERVAL` | `5` | Polling interval in seconds |
+| `HEYSUMMON_NOTIFY_MODE` | `message` | Notification mode: `message` or `file` |
+| `HEYSUMMON_NOTIFY_TARGET` | — | Telegram chat ID for provider response notifications |
+| `HEYSUMMON_HOOKS_TOKEN` | — | Security token for openclaw.json hook integration |
+| `HEYSUMMON_SESSION_KEY` | — | OpenClaw session key to wake on response |
+
+---
+
+## API Reference
+
+See [`docs/api.md`](docs/api.md) for the full API reference with request/response shapes, authentication, rate limits, and error codes.
+
+---
+
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

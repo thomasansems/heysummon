@@ -139,11 +139,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-semibold text-foreground">Settings</h1>
+    <div className="space-y-8">
+      <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
 
-      {/* Public Access / Tailscale Funnel */}
-      <div className="mb-6 rounded-lg border border-border bg-card p-6">
+      {/* ── 1. Public Access ── */}
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Public Access</h2>
+      <div className="rounded-lg border border-border bg-card p-6">
         <div className="flex items-center gap-2 mb-1">
           <Globe className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-sm font-medium text-foreground">Public Access</h2>
@@ -231,9 +233,12 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+      </section>
 
-      {/* Profile */}
-      <div className="mb-6 rounded-lg border border-border bg-card p-6">
+      {/* ── 2. Profile ── */}
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Profile</h2>
+      <div className="rounded-lg border border-border bg-card p-6">
         <h2 className="mb-4 text-sm font-medium text-foreground">Profile</h2>
         <div className="flex items-center gap-4">
           {session?.user?.image ? (
@@ -257,10 +262,13 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      </section>
 
-      {/* Notifications */}
-      <div className="mb-6 rounded-lg border border-border bg-card p-6">
-        <h2 className="mb-4 text-sm font-medium text-foreground">Notifications</h2>
+      {/* ── 3. Notifications ── */}
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Notifications</h2>
+      <div className="rounded-lg border border-border bg-card p-6">
+        <h3 className="mb-4 text-sm font-medium text-foreground">Preferences</h3>
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-sm text-muted-foreground">
@@ -291,20 +299,24 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+        <div className="mt-4 border-t border-border pt-4">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
+          </button>
+        </div>
       </div>
+      </section>
 
-      <button
-        onClick={save}
-        disabled={saving}
-        className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/90 disabled:opacity-50"
-      >
-        {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
-      </button>
-
-      {/* Data Retention */}
+      {/* ── 4. Data Retention ── */}
       {retention && (
-        <div className="mt-6 rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-1 text-sm font-medium text-foreground">Data Retention</h2>
+        <section>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Data Retention</h2>
+        <div className="rounded-lg border border-border bg-card p-6">
+          <h3 className="mb-1 text-sm font-medium text-foreground">Cleanup Policy</h3>
           <p className="mb-4 text-xs text-muted-foreground">
             {retention.enabled
               ? `Auto-cleanup enabled — records older than ${retention.retentionDays} days are removed.`
@@ -336,6 +348,7 @@ export default function SettingsPage() {
             </button>
           )}
         </div>
+        </section>
       )}
     </div>
   );

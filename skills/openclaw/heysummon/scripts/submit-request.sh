@@ -50,12 +50,10 @@ if [ -n "$PROVIDER_NAME" ] && [ -f "$PROVIDERS_FILE" ]; then
   rm -f /tmp/.heysummon-provider-match
 fi
 
-# Fallback: if no provider specified or not found, use default from env
+# If no provider specified, use the first registered provider as default
 if [ -z "$API_KEY" ]; then
   if [ -n "$PROVIDER_NAME" ]; then
     echo "⚠️ Provider '$PROVIDER_NAME' not found in providers.json" >&2
-    
-    # List available providers
     if [ -f "$PROVIDERS_FILE" ]; then
       echo "📋 Available providers:" >&2
       node -e "
@@ -66,13 +64,17 @@ if [ -z "$API_KEY" ]; then
     fi
     exit 1
   fi
-  
-  API_KEY="${HEYSUMMON_API_KEY}"
+
+  # Use first provider from providers.json as default
+  if [ -f "$PROVIDERS_FILE" ]; then
+    API_KEY=$(node -e "try{const d=JSON.parse(require('fs').readFileSync(process.argv[1]));const p=d.providers[0];if(p){process.stderr.write(p.name);console.log(p.apiKey)}}catch(e){}" "$PROVIDERS_FILE" 2>"/tmp/.hs-default-provider")
+    RESOLVED_PROVIDER=$(cat /tmp/.hs-default-provider 2>/dev/null)
+    rm -f /tmp/.hs-default-provider
+  fi
 fi
 
-# Validate API key
 if [ -z "$API_KEY" ]; then
-  echo "❌ No API key. Either specify a provider name or set HEYSUMMON_API_KEY." >&2
+  echo "❌ No providers registered. Run: bash scripts/add-provider.sh <key> \"<name>\"" >&2
   exit 1
 fi
 

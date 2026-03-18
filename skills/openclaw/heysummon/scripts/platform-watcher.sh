@@ -8,7 +8,20 @@ SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 [ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
 
 BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3445}"
-API_KEY="${HEYSUMMON_API_KEY:?ERROR: Set HEYSUMMON_API_KEY}"
+
+# Load API keys from providers.json (multi-provider support)
+# HEYSUMMON_API_KEY is no longer used — add providers via add-provider.sh
+PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$SKILL_DIR/providers.json}"
+if [ ! -f "$PROVIDERS_FILE" ] || [ "$(node -e "try{const d=JSON.parse(require('fs').readFileSync(process.argv[1]));console.log(d.providers?.length||0)}catch(e){console.log(0)}" "$PROVIDERS_FILE" 2>/dev/null)" = "0" ]; then
+  echo "❌ No providers registered. Run: bash scripts/add-provider.sh <key> \"<name>\"" >&2
+  exit 1
+fi
+# Primary key for polling (first provider); all providers polled in loop below
+API_KEY=$(node -e "try{const d=JSON.parse(require('fs').readFileSync(process.argv[1]));console.log(d.providers[0]?.apiKey||'')}catch(e){}" "$PROVIDERS_FILE" 2>/dev/null)
+if [ -z "$API_KEY" ]; then
+  echo "❌ Could not read API key from providers.json" >&2
+  exit 1
+fi
 REQUESTS_DIR="${HEYSUMMON_REQUESTS_DIR:-$SKILL_DIR/.requests}"
 OPENCLAW_PORT="${OPENCLAW_PORT:-18789}"
 NOTIFY_MODE="${HEYSUMMON_NOTIFY_MODE:-message}"
@@ -241,27 +254,32 @@ process_event() {
   send_ack "$EVENT_REQ_ID"
 }
 
-# Main polling loop
+# Main polling loop — polls all registered providers
 while true; do
-  response=$(curl -s -H "x-api-key: ${API_KEY}" "${PENDING_URL}" 2>/dev/null)
+  # Reload provider keys each cycle (in case new providers were added)
+  ALL_KEYS=$(node -e "try{const d=JSON.parse(require('fs').readFileSync(process.argv[1]));d.providers.forEach(p=>console.log(p.apiKey))}catch(e){}" "$PROVIDERS_FILE" 2>/dev/null)
+  while IFS= read -r POLL_KEY; do
+    [ -z "$POLL_KEY" ] && continue
+    API_KEY="$POLL_KEY"  # update for send_ack / fetch calls within process_event
+    response=$(curl -s -H "x-api-key: ${POLL_KEY}" "${PENDING_URL}" 2>/dev/null)
 
-  if [[ -n "$response" ]]; then
-    # Process each event from the response
-    echo "$response" | node -e "
-      let d='';
-      process.stdin.on('data',c=>d+=c);
-      process.stdin.on('end',()=>{
-        try {
-          const j=JSON.parse(d);
-          for(const e of (j.events||[])) {
-            console.log(JSON.stringify(e));
-          }
-        } catch(e){}
-      });
-    " 2>/dev/null | while IFS= read -r event_json; do
-      process_event "$event_json"
-    done
-  fi
+    if [[ -n "$response" ]]; then
+      echo "$response" | node -e "
+        let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+          try {
+            const j=JSON.parse(d);
+            for(const e of (j.events||[])) {
+              console.log(JSON.stringify(e));
+            }
+          } catch(e){}
+        });
+      " 2>/dev/null | while IFS= read -r event_json; do
+        process_event "$event_json"
+      done
+    fi
+  done <<< "$ALL_KEYS"
 
   sleep "$POLL_INTERVAL"
 done

@@ -61,9 +61,10 @@ export default async function SetupPage({
   const key = payload.key;
   const clawhubUrl = `https://clawhub.ai/thomasansems/heysummon`;
 
-  // Single command that handles first-time setup + multi-provider
-  const addProviderCmd = `bash skills/heysummon/scripts/add-provider.sh ${key} "${providerName}" "${baseUrl}"`;
-  const watcherCmd = `bash skills/heysummon/scripts/setup.sh`;
+  // Commands — env prefix approach for base URL (no third arg)
+  const addProviderCmd = `cd ~/clawd && HEYSUMMON_BASE_URL="${baseUrl}" bash skills/heysummon/scripts/add-provider.sh ${key} "${providerName}"`;
+  const addProviderCmdReturning = `cd ~/clawd && bash skills/heysummon/scripts/add-provider.sh ${key} "${providerName}"`;
+  const watcherCmd = `cd ~/clawd && bash skills/heysummon/scripts/setup.sh`;
 
   // Claude Code MCP
   const mcpCmd = `claude mcp add heysummon \\
@@ -108,57 +109,54 @@ export default async function SetupPage({
         {isOpenClaw && (
           <div className="space-y-5">
 
-            {/* Step 1 — Install (skip if already installed) */}
+            {/* Step 1 — Install (only if not already installed) */}
             <Step number={1} title="Install the HeySummon skill">
               <p className="mb-3 text-sm text-zinc-400">
-                Run this in your terminal (requires Node.js):
+                Run this in the terminal of the agent you want to connect (requires Node.js):
               </p>
               <CodeBlock>{`npx clawhub@latest install heysummon`}</CodeBlock>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <a
-                  href={clawhubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-orange-400 underline hover:text-orange-300"
-                >
+                <a href={clawhubUrl} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-orange-400 underline hover:text-orange-300">
                   Browse on ClawHub →
                 </a>
                 <span className="text-xs text-zinc-600">·</span>
                 <span className="text-xs text-zinc-500 italic">
-                  Already installed? Skip to step 2.
+                  Already installed? Skip this step entirely.
                 </span>
               </div>
             </Step>
 
-            {/* Step 2 — Add provider (THE main step, handles everything) */}
-            <Step number={2} title={`Add "${providerName}" as a provider`}>
+            {/* Step 2 — Add provider */}
+            <Step number={2} title={`Register "${providerName}"`}>
               <p className="mb-3 text-sm text-zinc-400">
-                This registers the provider so your agent can route requests to them.
-                Run from your OpenClaw workspace directory:
+                Run this from your OpenClaw agent workspace (usually <code className="rounded bg-zinc-800 px-1 font-mono text-xs">~/clawd</code>).
+                The command registers this provider and saves the server URL automatically:
               </p>
               <CodeBlock>{addProviderCmd}</CodeBlock>
-              <div className="mt-3 rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-xs text-zinc-400 space-y-1">
+              <div className="mt-3 rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-xs text-zinc-400 space-y-2">
                 <p>
-                  <span className="text-zinc-300 font-medium">Already have HeySummon installed?</span>{" "}
-                  Just run this command — it adds this provider to your existing setup without touching your other providers.
+                  <span className="text-zinc-300 font-medium">Already connected to another provider?</span>{" "}
+                  This command adds a new entry to{" "}
+                  <code className="rounded bg-zinc-700 px-1 font-mono">~/clawd/skills/heysummon/providers.json</code>{" "}
+                  without touching your existing providers.
                 </p>
                 <p>
-                  <span className="text-zinc-300 font-medium">Multiple providers?</span>{" "}
-                  Run this once per setup link — each provider gets their own entry in{" "}
-                  <code className="rounded bg-zinc-700 px-1 font-mono">providers.json</code>.
+                  <span className="text-zinc-300 font-medium">Already used HeySummon before?</span>{" "}
+                  The base URL is already saved — use this shorter command instead:
                 </p>
+                <CodeBlock>{addProviderCmdReturning}</CodeBlock>
               </div>
             </Step>
 
-            {/* Step 3 — Start watcher (skip if already running) */}
+            {/* Step 3 — Start watcher */}
             <Step number={3} title="Start the event watcher">
               <p className="mb-3 text-sm text-zinc-400">
-                Start the background listener so your agent receives responses from{" "}
-                {payload.subChannel === "whatsapp" ? "WhatsApp" : "Telegram"}:
+                Start the background listener so your agent receives responses:
               </p>
               <CodeBlock>{watcherCmd}</CodeBlock>
               <p className="mt-2 text-xs text-zinc-500 italic">
-                Already running? Skip this — your watcher picks up new providers automatically.
+                Already running? Skip this — the watcher reloads providers automatically each cycle.
               </p>
             </Step>
 

@@ -12,7 +12,6 @@ Create or update `.env` in the skill directory with your HeySummon platform deta
 
 ```env
 HEYSUMMON_BASE_URL=http://thomas-pc.tail38a1e7.ts.net:3425
-HEYSUMMON_API_KEY=hs_cli_your_key_here
 HEYSUMMON_NOTIFY_MODE=message
 HEYSUMMON_NOTIFY_TARGET=your_chat_id
 ```
@@ -142,7 +141,6 @@ Use HeySummon when you are **truly stuck**:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HEYSUMMON_BASE_URL` | `http://localhost:3445` | Platform API URL |
-| `HEYSUMMON_API_KEY` | *(required)* | Client API key (`hs_cli_...`) |
 | `HEYSUMMON_NOTIFY_MODE` | `message` | Notification mode: `message` or `file` |
 | `HEYSUMMON_NOTIFY_TARGET` | *(required for message mode)* | Chat ID for notifications |
 | `HEYSUMMON_KEY_DIR` | `{skill}/.keys` | Directory for encryption keypairs |

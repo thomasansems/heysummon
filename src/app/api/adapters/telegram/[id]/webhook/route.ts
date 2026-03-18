@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendMessage } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
 
 interface TelegramUpdate {
@@ -43,7 +44,7 @@ export async function POST(
 
   const config = JSON.parse(channel.config) as TelegramConfig;
 
-  // Verify webhook secret
+  // Verify webhook secret token (Telegram sends this header)
   const secretHeader = request.headers.get("x-telegram-bot-api-secret-token");
   if (!config.webhookSecret || secretHeader !== config.webhookSecret) {
     return NextResponse.json({ error: "Invalid secret" }, { status: 403 });
@@ -54,14 +55,11 @@ export async function POST(
   const message = update.message;
 
   if (!message?.text || !message.chat) {
-    // Not a text message — acknowledge but ignore
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true }); // Not a text message — ignore
   }
 
   const chatId = String(message.chat.id);
-  const senderName = [message.from?.first_name, message.from?.last_name]
-    .filter(Boolean)
-    .join(" ") || message.from?.username || "Unknown";
+  const text = message.text.trim();
 
   // Update heartbeat
   await prisma.channelProvider.update({
@@ -69,58 +67,90 @@ export async function POST(
     data: { lastHeartbeat: new Date() },
   });
 
-  // Find the user's first active API key to attach the request to
-  const apiKey = await prisma.apiKey.findFirst({
-    where: { userId: channel.profile.userId, isActive: true },
-    select: { id: true },
-  });
+  // ── /start ── Provider registering themselves with the bot
+  if (text === "/start" || text.startsWith("/start ")) {
+    // Store providerChatId so we can push notifications to them
+    const newConfig: TelegramConfig = { ...config, providerChatId: chatId };
+    await prisma.channelProvider.update({
+      where: { id },
+      data: {
+        config: JSON.stringify(newConfig),
+        status: "connected",
+      },
+    });
 
-  if (!apiKey) {
-    return NextResponse.json({ ok: true }); // No key to assign — silently skip
+    await sendMessage(
+      config.botToken,
+      chatId,
+      `✅ *HeySummon connected!*\n\nYou'll receive new help requests here. Reply with:\n\`/reply HS-XXXX your answer\`\n\nOr view all open requests in your dashboard.`
+    );
+
+    return NextResponse.json({ ok: true });
   }
 
-  // Find or create a HelpRequest for this chat + channel
-  let helpRequest = await prisma.helpRequest.findFirst({
-    where: {
-      channelProviderId: id,
-      consumerChatId: chatId,
-      status: { notIn: ["closed", "expired"] },
-    },
-  });
+  // ── /reply HS-XXXX answer ── Provider replying to a help request
+  const replyMatch = text.match(/^\/reply\s+(HS-[A-Za-z0-9]+)\s+([\s\S]+)/i);
+  if (replyMatch) {
+    const refCode = replyMatch[1].toUpperCase();
+    const answer = replyMatch[2].trim();
 
-  if (!helpRequest) {
-    // Create a new help request from this Telegram message
-    const refCode = `TG-${Date.now().toString(36).toUpperCase()}`;
-    helpRequest = await prisma.helpRequest.create({
-      data: {
+    // Validate: must come from the registered providerChatId
+    if (!config.providerChatId) {
+      await sendMessage(config.botToken, chatId, `❌ Bot not set up yet. Send /start first.`);
+      return NextResponse.json({ ok: true });
+    }
+    if (chatId !== config.providerChatId) {
+      // Someone else — reject silently (don't leak info)
+      return NextResponse.json({ ok: true });
+    }
+
+    // Find the help request
+    const helpRequest = await prisma.helpRequest.findFirst({
+      where: {
         refCode,
-        apiKeyId: apiKey.id,
         expertId: channel.profile.userId,
-        channelProviderId: id,
-        consumerChatId: chatId,
-        consumerName: senderName,
-        status: "pending",
-        expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
-        question: message.text,
+        status: { notIn: ["closed", "expired"] },
       },
     });
 
-  } else {
-    // Add message to existing request using the Message model
-    const crypto = await import("node:crypto");
-    await prisma.message.create({
+    if (!helpRequest) {
+      await sendMessage(
+        config.botToken,
+        chatId,
+        `❌ Request \`${refCode}\` not found or already closed.`
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // Store the response and close the request
+    await prisma.helpRequest.update({
+      where: { id: helpRequest.id },
       data: {
-        requestId: helpRequest.id,
-        from: "consumer",
-        ciphertext: Buffer.from(message.text).toString("base64"),
-        iv: "plaintext",
-        authTag: "plaintext",
-        signature: "plaintext",
-        messageId: crypto.randomUUID(),
+        response: answer,
+        status: "closed",
+        respondedAt: new Date(),
       },
     });
 
+    await sendMessage(
+      config.botToken,
+      chatId,
+      `✅ Reply sent for \`${refCode}\`.`
+    );
+
+    return NextResponse.json({ ok: true });
   }
 
+  // ── Any other message from the provider ── Show help
+  if (config.providerChatId && chatId === config.providerChatId) {
+    await sendMessage(
+      config.botToken,
+      chatId,
+      `ℹ️ To reply to a request, use:\n\`/reply HS-XXXX your answer\`\n\nCheck your dashboard for open requests.`
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  // Unrecognised sender — ignore
   return NextResponse.json({ ok: true });
 }

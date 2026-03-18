@@ -9,6 +9,8 @@ import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
+import { sendMessage } from "@/lib/adapters/telegram";
+import type { TelegramConfig } from "@/lib/adapters/types";
 
 /**
  * Returns whether the provider is currently unavailable and when they'll next be available.
@@ -208,6 +210,27 @@ export async function POST(request: Request) {
         contentFlags: null,
         guardVerified,
       },
+    });
+
+    // Push Telegram notification to provider (fire-and-forget, non-blocking)
+    prisma.channelProvider.findFirst({
+      where: {
+        profileId: { in: (await prisma.userProfile.findMany({ where: { userId: key.userId }, select: { id: true } })).map(p => p.id) },
+        type: "telegram",
+        isActive: true,
+        status: "connected",
+      },
+    }).then(async (telegramChannel) => {
+      if (!telegramChannel) return;
+      const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
+      if (!cfg.providerChatId || !cfg.botToken) return;
+
+      const questionPreview = question ? `\n\n*Question:* ${question.slice(0, 500)}${question.length > 500 ? "…" : ""}` : "";
+      const msg = `🦞 *New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
+
+      await sendMessage(cfg.botToken, cfg.providerChatId, msg);
+    }).catch((err) => {
+      console.error("[help/route] Telegram notify failed:", err);
     });
 
     // Debug logging — show what was stored

@@ -4,7 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 [ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
 
-PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$SKILL_DIR/providers.json}"
+PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
 
 if [ ! -f "$PROVIDERS_FILE" ]; then
   echo "📋 No providers registered yet."

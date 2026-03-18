@@ -362,7 +362,7 @@ export default function RequestsPage() {
                       <div>
                         <span className="text-xs text-muted-foreground">Messages</span>
                         <div className="text-muted-foreground">
-                          {req.messageCount > 0 ? `${req.messageCount} berichten` : "—"}
+                          {req.messageCount > 0 ? `${req.messageCount} messages` : "—"}
                         </div>
                       </div>
                       <div>
@@ -457,7 +457,7 @@ export default function RequestsPage() {
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {req.messageCount > 0
-                          ? `${req.messageCount} berichten`
+                          ? `${req.messageCount} messages`
                           : "—"}
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">

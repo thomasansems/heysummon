@@ -126,6 +126,7 @@ model ApiKey {
   rateLimitPerMinute   Int           @default(150)
   clientChannel        String?       // "openclaw" | "claudecode"
   clientSubChannel     String?       // "telegram" | "whatsapp" (only for openclaw)
+  lastPollAt           DateTime?     // Updated on every /api/v1/events/pending call — used for connection verification
   requests             HelpRequest[]
   ipEvents             IpEvent[]
   createdAt            DateTime      @default(now())

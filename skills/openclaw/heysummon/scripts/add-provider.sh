@@ -10,7 +10,7 @@ SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 [ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
 
 BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3445}"
-PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$SKILL_DIR/providers.json}"
+PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
 
 API_KEY="$1"
 ALIAS="$2"

@@ -154,8 +154,36 @@ export default function DashboardPage() {
 
   if (!stats) {
     return (
-      <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading...
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-foreground">Overview</h1>
+        {/* Stat card skeletons */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4 animate-pulse">
+              <div className="h-3 w-24 rounded bg-muted mb-3" />
+              <div className="h-7 w-12 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+        {/* Chart skeleton */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+          <div className="lg:col-span-3 rounded-xl border border-border bg-card p-5 animate-pulse">
+            <div className="h-4 w-40 rounded bg-muted mb-2" />
+            <div className="h-3 w-32 rounded bg-muted mb-6" />
+            <div className="h-48 w-full rounded bg-muted" />
+          </div>
+          <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5 animate-pulse">
+            <div className="h-4 w-32 rounded bg-muted mb-2" />
+            <div className="h-3 w-24 rounded bg-muted mb-6" />
+            <div className="h-32 w-32 rounded-full bg-muted mx-auto" />
+          </div>
+        </div>
+        {/* Open requests skeleton */}
+        <div className="rounded-xl border border-border bg-card p-4 animate-pulse space-y-3">
+          <div className="h-4 w-32 rounded bg-muted" />
+          <div className="h-10 w-full rounded bg-muted" />
+          <div className="h-10 w-full rounded bg-muted" />
+        </div>
       </div>
     );
   }

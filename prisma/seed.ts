@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Demo user (tijdelijk voor development)
+  // ─── Demo user (for development) ─────────────────────────────────────────
   const demoPassword = await bcrypt.hash("demo1234", 12);
   const demoUser = await prisma.user.upsert({
     where: { email: "demo@heysummon.ai" },
@@ -25,39 +25,34 @@ async function main() {
     where: { userId: demoUser.id, name: "test-key" },
   });
   if (!existingKey) {
-    const key = `hs_${randomBytes(24).toString("hex")}`;
-    const apiKey = await prisma.apiKey.create({
-      data: { key, name: "test-key", userId: demoUser.id, isActive: true },
+    await prisma.apiKey.create({
+      data: { key: `hs_${randomBytes(24).toString("hex")}`, name: "test-key", userId: demoUser.id, isActive: true },
     });
     console.log("✅ API key created");
   } else {
     console.log("✅ API key exists");
   }
 
-  const apiKey = await prisma.apiKey.findFirst({ where: { userId: demoUser.id } });
-  if (apiKey) {
+  const demoApiKey = await prisma.apiKey.findFirst({ where: { userId: demoUser.id } });
+  if (demoApiKey) {
     const existingReq = await prisma.helpRequest.findFirst({ where: { expertId: demoUser.id } });
     if (!existingReq) {
-      const req = await prisma.helpRequest.create({
+      await prisma.helpRequest.create({
         data: {
           refCode: "HS-TEST",
-          apiKeyId: apiKey.id,
+          apiKeyId: demoApiKey.id,
           expertId: demoUser.id,
           status: "pending",
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
       });
-      console.log(`✅ Sample request: ${req.refCode}`);
+      console.log("✅ Sample request: HS-TEST");
     }
   }
 
-  // Create a sample UserProfile
-  const existingProfile = await prisma.userProfile.findFirst({
-    where: { userId: demoUser.id },
-  });
-  let profile;
-  if (!existingProfile) {
-    profile = await prisma.userProfile.create({
+  let demoProfile = await prisma.userProfile.findFirst({ where: { userId: demoUser.id } });
+  if (!demoProfile) {
+    demoProfile = await prisma.userProfile.create({
       data: {
         name: "My Workspace",
         key: `hs_prov_${randomBytes(16).toString("hex")}`,
@@ -66,20 +61,16 @@ async function main() {
         timezone: "Europe/Amsterdam",
       },
     });
-    console.log(`✅ UserProfile: ${profile.name} (${profile.id})`);
+    console.log(`✅ UserProfile: ${demoProfile.name}`);
   } else {
-    profile = existingProfile;
-    console.log(`✅ UserProfile exists: ${profile.name}`);
+    console.log(`✅ UserProfile exists: ${demoProfile.name}`);
   }
 
-  // Create sample ChannelProviders
-  const existingChannel = await prisma.channelProvider.findFirst({
-    where: { profileId: profile.id },
-  });
+  const existingChannel = await prisma.channelProvider.findFirst({ where: { profileId: demoProfile.id } });
   if (!existingChannel) {
-    const openclawChannel = await prisma.channelProvider.create({
+    await prisma.channelProvider.create({
       data: {
-        profileId: profile.id,
+        profileId: demoProfile.id,
         type: "openclaw",
         name: "Dev OpenClaw",
         isActive: true,
@@ -87,11 +78,9 @@ async function main() {
         status: "connected",
       },
     });
-    console.log(`✅ ChannelProvider (OpenClaw): ${openclawChannel.name}`);
-
-    const telegramChannel = await prisma.channelProvider.create({
+    await prisma.channelProvider.create({
       data: {
-        profileId: profile.id,
+        profileId: demoProfile.id,
         type: "telegram",
         name: "Support Bot",
         isActive: false,
@@ -99,10 +88,203 @@ async function main() {
         status: "disconnected",
       },
     });
-    console.log(`✅ ChannelProvider (Telegram): ${telegramChannel.name}`);
+    console.log("✅ ChannelProviders created for demo profile");
   } else {
-    console.log(`✅ ChannelProviders exist for profile`);
+    console.log("✅ ChannelProviders exist for demo profile");
   }
+
+  // ─── Playwright test account ──────────────────────────────────────────────
+  // Fixed deterministic keys — tests use these as constants without a discovery phase.
+  // 127.0.0.1 is pre-approved to bypass IP binding friction in tests.
+
+  const pwPassword = await bcrypt.hash("PlaywrightTest123!", 12);
+  const pwUser = await prisma.user.upsert({
+    where: { email: "playwright@heysummon.test" },
+    update: {},
+    create: {
+      email: "playwright@heysummon.test",
+      name: "Playwright Test",
+      password: pwPassword,
+      role: "expert",
+      onboardingComplete: true,
+      notificationPref: "email",
+    },
+  });
+  console.log(`✅ Playwright user: ${pwUser.email}`);
+
+  // Provider profile (used as the expert who receives requests)
+  const pwProfile = await prisma.userProfile.upsert({
+    where: { key: "hs_prov_playwright00000000000000000001" },
+    update: {},
+    create: {
+      name: "PW Test Provider",
+      key: "hs_prov_playwright00000000000000000001",
+      userId: pwUser.id,
+      isActive: true,
+      timezone: "Europe/Amsterdam",
+    },
+  });
+  console.log(`✅ Playwright provider profile: ${pwProfile.name}`);
+
+  // Base lifecycle test client key
+  const pwBaseKey = await prisma.apiKey.upsert({
+    where: { key: "hs_cli_playwright00000000000000000001" },
+    update: {},
+    create: {
+      key: "hs_cli_playwright00000000000000000001",
+      name: "PW Base Test",
+      userId: pwUser.id,
+      providerId: pwProfile.id,
+      isActive: true,
+      clientChannel: "openclaw",
+      rateLimitPerMinute: 1000,
+    },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwBaseKey.id, ip: "127.0.0.1" } },
+    update: {},
+    create: { apiKeyId: pwBaseKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+  console.log(`✅ Playwright base client key`);
+
+  // Channel combo 1: OpenClaw consumer → Telegram provider notification
+  const pwOcTelegramKey = await prisma.apiKey.upsert({
+    where: { key: "hs_cli_pw_openclaw_telegram_00000001" },
+    update: {},
+    create: {
+      key: "hs_cli_pw_openclaw_telegram_00000001",
+      name: "PW OpenClaw→Telegram",
+      userId: pwUser.id,
+      providerId: pwProfile.id,
+      isActive: true,
+      clientChannel: "openclaw",
+      clientSubChannel: "telegram",
+      rateLimitPerMinute: 1000,
+    },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwOcTelegramKey.id, ip: "127.0.0.1" } },
+    update: {},
+    create: { apiKeyId: pwOcTelegramKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+
+  // Channel combo 2: OpenClaw consumer → OpenClaw provider notification (pure polling)
+  const pwOcOpenclawKey = await prisma.apiKey.upsert({
+    where: { key: "hs_cli_pw_openclaw_openclaw_0000001" },
+    update: {},
+    create: {
+      key: "hs_cli_pw_openclaw_openclaw_0000001",
+      name: "PW OpenClaw→OpenClaw",
+      userId: pwUser.id,
+      providerId: pwProfile.id,
+      isActive: true,
+      clientChannel: "openclaw",
+      clientSubChannel: null,
+      rateLimitPerMinute: 1000,
+    },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwOcOpenclawKey.id, ip: "127.0.0.1" } },
+    update: {},
+    create: { apiKeyId: pwOcOpenclawKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+
+  // Channel combo 3: Claude Code consumer → OpenClaw provider notification
+  const pwCcOpenclawKey = await prisma.apiKey.upsert({
+    where: { key: "hs_cli_pw_claudecode_openclaw_000001" },
+    update: {},
+    create: {
+      key: "hs_cli_pw_claudecode_openclaw_000001",
+      name: "PW ClaudeCode→OpenClaw",
+      userId: pwUser.id,
+      providerId: pwProfile.id,
+      isActive: true,
+      clientChannel: "claudecode",
+      clientSubChannel: null,
+      rateLimitPerMinute: 1000,
+    },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwCcOpenclawKey.id, ip: "127.0.0.1" } },
+    update: {},
+    create: { apiKeyId: pwCcOpenclawKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+
+  // Channel combo 4: Claude Code consumer → Telegram provider notification
+  const pwCcTelegramKey = await prisma.apiKey.upsert({
+    where: { key: "hs_cli_pw_claudecode_telegram_00001" },
+    update: {},
+    create: {
+      key: "hs_cli_pw_claudecode_telegram_00001",
+      name: "PW ClaudeCode→Telegram",
+      userId: pwUser.id,
+      providerId: pwProfile.id,
+      isActive: true,
+      clientChannel: "claudecode",
+      clientSubChannel: "telegram",
+      rateLimitPerMinute: 1000,
+    },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwCcTelegramKey.id, ip: "127.0.0.1" } },
+    update: {},
+    create: { apiKeyId: pwCcTelegramKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+
+  console.log(`✅ Playwright channel combination keys (4 total)`);
+
+  // Mock Telegram channel for pw profile (used in Telegram notification tests)
+  const existingTelegramChannel = await prisma.channelProvider.findFirst({
+    where: { profileId: pwProfile.id, type: "telegram" },
+  });
+  if (!existingTelegramChannel) {
+    await prisma.channelProvider.create({
+      data: {
+        profileId: pwProfile.id,
+        type: "telegram",
+        name: "PW Test Telegram Bot",
+        isActive: true,
+        config: JSON.stringify({
+          botToken: "999999999:PLAYWRIGHT_TEST_BOT_TOKEN_000000000",
+          botUsername: "heysummon_pw_test_bot",
+          providerChatId: "123456789",
+        }),
+        status: "connected",
+      },
+    });
+    console.log("✅ Playwright Telegram channel (mock)");
+  } else {
+    console.log("✅ Playwright Telegram channel exists");
+  }
+
+  // OpenClaw channel for pw profile (used in OpenClaw polling tests)
+  const existingOcChannel = await prisma.channelProvider.findFirst({
+    where: { profileId: pwProfile.id, type: "openclaw" },
+  });
+  if (!existingOcChannel) {
+    await prisma.channelProvider.create({
+      data: {
+        profileId: pwProfile.id,
+        type: "openclaw",
+        name: "PW Test OpenClaw",
+        isActive: true,
+        config: JSON.stringify({ apiKey: "oc_pw_test_key" }),
+        status: "connected",
+      },
+    });
+    console.log("✅ Playwright OpenClaw channel (mock)");
+  } else {
+    console.log("✅ Playwright OpenClaw channel exists");
+  }
+
+  console.log("\n📋 Playwright test constants:");
+  console.log(`   User:          playwright@heysummon.test / PlaywrightTest123!`);
+  console.log(`   Provider key:  hs_prov_playwright00000000000000000001`);
+  console.log(`   Base key:      hs_cli_playwright00000000000000000001`);
+  console.log(`   OC→Telegram:   hs_cli_pw_openclaw_telegram_00000001`);
+  console.log(`   OC→OpenClaw:   hs_cli_pw_openclaw_openclaw_0000001`);
+  console.log(`   CC→OpenClaw:   hs_cli_pw_claudecode_openclaw_000001`);
+  console.log(`   CC→Telegram:   hs_cli_pw_claudecode_telegram_00001`);
 }
 
 main()

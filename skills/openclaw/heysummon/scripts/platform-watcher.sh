@@ -11,7 +11,7 @@ BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3445}"
 
 # Load API keys from providers.json (multi-provider support)
 # HEYSUMMON_API_KEY is no longer used — add providers via add-provider.sh
-PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$SKILL_DIR/providers.json}"
+PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
 if [ ! -f "$PROVIDERS_FILE" ] || [ "$(node -e "try{const d=JSON.parse(require('fs').readFileSync(process.argv[1]));console.log(d.providers?.length||0)}catch(e){console.log(0)}" "$PROVIDERS_FILE" 2>/dev/null)" = "0" ]; then
   echo "❌ No providers registered. Run: bash scripts/add-provider.sh <key> \"<name>\"" >&2
   exit 1

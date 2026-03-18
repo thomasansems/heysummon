@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import fs from "fs";
 import path from "path";
 
@@ -38,10 +39,7 @@ export async function GET(
     return NextResponse.json({ error: "Key not found" }, { status: 404 });
   }
 
-  // Determine base URL from request
-  const proto = request.headers.get("x-forwarded-proto") || "https";
-  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:3425";
-  const baseUrl = `${proto}://${host}`;
+  const baseUrl = getPublicBaseUrl(request);
 
   // Load skill template
   const skillPath = path.join(process.cwd(), "skills", "openclaw", "heysummon", "SKILL.md");

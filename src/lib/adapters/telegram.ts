@@ -1,5 +1,6 @@
 import type { ChannelAdapter, TelegramConfig } from "./types";
 import { prisma } from "@/lib/prisma";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import crypto from "node:crypto";
 
 const TELEGRAM_API = "https://api.telegram.org";
@@ -125,9 +126,9 @@ export const telegramAdapter: ChannelAdapter = {
 
     // Generate webhook secret
     const webhookSecret = crypto.randomBytes(32).toString("hex");
-    // Use HEYSUMMON_PUBLIC_URL for webhook registration (Tailscale Funnel URL)
+    // Use canonical public URL (Tailscale Funnel / Cloudflare / HEYSUMMON_PUBLIC_URL)
     // NEVER use localtunnel — use `tailscale funnel 3425` instead
-    const baseUrl = process.env.HEYSUMMON_PUBLIC_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const baseUrl = getPublicBaseUrl();
     const webhookUrl = `${baseUrl}/api/adapters/telegram/${channelId}/webhook`;
 
     // Set webhook

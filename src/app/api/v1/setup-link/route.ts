@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import jwt from "jsonwebtoken";
 
 const SETUP_LINK_TTL_SECONDS = 10 * 60; // 10 minutes
@@ -43,19 +44,7 @@ export async function POST(request: NextRequest) {
 
   const secret = process.env.JWT_SECRET ?? process.env.NEXTAUTH_SECRET ?? "heysummon-setup-secret";
 
-  // Prefer public URL (Tailscale Funnel / Cloudflare) over local hostname
-  const publicUrl = process.env.HEYSUMMON_PUBLIC_URL;
-  let baseUrl: string;
-  if (publicUrl) {
-    baseUrl = publicUrl.replace(/\/$/, "");
-  } else {
-    const proto = request.headers.get("x-forwarded-proto") || "https";
-    const host =
-      request.headers.get("x-forwarded-host") ||
-      request.headers.get("host") ||
-      "localhost:3425";
-    baseUrl = `${proto}://${host}`;
-  }
+  const baseUrl = getPublicBaseUrl(request);
 
   const token = jwt.sign(
     {

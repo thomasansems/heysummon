@@ -39,7 +39,7 @@ export class ProviderStore {
    * Add or update a provider entry.
    * Deduplicates by API key and case-insensitive name (same logic as the bash script).
    */
-  add(entry: Omit<Provider, "addedAt"> & { addedAt?: string }): Provider {
+  add(entry: Omit<Provider, "addedAt" | "nameLower"> & { addedAt?: string }): Provider {
     const providers = this.load();
     const nameLower = entry.name.toLowerCase();
 

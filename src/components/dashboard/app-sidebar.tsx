@@ -78,13 +78,15 @@ function NavGroup({
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
-                  render={<Link href={item.href} />}
+                  asChild
                   isActive={isActive}
                   tooltip={item.label}
                   className="gap-2.5"
                 >
+                  <Link href={item.href}>
                   <item.icon className="h-[15px] w-[15px] shrink-0" />
                   <span className="text-sm">{item.label}</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
@@ -137,7 +139,8 @@ export function AppSidebar() {
           <SidebarMenuItem suppressHydrationWarning>
             {mounted && (
               <DropdownMenu>
-                <SidebarMenuButton render={<DropdownMenuTrigger />} className="h-10 gap-2.5">
+                <SidebarMenuButton asChild className="h-10 gap-2.5">
+                  <DropdownMenuTrigger>
                   <Avatar className="h-6 w-6 shrink-0">
                     <AvatarImage src={userImage} alt={userName} />
                     <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
@@ -151,6 +154,7 @@ export function AppSidebar() {
                     </span>
                   </div>
                   <ChevronUp className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </DropdownMenuTrigger>
                 </SidebarMenuButton>
                 <DropdownMenuContent side="top" align="start" className="w-52">
                   <DropdownMenuItem

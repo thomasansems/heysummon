@@ -2,11 +2,27 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { ClientDetailPanel } from "@/components/dashboard/client-detail-panel";
+
+interface ProviderChannel {
+  id: string;
+  type: string;
+  status: string;
+}
 
 interface Provider {
   id: string;
   name: string;
+  isActive: boolean;
+  channelProviders: ProviderChannel[];
 }
 
 interface IpEvent {
@@ -30,7 +46,7 @@ interface ApiKey {
   previousKeyExpiresAt: string | null;
   createdAt: string;
   machineId: string | null;
-  provider: { id: string; name: string } | null;
+  provider: Provider | null;
   ipEvents: IpEvent[];
   _count: { requests: number };
 }
@@ -42,6 +58,13 @@ const channelLabel = (channel: string | null, sub: string | null) => {
   if (channel === "openclaw") return { label: "OpenClaw · Telegram", color: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" };
   return null;
 };
+
+function providerStatus(provider: Provider | null): { label: string; warning: string | null } {
+  if (!provider) return { label: "—", warning: "No provider linked — requests cannot be delivered." };
+  if (!provider.isActive) return { label: provider.name, warning: "Provider is inactive." };
+  if (provider.channelProviders.length === 0) return { label: provider.name, warning: "Provider has no channel configured — requests will be blocked." };
+  return { label: provider.name, warning: null };
+}
 
 type WizardChannel = "openclaw" | "claudecode" | null;
 type WizardSubChannel = "telegram" | "whatsapp" | null;
@@ -60,6 +83,13 @@ const CLIENT_CHANNELS = [
     icon: "/icons/claudecode.svg",
     description: "MCP server — inline in editor",
     disabled: false,
+  },
+  {
+    id: null,
+    label: "WhatsApp",
+    icon: "/icons/whatsapp.svg",
+    description: "Coming soon",
+    disabled: true,
   },
   {
     id: null,
@@ -98,20 +128,7 @@ export default function ClientsPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
-  const [showInstructions, setShowInstructions] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [settingsId, setSettingsId] = useState<string | null>(null);
-  const [editScope, setEditScope] = useState("full");
-  const [editRateLimit, setEditRateLimit] = useState(150);
-  const [editChannel, setEditChannel] = useState<string | null>(null);
-  const [editSubChannel, setEditSubChannel] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [rotating, setRotating] = useState<string | null>(null);
-  const [rotationResult, setRotationResult] = useState<{ key: string; deviceSecret: string; expiresAt: string } | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [generatingSetupLink, setGeneratingSetupLink] = useState<string | null>(null);
-  const [setupLinks, setSetupLinks] = useState<Record<string, { url: string; expiresAt: string }>>({});
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   // Wizard state
   const [wizardStep, setWizardStep] = useState<WizardStep>(0);
@@ -249,92 +266,7 @@ export default function ClientsPage() {
     loadKeys();
   };
 
-  const renameKey = async (id: string) => {
-    if (!editName.trim()) return;
-    await fetch(`/api/v1/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: editName.trim() }) });
-    setEditingId(null);
-    setEditName("");
-    loadKeys();
-  };
 
-  const deactivate = async (id: string) => {
-    await fetch(`/api/v1/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: false }) });
-    loadKeys();
-  };
-
-  const activate = async (id: string) => {
-    await fetch(`/api/v1/keys/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: true }) });
-    loadKeys();
-  };
-
-  const deleteKey = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to permanently delete "${name}"?\n\n⚠️ This will also delete ALL help requests and messages linked to this key.\n\nThis cannot be undone.`)) return;
-    await fetch(`/api/v1/keys/${id}`, { method: "DELETE" });
-    loadKeys();
-  };
-
-  const rotateKey = async (id: string) => {
-    if (!window.confirm("Rotate this key?\n\nA new key and device secret will be generated. The old key will remain valid for 24 hours to allow seamless migration.")) return;
-    setRotating(id);
-    const res = await fetch(`/api/v1/keys/${id}/rotate`, { method: "POST" });
-    const data = await res.json();
-    if (res.ok) {
-      setRotationResult({
-        key: data.key,
-        deviceSecret: data.deviceSecret,
-        expiresAt: data.previousKeyExpiresAt,
-      });
-      loadKeys();
-    }
-    setRotating(null);
-  };
-
-  const generateSetupLink = async (keyId: string) => {
-    setGeneratingSetupLink(keyId);
-    const k = keys.find(k => k.id === keyId);
-    // Map clientChannel to API channel field
-    const channel = k?.clientChannel === "claudecode" ? "claudecode" : "openclaw";
-    const subChannel = k?.clientSubChannel as "telegram" | "whatsapp" | undefined ?? undefined;
-    const res = await fetch("/api/v1/setup-link", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keyId, channel, subChannel }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setSetupLinks(prev => ({ ...prev, [keyId]: { url: data.setupUrl, expiresAt: data.expiresAt } }));
-    }
-    setGeneratingSetupLink(null);
-  };
-
-  const saveSettings = async (id: string) => {
-    setSaving(true);
-    await fetch(`/api/v1/keys/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        scope: editScope,
-        rateLimitPerMinute: editRateLimit,
-        clientChannel: editChannel,
-        clientSubChannel: editSubChannel,
-      }),
-    });
-    setSaving(false);
-    setSettingsId(null);
-    loadKeys();
-  };
-
-  const openSettings = (k: ApiKey) => {
-    if (settingsId === k.id) {
-      setSettingsId(null);
-      return;
-    }
-    setSettingsId(k.id);
-    setEditScope(k.scope);
-    setEditRateLimit(k.rateLimitPerMinute);
-    setEditChannel(k.clientChannel);
-    setEditSubChannel(k.clientSubChannel);
-  };
 
   const copyKey = (key: string) => {
     copyToClipboard(key);
@@ -343,10 +275,7 @@ export default function ClientsPage() {
   };
 
   const masked = (key: string) =>
-    key.slice(0, 8) + "•".repeat(16) + key.slice(-4);
-
-  const configSnippet = (key: string) =>
-    `# HeySummon API configuration\nheysummon:\n  api_key: "${key}"\n  endpoint: "${typeof window !== "undefined" ? window.location.origin : ""}/api/v1/help"`;
+    key.slice(0, 8) + "\u2022".repeat(16) + key.slice(-4);
 
   const isInGracePeriod = (k: ApiKey) =>
     k.previousKeyExpiresAt && new Date(k.previousKeyExpiresAt) > new Date();
@@ -591,62 +520,7 @@ export default function ClientsPage() {
 
   return (
     <div>
-      {/* Wizard modal */}
       {renderWizard()}
-
-      {/* Key rotation result modal */}
-      {rotationResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/60">
-                <span className="text-base">🔑</span>
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">Key Rotated Successfully</h2>
-                <p className="text-xs text-muted-foreground">Save these credentials — the secret won&apos;t be shown again</p>
-              </div>
-            </div>
-            {/* Body */}
-            <div className="space-y-4 px-5 py-4">
-              <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                The old key remains valid until <strong>{new Date(rotationResult.expiresAt).toLocaleString()}</strong> to allow seamless migration.
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">New API Key</label>
-                <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2">
-                  <code className="flex-1 truncate font-mono text-xs text-foreground">{rotationResult.key}</code>
-                  <button onClick={() => copyKey(rotationResult.key)} className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-500">
-                    {copied === rotationResult.key ? "Copied!" : "Copy"}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">New Device Secret</label>
-                <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2">
-                  <code className="flex-1 truncate font-mono text-xs text-foreground">{rotationResult.deviceSecret}</code>
-                  <button onClick={() => copyKey(rotationResult.deviceSecret)} className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-500">
-                    {copied === rotationResult.deviceSecret ? "Copied!" : "Copy"}
-                  </button>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Send a new setup link to your client via Settings → Setup Link after closing this.
-              </p>
-            </div>
-            {/* Footer */}
-            <div className="flex justify-end border-t border-border px-5 py-3">
-              <button
-                onClick={() => setRotationResult(null)}
-                className="rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
@@ -661,50 +535,38 @@ export default function ClientsPage() {
       <div className="overflow-visible overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (
           <>
-            {/* Mobile loading skeleton */}
             <div className="md:hidden">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="border-b border-border p-4 space-y-3 animate-pulse">
-                  <div className="flex items-center justify-between">
-                    <div className="h-4 w-24 rounded bg-muted" />
-                    <div className="h-6 w-8 rounded bg-muted" />
-                  </div>
-                  <div className="h-4 w-20 rounded bg-muted" />
+                  <div className="h-4 w-24 rounded bg-muted" />
                   <div className="h-4 w-32 rounded bg-muted" />
                   <div className="grid grid-cols-2 gap-3">
                     <div className="h-5 w-16 rounded-full bg-muted" />
-                    <div className="h-4 w-8 rounded bg-muted" />
-                    <div className="h-5 w-20 rounded-full bg-muted" />
                     <div className="h-4 w-20 rounded bg-muted" />
                   </div>
                 </div>
               ))}
             </div>
-            {/* Desktop loading skeleton */}
             <table className="hidden md:table w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Name</th>
                   <th className="px-4 py-2.5 font-medium">Channel</th>
                   <th className="px-4 py-2.5 font-medium">Provider</th>
-                  <th className="px-4 py-2.5 font-medium">Scope</th>
                   <th className="px-4 py-2.5 font-medium">Requests</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
                   <th className="px-4 py-2.5 font-medium">Created</th>
-                  <th className="px-4 py-2.5 font-medium" />
                 </tr>
               </thead>
               <tbody>
                 {[1, 2, 3].map((i) => (
                   <tr key={i} className="border-b border-border animate-pulse">
-                    <td className="px-4 py-2.5"><div className="h-4 w-24 rounded bg-muted"></div></td>
-                    <td className="px-4 py-2.5"><div className="h-4 w-20 rounded bg-muted"></div></td>
-                    <td className="px-4 py-2.5"><div className="h-4 w-32 rounded bg-muted"></div></td>
-                    <td className="px-4 py-2.5"><div className="h-5 w-16 rounded-full bg-muted"></div></td>
-                    <td className="px-4 py-2.5"><div className="h-4 w-8 rounded bg-muted"></div></td>
-                    <td className="px-4 py-2.5"><div className="h-5 w-20 rounded-full bg-muted"></div></td>
-                    <td className="px-4 py-2.5"><div className="h-4 w-20 rounded bg-muted"></div></td>
-                    <td className="px-4 py-2.5 text-right"><div className="ml-auto h-6 w-8 rounded bg-muted"></div></td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-24 rounded bg-muted" /></td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-20 rounded bg-muted" /></td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-32 rounded bg-muted" /></td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-8 rounded bg-muted" /></td>
+                    <td className="px-4 py-2.5"><div className="h-5 w-20 rounded-full bg-muted" /></td>
+                    <td className="px-4 py-2.5"><div className="h-4 w-20 rounded bg-muted" /></td>
                   </tr>
                 ))}
               </tbody>
@@ -717,191 +579,26 @@ export default function ClientsPage() {
         ) : (
           <>
             {/* Mobile card view */}
-            <div className="md:hidden">
+            <div className="md:hidden divide-y divide-border">
               {keys.map((k) => (
-                <Fragment key={k.id}>
-                  <div className="border-b border-border p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs text-muted-foreground">Name</span>
-                        <div className="font-medium text-foreground">
-                          {editingId === k.id ? (
-                            <div className="flex items-center gap-1">
-                              <input
-                                value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") renameKey(k.id); if (e.key === "Escape") setEditingId(null); }}
-                                className="w-32 rounded border border-border px-2 py-0.5 text-sm outline-none focus:border-ring"
-                                autoFocus
-                              />
-                              <button onClick={() => renameKey(k.id)} className="text-xs text-green-600">OK</button>
-                              <button onClick={() => setEditingId(null)} className="text-xs text-muted-foreground">X</button>
-                            </div>
-                          ) : (
-                            <span
-                              className="cursor-pointer hover:underline"
-                              onClick={() => { setEditingId(k.id); setEditName(k.name || ""); }}
-                              title="Click to rename"
-                            >
-                              {k.name || "Unnamed"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="relative">
-                        <button
-                          onClick={() => setOpenMenuId(openMenuId === k.id ? null : k.id)}
-                          className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                          ⋯
-                        </button>
-                        {openMenuId === k.id && (
-                          <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
-                            <button onClick={() => { openSettings(k); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Settings</button>
-                            <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Setup</button>
-                            {k.isActive && (
-                              <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-orange-600 hover:bg-muted hover:text-orange-800 disabled:opacity-50">
-                                {rotating === k.id ? "Rotating..." : "Rotate"}
-                              </button>
-                            )}
-                            {k.isActive ? (
-                              <button onClick={() => { deactivate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-muted hover:text-red-400">Deactivate</button>
-                            ) : (
-                              <button onClick={() => { activate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800">Activate</button>
-                            )}
-                            <div className="my-1 border-t border-border" />
-                            <button onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300">Delete</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground">Provider</span>
-                      <div className="text-muted-foreground">{k.provider?.name || "-"}</div>
-                    </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground">Channel</span>
-                      <div>{(() => { const ch = channelLabel(k.clientChannel, k.clientSubChannel); return ch ? <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ch.color}`}>{ch.label}</span> : <span className="text-xs text-muted-foreground">—</span>; })()}</div>
-                    </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground">Key</span>
-                      <div className="flex items-center gap-2">
-                        <code className="font-mono text-xs text-muted-foreground break-all">{masked(k.key)}</code>
-                        <button onClick={() => copyKey(k.key)} className="shrink-0 text-xs text-orange-600 hover:text-orange-800">{copied === k.key ? "Copied!" : "Copy"}</button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-xs text-muted-foreground">Scope</span>
-                        <div><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${scopeBadgeColors[k.scope] || "bg-muted text-muted-foreground"}`}>{k.scope}</span></div>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Requests</span>
-                        <div className="text-muted-foreground">{k._count.requests}</div>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Status</span>
-                        <div className="flex items-center gap-1">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"}`}>
-                            {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
-                          </span>
-                          {isInGracePeriod(k) && (
-                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-300">Grace</span>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Created</span>
-                        <div className="text-muted-foreground">{new Date(k.createdAt).toLocaleDateString()}</div>
-                      </div>
-                    </div>
+                <div
+                  key={k.id}
+                  className="p-4 space-y-2 cursor-pointer hover:bg-muted/30"
+                  onClick={() => setSelectedClientId(k.id)}
+                >
+                  <div className="font-medium text-foreground">{k.name || "Unnamed"}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {(() => { const ch = channelLabel(k.clientChannel, k.clientSubChannel); return ch ? <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ch.color}`}>{ch.label}</span> : null; })()}
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"}`}>
+                      {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
+                    </span>
                   </div>
-                  {settingsId === k.id && (
-                    <div className="border-b border-border bg-muted px-4 py-3">
-                      <p className="mb-2 text-xs font-medium text-muted-foreground">Key Settings</p>
-                      <div className="flex flex-wrap items-end gap-3">
-                        <div>
-                          <label className="mb-1 block text-xs text-muted-foreground">Channel</label>
-                          <select value={editChannel ?? ""} onChange={(e) => { setEditChannel(e.target.value || null); setEditSubChannel(null); }} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
-                            <option value="">— not set —</option>
-                            <option value="openclaw">OpenClaw</option>
-                            <option value="claudecode">Claude Code</option>
-                          </select>
-                        </div>
-                        {editChannel === "openclaw" && (
-                          <div>
-                            <label className="mb-1 block text-xs text-muted-foreground">Platform</label>
-                            <select value={editSubChannel ?? ""} onChange={(e) => setEditSubChannel(e.target.value || null)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
-                              <option value="">— select —</option>
-                              <option value="telegram">Telegram</option>
-                              <option value="whatsapp">WhatsApp</option>
-                            </select>
-                          </div>
-                        )}
-                        <div>
-                          <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
-                          <select value={editScope} onChange={(e) => setEditScope(e.target.value)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
-                            {SCOPE_OPTIONS.map((s) => (<option key={s} value={s}>{s}</option>))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-xs text-muted-foreground">Rate Limit (req/min)</label>
-                          <input type="number" value={editRateLimit} onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 150)} min={1} max={10000} className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring" />
-                        </div>
-                        <button onClick={() => saveSettings(k.id)} disabled={saving} className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
-                        <button onClick={() => setSettingsId(null)} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
-                      </div>
-                      <div className="mt-4 border-t border-border pt-3">
-                        <div className="mb-2 flex items-center justify-between">
-                          <p className="text-xs font-medium text-muted-foreground">IP Bindings</p>
-                          {k.ipEvents?.length > 0 && (
-                            <button onClick={async () => { if (!window.confirm("Reset all IP bindings?")) return; await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" }); loadKeys(); }} className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40">Reset All Bindings</button>
-                          )}
-                        </div>
-                        {!k.ipEvents || k.ipEvents.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">No IP bindings yet.</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {k.ipEvents.map((evt) => (
-                              <div key={evt.id} className="rounded border border-border p-2 text-xs">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-mono text-muted-foreground">{evt.ip}</span>
-                                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${evt.status === "allowed" ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : evt.status === "pending" ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300" : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"}`}>{evt.status}</span>
-                                </div>
-                                <div className="mt-1 text-muted-foreground">{evt.attempts} attempts · {new Date(evt.lastSeen).toLocaleString()}</div>
-                                <div className="mt-1 flex items-center gap-1">
-                                  {evt.status !== "allowed" && <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "allowed" }) }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50">Allow</button>}
-                                  {evt.status !== "blacklisted" && <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "blacklisted" }) }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50">Blacklist</button>}
-                                  <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0]">Remove</button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {showInstructions === k.id && (
-                    <div className="border-b border-border bg-muted/50 px-4 py-4 space-y-3">
-                      <p className="text-xs font-semibold text-foreground">Setup Link</p>
-                      <p className="text-xs text-muted-foreground">Generate a 10-minute setup link to send to your client. It contains all credentials and step-by-step instructions.</p>
-                      {setupLinks[k.id] ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
-                            <span className="flex-1 truncate font-mono text-xs text-foreground">{setupLinks[k.id].url}</span>
-                            <button onClick={() => { copyKey(setupLinks[k.id].url); }} className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-500">{copied === setupLinks[k.id].url ? "Copied!" : "Copy"}</button>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Expires at {new Date(setupLinks[k.id].expiresAt).toLocaleTimeString()}</p>
-                          <button onClick={() => generateSetupLink(k.id)} disabled={generatingSetupLink === k.id} className="text-xs text-orange-600 hover:text-orange-500 disabled:opacity-50">↻ Regenerate link</button>
-                        </div>
-                      ) : (
-                        <button onClick={() => generateSetupLink(k.id)} disabled={generatingSetupLink === k.id} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                          {generatingSetupLink === k.id ? "Generating…" : "Generate Setup Link"}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </Fragment>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    {(() => { const ps = providerStatus(k.provider); return <span className={ps.warning ? "text-orange-600" : ""}>{ps.label}</span>; })()}
+                    <span>{k._count.requests} requests</span>
+                    <span>{new Date(k.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
               ))}
             </div>
 
@@ -912,188 +609,70 @@ export default function ClientsPage() {
                   <th className="px-4 py-2.5 font-medium">Name</th>
                   <th className="px-4 py-2.5 font-medium">Channel</th>
                   <th className="px-4 py-2.5 font-medium">Provider</th>
-                  <th className="px-4 py-2.5 font-medium">Scope</th>
                   <th className="px-4 py-2.5 font-medium">Requests</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
                   <th className="px-4 py-2.5 font-medium">Created</th>
-                  <th className="px-4 py-2.5 font-medium" />
                 </tr>
               </thead>
               <tbody>
                 {keys.map((k) => (
-                  <Fragment key={k.id}>
-                    <tr className="border-b border-border last:border-0">
-                      <td className="px-4 py-2.5 font-medium text-foreground">
-                        {editingId === k.id ? (
-                          <div className="flex items-center gap-1">
-                            <input value={editName} onChange={(e) => setEditName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") renameKey(k.id); if (e.key === "Escape") setEditingId(null); }} className="w-32 rounded border border-border px-2 py-0.5 text-sm outline-none focus:border-ring" autoFocus />
-                            <button onClick={() => renameKey(k.id)} className="text-xs text-green-600">OK</button>
-                            <button onClick={() => setEditingId(null)} className="text-xs text-muted-foreground">X</button>
+                  <tr
+                    key={k.id}
+                    className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/30"
+                    onClick={() => setSelectedClientId(k.id)}
+                  >
+                    <td className="px-4 py-2.5 font-medium text-foreground">{k.name || "Unnamed"}</td>
+                    <td className="px-4 py-2.5">
+                      {(() => { const ch = channelLabel(k.clientChannel, k.clientSubChannel); return ch ? <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ch.color}`}>{ch.label}</span> : <span className="text-xs text-muted-foreground">—</span>; })()}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {(() => {
+                        const ps = providerStatus(k.provider);
+                        return (
+                          <div>
+                            <span className={`text-sm ${ps.warning ? "text-foreground" : "text-muted-foreground"}`}>{ps.label}</span>
+                            {ps.warning && <p className="mt-0.5 text-xs text-orange-600 dark:text-orange-400">{ps.warning}</p>}
                           </div>
-                        ) : (
-                          <span className="cursor-pointer hover:underline" onClick={() => { setEditingId(k.id); setEditName(k.name || ""); }} title="Click to rename">{k.name || "Unnamed"}</span>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{k._count.requests}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-1">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"}`}>
+                          {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
+                        </span>
+                        {isInGracePeriod(k) && (
+                          <span className="inline-flex rounded-full bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">Grace</span>
                         )}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {(() => { const ch = channelLabel(k.clientChannel, k.clientSubChannel); return ch ? <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ch.color}`}>{ch.label}</span> : <span className="text-xs text-muted-foreground">—</span>; })()}
-                      </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{k.provider?.name || "-"}</td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <code className="font-mono text-xs text-muted-foreground">{masked(k.key)}</code>
-                          <button onClick={() => copyKey(k.key)} className="text-xs text-orange-600 hover:text-orange-800">{copied === k.key ? "Copied!" : "Copy"}</button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{k._count.requests}</td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${!k.isActive ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" : k.ipEvents?.some((e) => e.status === "allowed") ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"}`}>
-                            {!k.isActive ? "Inactive" : k.ipEvents?.some((e) => e.status === "allowed") ? "Bound" : "No binding yet"}
-                          </span>
-                          {isInGracePeriod(k) && (
-                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-300" title={`Old key valid until ${new Date(k.previousKeyExpiresAt!).toLocaleString()}`}>Grace</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{new Date(k.createdAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-2.5 text-right">
-                        <div className="relative inline-block">
-                          <button onClick={() => setOpenMenuId(openMenuId === k.id ? null : k.id)} className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">⋯</button>
-                          {openMenuId === k.id && (
-                            <div className="absolute right-0 top-full z-10 mt-1 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
-                              <button onClick={() => { openSettings(k); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Settings</button>
-                              <button onClick={() => { setShowInstructions(showInstructions === k.id ? null : k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground">Setup</button>
-                              {k.isActive && (
-                                <button onClick={() => { rotateKey(k.id); setOpenMenuId(null); }} disabled={rotating === k.id} className="block w-full px-3 py-1.5 text-left text-xs text-orange-600 hover:bg-muted hover:text-orange-800 disabled:opacity-50">
-                                  {rotating === k.id ? "Rotating..." : "Rotate"}
-                                </button>
-                              )}
-                              {k.isActive ? (
-                                <button onClick={() => { deactivate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-muted hover:text-red-400">Deactivate</button>
-                              ) : (
-                                <button onClick={() => { activate(k.id); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-green-600 hover:bg-muted hover:text-green-800">Activate</button>
-                              )}
-                              <div className="my-1 border-t border-border" />
-                              <button onClick={() => { deleteKey(k.id, k.name || "this client"); setOpenMenuId(null); }} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300">Delete</button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                    {settingsId === k.id && (
-                      <tr key={`${k.id}-settings`} className="border-b border-border">
-                        <td colSpan={8} className="bg-muted px-4 py-3">
-                          <p className="mb-2 text-xs font-medium text-muted-foreground">Key Settings</p>
-                          <div className="flex flex-wrap items-end gap-3">
-                            <div>
-                              <label className="mb-1 block text-xs text-muted-foreground">Channel</label>
-                              <select value={editChannel ?? ""} onChange={(e) => { setEditChannel(e.target.value || null); setEditSubChannel(null); }} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
-                                <option value="">— not set —</option>
-                                <option value="openclaw">OpenClaw</option>
-                                <option value="claudecode">Claude Code</option>
-                              </select>
-                            </div>
-                            {editChannel === "openclaw" && (
-                              <div>
-                                <label className="mb-1 block text-xs text-muted-foreground">Platform</label>
-                                <select value={editSubChannel ?? ""} onChange={(e) => setEditSubChannel(e.target.value || null)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
-                                  <option value="">— select —</option>
-                                  <option value="telegram">Telegram</option>
-                                  <option value="whatsapp">WhatsApp</option>
-                                </select>
-                              </div>
-                            )}
-                            <div>
-                              <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
-                              <select value={editScope} onChange={(e) => setEditScope(e.target.value)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring">
-                                {SCOPE_OPTIONS.map((s) => (<option key={s} value={s}>{s}</option>))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="mb-1 block text-xs text-muted-foreground">Rate Limit (req/min)</label>
-                              <input type="number" value={editRateLimit} onChange={(e) => setEditRateLimit(parseInt(e.target.value) || 150)} min={1} max={10000} className="w-24 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring" />
-                            </div>
-                            <button onClick={() => saveSettings(k.id)} disabled={saving} className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
-                            <button onClick={() => setSettingsId(null)} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
-                          </div>
-                          <div className="mt-4 border-t border-border pt-3">
-                            <div className="mb-2 flex items-center justify-between">
-                              <p className="text-xs font-medium text-muted-foreground">IP Bindings</p>
-                              {k.ipEvents?.length > 0 && (
-                                <button onClick={async () => { if (!window.confirm("Reset all IP bindings?")) return; await fetch(`/api/v1/keys/${k.id}/ip-events/reset`, { method: "POST" }); loadKeys(); }} className="rounded-md border border-red-800 px-2 py-0.5 text-xs text-red-600 hover:bg-red-950/40">Reset All Bindings</button>
-                              )}
-                            </div>
-                            {!k.ipEvents || k.ipEvents.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">No IP bindings yet. The first API request will automatically bind its IP.</p>
-                            ) : (
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="text-left text-muted-foreground">
-                                    <th className="pb-1 pr-4 font-medium">IP Address</th>
-                                    <th className="pb-1 pr-4 font-medium">Status</th>
-                                    <th className="pb-1 pr-4 font-medium">Attempts</th>
-                                    <th className="pb-1 pr-4 font-medium">Last Seen</th>
-                                    <th className="pb-1 font-medium" />
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {k.ipEvents.map((evt) => (
-                                    <tr key={evt.id} className="border-t border-border">
-                                      <td className="py-1.5 pr-4 font-mono text-muted-foreground">{evt.ip}</td>
-                                      <td className="py-1.5 pr-4">
-                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${evt.status === "allowed" ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" : evt.status === "pending" ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300" : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"}`}>{evt.status}</span>
-                                      </td>
-                                      <td className="py-1.5 pr-4 text-muted-foreground">{evt.attempts}</td>
-                                      <td className="py-1.5 pr-4 text-muted-foreground">{new Date(evt.lastSeen).toLocaleString()}</td>
-                                      <td className="py-1.5 text-right">
-                                        <div className="flex items-center justify-end gap-1">
-                                          {evt.status !== "allowed" && <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "allowed" }) }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-green-600 hover:bg-green-50">Allow</button>}
-                                          {evt.status !== "blacklisted" && <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "blacklisted" }) }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50">Blacklist</button>}
-                                          <button onClick={async () => { await fetch(`/api/v1/keys/${k.id}/ip-events/${evt.id}`, { method: "DELETE" }); loadKeys(); }} className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-[#f0f0f0]">Remove</button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    {showInstructions === k.id && (
-                      <tr key={`${k.id}-instructions`} className="border-b border-border">
-                        <td colSpan={8} className="bg-muted/50 px-4 py-4">
-                          <div className="max-w-lg space-y-2">
-                            <p className="text-xs font-semibold text-foreground">Setup Link</p>
-                            <p className="text-xs text-muted-foreground">Generate a 10-minute link with embedded credentials and step-by-step instructions for your client.</p>
-                            {setupLinks[k.id] ? (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
-                                  <span className="flex-1 truncate font-mono text-xs text-foreground">{setupLinks[k.id].url}</span>
-                                  <button onClick={() => copyKey(setupLinks[k.id].url)} className="shrink-0 text-xs font-medium text-orange-600 hover:text-orange-500">{copied === setupLinks[k.id].url ? "Copied!" : "Copy"}</button>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <span className="text-xs text-muted-foreground">Expires {new Date(setupLinks[k.id].expiresAt).toLocaleTimeString()}</span>
-                                  <button onClick={() => generateSetupLink(k.id)} disabled={generatingSetupLink === k.id} className="text-xs text-orange-600 hover:text-orange-500 disabled:opacity-50">↻ Regenerate</button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button onClick={() => generateSetupLink(k.id)} disabled={generatingSetupLink === k.id} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                                {generatingSetupLink === k.id ? "Generating…" : "Generate Setup Link"}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{new Date(k.createdAt).toLocaleDateString()}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </>
         )}
       </div>
+
+      {/* Client detail slide-in panel */}
+      <Sheet open={!!selectedClientId} onOpenChange={(open) => { if (!open) setSelectedClientId(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-[600px] p-0 overflow-hidden">
+          <SheetHeader className="px-6 pt-5 pb-0">
+            <SheetTitle>{keys.find((k) => k.id === selectedClientId)?.name || "Client details"}</SheetTitle>
+            <SheetDescription className="sr-only">Client configuration and settings</SheetDescription>
+          </SheetHeader>
+          {selectedClientId && (
+            <ClientDetailPanel
+              clientId={selectedClientId}
+              onClose={() => setSelectedClientId(null)}
+              onDeleted={() => { setSelectedClientId(null); loadKeys(); }}
+              onUpdated={() => loadKeys()}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

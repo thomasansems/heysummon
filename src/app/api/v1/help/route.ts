@@ -142,6 +142,37 @@ export async function POST(request: Request) {
     if (!authResult.ok) return authResult.response;
     const key = authResult.apiKey;
 
+    // ─── Provider + channel check ───
+    // If this key is linked to a specific provider, ensure that provider exists,
+    // is active, and has at least one notification channel configured.
+    if (key.providerId) {
+      const provider = await prisma.userProfile.findUnique({
+        where: { id: key.providerId },
+        select: {
+          isActive: true,
+          channelProviders: { where: { isActive: true }, select: { id: true } },
+        },
+      });
+      if (!provider) {
+        return NextResponse.json(
+          { error: "The provider linked to this client no longer exists. Contact your provider to reissue your API key." },
+          { status: 503 }
+        );
+      }
+      if (!provider.isActive) {
+        return NextResponse.json(
+          { error: "The provider linked to this client is currently inactive." },
+          { status: 503 }
+        );
+      }
+      if (provider.channelProviders.length === 0) {
+        return NextResponse.json(
+          { error: "The provider linked to this client has no notification channel configured and cannot receive requests yet." },
+          { status: 503 }
+        );
+      }
+    }
+
     // ─── Guard Receipt Verification (Ed25519) ───
     const receiptB64 = request.headers.get("x-guard-receipt");
     const signatureB64 = request.headers.get("x-guard-receipt-sig");

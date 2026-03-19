@@ -18,6 +18,7 @@ import {
   Moon,
   Sun,
   ChevronUp,
+  UserCog,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,7 +45,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const mainNav = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Requests", href: "/dashboard/requests", icon: Inbox },
 ];
 
 const providerNav = [
@@ -53,8 +53,9 @@ const providerNav = [
 ];
 
 const adminNav = [
+  { label: "Requests", href: "/dashboard/requests", icon: Inbox },
+  { label: "Users", href: "/dashboard/users", icon: UserCog },
   { label: "Audit Logs", href: "/dashboard/audit-logs", icon: ScrollText },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 function NavGroup({
@@ -177,6 +178,12 @@ export function AppSidebar() {
                       <Moon className="mr-2 h-3.5 w-3.5" />
                     )}
                     {theme === "dark" ? "Light mode" : "Dark mode"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings">
+                      <Settings className="mr-2 h-3.5 w-3.5" />
+                      Settings
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

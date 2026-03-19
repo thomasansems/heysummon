@@ -2,6 +2,7 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -114,9 +115,11 @@ function deliveryTime(created: string, delivered: string | null) {
 }
 
 export default function RequestsPage() {
+  const searchParams = useSearchParams();
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [clientFilter, setClientFilter] = useState<string | null>(searchParams.get("client"));
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchRequests = useCallback(() => {
@@ -176,10 +179,11 @@ export default function RequestsPage() {
     }
   }
 
-  const filtered =
-    filter === "all"
-      ? requests
-      : requests.filter((r) => r.status === filter);
+  const filtered = requests.filter((r) => {
+    if (filter !== "all" && r.status !== filter) return false;
+    if (clientFilter && (r.apiKey.name || "Unnamed") !== clientFilter && r.apiKey.name !== clientFilter) return false;
+    return true;
+  });
 
   const thClass = "px-4 py-2.5 font-medium";
 
@@ -187,8 +191,9 @@ export default function RequestsPage() {
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-foreground">Requests</h1>
 
-      {/* Filter tabs */}
-      <div className="mb-4 flex gap-1 rounded-lg border border-border bg-card p-1 w-fit">
+      {/* Filter tabs + client filter */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 rounded-lg border border-border bg-card p-1 w-fit">
         {FILTERS.map((f) => (
           <button
             key={f}
@@ -202,6 +207,16 @@ export default function RequestsPage() {
             {f}
           </button>
         ))}
+        </div>
+        {clientFilter && (
+          <div className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-sm">
+            <span className="text-muted-foreground">Client:</span>
+            <span className="font-medium text-foreground">{clientFilter}</span>
+            <button onClick={() => setClientFilter(null)} className="ml-1 text-muted-foreground hover:text-foreground">
+              ✕
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border bg-card">

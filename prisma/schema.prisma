@@ -15,7 +15,7 @@ model User {
   password           String?
   name               String?
   image              String?
-  role               String    @default("expert")
+  role               String    @default("provider") // "admin" | "provider" | "readonly"
   onboardingComplete Boolean   @default(false)
   expertise          String?
   notificationPref   String    @default("email")

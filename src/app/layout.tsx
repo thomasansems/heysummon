@@ -21,12 +21,9 @@ export const metadata: Metadata = {
   title: "HeySummon Provider Portal",
   description: "Human in the Loop as a Service — Provider Dashboard",
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
-    ],
-    apple: "/apple-touch-icon.png",
+    icon: [{ url: "/hey-summon.png", type: "image/png" }],
+    shortcut: "/hey-summon.png",
+    apple: "/hey-summon.png",
   },
 };
 

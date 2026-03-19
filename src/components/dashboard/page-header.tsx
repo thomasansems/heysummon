@@ -18,6 +18,7 @@ const routeLabels: Record<string, string> = {
   providers: "Providers",
   channels: "Channels",
   clients: "Clients",
+  users: "Users",
   keys: "API Keys",
   "audit-logs": "Audit Logs",
   settings: "Settings",

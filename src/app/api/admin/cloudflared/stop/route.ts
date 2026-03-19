@@ -19,11 +19,8 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    execSync("tailscale funnel reset", { timeout: 10000 });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: `Failed to stop funnel: ${msg}` }, { status: 500 });
-  }
+    execSync("pkill -f 'cloudflared tunnel' 2>/dev/null", { timeout: 5000, shell: "/bin/bash" });
+  } catch { /* process might not be running — that's fine */ }
 
   removeEnvVar("HEYSUMMON_PUBLIC_URL");
   delete process.env.HEYSUMMON_PUBLIC_URL;

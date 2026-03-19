@@ -155,7 +155,7 @@ export default function DashboardPage() {
   if (!stats) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-semibold text-foreground">Overview</h1>
+        <h1 className="font-serif text-2xl font-semibold text-foreground">Overview</h1>
         {/* Stat card skeletons */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[...Array(4)].map((_, i) => (
@@ -209,7 +209,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-foreground">Overview</h1>
+      <h1 className="font-serif text-2xl font-semibold text-foreground">Overview</h1>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -232,7 +232,7 @@ export default function DashboardPage() {
         {/* Traffic Channels-style bar chart — 3/5 */}
         <div className="lg:col-span-3 rounded-xl border border-border bg-card p-5">
           <div className="mb-4">
-            <h2 className="text-base font-semibold text-foreground">Requests per day</h2>
+            <h2 className="font-serif text-base font-semibold text-foreground">Requests per day</h2>
             <p className="text-sm text-muted-foreground">This week vs. last week</p>
           </div>
 
@@ -288,7 +288,7 @@ export default function DashboardPage() {
         {/* Top 5 clients donut chart — 2/5 */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5">
           <div className="mb-2">
-            <h2 className="text-base font-semibold text-foreground">Top Clients</h2>
+            <h2 className="font-serif text-base font-semibold text-foreground">Top Clients</h2>
             <p className="text-sm text-muted-foreground">Most active — all time</p>
           </div>
 

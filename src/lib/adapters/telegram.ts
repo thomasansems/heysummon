@@ -37,9 +37,9 @@ export async function setWebhook(token: string, webhookUrl: string, secret: stri
       allowed_updates: ["message"],
     }),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to set Telegram webhook: ${text}`);
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.description ?? `Failed to set Telegram webhook: HTTP ${res.status}`);
   }
 }
 

@@ -3,12 +3,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { setWebhook } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
 
 const ENV_PATH = path.resolve(process.cwd(), ".env.local");
-const PUBLIC_URL = "https://thomas-pc.tail38a1e7.ts.net";
 
 function updateEnvVar(key: string, value: string) {
   let content = "";
@@ -22,6 +22,16 @@ function updateEnvVar(key: string, value: string) {
   fs.writeFileSync(ENV_PATH, content, "utf8");
 }
 
+function getTailscaleHostname(): string | null {
+  try {
+    const raw = execSync("tailscale status --json 2>/dev/null", { timeout: 5000 }).toString();
+    const data = JSON.parse(raw);
+    const dnsName = data?.Self?.DNSName as string | undefined;
+    if (dnsName) return `https://${dnsName.replace(/\.$/, "")}`;
+  } catch { /* ignore */ }
+  return null;
+}
+
 export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,7 +39,6 @@ export async function POST() {
   try {
     // Expose port 3425 via Tailscale Funnel (full port, HTTPS)
     // NOTE: NEVER use localtunnel — Tailscale Funnel only
-    // Note: --set-path strips the prefix before forwarding, so we must serve at /
     // The app is protected by NextAuth session + API key checks on all sensitive endpoints
     execSync("tailscale funnel --bg 3425", { timeout: 10000 });
   } catch (err) {
@@ -39,9 +48,15 @@ export async function POST() {
     }
   }
 
+  // Get the actual Tailscale hostname dynamically
+  const publicUrl = getTailscaleHostname() ?? process.env.HEYSUMMON_PUBLIC_URL ?? "";
+  if (!publicUrl) {
+    return NextResponse.json({ error: "Tailscale funnel started but could not determine public URL." }, { status: 500 });
+  }
+
   // Persist to .env.local
-  updateEnvVar("HEYSUMMON_PUBLIC_URL", PUBLIC_URL);
-  process.env.HEYSUMMON_PUBLIC_URL = PUBLIC_URL;
+  updateEnvVar("HEYSUMMON_PUBLIC_URL", publicUrl);
+  process.env.HEYSUMMON_PUBLIC_URL = publicUrl;
 
   // Re-register all active Telegram channel webhooks
   const channels = await prisma.channelProvider.findMany({
@@ -52,12 +67,18 @@ export async function POST() {
   for (const ch of channels) {
     try {
       const cfg = JSON.parse(ch.config) as TelegramConfig;
-      if (!cfg.botToken || !cfg.webhookSecret) continue;
-      const webhookUrl = `${PUBLIC_URL}/api/adapters/telegram/${ch.id}/webhook`;
-      await setWebhook(cfg.botToken, webhookUrl, cfg.webhookSecret);
+      if (!cfg.botToken) continue;
+      // Generate a secret if activation previously failed (channel created while tunnel was down)
+      const webhookSecret = cfg.webhookSecret ?? crypto.randomBytes(32).toString("hex");
+      const webhookUrl = `${publicUrl}/api/adapters/telegram/${ch.id}/webhook`;
+      await setWebhook(cfg.botToken, webhookUrl, webhookSecret);
       await prisma.channelProvider.update({
         where: { id: ch.id },
-        data: { status: "connected", errorMessage: null },
+        data: {
+          config: JSON.stringify({ ...cfg, webhookSecret }),
+          status: "connected",
+          errorMessage: null,
+        },
       });
       results.push({ id: ch.id, ok: true });
     } catch (err) {
@@ -65,5 +86,5 @@ export async function POST() {
     }
   }
 
-  return NextResponse.json({ ok: true, publicUrl: PUBLIC_URL, webhooksUpdated: results });
+  return NextResponse.json({ ok: true, publicUrl, webhooksUpdated: results });
 }

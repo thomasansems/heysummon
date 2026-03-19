@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
-import { Globe, Wifi, WifiOff, Copy, Check, FlaskConical, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Globe, Wifi, WifiOff, Copy, Check, FlaskConical, ShieldCheck, AlertTriangle, Cloud } from "lucide-react";
 
 interface IpEvent {
   id: string;
@@ -36,32 +36,85 @@ export default function SettingsPage() {
   const [providerProfiles, setProviderProfiles] = useState<ProviderProfile[]>([]);
 
   // Tunnel state
-  const [tunnel, setTunnel] = useState<{ active: boolean; publicUrl: string | null; hostname: string; needsOperatorSetup?: boolean } | null>(null);
+  const [tunnel, setTunnel] = useState<{
+    accessible: boolean;
+    active: boolean;
+    method: "tailscale" | "cloudflared" | "custom" | "none";
+    publicUrl: string | null;
+    hostname: string | null;
+    tailscaleAvailable: boolean;
+    cloudflaredAvailable: boolean;
+    needsOperatorSetup?: boolean;
+  } | null>(null);
   const [tunnelLoading, setTunnelLoading] = useState(false);
+  const [tunnelLoadingMethod, setTunnelLoadingMethod] = useState<"tailscale" | "cloudflared" | null>(null);
+  const [tunnelError, setTunnelError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const fetchTunnelStatus = useCallback(() => {
-    fetch("/api/admin/tunnel/status").then(r => r.json()).then(setTunnel).catch(() => {});
+  const fetchTunnelStatus = useCallback(async () => {
+    try {
+      const data = await fetch("/api/admin/tunnel/status").then(r => r.json());
+      setTunnel(data);
+    } catch {}
   }, []);
 
   useEffect(() => { fetchTunnelStatus(); }, [fetchTunnelStatus]);
 
   const startTunnel = async () => {
     setTunnelLoading(true);
-    await fetch("/api/admin/tunnel/start", { method: "POST" });
+    setTunnelLoadingMethod("tailscale");
+    setTunnelError(null);
+    const res = await fetch("/api/admin/tunnel/start", { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setTunnelError(data.error ?? "Failed to start Tailscale Funnel");
+    }
     await fetchTunnelStatus();
     setTunnelLoading(false);
+    setTunnelLoadingMethod(null);
   };
 
   const stopTunnel = async () => {
     setTunnelLoading(true);
-    await fetch("/api/admin/tunnel/stop", { method: "POST" });
+    setTunnelError(null);
+    const res = await fetch("/api/admin/tunnel/stop", { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setTunnelError(data.error ?? "Failed to stop Tailscale Funnel");
+    }
+    await fetchTunnelStatus();
+    setTunnelLoading(false);
+  };
+
+  const startCloudflared = async () => {
+    setTunnelLoading(true);
+    setTunnelLoadingMethod("cloudflared");
+    setTunnelError(null);
+    const res = await fetch("/api/admin/cloudflared/start", { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setTunnelError(data.error ?? "Failed to start Cloudflared Tunnel");
+    }
+    await fetchTunnelStatus();
+    setTunnelLoading(false);
+    setTunnelLoadingMethod(null);
+  };
+
+  const stopCloudflared = async () => {
+    setTunnelLoading(true);
+    setTunnelError(null);
+    const res = await fetch("/api/admin/cloudflared/stop", { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setTunnelError(data.error ?? "Failed to stop Cloudflared Tunnel");
+    }
     await fetchTunnelStatus();
     setTunnelLoading(false);
   };
 
   const copyUrl = () => {
-    if (tunnel?.hostname) { navigator.clipboard.writeText(tunnel.hostname); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    const url = tunnel?.hostname ?? tunnel?.publicUrl;
+    if (url) { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
   };
 
   // Test webhook state
@@ -149,12 +202,18 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2 mb-1">
           <Globe className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-sm font-medium text-foreground">Public Access</h2>
-          <span className={`ml-auto text-xs font-medium px-2 py-0.5 rounded-full ${tunnel?.active ? "bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"}`}>
-            {tunnel?.active ? "● Active" : "○ Inactive"}
+          <span className={`ml-auto text-xs font-medium px-2 py-0.5 rounded-full ${
+            tunnel?.accessible
+              ? "bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300"
+              : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+          }`}>
+            {tunnel?.accessible
+              ? `● ${tunnel.method === "tailscale" ? "Tailscale" : tunnel.method === "cloudflared" ? "Cloudflared" : "Custom"} · Active`
+              : "○ Not accessible"}
           </span>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          Required when using <strong>Telegram Bot</strong> channels while running locally. Telegram's servers need to reach your HeySummon instance over HTTPS to deliver messages.
+          Required when receiving external messages (Telegram webhooks, consumer polling) while running on a local machine. Enable a tunnel to make your HeySummon instance reachable over HTTPS.
         </p>
 
         {/* Security explanation */}
@@ -162,22 +221,30 @@ export default function SettingsPage() {
           <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
           <div className="text-xs text-muted-foreground space-y-1">
             <p className="font-medium text-foreground">Why this is safe</p>
-            <p><strong>Tailscale Funnel</strong> creates a public HTTPS endpoint for your local HeySummon instance — equivalent to a Vercel deployment. Your dashboard and API remain protected by session authentication.</p>
-            <p>Telegram webhook requests are validated against a per-bot <strong>secret token</strong> (<code className="rounded bg-muted px-1 font-mono">x-telegram-bot-api-secret-token</code> header) — spoofed requests are rejected with 403. Only genuine Telegram deliveries are processed.</p>
+            <p>Tunnels expose only the HeySummon port over HTTPS — equivalent to a cloud deployment. Your dashboard and API remain protected by session authentication.</p>
+            <p>Telegram webhook requests are validated against a per-bot <strong>secret token</strong> (<code className="rounded bg-muted px-1 font-mono">x-telegram-bot-api-secret-token</code> header) — spoofed requests are rejected with 403.</p>
           </div>
         </div>
 
-        {/* URL + copy */}
-        {tunnel?.active && (
+        {/* Active: show URL */}
+        {tunnel?.accessible && (
           <div className="mb-4 flex items-center gap-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 px-3 py-2">
-            <span className="text-xs font-mono text-foreground flex-1 truncate">{tunnel.hostname}</span>
+            <span className="text-xs font-mono text-foreground flex-1 truncate">{tunnel.hostname ?? tunnel.publicUrl}</span>
             <button onClick={copyUrl} className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground" title="Copy URL">
               {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
             </button>
           </div>
         )}
 
-        {/* Note: requires sudo once — only shown if operator not yet set */}
+        {/* Tunnel action error */}
+        {tunnelError && (
+          <div className="mb-4 flex items-start gap-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>{tunnelError}</span>
+          </div>
+        )}
+
+        {/* Tailscale operator setup warning */}
         {tunnel?.needsOperatorSetup && (
           <div className="mb-4 flex items-start gap-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2 text-xs text-orange-700 dark:text-orange-300">
             <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -185,34 +252,93 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Buttons */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={startTunnel}
-            disabled={tunnelLoading || tunnel?.active === true}
-            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            <Wifi className="h-3.5 w-3.5" />
-            {tunnelLoading ? "Starting…" : "Start Tailscale Funnel"}
-          </button>
-          <button
-            onClick={stopTunnel}
-            disabled={tunnelLoading || tunnel?.active === false}
-            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
-          >
-            <WifiOff className="h-3.5 w-3.5" />
-            Stop Funnel
-          </button>
-          <button
-            onClick={testWebhook}
-            disabled={testLoading || !tunnel?.active}
-            className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
-            title="Verify webhook URLs are reachable and correctly registered"
-          >
-            <FlaskConical className="h-3.5 w-3.5" />
-            {testLoading ? "Testing…" : "Test Webhooks"}
-          </button>
-        </div>
+        {/* Not accessible: show options */}
+        {tunnel && !tunnel.accessible && (
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Tailscale option */}
+            <div className={`rounded-md border p-3 ${tunnel.tailscaleAvailable ? "border-border" : "border-border opacity-60"}`}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Wifi className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">Tailscale Funnel</span>
+                {!tunnel.tailscaleAvailable && <span className="ml-auto text-xs text-muted-foreground">Not installed</span>}
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">Secure, identity-based tunnel via your Tailscale account.</p>
+              {tunnel.tailscaleAvailable ? (
+                <button
+                  onClick={startTunnel}
+                  disabled={tunnelLoading}
+                  className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <Wifi className="h-3.5 w-3.5" />
+                  {tunnelLoading && tunnelLoadingMethod === "tailscale" ? "Starting…" : "Start Tailscale Funnel"}
+                </button>
+              ) : (
+                <a href="https://tailscale.com/download" target="_blank" rel="noopener noreferrer" className="text-xs text-orange-600 hover:underline">
+                  Install Tailscale →
+                </a>
+              )}
+            </div>
+
+            {/* Cloudflared option */}
+            <div className={`rounded-md border p-3 ${tunnel.cloudflaredAvailable ? "border-border" : "border-border opacity-60"}`}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Cloud className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">Cloudflared Tunnel</span>
+                {!tunnel.cloudflaredAvailable && <span className="ml-auto text-xs text-muted-foreground">Not installed</span>}
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">No-account quick tunnel via Cloudflare&apos;s network.</p>
+              {tunnel.cloudflaredAvailable ? (
+                <button
+                  onClick={startCloudflared}
+                  disabled={tunnelLoading}
+                  className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <Cloud className="h-3.5 w-3.5" />
+                  {tunnelLoading && tunnelLoadingMethod === "cloudflared" ? "Starting…" : "Start Cloudflared Tunnel"}
+                </button>
+              ) : (
+                <a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/" target="_blank" rel="noopener noreferrer" className="text-xs text-orange-600 hover:underline">
+                  Install cloudflared →
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Active controls */}
+        {tunnel?.accessible && (
+          <div className="flex flex-wrap gap-2">
+            {tunnel.method === "tailscale" && (
+              <button
+                onClick={stopTunnel}
+                disabled={tunnelLoading}
+                className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                <WifiOff className="h-3.5 w-3.5" />
+                Stop Funnel
+              </button>
+            )}
+            {tunnel.method === "cloudflared" && (
+              <button
+                onClick={stopCloudflared}
+                disabled={tunnelLoading}
+                className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                <WifiOff className="h-3.5 w-3.5" />
+                Stop Cloudflared
+              </button>
+            )}
+            <button
+              onClick={testWebhook}
+              disabled={testLoading}
+              className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+              title="Verify webhook URLs are reachable and correctly registered"
+            >
+              <FlaskConical className="h-3.5 w-3.5" />
+              {testLoading ? "Testing…" : "Test Webhooks"}
+            </button>
+          </div>
+        )}
 
         {/* Test results */}
         {testResult && (

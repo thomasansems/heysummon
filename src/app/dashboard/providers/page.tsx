@@ -152,6 +152,14 @@ interface LinkedClient {
   clientSubChannel: string | null;
 }
 
+interface ChannelProvider {
+  id: string;
+  type: string;
+  name: string;
+  status: string;
+  config: string;
+}
+
 interface Provider {
   id: string;
   name: string;
@@ -163,8 +171,51 @@ interface Provider {
   quietHoursEnd: string | null;
   availableDays: string | null;
   ipEvents: IpEvent[];
+  channelProviders: ChannelProvider[];
   _count: { apiKeys: number };
   apiKeys: LinkedClient[];
+}
+
+function getProviderStatus(p: Provider): { label: string; colorClass: string } {
+  if (!p.isActive) return { label: "Inactive", colorClass: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" };
+
+  const telegramCh = p.channelProviders?.find((c) => c.type === "telegram");
+  if (telegramCh) {
+    return telegramCh.status === "connected"
+      ? { label: "Connected", colorClass: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" }
+      : { label: "Not connected", colorClass: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300" };
+  }
+
+  if (p.channelProviders?.length > 0) {
+    const hasBound = p.ipEvents?.some((e) => e.status === "allowed");
+    return hasBound
+      ? { label: "Bound", colorClass: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" }
+      : { label: "No binding yet", colorClass: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300" };
+  }
+
+  return { label: "—", colorClass: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400" };
+}
+
+function ChannelBadge({ channel }: { channel: ChannelProvider }) {
+  if (channel.type === "telegram") {
+    return (
+      <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300">
+        Telegram Bot
+      </span>
+    );
+  }
+  if (channel.type === "openclaw") {
+    return (
+      <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+        OpenClaw
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+      {channel.type}
+    </span>
+  );
 }
 
 export default function ProvidersPage() {
@@ -671,29 +722,23 @@ export default function ProvidersPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-6 flex-wrap">
                     <div>
                       <span className="text-xs text-muted-foreground">Clients</span>
                       <div className="text-sm text-muted-foreground">{p._count.apiKeys}</div>
                     </div>
                     <div>
-                      <span className="text-xs text-muted-foreground">IP Status</span>
-                      <div>
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            !p.isActive
-                              ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
-                              : p.ipEvents?.some((e) => e.status === "allowed")
-                                ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
-                                : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"
-                          }`}
-                        >
-                          {!p.isActive
-                            ? "Inactive"
-                            : p.ipEvents?.some((e) => e.status === "allowed")
-                              ? "Bound"
-                              : "No binding yet"}
-                        </span>
+                      <span className="text-xs text-muted-foreground">Channel</span>
+                      <div className="mt-0.5">
+                        {p.channelProviders?.length > 0
+                          ? <ChannelBadge channel={p.channelProviders[0]} />
+                          : <span className="text-sm text-muted-foreground">—</span>}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Status</span>
+                      <div className="mt-0.5">
+                        {(() => { const s = getProviderStatus(p); return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${s.colorClass}`}>{s.label}</span>; })()}
                       </div>
                     </div>
                   </div>
@@ -900,7 +945,8 @@ export default function ProvidersPage() {
                 <th className="px-4 py-2.5 font-medium">Name</th>
                 <th className="px-4 py-2.5 font-medium">User Key</th>
                 <th className="px-4 py-2.5 font-medium">Clients</th>
-                <th className="px-4 py-2.5 font-medium">IP Status</th>
+                <th className="px-4 py-2.5 font-medium">Channel</th>
+                <th className="px-4 py-2.5 font-medium">Status</th>
                 <th className="px-4 py-2.5 font-medium">Created</th>
                 <th className="px-4 py-2.5 font-medium" />
               </tr>
@@ -951,21 +997,13 @@ export default function ProvidersPage() {
                     <td className="px-4 py-2.5 text-muted-foreground">{p._count.apiKeys}</td>
 
                     <td className="px-4 py-2.5">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                          !p.isActive
-                            ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
-                            : p.ipEvents?.some((e) => e.status === "allowed")
-                              ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
-                              : "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300"
-                        }`}
-                      >
-                        {!p.isActive
-                          ? "Inactive"
-                          : p.ipEvents?.some((e) => e.status === "allowed")
-                            ? "Bound"
-                            : "No binding yet"}
-                      </span>
+                      {p.channelProviders?.length > 0
+                        ? <ChannelBadge channel={p.channelProviders[0]} />
+                        : <span className="text-muted-foreground">—</span>}
+                    </td>
+
+                    <td className="px-4 py-2.5">
+                      {(() => { const s = getProviderStatus(p); return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${s.colorClass}`}>{s.label}</span>; })()}
                     </td>
 
                     <td className="px-4 py-2.5 text-muted-foreground">
@@ -1019,7 +1057,7 @@ export default function ProvidersPage() {
                   {/* Settings inline panel */}
                   {settingsId === p.id && (
                     <tr key={`${p.id}-settings`} className="border-b border-border">
-                      <td colSpan={6} className="bg-muted px-4 py-3">
+                      <td colSpan={7} className="bg-muted px-4 py-3">
                         {/* Timezone */}
                         <div className="mb-3">
                           <p className="mb-1 text-xs font-medium text-muted-foreground">Timezone</p>

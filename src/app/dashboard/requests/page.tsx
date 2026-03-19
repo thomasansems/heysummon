@@ -57,7 +57,7 @@ const statusStyles: Record<string, string> = {
   denied: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
   expired: "bg-slate-100 text-slate-600 dark:bg-slate-950/60 dark:text-slate-300",
   failed: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-  cancelled: "bg-red-950/60 text-red-400",
+  cancelled: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
 };
 
 const dotStyles: Record<string, string> = {

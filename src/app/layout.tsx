@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, Roboto_Slab } from "next/font/google";
+import { DM_Sans, Roboto_Serif } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -11,7 +11,7 @@ const dmSans = DM_Sans({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const robotoSlab = Roboto_Slab({
+const robotoSerif = Roboto_Serif({
   variable: "--font-serif",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
@@ -36,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", dmSans.variable, robotoSlab.variable)} suppressHydrationWarning>
+    <html lang="en" className={cn("font-sans", dmSans.variable, robotoSerif.variable)} suppressHydrationWarning>
       <body className="antialiased">
         <ThemeProvider
           attribute="class"

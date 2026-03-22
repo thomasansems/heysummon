@@ -17,7 +17,7 @@ interface SetupFlowProps {
 }
 
 type OpenClawStep = "install" | "add-provider" | "watcher" | "hook" | "connected";
-type ClaudeCodeStep = "add-mcp" | "verify" | "connected";
+type ClaudeCodeStep = "install" | "configure" | "connected";
 type VerifyStatus = "idle" | "checking" | "connected" | "timeout";
 
 const VERIFY_POLL_INTERVAL_MS = 2000;
@@ -76,7 +76,7 @@ export default function SetupFlow({
   const [hookExpanded, setHookExpanded] = useState(false);
 
   // Claude Code state
-  const [claudeCodeStep, setClaudeCodeStep] = useState<ClaudeCodeStep>("add-mcp");
+  const [claudeCodeStep, setClaudeCodeStep] = useState<ClaudeCodeStep>("install");
 
   // Connection verification loop
   const startVerification = useCallback(async () => {
@@ -121,23 +121,34 @@ export default function SetupFlow({
   const watcherCmd = `cd ~/clawd && bash skills/heysummon/scripts/setup.sh`;
   const clawhubUrl = `https://clawhub.ai/thomasansems/heysummon`;
 
-  const mcpCmd = `claude mcp add heysummon \\
-  --env HEYSUMMON_BASE_URL="${baseUrl}" \\
-  --env HEYSUMMON_API_KEY="${apiKey}" \\
-  -- npx @heysummon/mcp`;
+  const skillInstallCmd = `mkdir -p .heysummon/scripts && \\
+curl -fsSL ${baseUrl}/api/v1/skill-scripts/claudecode \\
+  -o .heysummon/scripts/ask.sh && \\
+chmod +x .heysummon/scripts/ask.sh && \\
+cat > .heysummon/.env << 'EOF'
+HEYSUMMON_BASE_URL=${baseUrl}
+HEYSUMMON_API_KEY=${apiKey}
+HEYSUMMON_TIMEOUT=300
+HEYSUMMON_POLL_INTERVAL=3
+EOF`;
 
-  const mcpJson = `{
-  "mcpServers": {
-    "heysummon": {
-      "command": "npx",
-      "args": ["@heysummon/mcp"],
-      "env": {
-        "HEYSUMMON_BASE_URL": "${baseUrl}",
-        "HEYSUMMON_API_KEY": "${apiKey}"
-      }
-    }
-  }
-}`;
+  const claudeMdSnippet = `## HeySummon — Human in the Loop
+
+When you need human input, approval, or are stuck on something
+that requires human judgment, use HeySummon:
+
+\\\`\\\`\\\`bash
+bash .heysummon/scripts/ask.sh "Your question here"
+\\\`\\\`\\\`
+
+Wait for the response before continuing.
+The script returns the human's answer on stdout.
+
+### Rules
+- **Always wait** for the response before continuing
+- **Be specific** — include relevant context in your question
+- **Don't spam** — one request at a time
+- If the response is \\\`PROVIDER_UNAVAILABLE\\\`, continue with your best judgment`;
 
   const openClawJsonSnippet = `{
   "hooks": {
@@ -587,27 +598,20 @@ export default function SetupFlow({
           <Step
             number={1}
             total={3}
-            title="Add the HeySummon MCP server"
-            status={claudeCodeStep !== "add-mcp" ? "done" : "active"}
+            title="Install the HeySummon skill"
+            status={claudeCodeStep !== "install" ? "done" : "active"}
           >
             <p className="mb-3 text-sm text-zinc-400">
-              Run this in your terminal — credentials are pre-filled:
+              Run this in your project directory — it downloads the skill script and saves your credentials:
             </p>
-            <CodeBlock>{mcpCmd}</CodeBlock>
-            <p className="mt-3 text-xs text-zinc-500">
-              Or add manually to{" "}
-              <code className="rounded bg-zinc-800 px-1 font-mono">~/.claude/settings.json</code>:
-            </p>
-            <div className="mt-2">
-              <CodeBlock>{mcpJson}</CodeBlock>
-            </div>
+            <CodeBlock>{skillInstallCmd}</CodeBlock>
             <div className="mt-3 rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-xs text-zinc-400">
-              <span className="font-medium text-zinc-300">Already have HeySummon configured?</span>{" "}
-              Running the command again will update the environment variables for this provider.
+              <span className="font-medium text-zinc-300">Already have HeySummon installed?</span>{" "}
+              Re-running this command will update your credentials for this provider.
             </div>
-            {claudeCodeStep === "add-mcp" && (
+            {claudeCodeStep === "install" && (
               <button
-                onClick={() => setClaudeCodeStep("verify")}
+                onClick={() => setClaudeCodeStep("configure")}
                 className="mt-4 rounded-md bg-orange-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-500"
               >
                 Done — next step →
@@ -618,29 +622,30 @@ export default function SetupFlow({
           <Step
             number={2}
             total={3}
-            title="Verify installation"
+            title="Add to your project"
             status={
-              claudeCodeStep === "add-mcp"
+              claudeCodeStep === "install"
                 ? "idle"
-                : claudeCodeStep === "verify"
+                : claudeCodeStep === "configure"
                 ? "active"
                 : "done"
             }
           >
             <p className="mb-3 text-sm text-zinc-400">
-              Check that the MCP server is registered:
+              Add this to your project&apos;s{" "}
+              <code className="rounded bg-zinc-800 px-1 font-mono">CLAUDE.md</code> or{" "}
+              <code className="rounded bg-zinc-800 px-1 font-mono">AGENTS.md</code>:
             </p>
-            <CodeBlock>{`claude mcp list`}</CodeBlock>
+            <CodeBlock>{claudeMdSnippet}</CodeBlock>
             <p className="mt-2 text-xs text-zinc-500">
-              You should see{" "}
-              <code className="rounded bg-zinc-800 px-1 font-mono">heysummon</code> in the list.
+              This tells Claude Code when and how to ask your provider for help.
             </p>
-            {claudeCodeStep === "verify" && (
+            {claudeCodeStep === "configure" && (
               <button
                 onClick={() => setClaudeCodeStep("connected")}
                 className="mt-4 rounded-md bg-orange-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-500"
               >
-                It&apos;s listed — finish →
+                Added — finish →
               </button>
             )}
           </Step>
@@ -652,11 +657,7 @@ export default function SetupFlow({
             status={claudeCodeStep === "connected" ? "done" : "idle"}
           >
             <p className="text-sm text-zinc-400">
-              Claude Code can now call{" "}
-              <code className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-xs text-zinc-300">
-                heysummon
-              </code>{" "}
-              when it needs expert input from{" "}
+              Claude Code will now use the HeySummon skill when it needs expert input from{" "}
               <span className="font-medium text-white">&quot;{providerName}&quot;</span>. It will pause, send
               your question to them, and resume automatically when they respond.
             </p>

@@ -82,7 +82,7 @@ const CLIENT_CHANNELS = [
     id: "claudecode" as const,
     label: "Claude Code",
     icon: "/icons/claudecode.svg",
-    description: "MCP server — inline in editor",
+    description: "Skill — inline in editor",
     disabled: false,
   },
   {
@@ -388,7 +388,7 @@ export default function ClientsPage() {
               <h2 className="mb-1 text-lg font-semibold text-foreground">Client Details</h2>
               <p className="mb-5 text-sm text-muted-foreground">
                 {wizardChannel === "claudecode"
-                  ? "Configure your Claude Code MCP client"
+                  ? "Configure your Claude Code skill client"
                   : `Configure your OpenClaw ${wizardSubChannel} client`}
               </p>
 
@@ -476,7 +476,7 @@ export default function ClientsPage() {
 
               <div className="mb-3 rounded-md border border-border bg-black p-3">
                 <p className="mb-1 text-xs text-muted-foreground">
-                  Setup link ({wizardChannel === "openclaw" ? `OpenClaw · ${wizardSubChannel}` : "Claude Code · MCP"})
+                  Setup link ({wizardChannel === "openclaw" ? `OpenClaw · ${wizardSubChannel}` : "Claude Code · Skill"})
                 </p>
                 <code className="break-all text-xs text-green-400">{wizardResult.setupUrl}</code>
               </div>

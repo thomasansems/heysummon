@@ -16,7 +16,7 @@ SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3425}"
 API_KEY="${HEYSUMMON_API_KEY:-}"
-TIMEOUT="${HEYSUMMON_TIMEOUT:-300}"
+TIMEOUT="${HEYSUMMON_TIMEOUT:-900}"
 POLL_INTERVAL="${HEYSUMMON_POLL_INTERVAL:-3}"
 
 QUESTION="$1"
@@ -218,5 +218,5 @@ done
 echo "" >&2
 echo "Timeout after ${TIMEOUT}s — no response received." >&2
 echo "   Request ref: ${REF_CODE:-$REQUEST_ID}" >&2
-echo "   You can check status later: bash $SCRIPT_DIR/check-status.sh ${REF_CODE:-$REQUEST_ID}" >&2
-exit 1
+echo "TIMEOUT: No response received after ${TIMEOUT}s for request ${REF_CODE:-$REQUEST_ID}. The provider may still respond later."
+exit 0

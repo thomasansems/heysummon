@@ -464,9 +464,8 @@ export default function ClientsPage() {
               <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
                 <span>⏱</span>
                 <span>
-                  This setup link expires at{" "}
-                  <strong>{new Date(wizardResult.expiresAt).toLocaleTimeString()}</strong> (10 minutes).
-                  Share it now — credentials are embedded.
+                  This setup link is valid for 24 hours and is automatically disabled when a device binds.
+                  Credentials are embedded — share it with your client.
                 </span>
               </div>
 

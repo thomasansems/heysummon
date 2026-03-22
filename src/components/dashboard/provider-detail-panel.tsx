@@ -86,6 +86,21 @@ interface ChannelProvider {
   config: string;
 }
 
+interface VoiceIntegration {
+  id: string;
+  type: string;
+  name: string;
+  category: string;
+  isActive: boolean;
+}
+
+interface ProviderIntConfig {
+  id: string;
+  integrationId: string;
+  config: string;
+  integration: VoiceIntegration;
+}
+
 interface Provider {
   id: string;
   name: string;
@@ -96,6 +111,9 @@ interface Provider {
   quietHoursStart: string | null;
   quietHoursEnd: string | null;
   availableDays: string | null;
+  phoneFirst: boolean;
+  phoneFirstIntegrationId: string | null;
+  phoneFirstTimeout: number;
   ipEvents: IpEvent[];
   channelProviders: ChannelProvider[];
   _count: { apiKeys: number };
@@ -175,6 +193,19 @@ export function ProviderDetailPanel({
   const [savingAvail, setSavingAvail] = useState(false);
   const [availSaved, setAvailSaved] = useState(false);
 
+  // Phone-first
+  const [phoneFirst, setPhoneFirst] = useState(false);
+  const [phoneIntegrationId, setPhoneIntegrationId] = useState<string | null>(null);
+  const [phoneTimeout, setPhoneTimeout] = useState(30);
+  const [voiceIntegrations, setVoiceIntegrations] = useState<VoiceIntegration[]>([]);
+  const [providerIntConfigs, setProviderIntConfigs] = useState<ProviderIntConfig[]>([]);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [twilioPhoneNumber, setTwilioPhoneNumber] = useState("");
+  const [voiceLanguage, setVoiceLanguage] = useState("en-US");
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [phoneSaved, setPhoneSaved] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
   // General
   const [copied, setCopied] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -199,7 +230,41 @@ export function ProviderDetailPanel({
       setAvailFrom(found.quietHoursStart || "09:00");
       setAvailUntil(found.quietHoursEnd || "18:00");
       setAvailDays(found.availableDays ? found.availableDays.split(",").map(Number) : [1, 2, 3, 4, 5]);
+      setPhoneFirst(found.phoneFirst || false);
+      setPhoneIntegrationId(found.phoneFirstIntegrationId || null);
+      setPhoneTimeout(found.phoneFirstTimeout || 30);
     }
+
+    // Load voice integrations
+    const intRes = await fetch("/api/integrations");
+    if (intRes.ok) {
+      const intData = await intRes.json();
+      setVoiceIntegrations(
+        (intData.integrations || []).filter(
+          (i: VoiceIntegration) => i.category === "voice" && i.isActive
+        )
+      );
+    }
+
+    // Load provider integration configs
+    const cfgRes = await fetch(`/api/integrations/provider-config?profileId=${providerId}`);
+    if (cfgRes.ok) {
+      const cfgData = await cfgRes.json();
+      setProviderIntConfigs(cfgData.configs || []);
+      // Pre-fill phone config from existing provider integration config
+      const existingCfg = (cfgData.configs || []).find(
+        (c: ProviderIntConfig) => c.integration.category === "voice"
+      );
+      if (existingCfg) {
+        try {
+          const parsed = JSON.parse(existingCfg.config);
+          setPhoneNumber(parsed.phoneNumber || "");
+          setTwilioPhoneNumber(parsed.twilioPhoneNumber || "");
+          setVoiceLanguage(parsed.voiceLanguage || "en-US");
+        } catch { /* ignore */ }
+      }
+    }
+
     setLoading(false);
   }, [providerId]);
 
@@ -258,6 +323,52 @@ export function ProviderDetailPanel({
     setSavingAvail(false);
     setAvailSaved(true);
     setTimeout(() => setAvailSaved(false), 2000);
+    fetchProvider();
+    onUpdated();
+  };
+
+  const savePhoneFirst = async () => {
+    setSavingPhone(true);
+    setPhoneError(null);
+
+    // If enabling phone-first, we need an integration selected and phone config
+    if (phoneFirst && phoneIntegrationId) {
+      // Save provider integration config (phone number etc.)
+      const cfgRes = await fetch("/api/integrations/provider-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId: providerId,
+          integrationId: phoneIntegrationId,
+          config: {
+            phoneNumber: phoneNumber.trim(),
+            twilioPhoneNumber: twilioPhoneNumber.trim(),
+            voiceLanguage,
+          },
+        }),
+      });
+      if (!cfgRes.ok) {
+        const data = await cfgRes.json();
+        setPhoneError(data.error || "Failed to save phone configuration");
+        setSavingPhone(false);
+        return;
+      }
+    }
+
+    // Save phone-first settings on the profile
+    await fetch(`/api/providers/${providerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phoneFirst,
+        phoneFirstIntegrationId: phoneFirst ? phoneIntegrationId : null,
+        phoneFirstTimeout: phoneTimeout,
+      }),
+    });
+
+    setSavingPhone(false);
+    setPhoneSaved(true);
+    setTimeout(() => setPhoneSaved(false), 2000);
     fetchProvider();
     onUpdated();
   };
@@ -447,6 +558,123 @@ export function ProviderDetailPanel({
                 {availSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save availability"}
               </Button>
             </div>
+          )}
+        </div>
+
+        {/* ── Phone-first ──────────────────────────────────── */}
+        <div className="pt-8 mt-8 border-t border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-base font-semibold text-foreground">Phone first</h3>
+            <button
+              type="button"
+              onClick={() => setPhoneFirst((v) => !v)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+                phoneFirst ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
+              }`}
+              aria-pressed={phoneFirst}
+            >
+              <span className="sr-only">{phoneFirst ? "Enabled" : "Disabled"}</span>
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${phoneFirst ? "translate-x-5" : "translate-x-0.5"}`} />
+            </button>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            When enabled, incoming help requests will first attempt to reach this provider via phone call.
+            If the call is not answered, the request falls back to the configured chat channel.
+          </p>
+
+          {phoneFirst && (
+            <div className="space-y-4">
+              {voiceIntegrations.length === 0 ? (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  No voice integrations configured. Go to Integrations to set up Twilio first.
+                </p>
+              ) : (
+                <>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Voice integration</Label>
+                    <select
+                      value={phoneIntegrationId || ""}
+                      onChange={(e) => setPhoneIntegrationId(e.target.value || null)}
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                    >
+                      <option value="">Select integration...</option>
+                      {voiceIntegrations.map((vi) => (
+                        <option key={vi.id} value={vi.id}>{vi.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {phoneIntegrationId && (
+                    <>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">
+                          Provider phone number (E.164)
+                        </Label>
+                        <Input
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          placeholder="+31612345678"
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">
+                          Twilio phone number (FROM)
+                        </Label>
+                        <Input
+                          value={twilioPhoneNumber}
+                          onChange={(e) => setTwilioPhoneNumber(e.target.value)}
+                          placeholder="+15551234567"
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">Voice language</Label>
+                        <select
+                          value={voiceLanguage}
+                          onChange={(e) => setVoiceLanguage(e.target.value)}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                        >
+                          {["en-US", "en-GB", "nl-NL", "de-DE", "fr-FR", "es-ES", "pt-BR", "ja-JP", "ko-KR", "zh-CN"].map((lang) => (
+                            <option key={lang} value={lang}>{lang}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-1.5 block">
+                          Call timeout (seconds)
+                        </Label>
+                        <Input
+                          type="number"
+                          min={10}
+                          max={120}
+                          value={phoneTimeout}
+                          onChange={(e) => setPhoneTimeout(parseInt(e.target.value) || 30)}
+                          className="w-32"
+                        />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          How long to ring before falling back to chat (10-120 seconds).
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {phoneError && <p className="text-sm text-red-500">{phoneError}</p>}
+
+              <Button onClick={savePhoneFirst} disabled={savingPhone} size="sm">
+                {savingPhone && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                {phoneSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save phone settings"}
+              </Button>
+            </div>
+          )}
+
+          {!phoneFirst && (
+            <Button onClick={savePhoneFirst} disabled={savingPhone} size="sm" variant="outline">
+              {savingPhone && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              {phoneSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save"}
+            </Button>
           )}
         </div>
 

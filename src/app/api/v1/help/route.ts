@@ -11,6 +11,7 @@ import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 import { sendMessage } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
+import { getPhoneFirstConfig, initiateProviderCall } from "@/lib/adapters/twilio-voice";
 
 /**
  * Returns whether the provider is currently unavailable and when they'll next be available.
@@ -243,26 +244,84 @@ export async function POST(request: Request) {
       },
     });
 
-    // Push Telegram notification to provider (fire-and-forget, non-blocking)
-    prisma.channelProvider.findFirst({
-      where: {
-        profileId: { in: (await prisma.userProfile.findMany({ where: { userId: key.userId }, select: { id: true } })).map(p => p.id) },
-        type: "telegram",
-        isActive: true,
-        status: "connected",
-      },
-    }).then(async (telegramChannel) => {
-      if (!telegramChannel) return;
-      const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
-      if (!cfg.providerChatId || !cfg.botToken) return;
-
-      const questionPreview = question ? `\n\n*Question:* ${question.slice(0, 500)}${question.length > 500 ? "…" : ""}` : "";
-      const msg = `🦞 *New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
-
-      await sendMessage(cfg.botToken, cfg.providerChatId, msg);
-    }).catch((err) => {
-      console.error("[help/route] Telegram notify failed:", err);
+    // ─── Phone-first: attempt voice call before chat ───
+    // Check provider availability first — don't call if outside availability window
+    const providerProfileForAvail = await prisma.userProfile.findFirst({
+      where: { userId: key.userId },
+      select: { quietHoursStart: true, quietHoursEnd: true, availableDays: true, timezone: true },
     });
+    const availCheck = providerProfileForAvail
+      ? getProviderAvailability(
+          providerProfileForAvail.quietHoursStart,
+          providerProfileForAvail.quietHoursEnd,
+          providerProfileForAvail.availableDays,
+          providerProfileForAvail.timezone
+        )
+      : { unavailable: false, nextAvailableAt: null };
+
+    const providerProfiles = await prisma.userProfile.findMany({
+      where: { userId: key.userId },
+      select: { id: true, phoneFirst: true, phoneFirstIntegrationId: true },
+    });
+
+    let phoneFirstAttempted = false;
+
+    // Only attempt phone-first if provider is available
+    for (const profile of providerProfiles) {
+      if (availCheck.unavailable) break;
+      if (!profile.phoneFirst || !profile.phoneFirstIntegrationId) continue;
+
+      const phoneConfig = await getPhoneFirstConfig(profile.id);
+      if (!phoneConfig) continue;
+
+      const questionText = body.questionPreview || question || "A new help request has been submitted.";
+
+      const callResult = await initiateProviderCall(
+        helpRequest.id,
+        questionText.slice(0, 500),
+        phoneConfig.systemConfig,
+        phoneConfig.providerConfig,
+        phoneConfig.timeout
+      );
+
+      if ("callSid" in callResult) {
+        phoneFirstAttempted = true;
+        // Store questionPreview for TTS if not already stored
+        if (body.questionPreview && !helpRequest.questionPreview) {
+          await prisma.helpRequest.update({
+            where: { id: helpRequest.id },
+            data: { questionPreview: body.questionPreview.slice(0, 200) },
+          }).catch(() => {});
+        }
+      } else {
+        console.error("[help/route] Phone-first call failed:", callResult.error);
+      }
+      break; // Only call the first matching profile
+    }
+
+    // Push Telegram notification to provider (fire-and-forget, non-blocking)
+    // If phone-first was attempted, Telegram fallback happens via the status callback
+    if (!phoneFirstAttempted) {
+      prisma.channelProvider.findFirst({
+        where: {
+          profileId: { in: providerProfiles.map(p => p.id) },
+          type: "telegram",
+          isActive: true,
+          status: "connected",
+        },
+      }).then(async (telegramChannel) => {
+        if (!telegramChannel) return;
+        const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
+        if (!cfg.providerChatId || !cfg.botToken) return;
+
+        const questionPreview = question ? `\n\n*Question:* ${question.slice(0, 500)}${question.length > 500 ? "…" : ""}` : "";
+        const msg = `🦞 *New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
+
+        await sendMessage(cfg.botToken, cfg.providerChatId, msg);
+      }).catch((err) => {
+        console.error("[help/route] Telegram notify failed:", err);
+      });
+    }
 
     // Debug logging — show what was stored
     if (DEBUG) {
@@ -313,6 +372,7 @@ export async function POST(request: Request) {
       ...(serverKeyPair && { serverPublicKey: serverKeyPair.publicKey }),
       providerUnavailable: availability.unavailable,
       nextAvailableAt: availability.nextAvailableAt,
+      phoneFirstAttempted,
     });
   } catch (err) {
     console.error("Help request error:", sanitizeError(err));

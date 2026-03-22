@@ -79,10 +79,14 @@ model UserProfile {
   machineId        String?
   tagline          String?           // Optional upsell tagline appended to responses (max 160 chars)
   taglineEnabled   Boolean           @default(false)
+  phoneFirst       Boolean           @default(false) // If true, attempt phone call before chat
+  phoneFirstIntegrationId String?    // Which voice integration to use for phone-first
+  phoneFirstTimeout       Int        @default(30)    // Seconds to wait for phone pickup before fallback
   user             User              @relation(fields: [userId], references: [id])
   apiKeys          ApiKey[]
   channelProviders ChannelProvider[]
   ipEvents         IpEvent[]
+  integrationConfigs ProviderIntegrationConfig[]
   createdAt        DateTime          @default(now())
 }
 
@@ -207,6 +211,12 @@ model HelpRequest {
   // HITL protocol: escalation tracking
   escalatedAt            DateTime? // Set when active-monitor escalates unacknowledged request
   
+  // Phone-first call tracking
+  phoneCallSid           String?   // Twilio Call SID
+  phoneCallStatus        String?   // "initiated" | "ringing" | "answered" | "completed" | "no-answer" | "busy" | "failed"
+  phoneCallResponse      String?   // Plaintext response collected from phone call
+  phoneCallAt            DateTime? // When the call was initiated
+
   // Channel adapter fields
   channelProviderId      String?
   channelProvider        ChannelProvider? @relation(fields: [channelProviderId], references: [id])
@@ -279,6 +289,38 @@ model RateLimit {
 
   @@index([keyId])
   @@index([resetAt])
+}
+
+model Integration {
+  id          String   @id @default(cuid())
+  type        String   // "twilio" | future integrations
+  category    String   // "voice" | "sms" | "email" — used to filter available integrations
+  name        String   // Display name, e.g. "Twilio Voice"
+  isActive    Boolean  @default(true)
+  config      String   @default("{}") // JSON: system-level config (account SID, auth token)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  providerConfigs ProviderIntegrationConfig[]
+
+  @@unique([type])
+  @@index([category])
+}
+
+model ProviderIntegrationConfig {
+  id              String       @id @default(cuid())
+  profileId       String
+  profile         UserProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  integrationId   String
+  integration     Integration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  isActive        Boolean      @default(true)
+  config          String       @default("{}") // JSON: provider-specific config (phone number, voice settings)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([profileId, integrationId])
+  @@index([profileId])
+  @@index([integrationId])
 }
 
 model ProviderMetrics {

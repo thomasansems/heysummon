@@ -9,15 +9,22 @@ You have access to a human expert via HeySummon. Use it when:
 ## How to ask
 
 ```bash
+# Blocking (waits up to 15 min for response)
 bash skills/claudecode/heysummon/scripts/ask.sh "Your question here"
+
+# Non-blocking (returns immediately, watcher delivers later)
+bash skills/claudecode/heysummon/scripts/ask.sh --async "Your question here"
+
+# Check for responses from previous async requests
+bash skills/claudecode/heysummon/scripts/ask.sh --check
 ```
 
-The script **blocks and returns the human's answer** on stdout. Read the response and continue accordingly.
+The blocking mode **blocks and returns the human's answer** on stdout. If it times out, the background watcher (`heysummon-cc-watcher`) will still capture the response and deliver it when you run `--check`.
 
 ## Examples
 
 ```bash
-# Ask for approval
+# Ask for approval (blocking)
 ANSWER=$(bash skills/claudecode/heysummon/scripts/ask.sh "Should I drop the old 'sessions' table? It appears unused but I'm not 100% sure.")
 echo "Human said: $ANSWER"
 
@@ -26,14 +33,20 @@ ANSWER=$(bash skills/claudecode/heysummon/scripts/ask.sh "Which approach should 
 
 # Ask a specific provider
 ANSWER=$(bash skills/claudecode/heysummon/scripts/ask.sh "Review this SQL migration" "" "Thomas")
+
+# Non-blocking: submit and continue working
+bash skills/claudecode/heysummon/scripts/ask.sh --async "Is the API schema correct for v2?" "" "Thomas"
+# ... do other work ...
+bash skills/claudecode/heysummon/scripts/ask.sh --check  # get the response
 ```
 
 ## Rules
 
-- **Always wait** for the response before continuing
+- **Always wait** for the response before continuing (in blocking mode)
 - **Be specific** — include relevant context in your question
 - **Don't spam** — one request at a time; don't ask trivial questions
 - If the response is `PROVIDER_UNAVAILABLE`, note it and continue with your best judgment or pause the task
+- If the response is `TIMEOUT`, the watcher will still capture the response — check later with `--check`
 
 
 <claude-mem-context>

@@ -73,6 +73,11 @@ export HEYSUMMON_BASE_URL="$BASE_URL"
 export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
 npx tsx "$SDK_DIR/src/cli.ts" add-provider --key "$API_KEY" 2>/dev/null && echo "" || echo "Provider registration skipped (non-fatal)."
 
+# Auto-start the response watcher (so late responses are captured)
+echo ""
+echo "Starting response watcher..."
+bash "$SCRIPT_DIR/setup-watcher.sh" start
+
 echo ""
 echo "Add this to your CLAUDE.md or AGENTS.md:"
 echo ""
@@ -82,4 +87,10 @@ echo "  \`\`\`"
 echo "  bash $SKILL_DIR/scripts/ask.sh \"Your question\""
 echo "  \`\`\`"
 echo "  Wait for the response before continuing."
+echo ""
+echo "  For async (non-blocking) mode:"
+echo "  \`\`\`"
+echo "  bash $SKILL_DIR/scripts/ask.sh --async \"Your question\""
+echo "  bash $SKILL_DIR/scripts/ask.sh --check  # check for responses later"
+echo "  \`\`\`"
 echo ""

@@ -26,6 +26,8 @@ model User {
   accounts           Account[]
   sessions           Session[]
   certificates       ClientCertificate[]
+  consents           UserConsent[]
+  dataRequests       DataRequest[]
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 }
@@ -335,4 +337,48 @@ model ProviderMetrics {
   updatedAt         DateTime @updatedAt
 
   @@index([providerId])
+}
+
+model GdprSettings {
+  id                   String   @id @default("singleton")
+  enabled              Boolean  @default(false)
+  anonymizeIps         Boolean  @default(true)   // Anonymize IPs in audit logs (last octet zeroed)
+  retentionDays        Int      @default(90)     // Auto-delete data older than N days
+  requireConsent       Boolean  @default(true)   // Require explicit user consent
+  allowDataExport      Boolean  @default(true)   // Allow users to request data export
+  allowDataDeletion    Boolean  @default(true)   // Allow users to request account deletion
+  privacyPolicyUrl     String?                   // Link to privacy policy
+  updatedAt            DateTime @updatedAt
+}
+
+model UserConsent {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consentType String   // "data_processing" | "communications" | "analytics"
+  granted     Boolean  @default(false)
+  ipAddress   String?  // IP at time of consent (anonymized if GDPR enabled)
+  userAgent   String?  // Browser at time of consent
+  grantedAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, consentType])
+  @@index([userId])
+}
+
+model DataRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String    // "export" | "deletion"
+  status      String    @default("pending") // "pending" | "processing" | "completed" | "failed"
+  result      String?   // JSON result or download path
+  processedAt DateTime?
+  expiresAt   DateTime? // Export download link expiry
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([status])
 }

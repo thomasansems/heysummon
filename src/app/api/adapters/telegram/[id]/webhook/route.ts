@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendMessage } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
@@ -122,13 +123,31 @@ export async function POST(
       return NextResponse.json({ ok: true });
     }
 
-    // Store the response and close the request
+    const now = new Date();
+
+    // Transition to "responded" and store plaintext in legacy field
     await prisma.helpRequest.update({
       where: { id: helpRequest.id },
       data: {
         response: answer,
-        status: "closed",
-        respondedAt: new Date(),
+        status: "responded",
+        respondedAt: now,
+      },
+    });
+
+    // Create a Message record so consumer polling (events/pending) detects it.
+    // Telegram replies are plaintext — store with a "plaintext:" prefix convention
+    // so consumers can distinguish from E2E encrypted messages.
+    const plainB64 = Buffer.from(answer, "utf-8").toString("base64");
+    await prisma.message.create({
+      data: {
+        requestId: helpRequest.id,
+        from: "provider",
+        ciphertext: `plaintext:${plainB64}`,
+        iv: "plaintext",
+        authTag: "plaintext",
+        signature: "plaintext",
+        messageId: `tg-${randomUUID()}`,
       },
     });
 

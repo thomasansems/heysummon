@@ -56,6 +56,9 @@ export const providerUpdateSchema = z.object({
   digestTime: z.string().nullable().optional(),
   tagline: z.string().max(160).optional(),
   taglineEnabled: z.boolean().optional(),
+  phoneFirst: z.boolean().optional(),
+  phoneFirstIntegrationId: z.string().nullable().optional(),
+  phoneFirstTimeout: z.number().int().min(10).max(120).optional(),
 });
 
 // ── Key schemas ──

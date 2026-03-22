@@ -72,6 +72,11 @@ export async function PATCH(
   if (body.availableDays !== undefined) data.availableDays = body.availableDays;
   if (body.digestTime !== undefined) data.digestTime = body.digestTime;
 
+  // Phone-first
+  if (body.phoneFirst !== undefined) data.phoneFirst = body.phoneFirst;
+  if (body.phoneFirstIntegrationId !== undefined) data.phoneFirstIntegrationId = body.phoneFirstIntegrationId;
+  if (body.phoneFirstTimeout !== undefined) data.phoneFirstTimeout = body.phoneFirstTimeout;
+
   const updated = await prisma.userProfile.update({
     where: { id },
     data,

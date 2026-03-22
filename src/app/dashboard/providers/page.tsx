@@ -2,6 +2,7 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import {
   Sheet,
@@ -226,6 +227,8 @@ function ChannelBadge({ channel }: { channel: ChannelProvider }) {
 }
 
 export default function ProvidersPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
@@ -318,7 +321,17 @@ export default function ProvidersPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+  const selectedProviderId = searchParams.get("id");
+  const setSelectedProviderId = useCallback((id: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (id) {
+      params.set("id", id);
+    } else {
+      params.delete("id");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : window.location.pathname, { scroll: false });
+  }, [searchParams, router]);
 
   return (
     <div>

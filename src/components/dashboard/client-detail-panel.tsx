@@ -163,7 +163,7 @@ export function ClientDetailPanel({
   const isBound = client.ipEvents?.some((e) => e.status === "allowed");
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="flex-1 overflow-y-auto px-6 pb-8">
 
         {/* Status badges */}
@@ -367,7 +367,7 @@ export function ClientDetailPanel({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={async (e) => { e.preventDefault(); await deleteClient(); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={async (e) => { e.preventDefault(); await deleteClient(); }} className="bg-red-600 text-white hover:bg-red-700">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

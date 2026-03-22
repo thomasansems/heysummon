@@ -43,7 +43,7 @@ export async function POST(
     return NextResponse.json({ error: "Request not found" }, { status: 404 });
   }
 
-  if (!["responded", "failed", "expired"].includes(original.status)) {
+  if (!["pending", "active", "responded", "expired", "closed"].includes(original.status)) {
     return NextResponse.json(
       { error: `Cannot resend request with status '${original.status}'` },
       { status: 400 }

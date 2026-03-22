@@ -2,7 +2,8 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Sheet,
   SheetContent,
@@ -124,11 +125,24 @@ const scopeBadgeColors: Record<string, string> = {
 };
 
 export default function ClientsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  const selectedClientId = searchParams.get("id");
+  const setSelectedClientId = useCallback((id: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (id) {
+      params.set("id", id);
+    } else {
+      params.delete("id");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : window.location.pathname, { scroll: false });
+  }, [searchParams, router]);
 
   // Wizard state
   const [wizardStep, setWizardStep] = useState<WizardStep>(0);

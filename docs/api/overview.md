@@ -90,8 +90,12 @@ Rate limits reset after 60 seconds. Response includes `Retry-After: 60` on 429.
 | `POST` | [`/api/v1/message/:requestId`](./message-send.md) | Send a message in a conversation |
 | `GET` | [`/api/v1/messages/:requestId`](./messages-list.md) | List messages for a request |
 | `GET` | [`/api/v1/events/pending`](./events-stream.md) | Poll for pending events |
-| `POST` | [`/api/v1/events/close/:requestId`](./events-close.md) | Close a request |
+| `POST` | [`/api/v1/close/:requestId`](./events-close.md) | Close a request |
+| `POST` | [`/api/v1/rate/:requestId`](./rate.md) | Rate a provider's response (1-5) |
+| `POST` | [`/api/v1/approve/:requestId`](./approve.md) | Approve or deny a request |
 | `GET` | [`/api/v1/whoami`](./whoami.md) | Verify your API key |
+
+See also: [Request Lifecycle & State Machine](./lifecycle.md) for the complete state transition diagram.
 
 ### Provider API (human experts)
 

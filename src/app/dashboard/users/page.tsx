@@ -164,7 +164,7 @@ function UserDialog({
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-auto">
                 <SelectItem value="admin">Admin — full access + user management</SelectItem>
                 <SelectItem value="provider">Provider — manage providers, clients &amp; requests</SelectItem>
                 <SelectItem value="readonly">Read-only — view data only</SelectItem>

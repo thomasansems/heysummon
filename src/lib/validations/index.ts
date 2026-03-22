@@ -142,3 +142,10 @@ export const certificateCreateSchema = z.object({
   name: z.string().min(1, "Name is required").max(100).transform((s) => s.trim()),
   validityDays: z.number().int().min(1).max(3650).optional(),
 });
+
+// ── HITL Protocol: Rating ──
+
+export const ratingCreateSchema = z.object({
+  rating: z.number().int().min(1, "Rating must be 1-5").max(5, "Rating must be 1-5"),
+  feedback: z.string().max(2000).optional(),
+});

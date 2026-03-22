@@ -120,7 +120,7 @@ function SheetTitle({
   return (
     <DialogPrimitive.Title
       data-slot="sheet-title"
-      className={cn("text-base font-medium text-foreground", className)}
+      className={cn("text-xl font-medium text-foreground", className)}
       {...props}
     />
   )

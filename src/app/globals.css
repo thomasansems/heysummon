@@ -57,9 +57,9 @@ html {
 
 /* Nova – Olive base – Orange theme */
 :root {
-  --background: oklch(0.99 0.004 95);
+  --background: oklch(98.83% 0.00274 84.297);
   --foreground: oklch(0.16 0.012 80);
-  --card: oklch(1 0 0);
+  --card: oklch(98.83% 0.00274 84.297);
   --card-foreground: oklch(0.16 0.012 80);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.16 0.012 80);

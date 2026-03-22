@@ -1,8 +1,9 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { X, RotateCcw, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -35,10 +36,11 @@ interface HelpRequest {
   requiresApproval: boolean;
   approvalDecision: string | null;
   messageCount: number;
-  responseCount: number;
+  inbound: number;
+  outbound: number;
   createdAt: string;
   deliveredAt: string | null;
-  apiKey: { name: string | null };
+  apiKey: { name: string | null; provider: { name: string } | null };
 }
 
 const FILTERS = [
@@ -120,6 +122,8 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string | null>(searchParams.get("client"));
+  const [providerFilter, setProviderFilter] = useState<string | null>(null);
+  const [timeFilter, setTimeFilter] = useState<string>("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchRequests = useCallback(() => {
@@ -165,23 +169,27 @@ export default function RequestsPage() {
     }
   }
 
-  async function handleApproval(id: string, decision: "approved" | "denied") {
-    setActionLoading(id);
-    try {
-      const res = await fetch(`/api/v1/approve/${id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decision }),
-      });
-      if (res.ok) fetchRequests();
-    } finally {
-      setActionLoading(null);
-    }
-  }
+  const uniqueClients = useMemo(() => {
+    const set = new Set(requests.map((r) => r.apiKey.name || "Unnamed"));
+    return Array.from(set).sort();
+  }, [requests]);
+
+  const uniqueProviders = useMemo(() => {
+    const set = new Set(requests.map((r) => r.apiKey.provider?.name).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [requests]);
 
   const filtered = requests.filter((r) => {
     if (filter !== "all" && r.status !== filter) return false;
     if (clientFilter && (r.apiKey.name || "Unnamed") !== clientFilter && r.apiKey.name !== clientFilter) return false;
+    if (providerFilter && r.apiKey.provider?.name !== providerFilter) return false;
+    if (timeFilter !== "all") {
+      const now = Date.now();
+      const created = new Date(r.createdAt).getTime();
+      if (timeFilter === "24h" && now - created > 86_400_000) return false;
+      if (timeFilter === "7d" && now - created > 7 * 86_400_000) return false;
+      if (timeFilter === "30d" && now - created > 30 * 86_400_000) return false;
+    }
     return true;
   });
 
@@ -191,32 +199,58 @@ export default function RequestsPage() {
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-foreground">Requests</h1>
 
-      {/* Filter tabs + client filter */}
+      {/* Filter tabs + dropdowns */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex gap-1 rounded-lg border border-border bg-card p-1 w-fit">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-md px-3 py-1 text-sm capitalize transition-colors ${
-              filter === f
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-        </div>
-        {clientFilter && (
-          <div className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-sm">
-            <span className="text-muted-foreground">Client:</span>
-            <span className="font-medium text-foreground">{clientFilter}</span>
-            <button onClick={() => setClientFilter(null)} className="ml-1 text-muted-foreground hover:text-foreground">
-              ✕
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`rounded-md px-3 py-1 text-sm capitalize transition-colors ${
+                filter === f
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f}
             </button>
-          </div>
+          ))}
+        </div>
+
+        <select
+          value={clientFilter || ""}
+          onChange={(e) => setClientFilter(e.target.value || null)}
+          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+        >
+          <option value="">All clients</option>
+          {uniqueClients.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
+        {uniqueProviders.length > 0 && (
+          <select
+            value={providerFilter || ""}
+            onChange={(e) => setProviderFilter(e.target.value || null)}
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+          >
+            <option value="">All providers</option>
+            {uniqueProviders.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
         )}
+
+        <select
+          value={timeFilter}
+          onChange={(e) => setTimeFilter(e.target.value)}
+          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+        >
+          <option value="all">All time</option>
+          <option value="24h">Last 24 hours</option>
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+        </select>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
@@ -246,7 +280,6 @@ export default function RequestsPage() {
                   <th className={thClass}>Ref Code</th>
                   <th className={thClass}>Status</th>
                   <th className={thClass}>Messages</th>
-                  <th className={thClass}>Responses</th>
                   <th className={thClass}>Client</th>
                   <th className={thClass}>Created</th>
                   <th className={`${thClass} text-right`}>Delivery Time</th>
@@ -297,10 +330,6 @@ export default function RequestsPage() {
                 const canResend = ["responded", "failed", "expired"].includes(
                   req.status
                 );
-                const canApprove =
-                  req.requiresApproval &&
-                  !req.approvalDecision &&
-                  (req.status === "pending" || req.status === "active");
                 const isLoading = actionLoading === req.id;
 
                 return (
@@ -308,40 +337,16 @@ export default function RequestsPage() {
                     <div className="flex items-center justify-between">
                       <CopyableRefCode code={req.refCode} />
                       <div className="flex items-center gap-1">
-                        {canApprove && (
-                          <>
-                            <button
-                              onClick={() => handleApproval(req.id, "approved")}
-                              disabled={isLoading}
-                              className="rounded px-2 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleApproval(req.id, "denied")}
-                              disabled={isLoading}
-                              className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40 transition-colors disabled:opacity-50"
-                            >
-                              Deny
-                            </button>
-                          </>
-                        )}
-                        {canCancel && !canApprove && (
-                          <button
-                            onClick={() => handleCancel(req.id)}
-                            disabled={isLoading}
-                            className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40 transition-colors disabled:opacity-50"
-                          >
-                            Cancel
+                        {canCancel && (
+                          <button onClick={() => handleCancel(req.id)} disabled={isLoading} title="Cancel"
+                            className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors">
+                            <X className="h-3.5 w-3.5" />
                           </button>
                         )}
                         {canResend && (
-                          <button
-                            onClick={() => handleResend(req.id)}
-                            disabled={isLoading}
-                            className="rounded px-2 py-1 text-xs font-medium text-orange-400 hover:bg-orange-950/40 transition-colors disabled:opacity-50"
-                          >
-                            Resend
+                          <button onClick={() => handleResend(req.id)} disabled={isLoading} title="Resend"
+                            className="rounded p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors">
+                            <RotateCcw className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
@@ -376,20 +381,9 @@ export default function RequestsPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <span className="text-xs text-muted-foreground">Messages</span>
-                        <div className="text-muted-foreground">
-                          {req.messageCount > 0 ? `${req.messageCount} messages` : "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Responses</span>
-                        <div>
-                          {req.responseCount > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-green-600 font-medium">
-                              {req.responseCount}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="inline-flex items-center gap-0.5" title="Inbound"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>
+                          <span className="inline-flex items-center gap-0.5" title="Outbound"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>
                         </div>
                       </div>
                       <div>
@@ -415,7 +409,6 @@ export default function RequestsPage() {
                   <th className={thClass}>Ref Code</th>
                   <th className={thClass}>Status</th>
                   <th className={thClass}>Messages</th>
-                  <th className={thClass}>Responses</th>
                   <th className={thClass}>Client</th>
                   <th className={thClass}>Created</th>
                   <th className={`${thClass} text-right`}>Delivery Time</th>
@@ -427,13 +420,9 @@ export default function RequestsPage() {
                   const display = getDisplayStatus(req);
                   const canCancel =
                     req.status === "pending" || req.status === "active";
-                  const canResend = ["responded", "failed", "expired"].includes(
+                  const canResend = ["responded", "expired", "closed"].includes(
                     req.status
                   );
-                  const canApprove =
-                    req.requiresApproval &&
-                    !req.approvalDecision &&
-                    (req.status === "pending" || req.status === "active");
                   const isLoading = actionLoading === req.id;
 
                   return (
@@ -470,19 +459,11 @@ export default function RequestsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {req.messageCount > 0
-                          ? `${req.messageCount} messages`
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {req.responseCount > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-green-600 font-medium">
-                            {req.responseCount}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-0.5" title="Inbound (consumer)"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>
+                          <span className="inline-flex items-center gap-0.5" title="Outbound (provider)"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {req.apiKey.name || "Unnamed"}
@@ -493,42 +474,18 @@ export default function RequestsPage() {
                       <td className="px-4 py-2.5 text-right text-muted-foreground">
                         {deliveryTime(req.createdAt, req.deliveredAt)}
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1">
-                          {canApprove && (
-                            <>
-                              <button
-                                onClick={() => handleApproval(req.id, "approved")}
-                                disabled={isLoading}
-                                className="rounded px-2 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleApproval(req.id, "denied")}
-                                disabled={isLoading}
-                                className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40 transition-colors disabled:opacity-50"
-                              >
-                                Deny
-                              </button>
-                            </>
-                          )}
-                          {canCancel && !canApprove && (
-                            <button
-                              onClick={() => handleCancel(req.id)}
-                              disabled={isLoading}
-                              className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-950/40 transition-colors disabled:opacity-50"
-                            >
-                              Cancel
+                          {canCancel && (
+                            <button onClick={() => handleCancel(req.id)} disabled={isLoading} title="Cancel"
+                              className="rounded p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors">
+                              <X className="h-3.5 w-3.5" />
                             </button>
                           )}
                           {canResend && (
-                            <button
-                              onClick={() => handleResend(req.id)}
-                              disabled={isLoading}
-                              className="rounded px-2 py-1 text-xs font-medium text-orange-400 hover:bg-orange-950/40 transition-colors disabled:opacity-50"
-                            >
-                              Resend
+                            <button onClick={() => handleResend(req.id)} disabled={isLoading} title="Resend"
+                              className="rounded p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors">
+                              <RotateCcw className="h-3.5 w-3.5" />
                             </button>
                           )}
                         </div>

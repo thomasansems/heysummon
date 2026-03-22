@@ -197,6 +197,15 @@ model HelpRequest {
   deliveryRetryCount     Int       @default(0)
   deliveryLastAttemptAt  DateTime?
   deliveryNextRetryAt    DateTime?
+
+  // HITL protocol: feedback/reward signals
+  rating                 Int?      // Consumer quality rating (1-5)
+  ratingFeedback         String?   // Optional text feedback from consumer
+  ratedAt                DateTime?
+  responseTimeMs         Int?      // Computed: respondedAt - createdAt in ms
+
+  // HITL protocol: escalation tracking
+  escalatedAt            DateTime? // Set when active-monitor escalates unacknowledged request
   
   // Channel adapter fields
   channelProviderId      String?
@@ -270,4 +279,17 @@ model RateLimit {
 
   @@index([keyId])
   @@index([resetAt])
+}
+
+model ProviderMetrics {
+  id                String   @id @default(cuid())
+  providerId        String   @unique
+  avgRating         Float?
+  avgResponseTimeMs Float?
+  totalResponded    Int      @default(0)
+  totalExpired      Int      @default(0)
+  reliability       Float?   // responded / (responded + expired)
+  updatedAt         DateTime @updatedAt
+
+  @@index([providerId])
 }

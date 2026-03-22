@@ -1,7 +1,7 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-import { X, RotateCcw } from "lucide-react";
+import { X, RotateCcw, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   BarChart,
@@ -37,6 +37,8 @@ interface Stats {
     status: string;
     question: string | null;
     messageCount: number;
+    inbound: number;
+    outbound: number;
     createdAt: string;
     apiKey: { name: string | null };
   }[];
@@ -420,7 +422,15 @@ export default function DashboardPage() {
                       <p className="text-sm text-muted-foreground truncate">{req.question || "—"}</p>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span>{req.apiKey.name || "Unnamed"}</span>
-                        {req.messageCount > 0 && <span>{req.messageCount} msgs</span>}
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                          req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
+                        }`}>{req.status === "active" ? "Active" : "Pending"}</span>
+                        {(req.inbound > 0 || req.outbound > 0) && (
+                          <span className="inline-flex items-center gap-1.5">
+                            {req.inbound > 0 && <span className="inline-flex items-center gap-0.5"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>}
+                            {req.outbound > 0 && <span className="inline-flex items-center gap-0.5"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
@@ -434,6 +444,8 @@ export default function DashboardPage() {
                     <th className="px-4 py-3 font-medium">Ref</th>
                     <th className="px-4 py-3 font-medium">Question</th>
                     <th className="px-4 py-3 font-medium">Client</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Messages</th>
                     <th className="px-4 py-3 font-medium text-right">Time</th>
                     <th className="px-4 py-3 font-medium w-16" />
                   </tr>
@@ -452,6 +464,17 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                           {req.apiKey.name || "Unnamed"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
+                          }`}>{req.status === "active" ? "Active" : "Pending"}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-0.5" title="Inbound (consumer)"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>
+                            <span className="inline-flex items-center gap-0.5" title="Outbound (provider)"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
                           {timeAgo(req.createdAt)}

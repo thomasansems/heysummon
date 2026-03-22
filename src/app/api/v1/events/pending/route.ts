@@ -139,6 +139,7 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
       expiresAt: true,
       consumerSignPubKey: true,
       consumerEncryptPubKey: true,
+      escalatedAt: true,
       _count: { select: { messageHistory: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -167,6 +168,7 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
       messagePreview: null,
       consumerSignPubKey: r.consumerSignPubKey || null,
       consumerEncryptPubKey: r.consumerEncryptPubKey || null,
+      escalated: !!r.escalatedAt,
       createdAt: r.createdAt.toISOString(),
       expiresAt: r.expiresAt.toISOString(),
     };

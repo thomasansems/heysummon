@@ -20,6 +20,7 @@ type VerifyStatus = "idle" | "checking" | "connected" | "timeout";
 
 const VERIFY_POLL_INTERVAL_MS = 2000;
 const VERIFY_TIMEOUT_MS = 60_000;
+const BOUND_CHECK_INTERVAL_MS = 60_000; // Check if bound every 60 seconds
 
 export default function SetupFlow({
   keyId,
@@ -33,25 +34,36 @@ export default function SetupFlow({
   const isOpenClaw = channel === "openclaw";
   const totalSteps = isOpenClaw ? 5 : 3; // hook step only for openclaw
 
-  // Countdown timer for link expiry
-  const [secondsLeft, setSecondsLeft] = useState(() =>
-    Math.max(0, Math.floor(expiresAt - Date.now() / 1000))
-  );
-  const expired = secondsLeft <= 0;
+  // Check JWT expiry (24h TTL)
+  const expired = Date.now() / 1000 > expiresAt;
+
+  // Bound status — auto-disables when first device binds
+  const [bound, setBound] = useState(false);
 
   useEffect(() => {
-    if (expired) return;
-    const tick = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          clearInterval(tick);
-          return 0;
+    if (expired || bound) return;
+
+    // Check immediately on mount
+    const checkBound = async () => {
+      try {
+        const res = await fetch("/api/v1/setup/bound", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keyId }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.bound) setBound(true);
         }
-        return s - 1;
-      });
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [expired]);
+      } catch {
+        // Network error — keep polling
+      }
+    };
+
+    checkBound();
+    const interval = setInterval(checkBound, BOUND_CHECK_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [keyId, expired, bound]);
 
   // OpenClaw state
   const [openClawStep, setOpenClawStep] = useState<OpenClawStep>("install");
@@ -135,20 +147,26 @@ export default function SetupFlow({
   }
 }`;
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60)
-      .toString()
-      .padStart(2, "0");
-    const s = (secs % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
+  if (bound) {
+    return (
+      <div className="rounded-xl border border-green-800/50 bg-green-950/30 p-8 text-center">
+        <p className="text-lg font-semibold text-green-400">This client is already configured.</p>
+        <p className="mt-2 text-sm text-zinc-400">
+          A device has been bound to this API key. This setup page is no longer active.
+        </p>
+        <p className="mt-2 text-sm text-zinc-400">
+          If you need to reconfigure, ask your provider to reset the IP bindings in the dashboard and generate a new setup link.
+        </p>
+      </div>
+    );
+  }
 
   if (expired) {
     return (
       <div className="rounded-xl border border-red-800/50 bg-red-950/30 p-8 text-center">
         <p className="text-lg font-semibold text-red-400">This setup link has expired.</p>
         <p className="mt-2 text-sm text-zinc-400">
-          Setup links are valid for 10 minutes. Ask your provider to generate a new one from their dashboard.
+          Setup links are valid for 24 hours. Ask your provider to generate a new one from their dashboard.
         </p>
         <a
           href="/help#troubleshooting"
@@ -162,11 +180,10 @@ export default function SetupFlow({
 
   return (
     <div>
-      {/* Expiry countdown */}
+      {/* Link validity notice */}
       <div className="mb-6 flex items-center justify-between">
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-700/60 bg-amber-950/40 px-3 py-1 text-xs text-amber-400">
-          <span>⏱</span>
-          <span>Link expires in {formatTime(secondsLeft)}</span>
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700/60 bg-zinc-800/40 px-3 py-1 text-xs text-zinc-400">
+          <span>Valid until {new Date(expiresAt * 1000).toLocaleString()}</span>
         </div>
         <a
           href="/help"
@@ -300,10 +317,19 @@ export default function SetupFlow({
                 : "done"
             }
           >
+            {/* Auto-config note */}
+            <div className="mb-3 rounded-md border border-green-800/50 bg-green-950/30 px-3 py-2">
+              <p className="text-xs text-green-400">
+                If <code className="text-green-300">setup.sh</code> (step 3) ran successfully, this may already be configured.
+                Check <code className="text-green-300">~/.openclaw/openclaw.json</code> — if it has a{" "}
+                <code className="text-green-300">hooks</code> section, you can skip to the verification checklist below.
+              </p>
+            </div>
+
             <p className="mb-3 text-sm text-zinc-400">
-              For HeySummon to wake your agent when a provider responds, update{" "}
+              For HeySummon to wake your agent when a provider responds, your{" "}
               <code className="rounded bg-zinc-800 px-1 font-mono text-xs">~/.openclaw/openclaw.json</code>{" "}
-              with the <code className="rounded bg-zinc-800 px-1 font-mono text-xs">hooks</code> section:
+              needs a <code className="rounded bg-zinc-800 px-1 font-mono text-xs">hooks</code> section:
             </p>
             <CodeBlock>{openClawJsonSnippet}</CodeBlock>
 
@@ -324,6 +350,17 @@ export default function SetupFlow({
                     <code className="text-zinc-300">openclaw.json</code> config tells it where to
                     send that signal and which agent is allowed to receive it.
                   </p>
+
+                  <p className="font-medium text-zinc-300">How the hook chain works:</p>
+                  <ol className="space-y-1 list-decimal list-inside">
+                    <li>Platform watcher polls HeySummon for new provider responses</li>
+                    <li>Response arrives → watcher sends Telegram notification</li>
+                    <li>Hook handler (<code className="text-zinc-300">~/.openclaw/hooks/heysummon-responder/</code>) detects the notification</li>
+                    <li>Hook calls <code className="text-zinc-300">/hooks/agent</code> on the OpenClaw gateway</li>
+                    <li>Gateway wakes your agent in the configured session with the response</li>
+                  </ol>
+
+                  <p className="font-medium text-zinc-300 mt-2">Field reference:</p>
                   <ul className="space-y-1 list-disc list-inside">
                     <li>
                       <code className="text-zinc-300">token</code> — find this in{" "}
@@ -344,7 +381,23 @@ export default function SetupFlow({
                       <code className="text-zinc-300">tertiary</code> (the async/background agent).
                     </li>
                   </ul>
-                  <p className="font-medium text-zinc-300">Best practice:</p>
+
+                  <p className="font-medium text-zinc-300 mt-2">About providers.json:</p>
+                  <p>
+                    The <code className="text-zinc-300">add-provider.sh</code> script (step 2) creates{" "}
+                    <code className="text-zinc-300">~/.heysummon/providers.json</code> with your API key.
+                    This file is used by both the platform watcher and the MCP server to identify which providers to poll:
+                  </p>
+                  <CodeBlock>{`{
+  "providers": [{
+    "name": "${providerName}",
+    "apiKey": "${apiKey.slice(0, 12)}...",
+    "providerId": "...",
+    "addedAt": "..."
+  }]
+}`}</CodeBlock>
+
+                  <p className="font-medium text-zinc-300 mt-2">Best practice:</p>
                   <p>
                     Use the <code className="text-zinc-300">tertiary</code> agent — it&apos;s designed to
                     be woken by external events. After editing, restart the gateway:{" "}
@@ -360,6 +413,32 @@ export default function SetupFlow({
                   </a>
                 </div>
               )}
+            </div>
+
+            {/* Verification checklist */}
+            <div className="mt-4 rounded-md border border-zinc-700 bg-zinc-800/50 px-4 py-3">
+              <p className="text-xs font-medium text-zinc-300 mb-2">Before continuing, verify:</p>
+              <ul className="space-y-1.5 text-xs text-zinc-400">
+                <li className="flex items-start gap-2">
+                  <span className="text-zinc-500 mt-0.5">&#9634;</span>
+                  <code className="text-zinc-300">~/.heysummon/providers.json</code> exists and contains your provider
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-zinc-500 mt-0.5">&#9634;</span>
+                  <code className="text-zinc-300">~/.heysummon/.env</code> has{" "}
+                  <code className="text-zinc-300">HEYSUMMON_BASE_URL</code> and{" "}
+                  <code className="text-zinc-300">HEYSUMMON_HOOKS_TOKEN</code>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-zinc-500 mt-0.5">&#9634;</span>
+                  <code className="text-zinc-300">~/.openclaw/openclaw.json</code> has the{" "}
+                  <code className="text-zinc-300">hooks</code> section configured
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-zinc-500 mt-0.5">&#9634;</span>
+                  <code className="text-zinc-300">~/.openclaw/hooks/heysummon-responder/</code> directory exists
+                </li>
+              </ul>
             </div>
 
             {openClawStep === "hook" && (

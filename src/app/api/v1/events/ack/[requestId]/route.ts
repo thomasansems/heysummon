@@ -23,47 +23,70 @@ export async function POST(
     return NextResponse.json({ error: "Missing x-api-key" }, { status: 401 });
   }
 
-  // Validate provider key
+  // Validate provider key OR client key
+  let userId: string | null = null;
+  let helpRequestFilter: Record<string, unknown> = { id: requestId };
+
   const provider = await prisma.userProfile.findFirst({
     where: { key: apiKey, isActive: true },
     select: { id: true, userId: true },
   });
 
-  if (!provider) {
-    return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
+  if (provider) {
+    userId = provider.userId;
+    helpRequestFilter.expertId = provider.userId;
+  } else {
+    // Try client key
+    const clientKey = await prisma.apiKey.findFirst({
+      where: { key: apiKey, isActive: true },
+      select: { id: true, userId: true },
+    });
+    if (!clientKey) {
+      return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
+    }
+    userId = clientKey.userId;
+    helpRequestFilter.apiKeyId = clientKey.id;
   }
 
-  // Find the request and verify it belongs to this provider
+  // Find the request and verify ownership
   const helpRequest = await prisma.helpRequest.findFirst({
-    where: {
-      id: requestId,
-      expertId: provider.userId,
-    },
-    select: { id: true, refCode: true, deliveredAt: true },
+    where: helpRequestFilter,
+    select: { id: true, refCode: true, deliveredAt: true, consumerDeliveredAt: true },
   });
 
   if (!helpRequest) {
     return NextResponse.json({ error: "Request not found" }, { status: 404 });
   }
 
-  // Only update if not already delivered
-  if (!helpRequest.deliveredAt) {
+  const now = new Date();
+
+  if (provider) {
+    // Provider ACK: set deliveredAt (only once)
+    if (!helpRequest.deliveredAt) {
+      await prisma.helpRequest.update({
+        where: { id: requestId },
+        data: { deliveredAt: now },
+      });
+    }
+  } else {
+    // Consumer ACK: always update consumerDeliveredAt so new messages can be detected
     await prisma.helpRequest.update({
       where: { id: requestId },
-      data: { deliveredAt: new Date() },
-    });
-
-    logAuditEvent({
-      eventType: AuditEventTypes.NOTIFICATION_DELIVERED,
-      userId: provider.userId,
-      success: true,
-      metadata: {
-        requestId,
-        refCode: helpRequest.refCode,
-      },
-      request,
+      data: { consumerDeliveredAt: now },
     });
   }
 
-  return NextResponse.json({ ok: true, deliveredAt: new Date().toISOString() });
+  logAuditEvent({
+    eventType: AuditEventTypes.NOTIFICATION_DELIVERED,
+    userId,
+    success: true,
+    metadata: {
+      requestId,
+      refCode: helpRequest.refCode,
+      keyType: provider ? "provider" : "consumer",
+    },
+    request,
+  });
+
+  return NextResponse.json({ ok: true, deliveredAt: now.toISOString() });
 }

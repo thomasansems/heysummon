@@ -454,7 +454,7 @@ export default function ClientDetailPage() {
       <div className="py-6 border-t border-border">
         <h2 className="text-sm font-medium text-muted-foreground mb-4">Setup link</h2>
         <p className="text-sm text-muted-foreground mb-3">
-          Generate a 10-minute setup link to send to your client. It contains all credentials and step-by-step instructions.
+          Generate a setup link with credentials and setup instructions to send to your client. Valid for up to 24 hours, and automatically disabled when a device binds.
         </p>
         {setupLink ? (
           <div className="space-y-2">

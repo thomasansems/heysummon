@@ -82,7 +82,7 @@ const CLIENT_CHANNELS = [
     id: "claudecode" as const,
     label: "Claude Code",
     icon: "/icons/claudecode.svg",
-    description: "MCP server — inline in editor",
+    description: "Skill — inline in editor",
     disabled: false,
   },
   {
@@ -388,7 +388,7 @@ export default function ClientsPage() {
               <h2 className="mb-1 text-lg font-semibold text-foreground">Client Details</h2>
               <p className="mb-5 text-sm text-muted-foreground">
                 {wizardChannel === "claudecode"
-                  ? "Configure your Claude Code MCP client"
+                  ? "Configure your Claude Code skill client"
                   : `Configure your OpenClaw ${wizardSubChannel} client`}
               </p>
 
@@ -464,9 +464,8 @@ export default function ClientsPage() {
               <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
                 <span>⏱</span>
                 <span>
-                  This setup link expires at{" "}
-                  <strong>{new Date(wizardResult.expiresAt).toLocaleTimeString()}</strong> (10 minutes).
-                  Share it now — credentials are embedded.
+                  This setup link is valid for 24 hours and is automatically disabled when a device binds.
+                  Credentials are embedded — share it with your client.
                 </span>
               </div>
 
@@ -476,7 +475,7 @@ export default function ClientsPage() {
 
               <div className="mb-3 rounded-md border border-border bg-black p-3">
                 <p className="mb-1 text-xs text-muted-foreground">
-                  Setup link ({wizardChannel === "openclaw" ? `OpenClaw · ${wizardSubChannel}` : "Claude Code · MCP"})
+                  Setup link ({wizardChannel === "openclaw" ? `OpenClaw · ${wizardSubChannel}` : "Claude Code · Skill"})
                 </p>
                 <code className="break-all text-xs text-green-400">{wizardResult.setupUrl}</code>
               </div>

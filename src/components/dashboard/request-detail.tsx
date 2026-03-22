@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { Phone } from "lucide-react";
 import { ChatDisplay } from "./chat-display";
 import { ResponseForm } from "./response-form";
 import { StatusBadge } from "./status-badge";
@@ -22,6 +23,10 @@ interface HelpRequestDetail {
   respondedAt: string | null;
   deliveredAt: string | null;
   apiKey: { name: string | null };
+  phoneCallStatus: string | null;
+  phoneCallAt: string | null;
+  phoneCallResponse: string | null;
+  phoneCallSid: string | null;
 }
 
 export function RequestDetail({ id }: { id: string }) {
@@ -137,6 +142,50 @@ export function RequestDetail({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {request.phoneCallStatus && (
+        <div className="mb-6 rounded-xl border border-border bg-card p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Phone className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone Call</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span>
+              Status:{" "}
+              <span className={{
+                initiated: "text-blue-500",
+                ringing: "text-blue-500",
+                answered: "text-green-500",
+                completed: "text-green-500",
+                "no-answer": "text-amber-500",
+                busy: "text-amber-500",
+                failed: "text-red-500",
+              }[request.phoneCallStatus] || "text-muted-foreground"}>
+                {{
+                  initiated: "Calling...",
+                  ringing: "Ringing...",
+                  answered: "On call",
+                  completed: "Answered",
+                  "no-answer": "No answer — fell back to chat",
+                  busy: "Busy — fell back to chat",
+                  failed: "Call failed — fell back to chat",
+                }[request.phoneCallStatus] || request.phoneCallStatus}
+              </span>
+            </span>
+            {request.phoneCallAt && (
+              <span className="text-muted-foreground">
+                Called at {new Date(request.phoneCallAt).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+          {request.phoneCallResponse && (
+            <div className="mt-3 rounded-lg bg-muted/40 p-3">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Verbal response</p>
+              <p className="text-sm">{request.phoneCallResponse}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {request.question && (
         <div className="mb-6 rounded-xl border border-orange-500/20 bg-orange-500/5 p-4">

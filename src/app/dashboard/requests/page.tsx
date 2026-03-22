@@ -3,7 +3,7 @@
 import { copyToClipboard } from "@/lib/clipboard";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { X, RotateCcw, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { X, RotateCcw, ArrowDownLeft, ArrowUpRight, Phone } from "lucide-react";
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -40,6 +40,8 @@ interface HelpRequest {
   outbound: number;
   createdAt: string;
   deliveredAt: string | null;
+  phoneCallStatus: string | null;
+  phoneCallAt: string | null;
   apiKey: { name: string | null; provider: { name: string } | null };
 }
 
@@ -84,6 +86,39 @@ const statusLabels: Record<string, string> = {
   failed: "Failed",
   cancelled: "Cancelled",
 };
+
+const phoneCallLabels: Record<string, string> = {
+  initiated: "Calling...",
+  ringing: "Ringing...",
+  answered: "On call",
+  completed: "Call answered",
+  "no-answer": "No answer",
+  busy: "Busy",
+  failed: "Call failed",
+};
+
+const phoneCallStyles: Record<string, string> = {
+  initiated: "text-blue-600 dark:text-blue-400",
+  ringing: "text-blue-600 dark:text-blue-400",
+  answered: "text-green-600 dark:text-green-400",
+  completed: "text-green-600 dark:text-green-400",
+  "no-answer": "text-amber-600 dark:text-amber-400",
+  busy: "text-amber-600 dark:text-amber-400",
+  failed: "text-red-600 dark:text-red-400",
+};
+
+function PhoneCallBadge({ status }: { status: string | null }) {
+  if (!status) return null;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-xs font-medium ${phoneCallStyles[status] || "text-muted-foreground"}`}
+      title={`Phone call: ${status}`}
+    >
+      <Phone className="h-3 w-3" />
+      {phoneCallLabels[status] || status}
+    </span>
+  );
+}
 
 function getDisplayStatus(req: HelpRequest): string {
   if (req.approvalDecision) {
@@ -376,6 +411,7 @@ export default function RequestsPage() {
                             Approval Required
                           </span>
                         )}
+                        <PhoneCallBadge status={req.phoneCallStatus} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -457,6 +493,7 @@ export default function RequestsPage() {
                               Approval Required
                             </span>
                           )}
+                          <PhoneCallBadge status={req.phoneCallStatus} />
                         </div>
                       </td>
                       <td className="px-4 py-2.5">

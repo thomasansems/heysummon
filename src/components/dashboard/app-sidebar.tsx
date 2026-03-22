@@ -19,6 +19,7 @@ import {
   Sun,
   ChevronUp,
   UserCog,
+  Plug,
 } from "lucide-react";
 import {
   Sidebar,
@@ -50,6 +51,7 @@ const mainNav = [
 const providerNav = [
   { label: "Providers", href: "/dashboard/providers", icon: Users },
   { label: "Clients", href: "/dashboard/clients", icon: Building2 },
+  { label: "Integrations", href: "/dashboard/integrations", icon: Plug },
 ];
 
 const adminNav = [
@@ -112,7 +114,7 @@ export function AppSidebar() {
   const userImage = session?.user?.image ?? "";
   const initials = userName.slice(0, 2).toUpperCase() || "?";
   const sidebarStyle = {
-    "--sidebar-width": "13rem",
+    "--sidebar-width": "11rem",
     "--sidebar-width-icon": "3.25rem",
   } as CSSProperties;
 
@@ -121,7 +123,7 @@ export function AppSidebar() {
 
       {open && (
         <SidebarHeader className="px-2 py-2.5">
-          <Link href="/dashboard" className="flex items-center gap-2 px-1">
+          <Link href="/dashboard" className="flex items-center gap-2 px-2.5 pt-2">
             <Image
               src="/hey-summon.png"
               alt="HeySummon logo"
@@ -140,8 +142,8 @@ export function AppSidebar() {
       {/* Nav */}
       <SidebarContent className="gap-0">
         <NavGroup items={mainNav} pathname={pathname} />
-        <NavGroup items={providerNav} label="Providers" pathname={pathname} />
-        <NavGroup items={adminNav} label="Admin" pathname={pathname} />
+        <NavGroup items={providerNav} pathname={pathname} />
+        <NavGroup items={adminNav} pathname={pathname} />
       </SidebarContent>
 
       {/* User footer — suppress hydration warning because DropdownMenu (Base UI)

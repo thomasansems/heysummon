@@ -54,7 +54,7 @@ export default async function SetupPage({
         {/* Header */}
         <div className="mb-10">
           <div className="mb-3 flex items-center gap-3">
-            <span className="text-3xl">🦞</span>
+            <img src="/hey-summon.png" alt="HeySummon logo" className="h-8 w-8" />
             <h1 className="text-2xl font-bold text-white">HeySummon Setup</h1>
           </div>
           {!bound && !expired && (

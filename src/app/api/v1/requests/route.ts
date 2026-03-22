@@ -45,6 +45,8 @@ export async function GET(request: NextRequest) {
       deliveryStatus: true,
       deliveryRetryCount: true,
       deliveryNextRetryAt: true,
+      phoneCallStatus: true,
+      phoneCallAt: true,
       apiKey: { select: { name: true, provider: { select: { name: true } } } },
       _count: { select: { messageHistory: true } },
       messageHistory: {
@@ -68,6 +70,8 @@ export async function GET(request: NextRequest) {
     deliveryStatus: r.deliveryStatus,
     deliveryRetryCount: r.deliveryRetryCount,
     deliveryNextRetryAt: r.deliveryNextRetryAt,
+    phoneCallStatus: r.phoneCallStatus || null,
+    phoneCallAt: r.phoneCallAt || null,
     apiKey: r.apiKey,
   }));
 

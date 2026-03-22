@@ -166,6 +166,9 @@ process_event() {
           case 'closed':
             console.log('🔒 Conversatie '+ref+' gesloten');
             break;
+          case 'cancelled':
+            console.log('❌ Verzoek '+ref+' is geannuleerd door de provider');
+            break;
           default:
             console.log('🦞 HeySummon event ('+type+') voor '+ref);
         }
@@ -180,7 +183,7 @@ process_event() {
   if [ "$IS_PROVIDER_MSG" = "yes" ] && [ -n "$EVENT_REQ_ID" ]; then
     RESPONSE_TEXT=$(curl -s "${BASE_URL}/api/v1/messages/${EVENT_REQ_ID}" \
       -H "x-api-key: ${API_KEY}" 2>/dev/null | \
-      node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);const msgs=j.messages||[];const last=msgs.filter(m=>m.from==='provider').pop();if(last&&last.iv==='plaintext'){console.log(Buffer.from(last.ciphertext,'base64').toString())}else{console.log('(encrypted)')}}catch(e){console.log('')}})" 2>/dev/null)
+      node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);const msgs=j.messages||[];const last=msgs.filter(m=>m.from==='provider').pop();if(last&&last.plaintext){console.log(last.plaintext)}else if(last&&last.iv==='plaintext'){console.log(Buffer.from(last.ciphertext,'base64').toString())}else{console.log('(encrypted)')}}catch(e){console.log('')}})" 2>/dev/null)
     if [ -n "$RESPONSE_TEXT" ]; then
       MSG="${MSG}\n💬 ${RESPONSE_TEXT}"
     fi

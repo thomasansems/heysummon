@@ -189,6 +189,7 @@ model HelpRequest {
   
   status                 String    @default("pending") // pending | active | closed | expired
   deliveredAt            DateTime? // When provider watcher acknowledged receipt
+  consumerDeliveredAt    DateTime? // When consumer watcher last acknowledged messages
   expiresAt              DateTime  // createdAt + 72 hours
   closedAt               DateTime?
 

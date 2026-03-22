@@ -214,6 +214,7 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
       refCode: true,
       status: true,
       respondedAt: true,
+      consumerDeliveredAt: true,
       messageHistory: {
         where: { from: "provider" },
         orderBy: { createdAt: "desc" },
@@ -226,7 +227,15 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
     take: 50,
   });
 
-  const mapped = requests.map((r) => ({
+  // Only include requests with provider messages newer than the consumer's last ACK
+  const filtered = requests.filter((r) => {
+    const latestMsg = r.messageHistory[0];
+    if (!latestMsg) return false;
+    if (!r.consumerDeliveredAt) return true; // never ACKed — show it
+    return latestMsg.createdAt > r.consumerDeliveredAt; // new message since last ACK
+  });
+
+  const mapped = filtered.map((r) => ({
     type: "new_message" as const,
     requestId: r.id,
     refCode: r.refCode,

@@ -51,31 +51,42 @@ export async function POST(
   // Find the request and verify ownership
   const helpRequest = await prisma.helpRequest.findFirst({
     where: helpRequestFilter,
-    select: { id: true, refCode: true, deliveredAt: true },
+    select: { id: true, refCode: true, deliveredAt: true, consumerDeliveredAt: true },
   });
 
   if (!helpRequest) {
     return NextResponse.json({ error: "Request not found" }, { status: 404 });
   }
 
-  // Only update if not already delivered
-  if (!helpRequest.deliveredAt) {
+  const now = new Date();
+
+  if (provider) {
+    // Provider ACK: set deliveredAt (only once)
+    if (!helpRequest.deliveredAt) {
+      await prisma.helpRequest.update({
+        where: { id: requestId },
+        data: { deliveredAt: now },
+      });
+    }
+  } else {
+    // Consumer ACK: always update consumerDeliveredAt so new messages can be detected
     await prisma.helpRequest.update({
       where: { id: requestId },
-      data: { deliveredAt: new Date() },
-    });
-
-    logAuditEvent({
-      eventType: AuditEventTypes.NOTIFICATION_DELIVERED,
-      userId,
-      success: true,
-      metadata: {
-        requestId,
-        refCode: helpRequest.refCode,
-      },
-      request,
+      data: { consumerDeliveredAt: now },
     });
   }
 
-  return NextResponse.json({ ok: true, deliveredAt: new Date().toISOString() });
+  logAuditEvent({
+    eventType: AuditEventTypes.NOTIFICATION_DELIVERED,
+    userId,
+    success: true,
+    metadata: {
+      requestId,
+      refCode: helpRequest.refCode,
+      keyType: provider ? "provider" : "consumer",
+    },
+    request,
+  });
+
+  return NextResponse.json({ ok: true, deliveredAt: now.toISOString() });
 }

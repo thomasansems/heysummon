@@ -1,10 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Inbox,
@@ -17,6 +18,7 @@ import {
   Moon,
   Sun,
   ChevronUp,
+  UserCog,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,7 +31,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
+  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -43,7 +45,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const mainNav = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Requests", href: "/dashboard/requests", icon: Inbox },
 ];
 
 const providerNav = [
@@ -52,8 +53,9 @@ const providerNav = [
 ];
 
 const adminNav = [
+  { label: "Requests", href: "/dashboard/requests", icon: Inbox },
+  { label: "Users", href: "/dashboard/users", icon: UserCog },
   { label: "Audit Logs", href: "/dashboard/audit-logs", icon: ScrollText },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 function NavGroup({
@@ -78,13 +80,15 @@ function NavGroup({
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
-                  render={<Link href={item.href} />}
+                  asChild
                   isActive={isActive}
                   tooltip={item.label}
-                  className="gap-2.5"
+                  className="gap-2.5 px-3 text-sidebar-foreground/70 hover:bg-transparent hover:text-sidebar-foreground/70 active:bg-transparent active:text-sidebar-foreground/70 data-[state=open]:hover:bg-transparent data-[state=open]:hover:text-sidebar-foreground/70 data-[active]:bg-transparent data-[active]:text-sidebar-foreground data-[active]:shadow-none"
                 >
-                  <item.icon className="h-[15px] w-[15px] shrink-0" />
+                  <Link href={item.href}>
+                  <item.icon className="menu-icon h-[15px] w-[15px] shrink-0 text-sidebar-foreground/55" />
                   <span className="text-sm">{item.label}</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
@@ -107,13 +111,25 @@ export function AppSidebar() {
   const userName = session?.user?.name ?? "";
   const userImage = session?.user?.image ?? "";
   const initials = userName.slice(0, 2).toUpperCase() || "?";
+  const sidebarStyle = {
+    "--sidebar-width": "13rem",
+    "--sidebar-width-icon": "3.25rem",
+  } as CSSProperties;
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="border-r-0" style={sidebarStyle}>
 
       {open && (
-        <SidebarHeader className="border-b border-sidebar-border px-2 py-2.5">
+        <SidebarHeader className="px-2 py-2.5">
           <Link href="/dashboard" className="flex items-center gap-2 px-1">
+            <Image
+              src="/hey-summon.png"
+              alt="HeySummon logo"
+              width={22}
+              height={22}
+              className="h-5 w-5 shrink-0"
+              priority
+            />
             <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
               HeySummon
             </span>
@@ -124,20 +140,19 @@ export function AppSidebar() {
       {/* Nav */}
       <SidebarContent className="gap-0">
         <NavGroup items={mainNav} pathname={pathname} />
-        <SidebarSeparator className="mx-3 my-1" />
         <NavGroup items={providerNav} label="Providers" pathname={pathname} />
-        <SidebarSeparator className="mx-3 my-1" />
         <NavGroup items={adminNav} label="Admin" pathname={pathname} />
       </SidebarContent>
 
       {/* User footer — suppress hydration warning because DropdownMenu (Base UI)
           generates IDs that differ between SSR and client hydration */}
-      <SidebarFooter className="border-t border-sidebar-border p-2" suppressHydrationWarning>
+      <SidebarFooter className="p-2" suppressHydrationWarning>
         <SidebarMenu suppressHydrationWarning>
           <SidebarMenuItem suppressHydrationWarning>
             {mounted && (
               <DropdownMenu>
-                <SidebarMenuButton render={<DropdownMenuTrigger />} className="h-10 gap-2.5">
+                <SidebarMenuButton asChild className="h-10 gap-2.5">
+                  <DropdownMenuTrigger>
                   <Avatar className="h-6 w-6 shrink-0">
                     <AvatarImage src={userImage} alt={userName} />
                     <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
@@ -151,6 +166,7 @@ export function AppSidebar() {
                     </span>
                   </div>
                   <ChevronUp className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </DropdownMenuTrigger>
                 </SidebarMenuButton>
                 <DropdownMenuContent side="top" align="start" className="w-52">
                   <DropdownMenuItem
@@ -162,6 +178,12 @@ export function AppSidebar() {
                       <Moon className="mr-2 h-3.5 w-3.5" />
                     )}
                     {theme === "dark" ? "Light mode" : "Dark mode"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings">
+                      <Settings className="mr-2 h-3.5 w-3.5" />
+                      Settings
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -177,6 +199,8 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+      <SidebarRail />
     </Sidebar>
   );
 }

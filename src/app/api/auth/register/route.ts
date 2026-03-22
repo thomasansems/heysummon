@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         email: emailNorm,
         password: hashedPassword,
         name: name?.trim() || null,
-        role: isFirstUser ? "admin" : "expert",
+        role: isFirstUser ? "admin" : "provider",
         emailVerified: new Date(), // Auto-verified for self-hosted simplicity
         onboardingComplete: isFirstUser, // Skip onboarding for admin
       },

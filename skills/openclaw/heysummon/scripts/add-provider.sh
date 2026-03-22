@@ -10,10 +10,20 @@ SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 [ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
 
 BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3445}"
-PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$SKILL_DIR/providers.json}"
+PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
 
 API_KEY="$1"
 ALIAS="$2"
+
+# If HEYSUMMON_BASE_URL is set as env prefix (e.g. HEYSUMMON_BASE_URL=https://... bash add-provider.sh ...)
+# persist it to .env for future runs
+if [ -n "$HEYSUMMON_BASE_URL" ]; then
+  ENV_FILE="$SKILL_DIR/.env"
+  if [ ! -f "$ENV_FILE" ] || ! grep -q "^HEYSUMMON_BASE_URL=" "$ENV_FILE" 2>/dev/null; then
+    echo "HEYSUMMON_BASE_URL=$HEYSUMMON_BASE_URL" >> "$ENV_FILE"
+    echo "ℹ️  Saved HEYSUMMON_BASE_URL=$HEYSUMMON_BASE_URL to $ENV_FILE"
+  fi
+fi
 
 if [ -z "$API_KEY" ]; then
   echo "Usage: add-provider.sh <api-key> [alias]" >&2

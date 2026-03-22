@@ -18,6 +18,7 @@ const routeLabels: Record<string, string> = {
   providers: "Providers",
   channels: "Channels",
   clients: "Clients",
+  users: "Users",
   keys: "API Keys",
   "audit-logs": "Audit Logs",
   settings: "Settings",
@@ -28,9 +29,8 @@ export function PageHeader() {
   const segments = pathname.replace(/^\/dashboard\/?/, "").split("/").filter(Boolean);
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4 bg-background">
-      <SidebarTrigger className="-ml-1 h-8 w-8" />
-      <Separator orientation="vertical" className="h-4" />
+    <header className="flex h-12 shrink-0 items-center gap-2 px-4 bg-background">
+      <SidebarTrigger className="-ml-1 h-8 w-8 mr-2" />
       <Breadcrumb>
         <BreadcrumbList>
           {segments.length === 0 ? (

@@ -31,3 +31,6 @@ jobs:
       - run: npm run lint
 
       - run: npm run build
+
+      - name: Run unit tests
+        run: npx vitest run src/__tests__/ packages/consumer-sdk/

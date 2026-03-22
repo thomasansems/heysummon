@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateProviderKey } from "@/lib/provider-key-auth";
 import { decryptMessage } from "@/lib/crypto";
+import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
 const DEBUG = process.env.DEBUG === "true";
 
@@ -31,10 +32,19 @@ export async function GET(request: NextRequest) {
   // Try client key (ApiKey)
   const clientKey = await prisma.apiKey.findFirst({
     where: { key: apiKey, isActive: true },
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, lastPollAt: true },
   });
 
   if (clientKey) {
+    // Log first-ever connection (when lastPollAt was null before this call)
+    if (!clientKey.lastPollAt) {
+      logAuditEvent({
+        eventType: AuditEventTypes.CONSUMER_CONNECTED,
+        userId: clientKey.userId,
+        apiKeyId: clientKey.id,
+        metadata: { firstConnection: true },
+      }).catch(() => {});
+    }
     return handleConsumerPending(clientKey);
   }
 
@@ -129,6 +139,7 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
       expiresAt: true,
       consumerSignPubKey: true,
       consumerEncryptPubKey: true,
+      escalatedAt: true,
       _count: { select: { messageHistory: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -157,6 +168,7 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
       messagePreview: null,
       consumerSignPubKey: r.consumerSignPubKey || null,
       consumerEncryptPubKey: r.consumerEncryptPubKey || null,
+      escalated: !!r.escalatedAt,
       createdAt: r.createdAt.toISOString(),
       expiresAt: r.expiresAt.toISOString(),
     };
@@ -180,6 +192,12 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
 
 /** Consumer: return requests that have new provider messages */
 async function handleConsumerPending(clientKey: { id: string; userId: string }) {
+  // Fire-and-forget heartbeat — enables connection verification without blocking the response
+  prisma.apiKey.update({
+    where: { id: clientKey.id },
+    data: { lastPollAt: new Date() },
+  }).catch(() => {});
+
   const requests = await prisma.helpRequest.findMany({
     where: {
       apiKeyId: clientKey.id,

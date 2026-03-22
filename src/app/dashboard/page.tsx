@@ -1,7 +1,7 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-import { X, RotateCcw } from "lucide-react";
+import { X, RotateCcw, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   BarChart,
@@ -25,18 +25,20 @@ interface DayActivity {
 
 interface Stats {
   total: number;
-  open: number;
-  resolved: number;
-  expired: number;
-  avgResponseTime: number;
-  activity: DayActivity[];
-  topClients: { name: string; count: number }[];
-  openRequests: {
+  open?: number;
+  resolved?: number;
+  expired?: number;
+  avgResponseTime?: number;
+  activity?: DayActivity[];
+  topClients?: { name: string; count: number }[];
+  openRequests?: {
     id: string;
     refCode: string | null;
     status: string;
     question: string | null;
     messageCount: number;
+    inbound: number;
+    outbound: number;
     createdAt: string;
     apiKey: { name: string | null };
   }[];
@@ -154,37 +156,70 @@ export default function DashboardPage() {
 
   if (!stats) {
     return (
-      <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading...
+      <div className="space-y-6">
+        <h1 className="font-serif text-2xl font-semibold text-foreground">Overview</h1>
+        {/* Stat card skeletons */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4 animate-pulse">
+              <div className="h-3 w-24 rounded bg-muted mb-3" />
+              <div className="h-7 w-12 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+        {/* Chart skeleton */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+          <div className="lg:col-span-3 rounded-xl border border-border bg-card p-5 animate-pulse">
+            <div className="h-4 w-40 rounded bg-muted mb-2" />
+            <div className="h-3 w-32 rounded bg-muted mb-6" />
+            <div className="h-48 w-full rounded bg-muted" />
+          </div>
+          <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5 animate-pulse">
+            <div className="h-4 w-32 rounded bg-muted mb-2" />
+            <div className="h-3 w-24 rounded bg-muted mb-6" />
+            <div className="h-32 w-32 rounded-full bg-muted mx-auto" />
+          </div>
+        </div>
+        {/* Open requests skeleton */}
+        <div className="rounded-xl border border-border bg-card p-4 animate-pulse space-y-3">
+          <div className="h-4 w-32 rounded bg-muted" />
+          <div className="h-10 w-full rounded bg-muted" />
+          <div className="h-10 w-full rounded bg-muted" />
+        </div>
       </div>
     );
   }
 
-  const totalThisWeek = (stats.activity || []).reduce((s, d) => s + d.current, 0);
-  const totalPrevWeek = (stats.activity || []).reduce((s, d) => s + d.previous, 0);
+  // Normalize — guard against partial/missing fields from API
+  const openRequests = stats.openRequests ?? [];
+  const activity = stats.activity ?? [];
+
+  const totalThisWeek = activity.reduce((s, d) => s + d.current, 0);
+  const totalPrevWeek = activity.reduce((s, d) => s + d.previous, 0);
   const deltaPct = totalPrevWeek > 0
     ? Math.round(((totalThisWeek - totalPrevWeek) / totalPrevWeek) * 100)
     : null;
   const deltaStr = deltaPct === null ? "—" : deltaPct >= 0 ? `+${deltaPct}%` : `${deltaPct}%`;
 
-  const totalClients = (stats.topClients || []).reduce((s, c) => s + c.count, 0);
+  const topClients = stats.topClients ?? [];
+  const totalClients = topClients.reduce((s, c) => s + c.count, 0);
 
-  const highlighted = activeClientIdx !== null ? stats.topClients[activeClientIdx] : null;
+  const highlighted = activeClientIdx !== null ? topClients[activeClientIdx] : null;
   const highlightedPct = highlighted && totalClients > 0
     ? Math.round((highlighted.count / totalClients) * 100)
     : null;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-foreground">Overview</h1>
+      <h1 className="font-serif text-2xl font-semibold text-foreground">Overview</h1>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Total Requests", value: stats.total },
-          { label: "Open", value: stats.open },
+          { label: "Total Requests", value: stats.total ?? 0 },
+          { label: "Open", value: stats.open ?? 0 },
           { label: "Resolved", value: stats.resolved ?? 0 },
-          { label: "Avg Response", value: formatTime(stats.avgResponseTime) },
+          { label: "Avg Response", value: formatTime(stats.avgResponseTime ?? 0) },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-border bg-card p-4">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{stat.label}</p>
@@ -199,13 +234,13 @@ export default function DashboardPage() {
         {/* Traffic Channels-style bar chart — 3/5 */}
         <div className="lg:col-span-3 rounded-xl border border-border bg-card p-5">
           <div className="mb-4">
-            <h2 className="text-base font-semibold text-foreground">Requests per day</h2>
+            <h2 className="font-serif text-base font-semibold text-foreground">Requests per day</h2>
             <p className="text-sm text-muted-foreground">This week vs. last week</p>
           </div>
 
           <div style={{ height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.activity} barGap={4} barCategoryGap="20%">
+              <BarChart data={activity} barGap={4} barCategoryGap="20%">
                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="day"
@@ -255,11 +290,11 @@ export default function DashboardPage() {
         {/* Top 5 clients donut chart — 2/5 */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5">
           <div className="mb-2">
-            <h2 className="text-base font-semibold text-foreground">Top Clients</h2>
+            <h2 className="font-serif text-base font-semibold text-foreground">Top Clients</h2>
             <p className="text-sm text-muted-foreground">Most active — all time</p>
           </div>
 
-          {stats.topClients.length === 0 ? (
+          {(topClients ?? []).length === 0 ? (
             <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
               No requests yet
             </div>
@@ -270,7 +305,7 @@ export default function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={stats.topClients}
+                      data={topClients}
                       dataKey="count"
                       nameKey="name"
                       cx="50%"
@@ -281,7 +316,7 @@ export default function DashboardPage() {
                       onMouseEnter={(_, idx) => setActiveClientIdx(idx)}
                       onMouseLeave={() => setActiveClientIdx(null)}
                     >
-                      {stats.topClients.map((_, i) => (
+                      {topClients.map((_, i) => (
                         <Cell
                           key={i}
                           fill={CHART_COLORS[i % CHART_COLORS.length]}
@@ -306,7 +341,7 @@ export default function DashboardPage() {
 
               {/* Legend */}
               <div className="mt-2 space-y-1.5">
-                {stats.topClients.map((client, i) => {
+                {topClients.map((client, i) => {
                   const pct = totalClients > 0 ? Math.round((client.count / totalClients) * 100) : 0;
                   return (
                     <div key={i} className="flex items-center gap-2">
@@ -348,14 +383,14 @@ export default function DashboardPage() {
       <div>
         <h2 className="mb-3 text-sm font-semibold text-foreground">
           Open Requests
-          {stats.open > 0 && (
+          {(stats.open ?? 0) > 0 && (
             <span className="ml-2 inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
-              {stats.open}
+              {stats.open ?? 0}
             </span>
           )}
         </h2>
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          {stats.openRequests.length === 0 ? (
+          {openRequests.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
               No open requests 🎉
             </div>
@@ -363,7 +398,7 @@ export default function DashboardPage() {
             <>
               {/* Mobile */}
               <div className="md:hidden">
-                {stats.openRequests.map((req) => {
+                {openRequests.map((req) => {
                   const isLoading = actionLoading === req.id;
                   const canCancel = req.status === "pending" || req.status === "active";
                   return (
@@ -387,7 +422,15 @@ export default function DashboardPage() {
                       <p className="text-sm text-muted-foreground truncate">{req.question || "—"}</p>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span>{req.apiKey.name || "Unnamed"}</span>
-                        {req.messageCount > 0 && <span>{req.messageCount} msgs</span>}
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                          req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
+                        }`}>{req.status === "active" ? "Active" : "Pending"}</span>
+                        {(req.inbound > 0 || req.outbound > 0) && (
+                          <span className="inline-flex items-center gap-1.5">
+                            {req.inbound > 0 && <span className="inline-flex items-center gap-0.5"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>}
+                            {req.outbound > 0 && <span className="inline-flex items-center gap-0.5"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
@@ -401,12 +444,14 @@ export default function DashboardPage() {
                     <th className="px-4 py-3 font-medium">Ref</th>
                     <th className="px-4 py-3 font-medium">Question</th>
                     <th className="px-4 py-3 font-medium">Client</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Messages</th>
                     <th className="px-4 py-3 font-medium text-right">Time</th>
                     <th className="px-4 py-3 font-medium w-16" />
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.openRequests.map((req) => {
+                  {openRequests.map((req) => {
                     const isLoading = actionLoading === req.id;
                     const canCancel = req.status === "pending" || req.status === "active";
                     return (
@@ -419,6 +464,17 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                           {req.apiKey.name || "Unnamed"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
+                          }`}>{req.status === "active" ? "Active" : "Pending"}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-0.5" title="Inbound (consumer)"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>
+                            <span className="inline-flex items-center gap-0.5" title="Outbound (provider)"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
                           {timeAgo(req.createdAt)}

@@ -24,7 +24,17 @@ export async function GET() {
       previousKeyExpiresAt: true,
       createdAt: true,
       machineId: true,
-      provider: { select: { id: true, name: true } },
+      provider: {
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+          channelProviders: {
+            where: { isActive: true },
+            select: { id: true, type: true, status: true },
+          },
+        },
+      },
       ipEvents: {
         select: {
           id: true,

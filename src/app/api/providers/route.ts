@@ -22,6 +22,10 @@ export async function GET() {
       availableDays: true,
       _count: { select: { apiKeys: true } },
       ipEvents: { orderBy: { lastSeen: "desc" } },
+      channelProviders: {
+        select: { id: true, type: true, name: true, status: true, config: true },
+        orderBy: { createdAt: "asc" },
+      },
       apiKeys: {
         where: { isActive: true },
         select: { id: true, name: true, clientChannel: true, clientSubChannel: true },

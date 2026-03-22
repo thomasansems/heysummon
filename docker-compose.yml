@@ -154,6 +154,12 @@ services:
         condition: service_healthy
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # Tailscale Funnel: docker compose --profile tailscale up -d
   tailscale:
@@ -195,6 +201,12 @@ services:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
     ports:
       - "3448:4040"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4040/api/tunnels"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 networks:
   frontend:

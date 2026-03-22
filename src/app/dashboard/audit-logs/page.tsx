@@ -103,12 +103,12 @@ export default function AuditLogsPage() {
       const data = await res.json();
 
       if (cursor) {
-        setLogs((prev) => [...prev, ...data.items]);
+        setLogs((prev) => [...prev, ...(data.items ?? [])]);
       } else {
-        setLogs(data.items);
+        setLogs(data.items ?? []);
       }
-      setNextCursor(data.nextCursor);
-      setHasMore(data.hasMore);
+      setNextCursor(data.nextCursor ?? null);
+      setHasMore(data.hasMore ?? false);
       setLoading(false);
     },
     [eventTypeFilter, startDate, endDate]

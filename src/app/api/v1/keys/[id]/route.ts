@@ -4,6 +4,57 @@ import { prisma } from "@/lib/prisma";
 import { keyUpdateSchema, validateBody } from "@/lib/validations";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  const key = await prisma.apiKey.findFirst({
+    where: { id, userId: user.id },
+    select: {
+      id: true,
+      key: true,
+      name: true,
+      isActive: true,
+      scope: true,
+      rateLimitPerMinute: true,
+      clientChannel: true,
+      clientSubChannel: true,
+      previousKeyExpiresAt: true,
+      createdAt: true,
+      machineId: true,
+      provider: {
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+          channelProviders: {
+            where: { isActive: true },
+            select: { id: true, type: true, status: true },
+          },
+        },
+      },
+      ipEvents: {
+        select: { id: true, ip: true, status: true, attempts: true, firstSeen: true, lastSeen: true },
+        orderBy: { firstSeen: "asc" },
+      },
+      _count: { select: { requests: true } },
+    },
+  });
+
+  if (!key) {
+    return NextResponse.json({ error: "Key not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ key });
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -1,5 +1,6 @@
 import type { ChannelAdapter, TelegramConfig } from "./types";
 import { prisma } from "@/lib/prisma";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import crypto from "node:crypto";
 
 const TELEGRAM_API = "https://api.telegram.org";
@@ -36,9 +37,9 @@ export async function setWebhook(token: string, webhookUrl: string, secret: stri
       allowed_updates: ["message"],
     }),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to set Telegram webhook: ${text}`);
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.description ?? `Failed to set Telegram webhook: HTTP ${res.status}`);
   }
 }
 
@@ -125,7 +126,9 @@ export const telegramAdapter: ChannelAdapter = {
 
     // Generate webhook secret
     const webhookSecret = crypto.randomBytes(32).toString("hex");
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    // Use canonical public URL (Tailscale Funnel / Cloudflare / HEYSUMMON_PUBLIC_URL)
+    // NEVER use localtunnel — use `tailscale funnel 3425` instead
+    const baseUrl = getPublicBaseUrl();
     const webhookUrl = `${baseUrl}/api/adapters/telegram/${channelId}/webhook`;
 
     // Set webhook

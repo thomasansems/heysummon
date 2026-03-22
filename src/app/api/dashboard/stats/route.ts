@@ -16,8 +16,8 @@ export async function GET() {
 
   const [total, open, resolvedCount, expiredCount, recentRequests, prevRequests, topClientsRaw] = await Promise.all([
     prisma.helpRequest.count({ where: { expertId: userId } }),
-    prisma.helpRequest.count({ where: { expertId: userId, status: "pending" } }),
-    prisma.helpRequest.count({ where: { expertId: userId, status: "resolved" } }),
+    prisma.helpRequest.count({ where: { expertId: userId, status: { in: ["pending", "active"] } } }),
+    prisma.helpRequest.count({ where: { expertId: userId, status: "responded" } }),
     prisma.helpRequest.count({ where: { expertId: userId, status: "expired" } }),
     // Last 7 days
     prisma.helpRequest.findMany({
@@ -99,9 +99,9 @@ export async function GET() {
     count: r._count.id,
   }));
 
-  // Open requests with message preview
+  // Open requests with message preview + direction counts
   const openRequests = await prisma.helpRequest.findMany({
-    where: { expertId: userId, status: "pending" },
+    where: { expertId: userId, status: { in: ["pending", "active"] } },
     select: {
       id: true,
       refCode: true,
@@ -111,6 +111,9 @@ export async function GET() {
       question: true,
       apiKey: { select: { name: true } },
       _count: { select: { messageHistory: true } },
+      messageHistory: {
+        select: { from: true },
+      },
     },
     orderBy: { createdAt: "desc" },
     take: 10,
@@ -121,6 +124,8 @@ export async function GET() {
     refCode: r.refCode,
     status: r.status,
     messageCount: r._count.messageHistory,
+    inbound: r.messageHistory.filter((m) => m.from === "consumer").length,
+    outbound: r.messageHistory.filter((m) => m.from === "provider").length,
     deliveredAt: r.deliveredAt,
     createdAt: r.createdAt,
     question: r.question,

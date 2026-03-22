@@ -7,5 +7,8 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { startRetentionJob } = await import("./lib/retention");
     startRetentionJob();
+
+    const { startActiveMonitor } = await import("./lib/active-monitor");
+    startActiveMonitor();
   }
 }

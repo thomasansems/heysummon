@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { getPublicBaseUrl } from "@/lib/public-url";
 
 /**
  * GET /api/v1/mcp-install/:keyId
@@ -33,12 +34,7 @@ export async function GET(
     return NextResponse.json({ error: "Key not found" }, { status: 404 });
   }
 
-  const proto = request.headers.get("x-forwarded-proto") || "https";
-  const host =
-    request.headers.get("x-forwarded-host") ||
-    request.headers.get("host") ||
-    "localhost:3425";
-  const baseUrl = `${proto}://${host}`;
+  const baseUrl = getPublicBaseUrl(request);
 
   const snippet = buildMcpSnippet(baseUrl, apiKey.key);
 

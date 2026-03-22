@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import jwt from "jsonwebtoken";
 
-const SETUP_LINK_TTL_SECONDS = 10 * 60; // 10 minutes
+const SETUP_LINK_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 /**
  * POST /api/v1/setup-link
  *
- * Generates a time-limited (10 min) signed setup URL for a client key.
- * The URL is public but expires after 10 minutes to protect credentials.
+ * Generates a time-limited (24h) signed setup URL for a client key.
+ * The URL expires after 24 hours, but auto-disables when the first device binds.
  *
  * Body: { keyId: string, channel: "openclaw" | "claudecode", subChannel?: "telegram" | "whatsapp" }
  * Auth: dashboard user (must own the key)
@@ -43,12 +44,7 @@ export async function POST(request: NextRequest) {
 
   const secret = process.env.JWT_SECRET ?? process.env.NEXTAUTH_SECRET ?? "heysummon-setup-secret";
 
-  const proto = request.headers.get("x-forwarded-proto") || "https";
-  const host =
-    request.headers.get("x-forwarded-host") ||
-    request.headers.get("host") ||
-    "localhost:3425";
-  const baseUrl = `${proto}://${host}`;
+  const baseUrl = getPublicBaseUrl(request);
 
   const token = jwt.sign(
     {

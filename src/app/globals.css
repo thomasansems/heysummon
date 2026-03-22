@@ -57,14 +57,14 @@ html {
 
 /* Nova – Olive base – Orange theme */
 :root {
-  --background: oklch(0.99 0.004 95);
+  --background: oklch(98.83% 0.00274 84.297);
   --foreground: oklch(0.16 0.012 80);
-  --card: oklch(1 0 0);
+  --card: oklch(98.83% 0.00274 84.297);
   --card-foreground: oklch(0.16 0.012 80);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.16 0.012 80);
-  --primary: oklch(0.58 0.16 40);
-  --primary-foreground: oklch(0.99 0 0);
+  --primary: #fdb15f;
+  --primary-foreground: oklch(0.16 0.012 80);
   --secondary: oklch(0.96 0.008 80);
   --secondary-foreground: oklch(0.25 0.012 80);
   --muted: oklch(0.96 0.006 90);
@@ -84,8 +84,8 @@ html {
   --radius: 0.5rem;
   --sidebar: oklch(0.97 0.006 90);
   --sidebar-foreground: oklch(0.16 0.012 80);
-  --sidebar-primary: oklch(0.58 0.16 40);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-primary: #fdb15f;
+  --sidebar-primary-foreground: oklch(0.16 0.012 80);
   --sidebar-accent: oklch(0.94 0.025 60);
   --sidebar-accent-foreground: oklch(0.35 0.08 50);
   --sidebar-border: oklch(0.91 0.008 90);
@@ -99,7 +99,7 @@ html {
   --card-foreground: oklch(0.97 0.004 90);
   --popover: oklch(0.22 0.008 80);
   --popover-foreground: oklch(0.97 0.004 90);
-  --primary: oklch(0.65 0.17 40);
+  --primary: #fdb15f;
   --primary-foreground: oklch(0.12 0.005 80);
   --secondary: oklch(0.26 0.008 80);
   --secondary-foreground: oklch(0.97 0.004 90);
@@ -117,9 +117,9 @@ html {
   --chart-3: oklch(0.56 0.16 38);
   --chart-4: oklch(0.47 0.14 33);
   --chart-5: oklch(0.37 0.11 28);
-  --sidebar: oklch(0.19 0.008 80);
+  --sidebar:  oklch(0.155 0.008 80);
   --sidebar-foreground: oklch(0.97 0.004 90);
-  --sidebar-primary: oklch(0.65 0.17 40);
+  --sidebar-primary: #fdb15f;
   --sidebar-primary-foreground: oklch(0.12 0.005 80);
   --sidebar-accent: oklch(0.27 0.012 80);
   --sidebar-accent-foreground: oklch(0.97 0.004 90);
@@ -136,5 +136,13 @@ html {
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-serif), Georgia, serif;
   }
 }

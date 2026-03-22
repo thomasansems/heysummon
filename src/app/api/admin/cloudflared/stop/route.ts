@@ -1,0 +1,29 @@
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { execSync } from "child_process";
+import fs from "fs";
+import path from "path";
+
+const ENV_PATH = path.resolve(process.cwd(), ".env.local");
+
+function removeEnvVar(key: string) {
+  try {
+    const content = fs.readFileSync(ENV_PATH, "utf8");
+    const updated = content.replace(new RegExp(`^${key}=.*\n?`, "m"), "");
+    fs.writeFileSync(ENV_PATH, updated, "utf8");
+  } catch { /* ignore */ }
+}
+
+export async function POST() {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    execSync("pkill -f 'cloudflared tunnel' 2>/dev/null", { timeout: 5000, shell: "/bin/bash" });
+  } catch { /* process might not be running — that's fine */ }
+
+  removeEnvVar("HEYSUMMON_PUBLIC_URL");
+  delete process.env.HEYSUMMON_PUBLIC_URL;
+
+  return NextResponse.json({ ok: true });
+}

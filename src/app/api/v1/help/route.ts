@@ -9,6 +9,8 @@ import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
+import { sendMessage } from "@/lib/adapters/telegram";
+import type { TelegramConfig } from "@/lib/adapters/types";
 
 /**
  * Returns whether the provider is currently unavailable and when they'll next be available.
@@ -140,6 +142,37 @@ export async function POST(request: Request) {
     if (!authResult.ok) return authResult.response;
     const key = authResult.apiKey;
 
+    // ─── Provider + channel check ───
+    // If this key is linked to a specific provider, ensure that provider exists,
+    // is active, and has at least one notification channel configured.
+    if (key.providerId) {
+      const provider = await prisma.userProfile.findUnique({
+        where: { id: key.providerId },
+        select: {
+          isActive: true,
+          channelProviders: { where: { isActive: true }, select: { id: true } },
+        },
+      });
+      if (!provider) {
+        return NextResponse.json(
+          { error: "The provider linked to this client no longer exists. Contact your provider to reissue your API key." },
+          { status: 503 }
+        );
+      }
+      if (!provider.isActive) {
+        return NextResponse.json(
+          { error: "The provider linked to this client is currently inactive." },
+          { status: 503 }
+        );
+      }
+      if (provider.channelProviders.length === 0) {
+        return NextResponse.json(
+          { error: "The provider linked to this client has no notification channel configured and cannot receive requests yet." },
+          { status: 503 }
+        );
+      }
+    }
+
     // ─── Guard Receipt Verification (Ed25519) ───
     const receiptB64 = request.headers.get("x-guard-receipt");
     const signatureB64 = request.headers.get("x-guard-receipt-sig");
@@ -208,6 +241,27 @@ export async function POST(request: Request) {
         contentFlags: null,
         guardVerified,
       },
+    });
+
+    // Push Telegram notification to provider (fire-and-forget, non-blocking)
+    prisma.channelProvider.findFirst({
+      where: {
+        profileId: { in: (await prisma.userProfile.findMany({ where: { userId: key.userId }, select: { id: true } })).map(p => p.id) },
+        type: "telegram",
+        isActive: true,
+        status: "connected",
+      },
+    }).then(async (telegramChannel) => {
+      if (!telegramChannel) return;
+      const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
+      if (!cfg.providerChatId || !cfg.botToken) return;
+
+      const questionPreview = question ? `\n\n*Question:* ${question.slice(0, 500)}${question.length > 500 ? "…" : ""}` : "";
+      const msg = `🦞 *New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
+
+      await sendMessage(cfg.botToken, cfg.providerChatId, msg);
+    }).catch((err) => {
+      console.error("[help/route] Telegram notify failed:", err);
     });
 
     // Debug logging — show what was stored

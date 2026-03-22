@@ -7,6 +7,8 @@ export interface TelegramConfig {
   botToken: string;
   botUsername?: string;
   webhookSecret?: string;
+  /** The provider's own Telegram chat ID (captured when they send /start) */
+  providerChatId?: string;
 }
 
 export type ChannelType = "openclaw" | "telegram";

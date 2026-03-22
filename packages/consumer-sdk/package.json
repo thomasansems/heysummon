@@ -16,12 +16,14 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@types/node": "^25.5.0",
+    "msw": "^2.0.0",
     "typescript": "^5.0.0",
-    "vitest": "^3.0.0",
-    "msw": "^2.0.0"
+    "vitest": "^3.0.0"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "license": "MIT"
 }

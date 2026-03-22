@@ -83,13 +83,15 @@ All communication flows through the platform API. E2E encryption is handled serv
 |--------|---------|
 | `setup.sh` | Start the platform event watcher (pm2/nohup) |
 | `teardown.sh` | Stop the watcher |
-| `platform-watcher.sh` | Polling listener → sends notifications via OpenClaw |
-| `submit-request.sh` | Submit a help request |
-| `add-provider.sh` | Register a provider |
-| `list-providers.sh` | List registered providers |
-| `check-status.sh` | Check request status |
-| `crypto.mjs` | E2E encryption: keygen, encrypt, decrypt |
+| `platform-watcher.sh` | Thin wrapper → SDK CLI watch + notify.sh |
+| `notify.sh` | OpenClaw-specific notification delivery (hooks/agent, Telegram) |
+| `submit-request.sh` | Submit a help request (via SDK CLI) |
+| `add-provider.sh` | Register a provider (via SDK CLI) |
+| `list-providers.sh` | List registered providers (via SDK CLI) |
+| `check-status.sh` | Check request status (via SDK CLI) |
 | `auto-sync.sh` | Git auto-sync (cron job) |
+
+> **Note:** E2E crypto, request tracking, provider resolution, and polling are now handled by the shared consumer SDK at `packages/consumer-sdk/`. The `crypto.mjs` script has been replaced by the SDK crypto module.
 
 ## Usage
 

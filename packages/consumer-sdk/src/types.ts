@@ -27,7 +27,12 @@ export interface SubmitRequestResult {
 }
 
 export interface PendingEvent {
-  type: "new_request" | "new_message";
+  type:
+    | "new_request"
+    | "new_message"
+    | "keys_exchanged"
+    | "responded"
+    | "closed";
   requestId: string;
   refCode: string | null;
   from?: "provider" | "consumer";
@@ -49,6 +54,20 @@ export interface Message {
   signature: string;
   messageId: string;
   createdAt: string;
+  plaintext?: string;
+}
+
+export interface RequestStatusResponse {
+  requestId: string;
+  refCode: string | null;
+  status: string;
+  response?: string;
+  lastMessage?: string;
+  question?: string;
+  providerName?: string;
+  provider?: { id: string; name: string };
+  createdAt?: string;
+  expiresAt?: string;
 }
 
 export interface HeySummonClientOptions {

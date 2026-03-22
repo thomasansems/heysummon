@@ -122,15 +122,41 @@ describe("HeySummonClient", () => {
     expect(result.messages[0].from).toBe("provider");
   });
 
-  it("getRequestStatus() returns status object", async () => {
+  it("getRequestStatus() returns flat status object", async () => {
     server.use(
       http.get(`${BASE}/api/v1/help/req1`, () =>
-        HttpResponse.json({ request: { status: "responded", refCode: "HS-TEST" } })
+        HttpResponse.json({
+          requestId: "req1",
+          status: "responded",
+          refCode: "HS-TEST",
+          response: "Yes, do it",
+        })
       )
     );
 
     const result = await client().getRequestStatus("req1");
-    expect(result.request.status).toBe("responded");
+    expect(result.status).toBe("responded");
+    expect(result.refCode).toBe("HS-TEST");
+    expect(result.response).toBe("Yes, do it");
+  });
+
+  it("getRequestByRef() returns request by ref code", async () => {
+    server.use(
+      http.get(`${BASE}/api/v1/requests/by-ref/HS-TEST`, () =>
+        HttpResponse.json({
+          requestId: "req1",
+          status: "responded",
+          refCode: "HS-TEST",
+          question: "Should I?",
+          provider: { id: "prov1", name: "Thomas" },
+        })
+      )
+    );
+
+    const result = await client().getRequestByRef("HS-TEST");
+    expect(result.requestId).toBe("req1");
+    expect(result.question).toBe("Should I?");
+    expect(result.provider?.name).toBe("Thomas");
   });
 
   it("throws descriptive error on non-OK response", async () => {

@@ -5,6 +5,7 @@ import type {
   Message,
   WhoamiResult,
   HeySummonClientOptions,
+  RequestStatusResponse,
 } from "./types.js";
 
 /**
@@ -79,9 +80,22 @@ export class HeySummonClient {
   }
 
   /** Get the current status of a help request */
-  async getRequestStatus(requestId: string): Promise<{
-    request: { status: string; refCode: string | null };
-  }> {
-    return this.request("GET", `/api/v1/help/${requestId}`);
+  async getRequestStatus(
+    requestId: string
+  ): Promise<RequestStatusResponse> {
+    return this.request<RequestStatusResponse>(
+      "GET",
+      `/api/v1/help/${requestId}`
+    );
+  }
+
+  /** Look up a request by its ref code */
+  async getRequestByRef(
+    refCode: string
+  ): Promise<RequestStatusResponse> {
+    return this.request<RequestStatusResponse>(
+      "GET",
+      `/api/v1/requests/by-ref/${refCode}`
+    );
   }
 }

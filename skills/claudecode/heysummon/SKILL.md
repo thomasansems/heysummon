@@ -33,6 +33,19 @@ bash $SKILL_DIR/scripts/ask.sh "Is this the right approach?" '[{"role":"user","c
 
 The script **blocks and returns the human's answer** on stdout. Read the response and continue accordingly.
 
+## Other commands
+
+```bash
+# Add a provider
+bash $SKILL_DIR/scripts/add-provider.sh "hs_cli_key" "FriendlyName"
+
+# List registered providers
+bash $SKILL_DIR/scripts/list-providers.sh
+
+# Check request status
+bash $SKILL_DIR/scripts/check-status.sh <refCode|requestId>
+```
+
 ## Handling responses
 
 - **Normal response**: The provider's answer is returned on stdout. Use it to continue your work.
@@ -52,14 +65,14 @@ Claude Code
     |
     +- bash ask.sh "question" "" "ProviderName"
     |       |
-    |       +- POST /api/v1/help  -> HeySummon platform
-    |       |                         |
-    |       |                     Provider notified (Telegram/WhatsApp)
-    |       |                         |
+    |       +- SDK CLI submit-and-poll  -> HeySummon platform
+    |       |                               |
+    |       |                           Provider notified (Telegram/WhatsApp)
+    |       |                               |
     |       +- polls GET /api/v1/help/:id  (every 3s, up to 15 min)
-    |       |                         |
-    |       |                     Human responds
-    |       |                         |
+    |       |                               |
+    |       |                           Human responds
+    |       |                               |
     |       +- returns response to Claude Code stdout
     |
     +- Claude Code reads response and continues

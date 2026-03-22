@@ -2,7 +2,14 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateCallTwiml, generateNoInputTwiml, getPhoneFirstConfig } from "@/lib/adapters/twilio-voice";
+import {
+  generateCallTwiml,
+  generateNoInputTwiml,
+  validateTwilioWebhook,
+  parseFormParams,
+} from "@/lib/adapters/twilio-voice";
+
+const DEBUG = process.env.DEBUG === "true";
 
 /**
  * POST /api/integrations/twilio/voice/:requestId/twiml
@@ -11,10 +18,21 @@ import { generateCallTwiml, generateNoInputTwiml, getPhoneFirstConfig } from "@/
  * Returns TwiML that reads the question and gathers the provider's response.
  */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ requestId: string }> }
 ) {
   const { requestId } = await params;
+
+  // Parse form data once — used for both signature validation and business logic
+  const formData = await request.formData();
+  const formParams = parseFormParams(formData);
+
+  // Validate Twilio webhook signature
+  const path = `/api/integrations/twilio/voice/${requestId}/twiml`;
+  const validation = await validateTwilioWebhook(request, requestId, formParams, path);
+  if (!validation.valid) {
+    return NextResponse.json({ error: validation.error }, { status: 403 });
+  }
 
   const helpRequest = await prisma.helpRequest.findUnique({
     where: { id: requestId },
@@ -23,9 +41,6 @@ export async function POST(
       questionPreview: true,
       question: true,
       refCode: true,
-      apiKey: {
-        select: { providerId: true },
-      },
     },
   });
 
@@ -38,16 +53,13 @@ export async function POST(
   // Use questionPreview (plaintext) for TTS — question field may be encrypted
   const questionText = helpRequest.questionPreview || "A new help request has been submitted. Please check your dashboard for details.";
 
-  // Get language from provider config
-  let language = "en-US";
-  if (helpRequest.apiKey.providerId) {
-    const config = await getPhoneFirstConfig(helpRequest.apiKey.providerId);
-    if (config?.providerConfig.voiceLanguage) {
-      language = config.providerConfig.voiceLanguage;
-    }
-  }
+  const twiml = generateCallTwiml(requestId, questionText);
 
-  const twiml = generateCallTwiml(requestId, questionText, language);
+  if (DEBUG) {
+    console.log(`[twilio/twiml] requestId=${requestId} refCode=${helpRequest.refCode}`);
+    console.log(`[twilio/twiml] questionText="${questionText}"`);
+    console.log(`[twilio/twiml] generated TwiML:\n${twiml}`);
+  }
 
   return new NextResponse(twiml, {
     headers: { "Content-Type": "application/xml" },

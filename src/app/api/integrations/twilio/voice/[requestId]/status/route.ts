@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendMessage } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
+import { validateTwilioWebhook, parseFormParams } from "@/lib/adapters/twilio-voice";
+
+const DEBUG = process.env.DEBUG === "true";
 
 /**
  * POST /api/integrations/twilio/voice/:requestId/status
@@ -18,8 +21,21 @@ export async function POST(
   const { requestId } = await params;
 
   const formData = await request.formData();
-  const callStatus = formData.get("CallStatus") as string | null;
-  const callSid = formData.get("CallSid") as string | null;
+  const formParams = parseFormParams(formData);
+
+  // Validate Twilio webhook signature
+  const path = `/api/integrations/twilio/voice/${requestId}/status`;
+  const validation = await validateTwilioWebhook(request, requestId, formParams, path);
+  if (!validation.valid) {
+    return NextResponse.json({ error: validation.error }, { status: 403 });
+  }
+
+  const callStatus = formParams["CallStatus"] || null;
+  const callSid = formParams["CallSid"] || null;
+
+  if (DEBUG) {
+    console.log(`[twilio/status] requestId=${requestId}`, JSON.stringify(formParams, null, 2));
+  }
 
   if (!callStatus) {
     return NextResponse.json({ ok: true });
@@ -38,6 +54,10 @@ export async function POST(
   };
 
   const mappedStatus = statusMap[callStatus] || callStatus;
+
+  if (DEBUG) {
+    console.log(`[twilio/status] CallSid=${callSid} raw="${callStatus}" mapped="${mappedStatus}"`);
+  }
 
   // Update the call status
   await prisma.helpRequest.update({

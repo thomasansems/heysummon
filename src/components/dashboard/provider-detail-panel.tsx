@@ -201,7 +201,6 @@ export function ProviderDetailPanel({
   const [providerIntConfigs, setProviderIntConfigs] = useState<ProviderIntConfig[]>([]);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [twilioPhoneNumber, setTwilioPhoneNumber] = useState("");
-  const [voiceLanguage, setVoiceLanguage] = useState("en-US");
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneSaved, setPhoneSaved] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -260,7 +259,6 @@ export function ProviderDetailPanel({
           const parsed = JSON.parse(existingCfg.config);
           setPhoneNumber(parsed.phoneNumber || "");
           setTwilioPhoneNumber(parsed.twilioPhoneNumber || "");
-          setVoiceLanguage(parsed.voiceLanguage || "en-US");
         } catch { /* ignore */ }
       }
     }
@@ -343,7 +341,6 @@ export function ProviderDetailPanel({
           config: {
             phoneNumber: phoneNumber.trim(),
             twilioPhoneNumber: twilioPhoneNumber.trim(),
-            voiceLanguage,
           },
         }),
       });
@@ -627,18 +624,6 @@ export function ProviderDetailPanel({
                           placeholder="+15551234567"
                           className="font-mono text-sm"
                         />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground mb-1.5 block">Voice language</Label>
-                        <select
-                          value={voiceLanguage}
-                          onChange={(e) => setVoiceLanguage(e.target.value)}
-                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
-                        >
-                          {["en-US", "en-GB", "nl-NL", "de-DE", "fr-FR", "es-ES", "pt-BR", "ja-JP", "ko-KR", "zh-CN"].map((lang) => (
-                            <option key={lang} value={lang}>{lang}</option>
-                          ))}
-                        </select>
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground mb-1.5 block">

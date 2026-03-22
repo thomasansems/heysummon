@@ -27,13 +27,14 @@ export interface SubmitRequestResult {
 }
 
 export interface PendingEvent {
-  type: "new_request" | "new_message";
+  type: "new_request" | "new_message" | "cancelled";
   requestId: string;
   refCode: string | null;
   from?: "provider" | "consumer";
   messageCount?: number;
   respondedAt?: string | null;
   latestMessageAt?: string | null;
+  cancelledAt?: string | null;
   question?: string | null;
   requiresApproval?: boolean;
   createdAt?: string;

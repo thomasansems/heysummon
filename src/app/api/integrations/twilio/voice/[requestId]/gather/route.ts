@@ -2,11 +2,14 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+
+const DEBUG = process.env.DEBUG === "true";
 import {
   parseGatherResult,
   generateThankYouTwiml,
   generateNoInputTwiml,
-  getPhoneFirstConfig,
+  validateTwilioWebhook,
+  parseFormParams,
 } from "@/lib/adapters/twilio-voice";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
@@ -24,9 +27,23 @@ export async function POST(
 
   // Parse Twilio's form-encoded body
   const formData = await request.formData();
-  const speechResult = formData.get("SpeechResult") as string | null;
-  const digits = formData.get("Digits") as string | null;
-  const callSid = formData.get("CallSid") as string | null;
+  const formParams = parseFormParams(formData);
+
+  // Validate Twilio webhook signature
+  const path = `/api/integrations/twilio/voice/${requestId}/gather`;
+  const validation = await validateTwilioWebhook(request, requestId, formParams, path);
+  if (!validation.valid) {
+    return NextResponse.json({ error: validation.error }, { status: 403 });
+  }
+
+  const speechResult = formParams["SpeechResult"] || null;
+  const digits = formParams["Digits"] || null;
+  const callSid = formParams["CallSid"] || null;
+
+  if (DEBUG) {
+    console.log(`[twilio/gather] requestId=${requestId}`, JSON.stringify(formParams, null, 2));
+    console.log(`[twilio/gather] SpeechResult="${speechResult}" Digits="${digits}" CallSid=${callSid}`);
+  }
 
   const helpRequest = await prisma.helpRequest.findUnique({
     where: { id: requestId },
@@ -34,7 +51,6 @@ export async function POST(
       id: true,
       status: true,
       requiresApproval: true,
-      apiKey: { select: { providerId: true } },
     },
   });
 
@@ -58,6 +74,10 @@ export async function POST(
   // Parse the provider's response
   const result = parseGatherResult(speechResult, digits);
 
+  if (DEBUG) {
+    console.log(`[twilio/gather] parsed response: type="${result.type}" text="${result.response}"`);
+  }
+
   // Store the phone response
   const updateData: Record<string, unknown> = {
     phoneCallStatus: "completed",
@@ -67,9 +87,12 @@ export async function POST(
   // If approval workflow: set approval decision
   if (helpRequest.requiresApproval && (result.type === "approve" || result.type === "deny")) {
     updateData.approvalDecision = result.type === "approve" ? "approved" : "denied";
+    updateData.status = "responded";
+    updateData.respondedAt = new Date();
+    updateData.response = result.response;
   }
 
-  // If text response, transition to responded
+  // If text response or non-approval workflow, transition to responded
   if (result.type === "text" || !helpRequest.requiresApproval) {
     updateData.status = "responded";
     updateData.respondedAt = new Date();
@@ -95,16 +118,7 @@ export async function POST(
     },
   });
 
-  // Get language for TTS
-  let language = "en-US";
-  if (helpRequest.apiKey.providerId) {
-    const config = await getPhoneFirstConfig(helpRequest.apiKey.providerId);
-    if (config?.providerConfig.voiceLanguage) {
-      language = config.providerConfig.voiceLanguage;
-    }
-  }
-
-  return new NextResponse(generateThankYouTwiml(language), {
+  return new NextResponse(generateThankYouTwiml(), {
     headers: { "Content-Type": "application/xml" },
   });
 }

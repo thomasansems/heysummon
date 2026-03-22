@@ -154,6 +154,10 @@ while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
 let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
   try {
     const j = JSON.parse(d);
+    if (j.status === 'cancelled') {
+      process.stdout.write('CANCELLED');
+      process.exit(0);
+    }
     if (j.status === 'responded' || j.status === 'closed') {
       // Direct response field (set by Telegram webhook)
       if (j.response) {
@@ -167,6 +171,11 @@ let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
 
   if [ $? -eq 0 ] && [ -n "$ANSWER" ]; then
     echo "" >&2
+    if [ "$ANSWER" = "CANCELLED" ]; then
+      echo "Request cancelled [${REF_CODE:-$REQUEST_ID}]" >&2
+      echo "CANCELLED: The request was cancelled by the provider."
+      exit 2
+    fi
     echo "Human responded [${REF_CODE:-$REQUEST_ID}]" >&2
     echo "$ANSWER"
     exit 0

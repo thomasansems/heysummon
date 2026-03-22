@@ -22,6 +22,7 @@ const routeLabels: Record<string, string> = {
   keys: "API Keys",
   "audit-logs": "Audit Logs",
   settings: "Settings",
+  integrations: "Integrations",
 };
 
 export function PageHeader() {

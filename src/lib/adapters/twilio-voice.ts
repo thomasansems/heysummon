@@ -109,6 +109,8 @@ export async function verifyTwilioCredentials(
  *
  * Returns the Twilio Call SID or null if the call could not be placed.
  */
+const DEBUG = process.env.DEBUG === "true";
+
 export async function initiateProviderCall(
   requestId: string,
   questionText: string,
@@ -119,12 +121,19 @@ export async function initiateProviderCall(
   try {
     const client = twilio(systemConfig.accountSid, systemConfig.authToken);
     const baseUrl = getPublicBaseUrl();
-    const language = providerConfig.voiceLanguage || "en-US";
 
     // TwiML URL: Twilio will fetch this to get instructions for the call
     const twimlUrl = `${baseUrl}/api/integrations/twilio/voice/${requestId}/twiml`;
     // Status callback: Twilio calls this when call status changes
     const statusCallback = `${baseUrl}/api/integrations/twilio/voice/${requestId}/status`;
+
+    if (DEBUG) {
+      console.log(`[twilio/initiate] requestId=${requestId}`);
+      console.log(`[twilio/initiate] to=${providerConfig.phoneNumber} from=${providerConfig.twilioPhoneNumber} timeout=${timeoutSeconds}s`);
+      console.log(`[twilio/initiate] twimlUrl=${twimlUrl}`);
+      console.log(`[twilio/initiate] statusCallback=${statusCallback}`);
+      console.log(`[twilio/initiate] questionText="${questionText}"`);
+    }
 
     const call = await client.calls.create({
       to: providerConfig.phoneNumber,
@@ -147,6 +156,10 @@ export async function initiateProviderCall(
       },
     });
 
+    if (DEBUG) {
+      console.log(`[twilio/initiate] call placed successfully: CallSid=${call.sid} status=${call.status}`);
+    }
+
     return { callSid: call.sid };
   } catch (err) {
     console.error("[twilio-voice] Failed to initiate call:", err);
@@ -157,14 +170,15 @@ export async function initiateProviderCall(
 /**
  * Generate TwiML for the provider call.
  * Reads the question, then gathers speech/DTMF input.
+ * Language is always en-US for consistent speech recognition and TTS.
  */
 export function generateCallTwiml(
   requestId: string,
   questionText: string,
-  language: string = "en-US"
 ): string {
   const baseUrl = getPublicBaseUrl();
   const gatherUrl = `${baseUrl}/api/integrations/twilio/voice/${requestId}/gather`;
+  const lang = "en-US";
 
   // Escape XML special characters in question text
   const escapedQuestion = questionText
@@ -176,24 +190,24 @@ export function generateCallTwiml(
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="${language}">You have a new help request from Hey Summon.</Say>
+  <Say language="${lang}">You have a new help request from Hey Summon.</Say>
   <Pause length="1"/>
-  <Say language="${language}">The question is: ${escapedQuestion}</Say>
+  <Say language="${lang}">The question is: ${escapedQuestion}</Say>
   <Pause length="1"/>
-  <Gather input="speech dtmf" timeout="15" speechTimeout="auto" action="${gatherUrl}" method="POST" language="${language}">
-    <Say language="${language}">Please speak your response, or press 1 to approve, or press 2 to deny. You can also provide a detailed spoken response.</Say>
+  <Gather input="speech dtmf" timeout="15" speechTimeout="auto" action="${gatherUrl}" method="POST" language="${lang}">
+    <Say language="${lang}">Please speak your response, or press 1 to approve, or press 2 to deny. You can also provide a detailed spoken response.</Say>
   </Gather>
-  <Say language="${language}">I did not receive a response. The request will be routed to your chat channel. Goodbye.</Say>
+  <Say language="${lang}">I did not receive a response. The request will be routed to your chat channel. Goodbye.</Say>
 </Response>`;
 }
 
 /**
  * Generate TwiML for after the provider gives a response.
  */
-export function generateThankYouTwiml(language: string = "en-US"): string {
+export function generateThankYouTwiml(): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="${language}">Thank you. Your response has been collected and will be sent to the client. Goodbye.</Say>
+  <Say language="en-US">Thank you. Your response has been collected and will be sent to the client. Goodbye.</Say>
   <Hangup/>
 </Response>`;
 }
@@ -201,10 +215,10 @@ export function generateThankYouTwiml(language: string = "en-US"): string {
 /**
  * Generate TwiML for when no input was received.
  */
-export function generateNoInputTwiml(language: string = "en-US"): string {
+export function generateNoInputTwiml(): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="${language}">No response was received. The request will be forwarded to your chat channel. Goodbye.</Say>
+  <Say language="en-US">No response was received. The request will be forwarded to your chat channel. Goodbye.</Say>
   <Hangup/>
 </Response>`;
 }
@@ -252,6 +266,72 @@ export function parseGatherResult(
   }
 
   return { response: "", type: "text" };
+}
+
+/**
+ * Retrieve the Twilio auth token for a help request (used for webhook signature validation).
+ */
+export async function getAuthTokenForHelpRequest(requestId: string): Promise<string | null> {
+  const helpRequest = await prisma.helpRequest.findUnique({
+    where: { id: requestId },
+    select: { apiKey: { select: { providerId: true } } },
+  });
+
+  if (!helpRequest?.apiKey?.providerId) return null;
+
+  const config = await getPhoneFirstConfig(helpRequest.apiKey.providerId);
+  if (!config) return null;
+
+  return config.systemConfig.authToken;
+}
+
+/**
+ * Validate that an incoming webhook request was genuinely sent by Twilio.
+ *
+ * In production: always enforced. Rejects missing or invalid signatures.
+ * In development: validates if X-Twilio-Signature header is present, skips otherwise.
+ */
+export async function validateTwilioWebhook(
+  request: Request,
+  requestId: string,
+  params: Record<string, string>,
+  path: string,
+): Promise<{ valid: true } | { valid: false; error: string }> {
+  const signature = request.headers.get("X-Twilio-Signature");
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // In dev without a signature header, skip validation for local testing
+  if (!signature && !isProduction) {
+    return { valid: true };
+  }
+
+  if (!signature) {
+    return { valid: false, error: "Missing Twilio signature" };
+  }
+
+  const authToken = await getAuthTokenForHelpRequest(requestId);
+  if (!authToken) {
+    // Can't look up credentials — reject in prod, allow in dev
+    return isProduction
+      ? { valid: false, error: "Could not verify request origin" }
+      : { valid: true };
+  }
+
+  const url = `${getPublicBaseUrl()}${path}`;
+  const isValid = twilio.validateRequest(authToken, signature, url, params);
+
+  return isValid
+    ? { valid: true }
+    : { valid: false, error: "Invalid Twilio signature" };
+}
+
+/**
+ * Parse form data from a Twilio webhook POST into a plain object.
+ */
+export function parseFormParams(formData: FormData): Record<string, string> {
+  const params: Record<string, string> = {};
+  formData.forEach((value, key) => { params[key] = String(value); });
+  return params;
 }
 
 /**

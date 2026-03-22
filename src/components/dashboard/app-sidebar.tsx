@@ -19,6 +19,7 @@ import {
   Sun,
   ChevronUp,
   UserCog,
+  Plug,
 } from "lucide-react";
 import {
   Sidebar,
@@ -50,6 +51,7 @@ const mainNav = [
 const providerNav = [
   { label: "Providers", href: "/dashboard/providers", icon: Users },
   { label: "Clients", href: "/dashboard/clients", icon: Building2 },
+  { label: "Integrations", href: "/dashboard/integrations", icon: Plug },
 ];
 
 const adminNav = [

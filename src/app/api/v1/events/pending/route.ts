@@ -192,7 +192,7 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
   return NextResponse.json({ events: mapped });
 }
 
-/** Consumer: return requests that have new provider messages */
+/** Consumer: return requests that have new provider messages or direct phone responses */
 async function handleConsumerPending(clientKey: { id: string; userId: string }) {
   // Fire-and-forget heartbeat — enables connection verification without blocking the response
   prisma.apiKey.update({
@@ -203,11 +203,19 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
   const requests = await prisma.helpRequest.findMany({
     where: {
       apiKeyId: clientKey.id,
-      status: { in: ["pending", "active", "responded"] },
       expiresAt: { gt: new Date() },
-      messageHistory: {
-        some: { from: "provider" },
-      },
+      OR: [
+        // Message-based responses (via chat channels)
+        {
+          status: { in: ["pending", "active", "responded"] },
+          messageHistory: { some: { from: "provider" } },
+        },
+        // Direct responses (via phone/Twilio) — no messageHistory entry
+        {
+          status: "responded",
+          response: { not: null },
+        },
+      ],
     },
     select: {
       id: true,
@@ -227,10 +235,18 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
     take: 50,
   });
 
-  // Only include requests with provider messages newer than the consumer's last ACK
+  // Only include requests with new data since the consumer's last ACK
   const filtered = requests.filter((r) => {
     const latestMsg = r.messageHistory[0];
-    if (!latestMsg) return false;
+
+    // Direct phone response without message history
+    if (!latestMsg) {
+      if (r.status !== "responded") return false;
+      if (!r.consumerDeliveredAt) return true; // never ACKed — show it
+      return !!r.respondedAt && r.respondedAt > r.consumerDeliveredAt;
+    }
+
+    // Message-based response
     if (!r.consumerDeliveredAt) return true; // never ACKed — show it
     return latestMsg.createdAt > r.consumerDeliveredAt; // new message since last ACK
   });
@@ -242,20 +258,52 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
     from: "provider" as const,
     messageCount: r._count.messageHistory,
     respondedAt: r.respondedAt?.toISOString() || null,
-    latestMessageAt: r.messageHistory[0]?.createdAt.toISOString() || null,
+    latestMessageAt: r.messageHistory[0]?.createdAt.toISOString() || r.respondedAt?.toISOString() || null,
   }));
+
+  // Fetch cancelled requests not yet acknowledged by the consumer
+  const cancelledRequests = await prisma.helpRequest.findMany({
+    where: {
+      apiKeyId: clientKey.id,
+      status: "cancelled",
+      closedAt: { not: null },
+    },
+    select: {
+      id: true,
+      refCode: true,
+      closedAt: true,
+      consumerDeliveredAt: true,
+    },
+    orderBy: { closedAt: "desc" },
+    take: 20,
+  });
+
+  const cancelledMapped = cancelledRequests
+    .filter((r) => {
+      if (!r.closedAt) return false;
+      if (!r.consumerDeliveredAt) return true; // never ACKed
+      return r.closedAt > r.consumerDeliveredAt; // cancelled after last ACK
+    })
+    .map((r) => ({
+      type: "cancelled" as const,
+      requestId: r.id,
+      refCode: r.refCode,
+      cancelledAt: r.closedAt!.toISOString(),
+    }));
+
+  const allEvents = [...mapped, ...cancelledMapped];
 
   if (DEBUG) {
     console.log("[GET /api/v1/events/pending] Consumer poll:", {
       clientKeyId: clientKey.id,
-      eventCount: mapped.length,
-      events: mapped.map((e) => ({
+      eventCount: allEvents.length,
+      events: allEvents.map((e) => ({
         requestId: e.requestId,
         refCode: e.refCode,
-        latestMessageAt: e.latestMessageAt,
+        type: e.type,
       })),
     });
   }
 
-  return NextResponse.json({ events: mapped });
+  return NextResponse.json({ events: allEvents });
 }

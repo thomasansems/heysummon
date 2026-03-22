@@ -280,6 +280,17 @@ export default function IntegrationsPage() {
 
             {createType === "twilio" && (
               <>
+                <p className="text-xs text-muted-foreground">
+                  Need help finding these?{" "}
+                  <a
+                    href="/docs/guides/twilio"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    Read the Twilio setup guide →
+                  </a>
+                </p>
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1.5 block">Account SID</Label>
                   <Input

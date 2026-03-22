@@ -166,6 +166,9 @@ process_event() {
           case 'closed':
             console.log('🔒 Conversatie '+ref+' gesloten');
             break;
+          case 'cancelled':
+            console.log('❌ Verzoek '+ref+' is geannuleerd door de provider');
+            break;
           default:
             console.log('🦞 HeySummon event ('+type+') voor '+ref);
         }

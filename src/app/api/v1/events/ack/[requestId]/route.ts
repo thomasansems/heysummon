@@ -23,22 +23,34 @@ export async function POST(
     return NextResponse.json({ error: "Missing x-api-key" }, { status: 401 });
   }
 
-  // Validate provider key
+  // Validate provider key OR client key
+  let userId: string | null = null;
+  let helpRequestFilter: Record<string, unknown> = { id: requestId };
+
   const provider = await prisma.userProfile.findFirst({
     where: { key: apiKey, isActive: true },
     select: { id: true, userId: true },
   });
 
-  if (!provider) {
-    return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
+  if (provider) {
+    userId = provider.userId;
+    helpRequestFilter.expertId = provider.userId;
+  } else {
+    // Try client key
+    const clientKey = await prisma.apiKey.findFirst({
+      where: { key: apiKey, isActive: true },
+      select: { id: true, userId: true },
+    });
+    if (!clientKey) {
+      return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
+    }
+    userId = clientKey.userId;
+    helpRequestFilter.apiKeyId = clientKey.id;
   }
 
-  // Find the request and verify it belongs to this provider
+  // Find the request and verify ownership
   const helpRequest = await prisma.helpRequest.findFirst({
-    where: {
-      id: requestId,
-      expertId: provider.userId,
-    },
+    where: helpRequestFilter,
     select: { id: true, refCode: true, deliveredAt: true },
   });
 
@@ -55,7 +67,7 @@ export async function POST(
 
     logAuditEvent({
       eventType: AuditEventTypes.NOTIFICATION_DELIVERED,
-      userId: provider.userId,
+      userId,
       success: true,
       metadata: {
         requestId,

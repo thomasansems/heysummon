@@ -41,17 +41,30 @@ export async function GET(
       );
     }
 
-    // Return encrypted message blobs
-    const messages = helpRequest.messageHistory.map((msg) => ({
-      id: msg.id,
-      from: msg.from,
-      ciphertext: msg.ciphertext,
-      iv: msg.iv,
-      authTag: msg.authTag,
-      signature: msg.signature,
-      messageId: msg.messageId,
-      createdAt: msg.createdAt.toISOString(),
-    }));
+    // Return message blobs — decode plaintext Telegram replies inline
+    const messages = helpRequest.messageHistory.map((msg) => {
+      const isPlaintext = msg.iv === "plaintext" && msg.ciphertext.startsWith("plaintext:");
+      if (isPlaintext) {
+        const text = Buffer.from(msg.ciphertext.slice("plaintext:".length), "base64").toString("utf-8");
+        return {
+          id: msg.id,
+          from: msg.from,
+          plaintext: text,
+          messageId: msg.messageId,
+          createdAt: msg.createdAt.toISOString(),
+        };
+      }
+      return {
+        id: msg.id,
+        from: msg.from,
+        ciphertext: msg.ciphertext,
+        iv: msg.iv,
+        authTag: msg.authTag,
+        signature: msg.signature,
+        messageId: msg.messageId,
+        createdAt: msg.createdAt.toISOString(),
+      };
+    });
 
     return NextResponse.json({
       requestId,

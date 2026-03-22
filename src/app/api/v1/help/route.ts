@@ -243,14 +243,12 @@ export async function POST(request: Request) {
       },
     });
 
-    // Push Telegram notification to provider (fire-and-forget, non-blocking)
+    // Push Telegram notification to the linked provider only (fire-and-forget, non-blocking)
+    const telegramQuery = key.providerId
+      ? { profileId: key.providerId, type: "telegram" as const, isActive: true, status: "connected" }
+      : { profileId: { in: (await prisma.userProfile.findMany({ where: { userId: key.userId }, select: { id: true } })).map(p => p.id) }, type: "telegram" as const, isActive: true, status: "connected" };
     prisma.channelProvider.findFirst({
-      where: {
-        profileId: { in: (await prisma.userProfile.findMany({ where: { userId: key.userId }, select: { id: true } })).map(p => p.id) },
-        type: "telegram",
-        isActive: true,
-        status: "connected",
-      },
+      where: telegramQuery,
     }).then(async (telegramChannel) => {
       if (!telegramChannel) return;
       const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;

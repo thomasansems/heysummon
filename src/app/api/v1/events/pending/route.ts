@@ -122,6 +122,8 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
   const requests = await prisma.helpRequest.findMany({
     where: {
       expertId: provider.userId,
+      // Only return requests from clients linked to THIS specific provider
+      apiKey: { providerId: provider.id },
       deliveredAt: null,
       status: { in: ["pending", "active"] },
       expiresAt: { gt: new Date() },

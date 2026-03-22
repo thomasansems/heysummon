@@ -12,6 +12,8 @@ interface SetupFlowProps {
   providerName: string;
   /** JWT expiry timestamp (seconds since epoch) */
   expiresAt: number;
+  /** Server-side bound check — skip rendering credentials entirely */
+  initialBound?: boolean;
 }
 
 type OpenClawStep = "install" | "add-provider" | "watcher" | "hook" | "connected";
@@ -30,6 +32,7 @@ export default function SetupFlow({
   subChannel,
   providerName,
   expiresAt,
+  initialBound = false,
 }: SetupFlowProps) {
   const isOpenClaw = channel === "openclaw";
   const totalSteps = isOpenClaw ? 5 : 3; // hook step only for openclaw
@@ -37,8 +40,8 @@ export default function SetupFlow({
   // Check JWT expiry (24h TTL)
   const expired = Date.now() / 1000 > expiresAt;
 
-  // Bound status — auto-disables when first device binds
-  const [bound, setBound] = useState(false);
+  // Bound status — server-side initial check + client-side polling
+  const [bound, setBound] = useState(initialBound);
 
   useEffect(() => {
     if (expired || bound) return;

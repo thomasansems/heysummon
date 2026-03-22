@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import jwt from "jsonwebtoken";
+import { prisma } from "@/lib/prisma";
 import SetupFlow from "./SetupFlow";
 
 interface SetupPayload {
@@ -22,6 +23,14 @@ async function verifyToken(token: string): Promise<SetupPayload | null> {
   }
 }
 
+async function isKeyBound(keyId: string): Promise<boolean> {
+  const boundIp = await prisma.ipEvent.findFirst({
+    where: { apiKeyId: keyId, status: "allowed" },
+    select: { id: true },
+  });
+  return !!boundIp;
+}
+
 export default async function SetupPage({
   params,
 }: {
@@ -35,6 +44,8 @@ export default async function SetupPage({
   }
 
   const providerName = payload.providerName ?? "your provider";
+  const expired = Date.now() / 1000 > payload.exp;
+  const bound = !expired && await isKeyBound(payload.keyId);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -46,22 +57,25 @@ export default async function SetupPage({
             <span className="text-3xl">🦞</span>
             <h1 className="text-2xl font-bold text-white">HeySummon Setup</h1>
           </div>
-          <p className="text-sm text-zinc-400">
-            You&apos;ve been invited to connect to{" "}
-            <span className="font-medium text-white">&quot;{providerName}&quot;</span>.
-            Follow the steps below — your credentials are already pre-filled.
-          </p>
+          {!bound && !expired && (
+            <p className="text-sm text-zinc-400">
+              You&apos;ve been invited to connect to{" "}
+              <span className="font-medium text-white">&quot;{providerName}&quot;</span>.
+              Follow the steps below — your credentials are already pre-filled.
+            </p>
+          )}
         </div>
 
-        {/* Interactive setup flow (Client Component) */}
+        {/* Interactive setup flow (Client Component) — credentials only passed when not bound */}
         <SetupFlow
           keyId={payload.keyId}
-          apiKey={payload.key}
-          baseUrl={payload.baseUrl}
+          apiKey={bound ? "" : payload.key}
+          baseUrl={bound ? "" : payload.baseUrl}
           channel={payload.channel}
           subChannel={payload.subChannel}
           providerName={providerName}
           expiresAt={payload.exp}
+          initialBound={bound}
         />
 
         <div className="mt-10 text-center text-xs text-zinc-600">

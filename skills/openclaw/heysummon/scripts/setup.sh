@@ -6,6 +6,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WATCHER="$SCRIPT_DIR/platform-watcher.sh"
 NAME="heysummon-watcher"
+SDK_DIR="${HEYSUMMON_SDK_DIR:-$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)/packages/consumer-sdk}"
 
 if ! [ -f "$WATCHER" ]; then
   echo "❌ platform-watcher.sh not found in $SCRIPT_DIR" >&2
@@ -21,14 +22,8 @@ SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 KEY_DIR="${HEYSUMMON_KEY_DIR:-$SKILL_DIR/.keys}"
 if [ ! -f "$KEY_DIR/sign_public.pem" ]; then
   echo "⚠️ No keypairs found. Generating in $KEY_DIR..."
-  CRYPTO="$SCRIPT_DIR/crypto.mjs"
-  if [ -f "$CRYPTO" ]; then
-    node "$CRYPTO" keygen "$KEY_DIR"
-    echo "✅ Keypairs generated in $KEY_DIR"
-  else
-    echo "❌ crypto.mjs not found — generate keys manually: node crypto.mjs keygen $KEY_DIR" >&2
-    exit 1
-  fi
+  npx tsx "$SDK_DIR/src/cli.ts" keygen --dir "$KEY_DIR" >/dev/null
+  echo "✅ Keypairs generated in $KEY_DIR"
 fi
 
 # Ensure active-requests directory exists

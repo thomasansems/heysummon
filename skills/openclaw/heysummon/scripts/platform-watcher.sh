@@ -1,13 +1,18 @@
 #!/bin/bash
 # HeySummon Consumer Watcher — HTTP polling for pending events
-# Polls GET /api/v1/events/pending for real-time event notifications
-# Listens on all active request topics automatically (server-side)
+# Thin wrapper around the SDK CLI watch command.
+# OpenClaw-specific notification logic lives in notify.sh.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SDK_DIR="${HEYSUMMON_SDK_DIR:-$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)/packages/consumer-sdk}"
+
 [ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
 
-BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3445}"
+export HEYSUMMON_BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3445}"
+export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
+export HEYSUMMON_REQUESTS_DIR="${HEYSUMMON_REQUESTS_DIR:-$SKILL_DIR/.requests}"
+export HEYSUMMON_POLL_INTERVAL="${HEYSUMMON_POLL_INTERVAL:-5}"
 
 # Load API keys from providers.json (multi-provider support)
 # HEYSUMMON_API_KEY is no longer used — add providers via add-provider.sh

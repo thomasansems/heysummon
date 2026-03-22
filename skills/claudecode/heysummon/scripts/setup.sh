@@ -1,18 +1,19 @@
 #!/bin/bash
 # HeySummon Claude Code Skill — Setup
-# Creates .env with API key and base URL
+# Creates .env with API key and base URL, then registers provider
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SDK_DIR="${HEYSUMMON_SDK_DIR:-$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)/packages/consumer-sdk}"
 ENV_FILE="$SKILL_DIR/.env"
 
 echo ""
-echo "🦞 HeySummon — Claude Code Skill Setup"
+echo "HeySummon — Claude Code Skill Setup"
 echo "======================================="
 echo ""
 
 if [ -f "$ENV_FILE" ]; then
-  echo "⚠️  .env already exists at: $ENV_FILE"
+  echo "Warning: .env already exists at: $ENV_FILE"
   read -p "Overwrite? (y/N): " OVERWRITE
   if [[ "$OVERWRITE" != "y" && "$OVERWRITE" != "Y" ]]; then
     echo "Setup cancelled."
@@ -28,13 +29,13 @@ BASE_URL="${INPUT_URL:-$DEFAULT_URL}"
 # API Key
 echo ""
 echo "Get your client API key from:"
-echo "  Dashboard → Clients → Create client key"
+echo "  Dashboard -> Clients -> Create client key"
 echo "  (Keys start with hs_cli_...)"
 echo ""
 read -p "API key (hs_cli_...): " API_KEY
 
 if [ -z "$API_KEY" ]; then
-  echo "❌ API key is required."
+  echo "API key is required."
   exit 1
 fi
 
@@ -46,12 +47,12 @@ VALIDATE=$(curl -s -o /dev/null -w "%{http_code}" \
   "$BASE_URL/api/v1/events/pending" 2>/dev/null)
 
 if [ "$VALIDATE" = "200" ] || [ "$VALIDATE" = "204" ]; then
-  echo "✅ API key valid"
+  echo "API key valid"
 elif [ "$VALIDATE" = "401" ]; then
-  echo "❌ Invalid API key (401). Check your key and try again."
+  echo "Invalid API key (401). Check your key and try again."
   exit 1
 else
-  echo "⚠️  Could not validate (HTTP $VALIDATE) — saving anyway. Check your BASE_URL."
+  echo "Could not validate (HTTP $VALIDATE) — saving anyway. Check your BASE_URL."
 fi
 
 # Write .env
@@ -63,7 +64,20 @@ HEYSUMMON_POLL_INTERVAL=3
 EOF
 
 echo ""
-echo "✅ Saved to: $ENV_FILE"
+echo "Saved to: $ENV_FILE"
+
+# Auto-register provider via SDK CLI
+echo ""
+echo "Registering provider..."
+export HEYSUMMON_BASE_URL="$BASE_URL"
+export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
+npx tsx "$SDK_DIR/src/cli.ts" add-provider --key "$API_KEY" 2>/dev/null && echo "" || echo "Provider registration skipped (non-fatal)."
+
+# Auto-start the response watcher (so late responses are captured)
+echo ""
+echo "Starting response watcher..."
+bash "$SCRIPT_DIR/setup-watcher.sh" start
+
 echo ""
 echo "Add this to your CLAUDE.md or AGENTS.md:"
 echo ""
@@ -73,4 +87,10 @@ echo "  \`\`\`"
 echo "  bash $SKILL_DIR/scripts/ask.sh \"Your question\""
 echo "  \`\`\`"
 echo "  Wait for the response before continuing."
+echo ""
+echo "  For async (non-blocking) mode:"
+echo "  \`\`\`"
+echo "  bash $SKILL_DIR/scripts/ask.sh --async \"Your question\""
+echo "  bash $SKILL_DIR/scripts/ask.sh --check  # check for responses later"
+echo "  \`\`\`"
 echo ""

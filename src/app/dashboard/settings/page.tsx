@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
-import { Globe, Wifi, WifiOff, Copy, Check, FlaskConical, ShieldCheck, AlertTriangle, Cloud, Shield, Download, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Globe, Wifi, WifiOff, Copy, Check, FlaskConical, ShieldCheck, AlertTriangle, Cloud, Shield, Download, Trash2, Users } from "lucide-react";
 
 interface IpEvent {
   id: string;
@@ -56,6 +56,12 @@ export default function SettingsPage() {
     consents: { type: string; granted: boolean; grantedAt: string | null; revokedAt: string | null }[];
   } | null>(null);
   const [consentSaving, setConsentSaving] = useState<string | null>(null);
+
+  // Entity export state
+  const [entityExportTarget, setEntityExportTarget] = useState("");
+  const [entityExportLoading, setEntityExportLoading] = useState(false);
+  const [entityExportDone, setEntityExportDone] = useState(false);
+  const [exportEntities, setExportEntities] = useState<{ type: string; id: string; label: string }[]>([]);
 
   // Tunnel state
   const [tunnel, setTunnel] = useState<{
@@ -201,6 +207,21 @@ export default function SettingsPage() {
       .then((data) => setConsent(data))
       .catch(() => {});
 
+    // Fetch providers + clients for entity export selector
+    fetch("/api/providers")
+      .then((r) => r.json())
+      .then((data) => {
+        const entities: { type: string; id: string; label: string }[] = [];
+        for (const p of data.providers || []) {
+          entities.push({ type: "provider", id: p.id, label: `Provider: ${p.name}` });
+          for (const k of p.apiKeys || []) {
+            entities.push({ type: "client", id: k.id, label: `Client: ${k.name || "Unnamed"}` });
+          }
+        }
+        setExportEntities(entities);
+      })
+      .catch(() => {});
+
     fetchProviderIpEvents();
   }, [fetchProviderIpEvents]);
 
@@ -257,6 +278,32 @@ export default function SettingsPage() {
       setTimeout(() => setExportDone(false), 3000);
     }
     setExportLoading(false);
+  };
+
+  const exportEntityData = async () => {
+    if (!entityExportTarget) return;
+    setEntityExportLoading(true);
+    setEntityExportDone(false);
+    const [type, id] = entityExportTarget.split(":");
+    const res = await fetch("/api/admin/gdpr/export-entity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, id }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const entity = exportEntities.find((e) => `${e.type}:${e.id}` === entityExportTarget);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `heysummon-${type}-export-${entity?.label.replace(/[^a-zA-Z0-9]/g, "-") || id}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setEntityExportDone(true);
+      setTimeout(() => setEntityExportDone(false), 3000);
+    }
+    setEntityExportLoading(false);
   };
 
   const updateConsent = async (consentType: string, granted: boolean) => {
@@ -576,36 +623,30 @@ export default function SettingsPage() {
           <div className="space-y-4">
             {/* Main GDPR toggle */}
             <div className="rounded-lg border border-border bg-card p-6">
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-medium text-foreground">GDPR Mode</h3>
-                <span className={`ml-auto text-xs font-medium px-2 py-0.5 rounded-full ${
-                  gdpr.enabled
-                    ? "bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300"
-                    : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                }`}>
-                  {gdpr.enabled ? "Enabled" : "Disabled"}
-                </span>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="font-serif text-base font-semibold text-foreground">GDPR Mode</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleGdpr("enabled", gdpr.enabled)}
+                  disabled={gdprSaving}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${
+                    gdpr.enabled ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
+                  }`}
+                  aria-pressed={gdpr.enabled}
+                >
+                  <span className="sr-only">{gdpr.enabled ? "Enabled" : "Disabled"}</span>
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${gdpr.enabled ? "translate-x-5" : "translate-x-0.5"}`} />
+                </button>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Enable GDPR compliance for EU users. This activates IP anonymization in audit logs, configurable data retention, user consent management, and data export/deletion rights.
               </p>
 
-              <button
-                onClick={() => toggleGdpr("enabled", gdpr.enabled)}
-                disabled={gdprSaving}
-                className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
-                  gdpr.enabled
-                    ? "border border-border text-foreground hover:bg-muted"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
-                }`}
-              >
-                {gdpr.enabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                {gdprSaving ? "Saving..." : gdpr.enabled ? "Disable GDPR Mode" : "Enable GDPR Mode"}
-              </button>
-
               {gdpr.enabled && (
-                <div className="mt-4 rounded-md border border-border bg-muted/40 p-3 flex gap-2.5">
+                <div className="rounded-md border border-border bg-muted/40 p-3 flex gap-2.5">
                   <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
                   <div className="text-xs text-muted-foreground space-y-1">
                     <p className="font-medium text-foreground">GDPR protections active</p>
@@ -619,74 +660,96 @@ export default function SettingsPage() {
             {/* GDPR Settings (only when enabled) */}
             {gdpr.enabled && (
               <>
-                {/* IP Anonymization & Retention */}
+                {/* Data Protection Settings */}
                 <div className="rounded-lg border border-border bg-card p-6">
-                  <h3 className="mb-4 text-sm font-medium text-foreground">Data Protection Settings</h3>
-                  <div className="space-y-4">
+                  <h3 className="font-serif text-base font-semibold text-foreground mb-4">Data Protection Settings</h3>
+                  <div className="space-y-5">
                     {/* IP Anonymization toggle */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm text-foreground">IP Anonymization</p>
-                        <p className="text-xs text-muted-foreground">Zero last octet of IPv4 addresses in audit logs</p>
+                        <p className="text-sm font-medium text-foreground">IP Anonymization</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Zeroes the last octet of IPv4 addresses (e.g. 192.168.1.105 becomes 192.168.1.0) and the last 80 bits of IPv6 addresses in all audit logs. Device-binding IPs remain intact as they are necessary for security under GDPR Art. 6(1)(f) — legitimate interest.</p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => toggleGdpr("anonymizeIps", gdpr.anonymizeIps)}
                         disabled={gdprSaving}
-                        className={`relative h-6 w-11 rounded-full transition-colors ${gdpr.anonymizeIps ? "bg-green-500" : "bg-zinc-300 dark:bg-zinc-600"}`}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${
+                          gdpr.anonymizeIps ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
+                        }`}
+                        aria-pressed={gdpr.anonymizeIps}
                       >
-                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${gdpr.anonymizeIps ? "translate-x-5" : "translate-x-0.5"}`} />
+                        <span className="sr-only">{gdpr.anonymizeIps ? "Enabled" : "Disabled"}</span>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${gdpr.anonymizeIps ? "translate-x-5" : "translate-x-0.5"}`} />
                       </button>
                     </div>
 
                     {/* Require Consent toggle */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm text-foreground">Require User Consent</p>
-                        <p className="text-xs text-muted-foreground">Users must explicitly opt-in to data processing</p>
+                        <p className="text-sm font-medium text-foreground">Require User Consent</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">When enabled, users must explicitly opt-in before their data is processed. Required by GDPR Art. 7 — consent must be freely given, specific, informed, and unambiguous. Without this toggle, data processing relies on legitimate interest (Art. 6(1)(f)) instead.</p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => toggleGdpr("requireConsent", gdpr.requireConsent)}
                         disabled={gdprSaving}
-                        className={`relative h-6 w-11 rounded-full transition-colors ${gdpr.requireConsent ? "bg-green-500" : "bg-zinc-300 dark:bg-zinc-600"}`}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${
+                          gdpr.requireConsent ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
+                        }`}
+                        aria-pressed={gdpr.requireConsent}
                       >
-                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${gdpr.requireConsent ? "translate-x-5" : "translate-x-0.5"}`} />
+                        <span className="sr-only">{gdpr.requireConsent ? "Enabled" : "Disabled"}</span>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${gdpr.requireConsent ? "translate-x-5" : "translate-x-0.5"}`} />
                       </button>
                     </div>
 
                     {/* Allow Data Export toggle */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm text-foreground">Allow Data Export</p>
-                        <p className="text-xs text-muted-foreground">Users can download all their data (Art. 15)</p>
+                        <p className="text-sm font-medium text-foreground">Allow Data Export</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Enables the right of access under GDPR Art. 15. Users can download a machine-readable copy of all personal data stored in the system, including help requests, messages, audit logs, and account information.</p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => toggleGdpr("allowDataExport", gdpr.allowDataExport)}
                         disabled={gdprSaving}
-                        className={`relative h-6 w-11 rounded-full transition-colors ${gdpr.allowDataExport ? "bg-green-500" : "bg-zinc-300 dark:bg-zinc-600"}`}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${
+                          gdpr.allowDataExport ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
+                        }`}
+                        aria-pressed={gdpr.allowDataExport}
                       >
-                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${gdpr.allowDataExport ? "translate-x-5" : "translate-x-0.5"}`} />
+                        <span className="sr-only">{gdpr.allowDataExport ? "Enabled" : "Disabled"}</span>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${gdpr.allowDataExport ? "translate-x-5" : "translate-x-0.5"}`} />
                       </button>
                     </div>
 
                     {/* Allow Data Deletion toggle */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm text-foreground">Allow Data Deletion</p>
-                        <p className="text-xs text-muted-foreground">Users can request account erasure (Art. 17)</p>
+                        <p className="text-sm font-medium text-foreground">Allow Data Deletion</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Enables the right to erasure under GDPR Art. 17 (the &quot;right to be forgotten&quot;). Users can request permanent deletion of their account and all associated data. This action is irreversible and cascades through all related records.</p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => toggleGdpr("allowDataDeletion", gdpr.allowDataDeletion)}
                         disabled={gdprSaving}
-                        className={`relative h-6 w-11 rounded-full transition-colors ${gdpr.allowDataDeletion ? "bg-green-500" : "bg-zinc-300 dark:bg-zinc-600"}`}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${
+                          gdpr.allowDataDeletion ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
+                        }`}
+                        aria-pressed={gdpr.allowDataDeletion}
                       >
-                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${gdpr.allowDataDeletion ? "translate-x-5" : "translate-x-0.5"}`} />
+                        <span className="sr-only">{gdpr.allowDataDeletion ? "Enabled" : "Disabled"}</span>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${gdpr.allowDataDeletion ? "translate-x-5" : "translate-x-0.5"}`} />
                       </button>
                     </div>
 
                     {/* Retention Days */}
                     <div className="border-t border-border pt-4">
-                      <label className="mb-1 block text-sm text-foreground">Data Retention Period</label>
-                      <p className="text-xs text-muted-foreground mb-2">Records older than this are automatically deleted.</p>
+                      <label className="mb-1 block text-sm font-medium text-foreground">Data Retention Period</label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Under GDPR Art. 5(1)(e), personal data must not be kept longer than necessary. Records older than this period are automatically and permanently deleted, including help requests, messages, and associated audit logs.
+                      </p>
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
@@ -709,8 +772,10 @@ export default function SettingsPage() {
 
                     {/* Privacy Policy URL */}
                     <div className="border-t border-border pt-4">
-                      <label className="mb-1 block text-sm text-foreground">Privacy Policy URL</label>
-                      <p className="text-xs text-muted-foreground mb-2">Link to your privacy policy (shown to users).</p>
+                      <label className="mb-1 block text-sm font-medium text-foreground">Privacy Policy URL</label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        GDPR Art. 13 and 14 require you to inform data subjects about how their data is processed. This URL is shown to users so they can review your full privacy policy.
+                      </p>
                       <div className="flex items-center gap-2">
                         <input
                           type="url"
@@ -731,77 +796,162 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* User Consent */}
+                {/* User Consent Preferences */}
                 {consent && (
                   <div className="rounded-lg border border-border bg-card p-6">
-                    <h3 className="mb-1 text-sm font-medium text-foreground">Your Consent Preferences</h3>
-                    <p className="mb-4 text-xs text-muted-foreground">
-                      Manage what data processing you consent to. You can opt in or out at any time.
+                    <h3 className="font-serif text-base font-semibold text-foreground mb-1">Your Consent Preferences</h3>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      Under GDPR Art. 7, you have the right to withdraw consent at any time. Toggling a consent off does not affect the lawfulness of processing performed before withdrawal.
                     </p>
-                    <div className="space-y-3">
-                      {consent.consents.map((c) => (
-                        <div key={c.type} className="flex items-center justify-between rounded-md border border-border p-3">
-                          <div>
-                            <p className="text-sm text-foreground capitalize">
-                              {c.type.replace(/_/g, " ")}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {c.granted
-                                ? `Granted${c.grantedAt ? ` on ${new Date(c.grantedAt).toLocaleDateString()}` : ""}`
-                                : c.revokedAt
-                                  ? `Revoked on ${new Date(c.revokedAt).toLocaleDateString()}`
-                                  : "Not yet granted"}
-                            </p>
+                    <div className="space-y-5">
+                      {consent.consents.map((c) => {
+                        const descriptions: Record<string, { title: string; description: string; legal: string }> = {
+                          data_processing: {
+                            title: "Data Processing",
+                            description: "Allows HeySummon to store and process your help requests, messages, provider responses, and associated metadata (timestamps, reference codes, approval decisions). This is the core functionality that enables the question-and-answer workflow between clients and providers.",
+                            legal: "Legal basis: Art. 6(1)(a) GDPR — consent, or Art. 6(1)(b) — necessary for the performance of the service you have requested.",
+                          },
+                          communications: {
+                            title: "Communications",
+                            description: "Allows HeySummon to send you notifications about help requests via your configured channels (email, Telegram, phone calls). This includes new request alerts, response notifications, and status updates. Without this consent, you will not receive real-time notifications about incoming requests.",
+                            legal: "Legal basis: Art. 6(1)(a) GDPR — consent. You can opt out at any time without affecting the core service.",
+                          },
+                          analytics: {
+                            title: "Analytics",
+                            description: "Allows HeySummon to collect anonymous usage metrics such as response times, request volumes, and feature usage patterns. This data is used to improve the service, identify performance bottlenecks, and plan capacity. No personally identifiable information is included in analytics when IP anonymization is enabled.",
+                            legal: "Legal basis: Art. 6(1)(f) GDPR — legitimate interest in improving the service, balanced against your right to privacy through anonymization.",
+                          },
+                        };
+                        const info = descriptions[c.type] || {
+                          title: c.type.replace(/_/g, " "),
+                          description: "Controls data processing for this category.",
+                          legal: "Legal basis: Art. 6(1)(a) GDPR — consent.",
+                        };
+                        return (
+                          <div key={c.type} className="rounded-md border border-border p-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-foreground">{info.title}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{info.description}</p>
+                                <p className="text-xs text-muted-foreground/70 mt-1 italic">{info.legal}</p>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {c.granted
+                                    ? `Granted${c.grantedAt ? ` on ${new Date(c.grantedAt).toLocaleDateString()}` : ""}`
+                                    : c.revokedAt
+                                      ? `Revoked on ${new Date(c.revokedAt).toLocaleDateString()}`
+                                      : "Not yet granted"}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => updateConsent(c.type, !c.granted)}
+                                disabled={consentSaving === c.type}
+                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${
+                                  c.granted ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
+                                }`}
+                                aria-pressed={c.granted}
+                              >
+                                <span className="sr-only">{c.granted ? "Granted" : "Revoked"}</span>
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${c.granted ? "translate-x-5" : "translate-x-0.5"}`} />
+                              </button>
+                            </div>
                           </div>
-                          <button
-                            onClick={() => updateConsent(c.type, !c.granted)}
-                            disabled={consentSaving === c.type}
-                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                              c.granted
-                                ? "border border-border text-foreground hover:bg-muted"
-                                : "bg-primary text-primary-foreground hover:bg-primary/90"
-                            }`}
-                          >
-                            {consentSaving === c.type ? "..." : c.granted ? "Revoke" : "Grant"}
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* Data Export & Deletion */}
+                {/* Data Rights */}
                 <div className="rounded-lg border border-border bg-card p-6">
-                  <h3 className="mb-1 text-sm font-medium text-foreground">Your Data Rights</h3>
-                  <p className="mb-4 text-xs text-muted-foreground">
-                    Under GDPR, you have the right to access (Art. 15) and erase (Art. 17) your personal data.
+                  <h3 className="font-serif text-base font-semibold text-foreground mb-1">Your Data Rights</h3>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Under GDPR, you have the right to access (Art. 15) and erase (Art. 17) your personal data. You can also export data for any client or provider in the system.
                   </p>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      onClick={exportMyData}
-                      disabled={exportLoading}
-                      className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted disabled:opacity-50"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      {exportLoading ? "Exporting..." : exportDone ? "Downloaded!" : "Export My Data"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to delete all your data? This action is irreversible.")) {
-                          fetch("/api/gdpr/data-request", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ type: "deletion", confirm: true }),
-                          }).then(() => {
-                            window.location.href = "/";
-                          });
-                        }
-                      }}
-                      className="flex items-center gap-1.5 rounded-md border border-red-200 dark:border-red-800 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete My Account
-                    </button>
+
+                  {/* Export own data */}
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-1">Export my data</p>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Downloads a JSON file containing all your personal data: account info, provider profiles, API keys, help requests, messages, and audit logs.
+                      </p>
+                      <button
+                        onClick={exportMyData}
+                        disabled={exportLoading}
+                        className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted disabled:opacity-50"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        {exportLoading ? "Exporting..." : exportDone ? "Downloaded!" : "Export My Data"}
+                      </button>
+                    </div>
+
+                    {/* Export client/provider data */}
+                    <div className="border-t border-border pt-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground">Export client or provider data</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Select a client or provider to export all their associated data. For clients, this includes all help requests submitted through that API key, messages, and interaction history. For providers, this includes their profile, linked clients, handled requests, and response history.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={entityExportTarget}
+                          onChange={(e) => setEntityExportTarget(e.target.value)}
+                          className="flex-1 max-w-sm rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                        >
+                          <option value="">Select client or provider...</option>
+                          {exportEntities.filter((e) => e.type === "provider").length > 0 && (
+                            <optgroup label="Providers">
+                              {exportEntities.filter((e) => e.type === "provider").map((e) => (
+                                <option key={`${e.type}:${e.id}`} value={`${e.type}:${e.id}`}>{e.label}</option>
+                              ))}
+                            </optgroup>
+                          )}
+                          {exportEntities.filter((e) => e.type === "client").length > 0 && (
+                            <optgroup label="Clients">
+                              {exportEntities.filter((e) => e.type === "client").map((e) => (
+                                <option key={`${e.type}:${e.id}`} value={`${e.type}:${e.id}`}>{e.label}</option>
+                              ))}
+                            </optgroup>
+                          )}
+                        </select>
+                        <button
+                          onClick={exportEntityData}
+                          disabled={entityExportLoading || !entityExportTarget}
+                          className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted disabled:opacity-50"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {entityExportLoading ? "Exporting..." : entityExportDone ? "Downloaded!" : "Export"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Delete account */}
+                    <div className="border-t border-border pt-4">
+                      <p className="text-sm font-medium text-foreground mb-1">Delete my account</p>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Permanently deletes your account and all associated data. This action is irreversible and will remove all provider profiles, API keys, help requests, messages, and audit logs.
+                      </p>
+                      <button
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to delete all your data? This action is irreversible.")) {
+                            fetch("/api/gdpr/data-request", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ type: "deletion", confirm: true }),
+                            }).then(() => {
+                              window.location.href = "/";
+                            });
+                          }
+                        }}
+                        className="flex items-center gap-1.5 rounded-md border border-red-200 dark:border-red-800 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete My Account
+                      </button>
+                    </div>
                   </div>
                 </div>
               </>

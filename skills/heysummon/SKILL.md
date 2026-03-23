@@ -1,7 +1,8 @@
 ---
 name: heysummon
-description: Ask a human expert for help via HeySummon. Use when you need approval, are stuck, or need human judgment. Sends a question to a registered provider and returns their response.
+description: Ask a human expert for help via HeySummon. Use when you need approval, are stuck, or need human judgment. Triggers on "hey summon <name>" or "heysummon <name> <question>". Sends the question and returns the response.
 argument-hint: "<name> <question>"
+allowed-tools: "Bash(bash *scripts/*.sh*), Bash(node *scripts/*.js*), Read, Grep"
 license: SEE LICENSE IN LICENSE.md
 ---
 

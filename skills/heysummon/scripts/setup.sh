@@ -1,15 +1,25 @@
 #!/bin/bash
 # HeySummon — Skill Setup
 # Creates .env with API key and base URL, registers provider, starts watcher.
+# Auto-detects platform (OpenClaw vs Claude Code) and runs appropriate setup.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/sdk.sh"
 ENV_FILE="$SKILL_DIR/.env"
 
+# --- Platform detection ---
+# OpenClaw: ~/.openclaw/ exists or OPENCLAW_HOME is set
+# Claude Code: default fallback
+PLATFORM="claudecode"
+if [ -d "$HOME/.openclaw" ] || [ -n "$OPENCLAW_HOME" ]; then
+  PLATFORM="openclaw"
+fi
+
 echo ""
 echo "HeySummon — Skill Setup"
 echo "======================="
+echo "Platform: $PLATFORM"
 echo ""
 
 if [ -f "$ENV_FILE" ]; then
@@ -69,10 +79,16 @@ export HEYSUMMON_BASE_URL="$BASE_URL"
 export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
 $SDK_CLI add-provider --key "$API_KEY" 2>/dev/null && echo "" || echo "Provider registration skipped (non-fatal)."
 
-# Start watcher
-echo ""
-echo "Starting response watcher..."
-bash "$SCRIPT_DIR/setup-watcher.sh" start
+# --- Platform-specific watcher setup ---
+if [ "$PLATFORM" = "openclaw" ]; then
+  echo ""
+  echo "Running OpenClaw setup (keypairs, hooks, watcher)..."
+  bash "$SCRIPT_DIR/openclaw-setup.sh"
+else
+  echo ""
+  echo "Starting Claude Code response watcher..."
+  bash "$SCRIPT_DIR/setup-watcher.sh" start
+fi
 
 echo ""
 echo "Setup complete. Use HeySummon:"

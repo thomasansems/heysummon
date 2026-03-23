@@ -2,6 +2,8 @@
 name: heysummon
 description: Ask a human expert for help via HeySummon. Use when you need approval, are stuck, or need human judgment. Triggers on "hey summon <name>" or "heysummon <name> <question>". Sends the question and returns the response.
 argument-hint: "<name> <question>"
+allowed-tools: "Bash(bash *scripts/*.sh*), Bash(node *scripts/*.js*), Read, Grep"
+license: SEE LICENSE IN LICENSE.md
 ---
 
 # HeySummon — Human in the Loop
@@ -62,7 +64,7 @@ bash $SKILL_DIR/scripts/setup-watcher.sh status
 ## Handling responses
 
 - **Normal response**: The provider's answer is returned on stdout. Use it to continue your work.
-- **`PROVIDER_UNAVAILABLE`**: The provider is not available right now. Continue with your best judgment or pause.
+- **Provider unavailable**: The request is queued and will be delivered when the provider comes online. Keep waiting for the response.
 - **`TIMEOUT`**: No response within 15 minutes. The watcher will capture it later — check with `ask.sh --check`.
 
 ## Rules

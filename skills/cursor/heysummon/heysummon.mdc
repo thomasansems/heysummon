@@ -61,7 +61,7 @@ bash scripts/setup-watcher.sh status
 ## Handling responses
 
 - **Normal response**: The provider's answer is returned on stdout. Use it to continue your work.
-- **`PROVIDER_UNAVAILABLE`**: The provider is not available right now. Continue with your best judgment or pause.
+- **Provider unavailable**: The request is queued and will be delivered when the provider comes online. Keep waiting for the response.
 - **`TIMEOUT`**: No response within 15 minutes. The watcher will capture it later — check with `ask.sh --check`.
 
 ## Rules

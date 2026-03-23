@@ -130,7 +130,7 @@ model ApiKey {
   previousKeyExpiresAt DateTime?                           // 24h grace window
   allowedIps           String?                             // comma-separated CIDR/IPs
   rateLimitPerMinute   Int           @default(150)
-  clientChannel        String?       // "openclaw" | "claudecode"
+  clientChannel        String?       // "openclaw" | "claudecode" | "codex" | "gemini" | "cursor"
   clientSubChannel     String?       // "telegram" | "whatsapp" (only for openclaw)
   lastPollAt           DateTime?     // Updated on every /api/v1/events/pending call — used for connection verification
   requests             HelpRequest[]
@@ -219,6 +219,9 @@ model HelpRequest {
   phoneCallStatus        String?   // "initiated" | "ringing" | "answered" | "completed" | "no-answer" | "busy" | "failed"
   phoneCallResponse      String?   // Plaintext response collected from phone call
   phoneCallAt            DateTime? // When the call was initiated
+
+  // Provider notification tracking
+  notifiedProviderAt     DateTime? // When provider was notified (null = deferred due to unavailability)
 
   // Channel adapter fields
   channelProviderId      String?

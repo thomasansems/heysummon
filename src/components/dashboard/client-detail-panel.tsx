@@ -43,6 +43,9 @@ const channelLabel = (channel: string | null, sub: string | null) => {
   if (channel === "claudecode") return { label: "Claude Code", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300" };
   if (channel === "openclaw" && sub === "whatsapp") return { label: "OpenClaw · WhatsApp", color: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" };
   if (channel === "openclaw") return { label: "OpenClaw · Telegram", color: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" };
+  if (channel === "codex") return { label: "Codex CLI", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" };
+  if (channel === "gemini") return { label: "Gemini CLI", color: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300" };
+  if (channel === "cursor") return { label: "Cursor", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300" };
   return null;
 };
 
@@ -297,14 +300,17 @@ export function ClientDetailPanel({
           ) : (
             <>
               <p className="text-sm text-muted-foreground mb-4">
-                Generate a 10-minute link with credentials and setup instructions to send to your client.
+                Generate a setup link with credentials and instructions. Valid for 24 hours or until a device binds.
               </p>
               {setupLink ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 rounded-md border border-border px-3 py-2.5">
                     <span className="flex-1 truncate font-mono text-xs text-foreground">{setupLink.url}</span>
-                    <Button variant="ghost" size="sm" onClick={() => copyVal(setupLink.url)}>
-                      {copied === setupLink.url ? "Copied" : "Copy"}
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      const msg = `Please follow these personal HeySummon setup instructions:\n${setupLink.url}`;
+                      copyVal(msg);
+                    }}>
+                      {copied?.includes(setupLink.url) ? "Copied" : "Copy"}
                     </Button>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">

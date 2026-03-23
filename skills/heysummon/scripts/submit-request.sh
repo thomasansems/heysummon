@@ -43,8 +43,7 @@ echo "Your question has been sent to the provider."
 echo "Ref: $REF_CODE"
 
 if [ "$PROVIDER_UNAVAILABLE" = "true" ]; then
-  echo "The provider is not available right now."
-  echo "Your request is queued and will be delivered when they come online."
+  echo "Provider currently unavailable — request queued, waiting for response when they come online."
 else
   echo "Waiting for provider response..."
 fi

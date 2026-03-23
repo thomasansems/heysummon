@@ -12,7 +12,7 @@ const SETUP_LINK_TTL_SECONDS = 24 * 60 * 60; // 24 hours
  * Generates a time-limited (24h) signed setup URL for a client key.
  * The URL expires after 24 hours, but auto-disables when the first device binds.
  *
- * Body: { keyId: string, channel: "openclaw" | "claudecode", subChannel?: "telegram" | "whatsapp" }
+ * Body: { keyId: string, channel: "openclaw" | "claudecode" | "codex" | "gemini" | "cursor", subChannel?: "telegram" | "whatsapp" }
  * Auth: dashboard user (must own the key)
  */
 export async function POST(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const { keyId, channel, subChannel } = body as {
     keyId: string;
-    channel: "openclaw" | "claudecode";
+    channel: "openclaw" | "claudecode" | "codex" | "gemini" | "cursor";
     subChannel?: "telegram" | "whatsapp";
   };
 

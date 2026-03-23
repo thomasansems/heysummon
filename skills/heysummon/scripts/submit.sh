@@ -53,8 +53,7 @@ if [ -z "$REQUEST_ID" ]; then
 fi
 
 if [ "$PROVIDER_UNAVAILABLE" = "true" ]; then
-  echo "PROVIDER_UNAVAILABLE: No human available right now. Try again later."
-  exit 0
+  echo "Provider currently unavailable — request queued, waiting for response when they come online."
 fi
 
 PENDING_DIR="$SKILL_DIR/pending"

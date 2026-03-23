@@ -62,6 +62,7 @@ function log(msg) {
 
 /**
  * Simple HTTP(S) JSON request — zero dependencies
+ * Returns { status, data } so callers can inspect HTTP status codes
  */
 function apiRequest(method, urlPath, body) {
   return new Promise((resolve, reject) => {
@@ -86,11 +87,13 @@ function apiRequest(method, urlPath, body) {
       let chunks = '';
       res.on('data', (c) => (chunks += c));
       res.on('end', () => {
+        let data;
         try {
-          resolve(JSON.parse(chunks));
+          data = JSON.parse(chunks);
         } catch {
-          resolve(chunks);
+          data = chunks;
         }
+        resolve({ status: res.statusCode, data });
       });
     });
     req.on('error', reject);
@@ -117,6 +120,46 @@ function loadPending() {
     .filter(Boolean);
 }
 
+// Persistent auth error tracking — auto-shutdown after 30 min
+const AUTH_SHUTDOWN_MS = 30 * 60 * 1000;
+let authErrorFirstAt = null;
+let authErrorCount = 0;
+
+function checkAuthShutdown(httpStatus, detail) {
+  if (httpStatus === 401 || httpStatus === 403 || httpStatus === 404) {
+    if (!authErrorFirstAt) {
+      authErrorFirstAt = Date.now();
+      authErrorCount = 1;
+      log(`Auth error (HTTP ${httpStatus}). Will retry...`);
+    } else {
+      authErrorCount++;
+      const elapsed = Date.now() - authErrorFirstAt;
+      if (elapsed >= AUTH_SHUTDOWN_MS) {
+        const mins = Math.round(elapsed / 60000);
+        log(`FATAL: Persistent auth error (HTTP ${httpStatus}) for ${mins} minutes (${authErrorCount} attempts).`);
+        log(`Detail: ${typeof detail === 'object' ? JSON.stringify(detail) : detail}`);
+        log('');
+        log('══════════════════════════════════════════════════════');
+        log('  HeySummon watcher shutting down');
+        log('');
+        log(`  The server has returned HTTP ${httpStatus} for ${mins} minutes.`);
+        log('  This usually means the API key was deleted or');
+        log('  deactivated on the HeySummon platform.');
+        log('');
+        log('  To fix: ask your provider for a new setup link,');
+        log('  then re-run the setup to get fresh credentials.');
+        log('══════════════════════════════════════════════════════');
+        process.exit(1);
+      }
+    }
+    return true; // was an auth error
+  }
+  // Success or non-auth error — clear the streak
+  authErrorFirstAt = null;
+  authErrorCount = 0;
+  return false;
+}
+
 /**
  * Check if a pending request has a response and write it to inbox
  */
@@ -125,7 +168,10 @@ async function checkRequest(pending) {
 
   try {
     // Check status endpoint
-    const status = await apiRequest('GET', `/api/v1/help/${requestId}`);
+    const { status: httpStatus, data: status } = await apiRequest('GET', `/api/v1/help/${requestId}`);
+
+    // Track auth errors for auto-shutdown
+    if (checkAuthShutdown(httpStatus, status)) return false;
 
     if (status.status === 'responded' || status.status === 'closed') {
       let response = status.response || '';
@@ -133,7 +179,7 @@ async function checkRequest(pending) {
       // If no direct response field, check messages for plaintext
       if (!response) {
         try {
-          const msgData = await apiRequest('GET', `/api/v1/messages/${requestId}`);
+          const { data: msgData } = await apiRequest('GET', `/api/v1/messages/${requestId}`);
           const msgs = msgData.messages || [];
           const providerMsg = msgs.filter((m) => m.from === 'provider').pop();
           if (providerMsg) {

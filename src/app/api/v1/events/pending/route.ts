@@ -33,24 +33,34 @@ export async function GET(request: NextRequest) {
 
   // Try client key (ApiKey)
   const clientKey = await prisma.apiKey.findFirst({
-    where: { key: apiKey, isActive: true },
-    select: { id: true, userId: true, lastPollAt: true },
+    where: { key: apiKey },
+    select: { id: true, userId: true, lastPollAt: true, isActive: true },
   });
 
-  if (clientKey) {
-    // Log first-ever connection (when lastPollAt was null before this call)
-    if (!clientKey.lastPollAt) {
-      logAuditEvent({
-        eventType: AuditEventTypes.CONSUMER_CONNECTED,
-        userId: clientKey.userId,
-        apiKeyId: clientKey.id,
-        metadata: { firstConnection: true },
-      }).catch(() => {});
-    }
-    return handleConsumerPending(clientKey);
+  if (!clientKey) {
+    return NextResponse.json(
+      { error: "API key not found", code: "KEY_NOT_FOUND" },
+      { status: 404 }
+    );
   }
 
-  return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
+  if (!clientKey.isActive) {
+    return NextResponse.json(
+      { error: "API key has been deactivated", code: "KEY_DEACTIVATED" },
+      { status: 403 }
+    );
+  }
+
+  // Log first-ever connection (when lastPollAt was null before this call)
+  if (!clientKey.lastPollAt) {
+    logAuditEvent({
+      eventType: AuditEventTypes.CONSUMER_CONNECTED,
+      userId: clientKey.userId,
+      apiKeyId: clientKey.id,
+      metadata: { firstConnection: true },
+    }).catch(() => {});
+  }
+  return handleConsumerPending(clientKey);
 }
 
 /**

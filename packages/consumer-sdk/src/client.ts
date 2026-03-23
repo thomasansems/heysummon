@@ -8,6 +8,22 @@ import type {
   RequestStatusResponse,
 } from "./types.js";
 
+/** HTTP error with status code for callers to inspect */
+export class HeySummonHttpError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly statusText: string,
+    public readonly body: string
+  ) {
+    super(`HTTP ${status}: ${statusText} — ${body}`);
+    this.name = "HeySummonHttpError";
+  }
+
+  get isAuthError(): boolean {
+    return this.status === 401 || this.status === 403 || this.status === 404;
+  }
+}
+
 /**
  * Typed HTTP client for the HeySummon consumer API.
  * Each method is a thin wrapper around fetch that includes the x-api-key header.
@@ -37,7 +53,7 @@ export class HeySummonClient {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "(no body)");
-      throw new Error(`${method} ${path} → ${res.status}: ${text}`);
+      throw new HeySummonHttpError(res.status, res.statusText, text);
     }
 
     return res.json() as Promise<T>;

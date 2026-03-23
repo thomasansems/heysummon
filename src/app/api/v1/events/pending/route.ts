@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { validateProviderKey } from "@/lib/provider-key-auth";
 import { decryptMessage } from "@/lib/crypto";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
+import { sendMessage } from "@/lib/adapters/telegram";
+import type { TelegramConfig } from "@/lib/adapters/types";
 
 const DEBUG = process.env.DEBUG === "true";
 
@@ -176,6 +178,11 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
     };
   });
 
+  // Send deferred Telegram notifications for requests that were queued during unavailability
+  sendDeferredNotifications(provider.id, requests).catch((err) => {
+    console.error("[events/pending] Deferred notification failed:", err);
+  });
+
   if (DEBUG) {
     console.log("[GET /api/v1/events/pending] Provider poll:", {
       providerId: provider.id,
@@ -190,6 +197,55 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
   }
 
   return NextResponse.json({ events: mapped });
+}
+
+/** Send Telegram notifications for requests that were deferred during provider unavailability */
+async function sendDeferredNotifications(
+  profileId: string,
+  requests: Array<{ id: string; refCode: string | null; questionPreview: string | null; question: string | null; serverPrivateKey: string | null }>
+) {
+  // Find requests that haven't been notified yet
+  const unnotified = await prisma.helpRequest.findMany({
+    where: {
+      id: { in: requests.map((r) => r.id) },
+      notifiedProviderAt: null,
+    },
+    select: { id: true, refCode: true, questionPreview: true },
+  });
+
+  if (unnotified.length === 0) return;
+
+  // Find active Telegram channel for this provider
+  const telegramChannel = await prisma.channelProvider.findFirst({
+    where: { profileId, type: "telegram", isActive: true, status: "connected" },
+  });
+  if (!telegramChannel) {
+    // No Telegram channel — just mark as notified (provider sees them via polling)
+    await prisma.helpRequest.updateMany({
+      where: { id: { in: unnotified.map((r) => r.id) } },
+      data: { notifiedProviderAt: new Date() },
+    });
+    return;
+  }
+
+  const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
+  if (!cfg.providerChatId || !cfg.botToken) return;
+
+  for (const req of unnotified) {
+    const preview = req.questionPreview
+      ? `\n\n*Question:* ${req.questionPreview.slice(0, 500)}${req.questionPreview.length > 500 ? "…" : ""}`
+      : "";
+    const msg = `🦞 *New help request* \`${req.refCode}\`${preview}\n\nReply with:\n\`/reply ${req.refCode} your answer\``;
+
+    await sendMessage(cfg.botToken, cfg.providerChatId, msg).catch((err) => {
+      console.error(`[events/pending] Deferred Telegram notify failed for ${req.refCode}:`, err);
+    });
+
+    await prisma.helpRequest.update({
+      where: { id: req.id },
+      data: { notifiedProviderAt: new Date() },
+    }).catch(() => {});
+  }
 }
 
 /** Consumer: return requests that have new provider messages or direct phone responses */

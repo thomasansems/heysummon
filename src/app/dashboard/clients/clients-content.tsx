@@ -58,6 +58,9 @@ const channelLabel = (channel: string | null, sub: string | null) => {
   if (channel === "claudecode") return { label: "Claude Code", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300" };
   if (channel === "openclaw" && sub === "whatsapp") return { label: "OpenClaw · WhatsApp", color: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" };
   if (channel === "openclaw") return { label: "OpenClaw · Telegram", color: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" };
+  if (channel === "codex") return { label: "Codex CLI", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" };
+  if (channel === "gemini") return { label: "Gemini CLI", color: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300" };
+  if (channel === "cursor") return { label: "Cursor", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300" };
   return null;
 };
 
@@ -68,7 +71,7 @@ function providerStatus(provider: Provider | null): { label: string; warning: st
   return { label: provider.name, warning: null };
 }
 
-type WizardChannel = "openclaw" | "claudecode" | null;
+type WizardChannel = "openclaw" | "claudecode" | "codex" | "gemini" | "cursor" | null;
 type WizardSubChannel = "telegram" | "whatsapp" | null;
 
 const CLIENT_CHANNELS = [
@@ -83,8 +86,29 @@ const CLIENT_CHANNELS = [
     id: "claudecode" as const,
     label: "Claude Code",
     icon: "/icons/claudecode.svg",
-    description: "Skill — inline in editor",
+    description: "Anthropic — skill in editor",
     disabled: false,
+  },
+  {
+    id: "codex" as const,
+    label: "Codex CLI",
+    icon: "/icons/codex.svg",
+    description: "OpenAI — terminal agent",
+    disabled: false,
+  },
+  {
+    id: null,
+    label: "Gemini CLI",
+    icon: "/icons/gemini.svg",
+    description: "Coming soon",
+    disabled: true,
+  },
+  {
+    id: null,
+    label: "Cursor",
+    icon: "/icons/cursor.svg",
+    description: "Coming soon",
+    disabled: true,
   },
   {
     id: null,
@@ -319,7 +343,7 @@ export default function ClientsContent() {
               </p>
 
               {/* Channel grid */}
-              <div className="mb-5 grid grid-cols-2 gap-3">
+              <div className="mb-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {CLIENT_CHANNELS.map((ch) => (
                   <button
                     key={ch.label}
@@ -388,9 +412,9 @@ export default function ClientsContent() {
             <div>
               <h2 className="mb-1 text-lg font-semibold text-foreground">Client Details</h2>
               <p className="mb-5 text-sm text-muted-foreground">
-                {wizardChannel === "claudecode"
-                  ? "Configure your Claude Code skill client"
-                  : `Configure your OpenClaw ${wizardSubChannel} client`}
+                {wizardChannel === "openclaw"
+                  ? `Configure your OpenClaw ${wizardSubChannel} client`
+                  : `Configure your ${CLIENT_CHANNELS.find((c) => c.id === wizardChannel)?.label ?? wizardChannel} client`}
               </p>
 
               <div className="mb-4 space-y-3">
@@ -476,7 +500,9 @@ export default function ClientsContent() {
 
               <div className="mb-3 rounded-md border border-border bg-black p-3">
                 <p className="mb-1 text-xs text-muted-foreground">
-                  Setup link ({wizardChannel === "openclaw" ? `OpenClaw · ${wizardSubChannel}` : "Claude Code · Skill"})
+                  Setup link ({wizardChannel === "openclaw"
+                    ? `OpenClaw · ${wizardSubChannel}`
+                    : `${CLIENT_CHANNELS.find((c) => c.id === wizardChannel)?.label ?? wizardChannel} · Skill`})
                 </p>
                 <code className="break-all text-xs text-green-400">{wizardResult.setupUrl}</code>
               </div>
@@ -676,10 +702,13 @@ export default function ClientsContent() {
         <p className="mb-3 text-xs text-muted-foreground">
           Clients connect through these channels. Select one when creating a new client.
         </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {[
             { label: "OpenClaw", icon: "/icons/openclaw.svg", active: true },
             { label: "Claude Code", icon: "/icons/claudecode.svg", active: true },
+            { label: "Codex CLI", icon: "/icons/codex.svg", active: true },
+            { label: "Gemini CLI", icon: "/icons/gemini.svg", active: true },
+            { label: "Cursor", icon: "/icons/cursor.svg", active: true },
             { label: "OpenAI", icon: "/icons/openai.svg", active: false },
             { label: "NanoClaw", icon: "/icons/docker.svg", active: false },
             { label: "NemoClaw", icon: "/icons/nvidia.svg", active: false },

@@ -73,7 +73,7 @@ export default function HelpPage() {
             </p>
             <p className="text-sm text-muted-foreground">
               You received a setup link from your provider. Open that link to start the guided
-              installation. If the link has expired (links are valid for 10 minutes), ask your provider
+              installation. If the link has expired (links are valid for 24 hours or until a device binds), ask your provider
               to generate a new one from their dashboard.
             </p>
           </Section>
@@ -185,7 +185,7 @@ export default function HelpPage() {
           <Section id="troubleshooting" title="Troubleshooting FAQ">
             <div className="space-y-6">
               <Qa q="My setup link expired.">
-                Links are valid for 10 minutes. Ask your provider to generate a new one: Dashboard →
+                Links are valid for 24 hours or until a device binds. Ask your provider to generate a new one: Dashboard →
                 Clients → [your key] → Generate Setup Link.
               </Qa>
 

@@ -249,11 +249,9 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
     const next = result.nextAvailableAt
       ? ` (available at ${new Date(result.nextAvailableAt).toLocaleTimeString()})`
       : "";
-    process.stderr.write(`Provider unavailable${next}\n`);
-    process.stdout.write(
-      "PROVIDER_UNAVAILABLE: No human available right now. Try again later.\n"
+    process.stderr.write(
+      `Provider currently unavailable${next} — request queued, waiting for response...\n`
     );
-    return;
   }
 
   if (!result.requestId) {

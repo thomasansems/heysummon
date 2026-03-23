@@ -11,6 +11,10 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "bin": {
+    "@heysummon/consumer-sdk": "./dist/cli.js",
+    "heysummon-cli": "./dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
@@ -23,7 +27,8 @@
     "vitest": "^3.0.0"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "license": "MIT"
 }

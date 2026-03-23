@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Step, CodeBlock } from "@/components/dashboard/setup-step";
 
+type ClientChannel = "openclaw" | "claudecode" | "codex" | "gemini" | "cursor";
+
 interface SetupFlowProps {
   keyId: string;
   apiKey: string;
   baseUrl: string;
-  channel: "openclaw" | "claudecode";
+  channel: ClientChannel;
   subChannel?: "telegram" | "whatsapp" | null;
   providerName: string;
   /** JWT expiry timestamp (seconds since epoch) */
@@ -17,8 +19,17 @@ interface SetupFlowProps {
 }
 
 type OpenClawStep = "install" | "add-provider" | "watcher" | "hook" | "connected";
-type ClaudeCodeStep = "install" | "connected";
+type SkillInstallStep = "install" | "connected";
 type VerifyStatus = "idle" | "checking" | "connected" | "timeout";
+
+/** Platform display metadata */
+const PLATFORM_META: Record<ClientChannel, { label: string; skillDir: string; configNote: string }> = {
+  openclaw: { label: "OpenClaw", skillDir: "skills/heysummon", configNote: "" },
+  claudecode: { label: "Claude Code", skillDir: ".claude/skills/heysummon", configNote: "Claude Code auto-discovers skills in `.claude/skills/`." },
+  codex: { label: "Codex CLI", skillDir: ".codex/skills/heysummon", configNote: "Codex CLI loads skills from `.codex/skills/`." },
+  gemini: { label: "Gemini CLI", skillDir: ".gemini/skills/heysummon", configNote: "Gemini CLI loads skills from `.gemini/skills/`." },
+  cursor: { label: "Cursor", skillDir: ".cursor/skills/heysummon", configNote: "Cursor loads rules from `.cursor/rules/`." },
+};
 
 const VERIFY_POLL_INTERVAL_MS = 2000;
 const VERIFY_TIMEOUT_MS = 60_000;
@@ -35,7 +46,9 @@ export default function SetupFlow({
   initialBound = false,
 }: SetupFlowProps) {
   const isOpenClaw = channel === "openclaw";
-  const totalSteps = isOpenClaw ? 5 : 3; // hook step only for openclaw
+  const isSkillBased = !isOpenClaw; // claudecode, codex, gemini, cursor
+  const totalSteps = isOpenClaw ? 5 : 2;
+  const meta = PLATFORM_META[channel];
 
   // Check JWT expiry (24h TTL)
   const expired = Date.now() / 1000 > expiresAt;
@@ -75,8 +88,8 @@ export default function SetupFlow({
   const [connectedIp, setConnectedIp] = useState<string | null>(null);
   const [hookExpanded, setHookExpanded] = useState(false);
 
-  // Claude Code state
-  const [claudeCodeStep, setClaudeCodeStep] = useState<ClaudeCodeStep>("install");
+  // Skill-based platform state (Claude Code, Codex, Gemini, Cursor)
+  const [skillStep, setSkillStep] = useState<SkillInstallStep>("install");
 
   // Connection verification loop
   const startVerification = useCallback(async () => {
@@ -121,13 +134,16 @@ export default function SetupFlow({
   const watcherCmd = `cd ~/clawd && bash skills/heysummon/scripts/setup.sh`;
   const clawhubUrl = `https://clawhub.ai/thomasansems/heysummon`;
 
-  const skillInstallCmd = `mkdir -p .claude/skills/heysummon/scripts && \\
-curl -fsSL "${baseUrl}/api/v1/skill-scripts/claudecode?file=ask.sh" \\
-  -o .claude/skills/heysummon/scripts/ask.sh && \\
-chmod +x .claude/skills/heysummon/scripts/ask.sh && \\
-curl -fsSL "${baseUrl}/api/v1/skill-scripts/claudecode?file=SKILL.md" \\
-  -o .claude/skills/heysummon/SKILL.md && \\
-cat > .claude/skills/heysummon/.env << 'EOF'
+  const skillDir = meta.skillDir;
+  const skillInstallCmd = `npm install -g @heysummon/consumer-sdk && \\
+mkdir -p ${skillDir}/scripts && \\
+for f in ask.sh sdk.sh submit.sh check-inbox.sh; do \\
+  curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=$f" \\
+    -o ${skillDir}/scripts/$f && chmod +x ${skillDir}/scripts/$f; \\
+done && \\
+curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=SKILL.md" \\
+  -o ${skillDir}/SKILL.md && \\
+cat > ${skillDir}/.env << 'EOF'
 HEYSUMMON_BASE_URL=${baseUrl}
 HEYSUMMON_API_KEY=${apiKey}
 HEYSUMMON_TIMEOUT=900
@@ -576,34 +592,35 @@ EOF`;
         </div>
       )}
 
-      {/* Claude Code flow */}
-      {channel === "claudecode" && (
+      {/* Skill-based platform flow (Claude Code, Codex, Gemini, Cursor) */}
+      {isSkillBased && (
         <div className="space-y-5">
           <Step
             number={1}
             total={2}
-            title="Install the HeySummon skill"
-            status={claudeCodeStep !== "install" ? "done" : "active"}
+            title={`Install the HeySummon skill for ${meta.label}`}
+            status={skillStep !== "install" ? "done" : "active"}
           >
             <p className="mb-3 text-sm text-zinc-400">
               Run this in your project directory — it installs the skill into{" "}
-              <code className="rounded bg-zinc-800 px-1 font-mono">.claude/skills/heysummon/</code>{" "}
+              <code className="rounded bg-zinc-800 px-1 font-mono">{skillDir}/</code>{" "}
               with your credentials pre-filled:
             </p>
             <CodeBlock>{skillInstallCmd}</CodeBlock>
-            <p className="mt-2 text-xs text-zinc-500">
-              Claude Code auto-discovers skills in{" "}
-              <code className="rounded bg-zinc-800 px-1 font-mono">.claude/skills/</code>.
-              After installing, the <code className="rounded bg-zinc-800 px-1 font-mono">/heysummon</code> command
-              will appear in the slash menu.
-            </p>
+            {meta.configNote && (
+              <p className="mt-2 text-xs text-zinc-500">
+                {meta.configNote}{" "}
+                After installing, the <code className="rounded bg-zinc-800 px-1 font-mono">/heysummon</code> command
+                will be available.
+              </p>
+            )}
             <div className="mt-3 rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-xs text-zinc-400">
               <span className="font-medium text-zinc-300">Already have HeySummon installed?</span>{" "}
               Re-running this command will update your credentials for this provider.
             </div>
-            {claudeCodeStep === "install" && (
+            {skillStep === "install" && (
               <button
-                onClick={() => setClaudeCodeStep("connected")}
+                onClick={() => setSkillStep("connected")}
                 className="mt-4 rounded-md bg-orange-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-500"
               >
                 Done — finish →
@@ -615,18 +632,18 @@ EOF`;
             number={2}
             total={2}
             title="You're connected!"
-            status={claudeCodeStep === "connected" ? "done" : "idle"}
+            status={skillStep === "connected" ? "done" : "idle"}
           >
             <p className="text-sm text-zinc-400">
-              Claude Code will now use the HeySummon skill when it needs expert input from{" "}
+              {meta.label} will now use the HeySummon skill when it needs expert input from{" "}
               <span className="font-medium text-white">&quot;{providerName}&quot;</span>. It will pause, send
               your question to them, and resume automatically when they respond.
             </p>
             <p className="mt-2 text-xs text-zinc-500">
-              Use <code className="rounded bg-zinc-800 px-1 font-mono">/heysummon</code> in
-              Claude Code to invoke it manually, or Claude will use it automatically when it needs human input.
+              Use <code className="rounded bg-zinc-800 px-1 font-mono">/heysummon</code> in{" "}
+              {meta.label} to invoke it manually, or the agent will use it automatically when it needs human input.
             </p>
-            {claudeCodeStep === "connected" && (
+            {skillStep === "connected" && (
               <div className="mt-3 flex gap-3">
                 <a
                   href="/dashboard"

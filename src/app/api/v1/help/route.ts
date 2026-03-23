@@ -286,13 +286,15 @@ export async function POST(request: Request) {
 
       if ("callSid" in callResult) {
         phoneFirstAttempted = true;
-        // Store questionPreview for TTS if not already stored
+        // Store questionPreview for TTS + mark as notified
+        const updateData: Record<string, unknown> = { notifiedProviderAt: new Date() };
         if (body.questionPreview && !helpRequest.questionPreview) {
-          await prisma.helpRequest.update({
-            where: { id: helpRequest.id },
-            data: { questionPreview: body.questionPreview.slice(0, 200) },
-          }).catch(() => {});
+          updateData.questionPreview = body.questionPreview.slice(0, 200);
         }
+        await prisma.helpRequest.update({
+          where: { id: helpRequest.id },
+          data: updateData,
+        }).catch(() => {});
       } else {
         console.error("[help/route] Phone-first call failed:", callResult.error);
       }
@@ -301,7 +303,8 @@ export async function POST(request: Request) {
 
     // Push Telegram notification to provider (fire-and-forget, non-blocking)
     // If phone-first was attempted, Telegram fallback happens via the status callback
-    if (!phoneFirstAttempted) {
+    // If provider is unavailable, defer notification until they come online
+    if (!phoneFirstAttempted && !availCheck.unavailable) {
       prisma.channelProvider.findFirst({
         where: {
           profileId: { in: providerProfiles.map(p => p.id) },
@@ -318,6 +321,11 @@ export async function POST(request: Request) {
         const msg = `🦞 *New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
 
         await sendMessage(cfg.botToken, cfg.providerChatId, msg);
+        // Mark as notified
+        await prisma.helpRequest.update({
+          where: { id: helpRequest.id },
+          data: { notifiedProviderAt: new Date() },
+        }).catch(() => {});
       }).catch((err) => {
         console.error("[help/route] Telegram notify failed:", err);
       });

@@ -3,11 +3,13 @@ import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 import SetupFlow from "./SetupFlow";
 
+type ClientChannel = "openclaw" | "claudecode" | "codex" | "gemini" | "cursor";
+
 interface SetupPayload {
   keyId: string;
   key: string;
   baseUrl: string;
-  channel: "openclaw" | "claudecode";
+  channel: ClientChannel;
   subChannel?: "telegram" | "whatsapp" | null;
   providerName?: string | null;
   exp: number;

@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #3340 | 2:17 PM | 🔵 | HeySummon Skills Directory Platform Variants Catalogued | ~679 |
+| #3341 | 2:18 PM | 🔵 | HeySummon CLI Wizard Flow Lacks Platform Selection | ~699 |
 </claude-mem-context>

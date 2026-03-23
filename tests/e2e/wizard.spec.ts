@@ -198,6 +198,66 @@ test.describe("Client wizard", () => {
     expect(errors.filter(e => !e.includes("favicon"))).toEqual([]);
   });
 
+  test("Codex CLI client — full wizard flow", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+
+    await page.locator('button:has-text("Create New Client")').click();
+    await page.locator('button:has-text("Codex CLI")').click();
+    await page.locator('button:has-text("Next")').click();
+
+    await page.locator('input[placeholder*="John"]').fill("E2E Codex CLI Client");
+    const select = page.locator('select').first();
+    await select.selectOption({ index: 1 });
+
+    await page.locator('button:has-text("Create Client")').click();
+    await expect(page.locator("text=Client created")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("text=Setup link").first()).toBeVisible();
+
+    await page.locator('button:has-text("Done")').click();
+    expect(errors.filter(e => !e.includes("favicon"))).toEqual([]);
+  });
+
+  test("Gemini CLI client — full wizard flow", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+
+    await page.locator('button:has-text("Create New Client")').click();
+    await page.locator('button:has-text("Gemini CLI")').click();
+    await page.locator('button:has-text("Next")').click();
+
+    await page.locator('input[placeholder*="John"]').fill("E2E Gemini CLI Client");
+    const select = page.locator('select').first();
+    await select.selectOption({ index: 1 });
+
+    await page.locator('button:has-text("Create Client")').click();
+    await expect(page.locator("text=Client created")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("text=Setup link").first()).toBeVisible();
+
+    await page.locator('button:has-text("Done")').click();
+    expect(errors.filter(e => !e.includes("favicon"))).toEqual([]);
+  });
+
+  test("Cursor client — full wizard flow", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+
+    await page.locator('button:has-text("Create New Client")').click();
+    await page.locator('button:has-text("Cursor")').click();
+    await page.locator('button:has-text("Next")').click();
+
+    await page.locator('input[placeholder*="John"]').fill("E2E Cursor Client");
+    const select = page.locator('select').first();
+    await select.selectOption({ index: 1 });
+
+    await page.locator('button:has-text("Create Client")').click();
+    await expect(page.locator("text=Client created")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("text=Setup link").first()).toBeVisible();
+
+    await page.locator('button:has-text("Done")').click();
+    expect(errors.filter(e => !e.includes("favicon"))).toEqual([]);
+  });
+
   test("wizard shows error on missing provider", async ({ page }) => {
     await page.locator('button:has-text("Create New Client")').click();
     await page.locator('button:has-text("OpenClaw")').first().click();

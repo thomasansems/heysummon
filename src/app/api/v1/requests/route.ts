@@ -27,7 +27,10 @@ export async function GET(request: NextRequest) {
   }
 
   const where: Record<string, unknown> = { expertId: userId };
-  if (statusFilter) {
+  if (statusFilter === "flagged") {
+    // Special filter: show requests that had content safety flags
+    where.contentFlags = { not: null };
+  } else if (statusFilter) {
     // DB stores lowercase status values (pending, active, closed, expired, responded)
     where.status = statusFilter.toLowerCase();
   }
@@ -47,6 +50,8 @@ export async function GET(request: NextRequest) {
       deliveryNextRetryAt: true,
       phoneCallStatus: true,
       phoneCallAt: true,
+      contentFlags: true,
+      guardVerified: true,
       apiKey: { select: { name: true, provider: { select: { name: true } } } },
       _count: { select: { messageHistory: true } },
       messageHistory: {
@@ -72,6 +77,8 @@ export async function GET(request: NextRequest) {
     deliveryNextRetryAt: r.deliveryNextRetryAt,
     phoneCallStatus: r.phoneCallStatus || null,
     phoneCallAt: r.phoneCallAt || null,
+    contentFlags: r.contentFlags ? JSON.parse(r.contentFlags) : null,
+    guardVerified: r.guardVerified,
     apiKey: r.apiKey,
   }));
 

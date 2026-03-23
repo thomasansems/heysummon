@@ -4,6 +4,7 @@ import { copyToClipboard } from "@/lib/clipboard";
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -87,22 +88,22 @@ const CLIENT_CHANNELS = [
   },
   {
     id: null,
-    label: "WhatsApp",
-    icon: "/icons/whatsapp.svg",
+    label: "OpenAI",
+    icon: "/icons/openai.svg",
     description: "Coming soon",
     disabled: true,
   },
   {
     id: null,
-    label: "Signal",
-    icon: "/icons/signal.svg",
+    label: "NanoClaw",
+    icon: "/icons/docker.svg",
     description: "Coming soon",
     disabled: true,
   },
   {
     id: null,
-    label: "Slack",
-    icon: "/icons/slack.svg",
+    label: "NemoClaw",
+    icon: "/icons/nvidia.svg",
     description: "Coming soon",
     disabled: true,
   },
@@ -667,6 +668,44 @@ export default function ClientsPage() {
             </table>
           </>
         )}
+      </div>
+
+      {/* Supported channels */}
+      <div className="mt-8">
+        <h2 className="mb-1 text-sm font-medium text-muted-foreground">Supported channels</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Clients connect through these channels. Select one when creating a new client.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {[
+            { label: "OpenClaw", icon: "/icons/openclaw.svg", active: true },
+            { label: "Claude Code", icon: "/icons/claudecode.svg", active: true },
+            { label: "OpenAI", icon: "/icons/openai.svg", active: false },
+            { label: "NanoClaw", icon: "/icons/docker.svg", active: false },
+            { label: "NemoClaw", icon: "/icons/nvidia.svg", active: false },
+          ].map((ch) => (
+            <div
+              key={ch.label}
+              className={`flex items-center gap-2.5 rounded-lg border border-border bg-card px-4 py-3 ${
+                ch.active ? "" : "opacity-50"
+              }`}
+            >
+              <img src={ch.icon} alt={ch.label} className="h-7 w-7 rounded" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">{ch.label}</span>
+                {ch.active ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                    <Check className="h-2.5 w-2.5" /> Active
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
+                    Soon
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Client detail slide-in panel */}

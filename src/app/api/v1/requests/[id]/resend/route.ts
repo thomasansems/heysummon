@@ -39,10 +39,16 @@ export async function POST(
     );
   }
 
-  // Reset deliveredAt so polling watchers pick it up as pending again
+  // Reset deliveredAt and status so polling watchers pick it up again.
+  // The detail endpoint auto-marks requests as "reviewing", which the
+  // events/pending poll ignores (it only returns "pending" | "active").
   await prisma.helpRequest.update({
     where: { id },
-    data: { deliveredAt: null },
+    data: {
+      deliveredAt: null,
+      status: "pending",
+      deliveryStatus: "pending",
+    },
   });
 
   logAuditEvent({

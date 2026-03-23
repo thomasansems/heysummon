@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Trash2, Check, Phone } from "lucide-react";
+import { Loader2, Plus, Trash2, Check, Phone, Mail, Zap } from "lucide-react";
 
 interface Integration {
   id: string;
@@ -37,6 +37,24 @@ const INTEGRATION_TYPES = [
     icon: Phone,
   },
 ];
+
+const COMING_SOON_INTEGRATIONS = [
+  {
+    label: "SendGrid",
+    categoryLabel: "Email",
+    description:
+      "Send help requests via email for less urgent escalations. Universal fallback that reaches everyone.",
+    icon: Mail,
+  },
+  {
+    label: "Zapier",
+    categoryLabel: "Workflow",
+    description:
+      "Connect HeySummon to thousands of apps without code. Automate escalation workflows effortlessly.",
+    icon: Zap,
+  },
+];
+
 
 function StatusBadge({ active }: { active: boolean }) {
   return (
@@ -157,9 +175,7 @@ export default function IntegrationsPage() {
             return (
               <div
                 key={intType.type}
-                className={`rounded-lg border border-border bg-card p-4 ${
-                  exists ? "opacity-60" : ""
-                }`}
+                className="rounded-lg border border-border bg-card p-4"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-950/40">
@@ -186,6 +202,34 @@ export default function IntegrationsPage() {
                       Set up
                     </Button>
                   )}
+                </div>
+              </div>
+            );
+          })}
+
+          {COMING_SOON_INTEGRATIONS.map((intType) => {
+            const Icon = intType.icon;
+            return (
+              <div
+                key={intType.label}
+                className="rounded-lg border border-border bg-card p-4 opacity-50"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                    <Icon className="h-5 w-5 text-zinc-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-foreground">{intType.label}</h3>
+                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                        {intType.categoryLabel}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{intType.description}</p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="text-[10px] font-medium text-muted-foreground">Coming soon</span>
                 </div>
               </div>
             );

@@ -3,7 +3,7 @@
 import { copyToClipboard } from "@/lib/clipboard";
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Phone, Check } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -178,6 +178,7 @@ interface Provider {
   quietHoursStart: string | null;
   quietHoursEnd: string | null;
   availableDays: string | null;
+  phoneFirst: boolean;
   ipEvents: IpEvent[];
   channelProviders: ChannelProvider[];
   _count: { apiKeys: number };
@@ -561,7 +562,12 @@ export default function ProvidersPage() {
                   className="p-4 space-y-2 cursor-pointer hover:bg-muted/30"
                   onClick={() => setSelectedProviderId(p.id)}
                 >
-                  <div className="font-medium text-foreground">{p.name}</div>
+                  <div className="flex items-center gap-1.5 font-medium text-foreground">
+                    {p.name}
+                    {p.phoneFirst && (
+                      <Phone className="h-3.5 w-3.5 text-blue-500" aria-label="Phone-first enabled" />
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {p.channelProviders?.length > 0 ? <ChannelBadge channel={p.channelProviders[0]} /> : null}
                     {(() => { const s = getProviderStatus(p); return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${s.colorClass}`}>{s.label}</span>; })()}
@@ -592,7 +598,14 @@ export default function ProvidersPage() {
                     className="border-b border-border last:border-0 cursor-pointer hover:bg-muted/30"
                     onClick={() => setSelectedProviderId(p.id)}
                   >
-                    <td className="px-4 py-2.5 font-medium text-foreground">{p.name}</td>
+                    <td className="px-4 py-2.5 font-medium text-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        {p.name}
+                        {p.phoneFirst && (
+                          <Phone className="h-3.5 w-3.5 text-blue-500" aria-label="Phone-first enabled" />
+                        )}
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5 text-muted-foreground">{p._count.apiKeys}</td>
                     <td className="px-4 py-2.5">
                       {p.channelProviders?.length > 0
@@ -609,6 +622,43 @@ export default function ProvidersPage() {
             </table>
           </>
         )}
+      </div>
+
+      {/* Supported channels */}
+      <div className="mt-8">
+        <h2 className="mb-1 text-sm font-medium text-muted-foreground">Supported channels</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Providers receive help requests through these channels. Select one when adding a new provider.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {[
+            { label: "OpenClaw", icon: "/icons/openclaw.svg", active: true },
+            { label: "Telegram", icon: "/icons/telegram.svg", active: true },
+            { label: "Slack", icon: "/icons/slack.svg", active: false },
+            { label: "WhatsApp", icon: "/icons/whatsapp.svg", active: false },
+          ].map((ch) => (
+            <div
+              key={ch.label}
+              className={`flex items-center gap-2.5 rounded-lg border border-border bg-card px-4 py-3 ${
+                ch.active ? "" : "opacity-50"
+              }`}
+            >
+              <img src={ch.icon} alt={ch.label} className="h-7 w-7 rounded" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">{ch.label}</span>
+                {ch.active ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                    <Check className="h-2.5 w-2.5" /> Active
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
+                    Soon
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Provider detail slide-in panel */}

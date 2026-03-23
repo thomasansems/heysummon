@@ -7,5 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #3332 | 9:28 AM | ✅ | Removed Signal channel option from channels page | ~260 |
 | #3319 | 9:05 AM | ⚖️ | UI pattern analysis confirms existing "coming soon" implementation with suggested expansion approach | ~552 |
+| #3318 | " | 🔵 | Channels dashboard already implements "Coming soon" pattern for Signal, Slack, and WhatsApp | ~431 |
 </claude-mem-context>

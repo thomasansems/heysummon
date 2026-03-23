@@ -7,5 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #3327 | 9:23 AM | ✅ | Removed channel integrations array from integrations page | ~289 |
 | #3319 | 9:05 AM | ⚖️ | UI pattern analysis confirms existing "coming soon" implementation with suggested expansion approach | ~552 |
+| #3315 | 9:02 AM | ⚖️ | Integration roadmap research identified Slack, Discord, Signal, Email, and SMS as high-priority coming soon integrations | ~609 |
 </claude-mem-context>

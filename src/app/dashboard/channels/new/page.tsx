@@ -25,13 +25,6 @@ const channelTypes = [
   },
   {
     type: null,
-    label: "Signal",
-    icon: "/icons/signal.svg",
-    description: "Coming soon",
-    disabled: true,
-  },
-  {
-    type: null,
     label: "Slack",
     icon: "/icons/slack.svg",
     description: "Coming soon",

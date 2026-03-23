@@ -22,5 +22,10 @@ node_modules/
 *.log
 .DS_Store
 
-# Seen in recent edits but not deleted:
+# Deduplication
 .seen-events.txt
+
+# Async inbox system (watcher runtime)
+pending/
+inbox/
+logs/

@@ -1,15 +1,15 @@
 #!/bin/bash
-# HeySummon Claude Code Skill — Setup
-# Creates .env with API key and base URL, then registers provider
+# HeySummon — Skill Setup
+# Creates .env with API key and base URL, registers provider, starts watcher.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-SDK_DIR="${HEYSUMMON_SDK_DIR:-$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)/packages/consumer-sdk}"
+source "$SCRIPT_DIR/sdk.sh"
 ENV_FILE="$SKILL_DIR/.env"
 
 echo ""
-echo "HeySummon — Claude Code Skill Setup"
-echo "======================================="
+echo "HeySummon — Skill Setup"
+echo "======================="
 echo ""
 
 if [ -f "$ENV_FILE" ]; then
@@ -21,12 +21,10 @@ if [ -f "$ENV_FILE" ]; then
   fi
 fi
 
-# Base URL
 DEFAULT_URL="http://localhost:3425"
 read -p "HeySummon base URL [$DEFAULT_URL]: " INPUT_URL
 BASE_URL="${INPUT_URL:-$DEFAULT_URL}"
 
-# API Key
 echo ""
 echo "Get your client API key from:"
 echo "  Dashboard -> Clients -> Create client key"
@@ -39,7 +37,6 @@ if [ -z "$API_KEY" ]; then
   exit 1
 fi
 
-# Validate key against API
 echo ""
 echo "Validating API key..."
 VALIDATE=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -52,10 +49,9 @@ elif [ "$VALIDATE" = "401" ]; then
   echo "Invalid API key (401). Check your key and try again."
   exit 1
 else
-  echo "Could not validate (HTTP $VALIDATE) — saving anyway. Check your BASE_URL."
+  echo "Could not validate (HTTP $VALIDATE) — saving anyway."
 fi
 
-# Write .env
 cat > "$ENV_FILE" << EOF
 HEYSUMMON_BASE_URL=$BASE_URL
 HEYSUMMON_API_KEY=$API_KEY
@@ -66,31 +62,22 @@ EOF
 echo ""
 echo "Saved to: $ENV_FILE"
 
-# Auto-register provider via SDK CLI
+# Register provider
 echo ""
 echo "Registering provider..."
 export HEYSUMMON_BASE_URL="$BASE_URL"
 export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
-npx tsx "$SDK_DIR/src/cli.ts" add-provider --key "$API_KEY" 2>/dev/null && echo "" || echo "Provider registration skipped (non-fatal)."
+$SDK_CLI add-provider --key "$API_KEY" 2>/dev/null && echo "" || echo "Provider registration skipped (non-fatal)."
 
-# Auto-start the response watcher (so late responses are captured)
+# Start watcher
 echo ""
 echo "Starting response watcher..."
 bash "$SCRIPT_DIR/setup-watcher.sh" start
 
 echo ""
-echo "Add this to your CLAUDE.md or AGENTS.md:"
+echo "Setup complete. Use HeySummon:"
 echo ""
-echo "  ## HeySummon — Human in the Loop"
-echo "  When you need human approval or are stuck, run:"
-echo "  \`\`\`"
 echo "  bash $SKILL_DIR/scripts/ask.sh \"Your question\""
-echo "  \`\`\`"
-echo "  Wait for the response before continuing."
-echo ""
-echo "  For async (non-blocking) mode:"
-echo "  \`\`\`"
 echo "  bash $SKILL_DIR/scripts/ask.sh --async \"Your question\""
-echo "  bash $SKILL_DIR/scripts/ask.sh --check  # check for responses later"
-echo "  \`\`\`"
+echo "  bash $SKILL_DIR/scripts/ask.sh --check"
 echo ""

@@ -1,18 +1,15 @@
 #!/bin/bash
-# HeySummon Claude Code Skill — Ask a human
+# HeySummon — Ask a human (blocking poll with async fallback)
 #
 # Usage:
 #   ask.sh "<question>"                              — Blocking poll (default)
 #   ask.sh "<question>" "<context>" "<provider>"     — Blocking with context
 #   ask.sh --async "<question>" [context] [provider] — Non-blocking (watcher delivers later)
 #   ask.sh --check                                   — Check inbox for pending responses
-#
-# Returns the human's response on stdout.
-# Exits 0 on success, 1 on timeout or error.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-SDK_DIR="${HEYSUMMON_SDK_DIR:-$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)/packages/consumer-sdk}"
+source "$SCRIPT_DIR/sdk.sh"
 
 # Handle --check mode
 if [ "$1" = "--check" ]; then
@@ -65,22 +62,17 @@ export HEYSUMMON_TIMEOUT="${HEYSUMMON_TIMEOUT:-900}"
 export HEYSUMMON_POLL_INTERVAL="${HEYSUMMON_POLL_INTERVAL:-3}"
 export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-}"
 
-# Also save to pending/ so the watcher can pick it up if the blocking poll times out
-# This is the key fix: if timeout hits, the watcher still captures the response
+# Save to pending/ so the watcher can pick it up if the blocking poll times out
 PENDING_DIR="$SKILL_DIR/pending"
 mkdir -p "$PENDING_DIR"
 
-# Run blocking poll, but capture the output to also track it
-OUTPUT=$(npx tsx "$SDK_DIR/src/cli.ts" "${CLI_ARGS[@]}" 2>/dev/tty)
+# Run blocking poll
+OUTPUT=$($SDK_CLI "${CLI_ARGS[@]}" 2>/dev/tty)
 EXIT_CODE=$?
 
-# If we got a TIMEOUT, save to pending so watcher picks it up later
+# If TIMEOUT, save to pending so watcher picks it up later
 if echo "$OUTPUT" | grep -q "^TIMEOUT:"; then
-  # Extract request ref from the timeout message
   REF=$(echo "$OUTPUT" | grep -oP 'request \K[^\s.]+')
-  # The submit-and-poll already submitted — we need the requestId
-  # Parse it from stderr (already printed). Save a pending entry for the watcher.
-  # Since we don't have the requestId easily, we'll use the ref code to look it up
   if [ -n "$REF" ]; then
     node -e "
       const fs = require('fs');

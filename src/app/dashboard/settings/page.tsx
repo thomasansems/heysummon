@@ -83,7 +83,7 @@ export default function SettingsPage() {
     try {
       const data = await fetch("/api/admin/tunnel/status").then(r => r.json());
       setTunnel(data);
-    } catch {}
+    } catch { /* non-fatal */ }
   }, []);
 
   useEffect(() => { fetchTunnelStatus(); }, [fetchTunnelStatus]);

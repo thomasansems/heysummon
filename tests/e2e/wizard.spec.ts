@@ -147,7 +147,7 @@ test.describe("Client wizard", () => {
     // Step 3: Result
     await expect(page.locator("text=Client created")).toBeVisible({ timeout: 15000 });
     await expect(page.locator("text=Setup link").first()).toBeVisible();
-    await expect(page.locator("text=expires at")).toBeVisible();
+    await expect(page.locator("text=valid for 24 hours")).toBeVisible();
 
     await page.locator('button:has-text("Done")').click();
 

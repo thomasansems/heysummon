@@ -23,9 +23,16 @@ export async function POST(
     const authResult = await validateApiKeyRequest(request);
     if (!authResult.ok) return authResult.response;
 
-    // Find the help request
-    const helpRequest = await prisma.helpRequest.findUnique({
-      where: { id: requestId },
+    // Find the help request, scoped to the authenticated key's ownership
+    const { apiKey } = authResult;
+    const helpRequest = await prisma.helpRequest.findFirst({
+      where: {
+        id: requestId,
+        OR: [
+          { apiKeyId: apiKey.id },
+          { expertId: apiKey.userId },
+        ],
+      },
     });
 
     if (!helpRequest) {

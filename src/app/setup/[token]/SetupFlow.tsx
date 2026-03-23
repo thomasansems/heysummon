@@ -148,7 +148,11 @@ HEYSUMMON_BASE_URL=${baseUrl}
 HEYSUMMON_API_KEY=${apiKey}
 HEYSUMMON_TIMEOUT=900
 HEYSUMMON_POLL_INTERVAL=3
-EOF`;
+EOF
+echo "Verifying connection..." && \\
+curl -sf "${baseUrl}/api/v1/whoami" \\
+  -H "x-api-key: ${apiKey}" > /dev/null && \\
+echo "Connected and device bound successfully."`;
 
   const openClawJsonSnippet = `{
   "hooks": {

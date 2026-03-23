@@ -72,7 +72,7 @@ export async function GET(
     });
   } catch {
     return NextResponse.json(
-      { error: "File not found on server" },
+      { error: "Not found", detail: `${entry.path} (cwd: ${process.cwd()})` },
       { status: 404 }
     );
   }

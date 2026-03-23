@@ -1,0 +1,80 @@
+---
+description: "HeySummon — Ask a human expert for help. Use when you need approval, are stuck, or need human judgment. Triggers on 'hey summon <name>' or 'heysummon <name> <question>'."
+alwaysApply: false
+---
+
+# HeySummon — Human in the Loop
+
+When you need human input, approval, or are stuck on something that requires human judgment — use HeySummon to ask a human expert and **wait for their response** before continuing.
+
+## Setup
+
+```bash
+bash scripts/setup.sh
+```
+
+This prompts for your HeySummon base URL and API key, validates the key, registers the provider, and starts the background watcher.
+
+## How to ask
+
+```bash
+# Ask a specific provider (recommended)
+bash scripts/ask.sh "Your question here" "" "ProviderName"
+
+# Ask without specifying a provider (uses default)
+bash scripts/ask.sh "Your question here"
+
+# Ask with context messages
+bash scripts/ask.sh "Is this the right approach?" '[{"role":"user","content":"context"}]' "ProviderName"
+```
+
+The script **blocks and returns the human's answer** on stdout. If the timeout is reached, the background watcher will still capture the response.
+
+### Async mode (non-blocking)
+
+```bash
+# Submit and return immediately
+bash scripts/ask.sh --async "Your question here" "" "ProviderName"
+
+# Check for responses later
+bash scripts/ask.sh --check
+```
+
+## Other commands
+
+```bash
+# Add a provider
+bash scripts/add-provider.sh "hs_cli_key" "FriendlyName"
+
+# List registered providers
+bash scripts/list-providers.sh
+
+# Check request status
+bash scripts/check-status.sh <refCode|requestId>
+
+# Watcher management (PM2)
+bash scripts/setup-watcher.sh start
+bash scripts/setup-watcher.sh stop
+bash scripts/setup-watcher.sh status
+```
+
+## Handling responses
+
+- **Normal response**: The provider's answer is returned on stdout. Use it to continue your work.
+- **`PROVIDER_UNAVAILABLE`**: The provider is not available right now. Continue with your best judgment or pause.
+- **`TIMEOUT`**: No response within 15 minutes. The watcher will capture it later — check with `ask.sh --check`.
+
+## Rules
+
+- **Always wait** for the response before continuing (in blocking mode)
+- **Be specific** — include relevant context in your question
+- **Don't spam** — one request at a time; don't ask trivial questions
+
+## Configuration (.env)
+
+```env
+HEYSUMMON_BASE_URL=http://localhost:3425
+HEYSUMMON_API_KEY=hs_cli_your_key_here
+HEYSUMMON_TIMEOUT=900
+HEYSUMMON_POLL_INTERVAL=3
+```

@@ -12,7 +12,7 @@
  *   HEYSUMMON_POLL_INTERVAL
  */
 
-import { HeySummonClient } from "./client.js";
+import { HeySummonClient, HeySummonHttpError } from "./client.js";
 import { ProviderStore } from "./provider-store.js";
 import { RequestTracker } from "./request-tracker.js";
 import {
@@ -439,6 +439,10 @@ async function cmdWatch(args: string[]): Promise<void> {
   // In-memory dedup set
   const seen = new Set<string>();
 
+  // Track persistent auth errors per provider — auto-shutdown after 30 min
+  const AUTH_SHUTDOWN_MS = 30 * 60 * 1000; // 30 minutes
+  const authErrors = new Map<string, { firstAt: number; count: number }>();
+
   process.stderr.write(`Platform watcher started (pid ${process.pid})\n`);
   process.stderr.write(`   Polling every ${pollInterval}s\n`);
 
@@ -577,9 +581,49 @@ async function cmdWatch(args: string[]): Promise<void> {
           await client.ackEvent(event.requestId).catch(() => {});
         }
       } catch (err) {
-        process.stderr.write(
-          `Poll error for ${provider.name}: ${err instanceof Error ? err.message : String(err)}\n`
-        );
+        const isAuth = err instanceof HeySummonHttpError && err.isAuthError;
+
+        if (isAuth) {
+          const key = provider.apiKey;
+          const existing = authErrors.get(key);
+          if (!existing) {
+            authErrors.set(key, { firstAt: Date.now(), count: 1 });
+            process.stderr.write(
+              `Auth error for "${provider.name}" (${err instanceof HeySummonHttpError ? `HTTP ${err.status}` : "unknown"}). Will retry...\n`
+            );
+          } else {
+            existing.count++;
+            const elapsed = Date.now() - existing.firstAt;
+            if (elapsed >= AUTH_SHUTDOWN_MS) {
+              const status = err instanceof HeySummonHttpError ? err.status : "?";
+              const detail = err instanceof HeySummonHttpError ? err.body : String(err);
+              process.stderr.write(
+                `\n` +
+                `══════════════════════════════════════════════════════\n` +
+                `  HeySummon watcher shutting down\n` +
+                `\n` +
+                `  Provider "${provider.name}" has returned HTTP ${status}\n` +
+                `  for ${Math.round(elapsed / 60000)} minutes (${existing.count} attempts).\n` +
+                `\n` +
+                `  This usually means the API key was deleted or\n` +
+                `  deactivated on the HeySummon platform.\n` +
+                `\n` +
+                `  Detail: ${detail}\n` +
+                `\n` +
+                `  To fix: ask your provider for a new setup link,\n` +
+                `  then re-run the setup to get fresh credentials.\n` +
+                `══════════════════════════════════════════════════════\n`
+              );
+              process.exit(1);
+            }
+          }
+        } else {
+          // Clear auth error streak on non-auth errors (network issues etc.)
+          authErrors.delete(provider.apiKey);
+          process.stderr.write(
+            `Poll error for ${provider.name}: ${err instanceof Error ? err.message : String(err)}\n`
+          );
+        }
       }
     }
 

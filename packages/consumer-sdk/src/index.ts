@@ -1,4 +1,4 @@
-export { HeySummonClient } from "./client.js";
+export { HeySummonClient, HeySummonHttpError } from "./client.js";
 export { PollingWatcher } from "./poller.js";
 export { ProviderStore } from "./provider-store.js";
 export { RequestTracker } from "./request-tracker.js";

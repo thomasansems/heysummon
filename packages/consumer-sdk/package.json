@@ -1,6 +1,6 @@
 {
   "name": "@heysummon/consumer-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript SDK for HeySummon consumers (AI agents)",
   "type": "module",
   "main": "./dist/index.js",
@@ -30,5 +30,10 @@
     "dist",
     "src"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomasansems/heysummon",
+    "directory": "packages/consumer-sdk"
+  }
 }

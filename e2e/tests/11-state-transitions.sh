@@ -33,7 +33,7 @@ if [ -n "$REQUEST_ID" ] && [ "$REQUEST_ID" != "null" ]; then
   pass "Request submitted: $REQUEST_ID"
 else
   fail "Submit failed: $SUBMIT_RESPONSE"
-  summary
+  finish
 fi
 
 # ── Provider responds (transitions pending → responded) ──
@@ -88,4 +88,4 @@ else
   fail "Re-close failed: $RECLOSE"
 fi
 
-summary
+finish

@@ -66,8 +66,12 @@ export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-}"
 PENDING_DIR="$SKILL_DIR/pending"
 mkdir -p "$PENDING_DIR"
 
-# Run blocking poll
-OUTPUT=$($SDK_CLI "${CLI_ARGS[@]}" 2>/dev/tty)
+# Run blocking poll — redirect stderr to tty if available, otherwise /dev/stderr
+if [ -e /dev/tty ] 2>/dev/null; then
+  OUTPUT=$($SDK_CLI "${CLI_ARGS[@]}" 2>/dev/tty)
+else
+  OUTPUT=$($SDK_CLI "${CLI_ARGS[@]}" 2>/dev/stderr)
+fi
 EXIT_CODE=$?
 
 # If TIMEOUT, save to pending so watcher picks it up later

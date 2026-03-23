@@ -76,6 +76,12 @@ export async function GET(
       deliveredAt: helpRequest.deliveredAt,
       expiresAt: helpRequest.expiresAt,
       apiKey: helpRequest.apiKey,
+      phoneCallStatus: helpRequest.phoneCallStatus || null,
+      phoneCallAt: helpRequest.phoneCallAt || null,
+      phoneCallResponse: helpRequest.phoneCallResponse || null,
+      phoneCallSid: helpRequest.phoneCallSid || null,
+      contentFlags: helpRequest.contentFlags ? JSON.parse(helpRequest.contentFlags) : null,
+      guardVerified: helpRequest.guardVerified,
     },
   });
 }

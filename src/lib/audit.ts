@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { maybeAnonymizeIp } from "./gdpr";
 
 export const AuditEventTypes = {
   LOGIN_SUCCESS: "LOGIN_SUCCESS",
@@ -17,6 +18,10 @@ export const AuditEventTypes = {
   NOTIFICATION_RESENT: "NOTIFICATION_RESENT",
   CONSUMER_CONNECTED: "CONSUMER_CONNECTED",
   SETUP_VERIFIED: "SETUP_VERIFIED",
+  GDPR_SETTINGS_UPDATED: "GDPR_SETTINGS_UPDATED",
+  GDPR_DATA_EXPORTED: "GDPR_DATA_EXPORTED",
+  GDPR_DATA_DELETED: "GDPR_DATA_DELETED",
+  GDPR_CONSENT_UPDATED: "GDPR_CONSENT_UPDATED",
   REQUEST_RATED: "REQUEST_RATED",
   DELIVERY_RETRY_ATTEMPTED: "DELIVERY_RETRY_ATTEMPTED",
   ESCALATION_TRIGGERED: "ESCALATION_TRIGGERED",
@@ -78,7 +83,8 @@ function redactMetadata(metadata: Record<string, unknown>): Record<string, unkno
 export async function logAuditEvent(details: AuditEventDetails): Promise<void> {
   try {
     const headers = details.request?.headers;
-    const ip = headers ? extractIp(headers) : null;
+    const rawIp = headers ? extractIp(headers) : null;
+    const ip = await maybeAnonymizeIp(rawIp);
     const userAgent = headers ? extractUserAgent(headers) : null;
     const metadata = details.metadata ? redactMetadata(details.metadata) : null;
 

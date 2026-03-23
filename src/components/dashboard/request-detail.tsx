@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { Phone, ShieldAlert, ShieldCheck } from "lucide-react";
 import { ChatDisplay } from "./chat-display";
 import { ResponseForm } from "./response-form";
 import { StatusBadge } from "./status-badge";
@@ -9,6 +10,12 @@ import { StatusBadge } from "./status-badge";
 interface Message {
   role: "user" | "assistant";
   content: string;
+}
+
+interface ContentFlag {
+  type: "xss" | "url" | "credit_card" | "phone" | "email" | "ssn_bsn";
+  original: string;
+  replacement: string;
 }
 
 interface HelpRequestDetail {
@@ -22,7 +29,31 @@ interface HelpRequestDetail {
   respondedAt: string | null;
   deliveredAt: string | null;
   apiKey: { name: string | null };
+  phoneCallStatus: string | null;
+  phoneCallAt: string | null;
+  phoneCallResponse: string | null;
+  phoneCallSid: string | null;
+  contentFlags: ContentFlag[] | null;
+  guardVerified: boolean;
 }
+
+const FLAG_LABELS: Record<string, string> = {
+  xss: "Script injection (XSS)",
+  url: "URL defanged",
+  credit_card: "Credit card detected",
+  phone: "Phone number redacted",
+  email: "Email address redacted",
+  ssn_bsn: "SSN/BSN detected",
+};
+
+const FLAG_COLORS: Record<string, string> = {
+  xss: "text-red-500",
+  credit_card: "text-red-500",
+  ssn_bsn: "text-red-500",
+  url: "text-amber-500",
+  email: "text-blue-500",
+  phone: "text-blue-500",
+};
 
 export function RequestDetail({ id }: { id: string }) {
   const [request, setRequest] = useState<HelpRequestDetail | null>(null);
@@ -137,6 +168,83 @@ export function RequestDetail({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {request.phoneCallStatus && (
+        <div className="mb-6 rounded-xl border border-border bg-card p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Phone className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone Call</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span>
+              Status:{" "}
+              <span className={{
+                initiated: "text-blue-500",
+                ringing: "text-blue-500",
+                answered: "text-green-500",
+                completed: "text-green-500",
+                "no-answer": "text-amber-500",
+                busy: "text-amber-500",
+                failed: "text-red-500",
+              }[request.phoneCallStatus] || "text-muted-foreground"}>
+                {{
+                  initiated: "Calling...",
+                  ringing: "Ringing...",
+                  answered: "On call",
+                  completed: "Answered",
+                  "no-answer": "No answer — fell back to chat",
+                  busy: "Busy — fell back to chat",
+                  failed: "Call failed — fell back to chat",
+                }[request.phoneCallStatus] || request.phoneCallStatus}
+              </span>
+            </span>
+            {request.phoneCallAt && (
+              <span className="text-muted-foreground">
+                Called at {new Date(request.phoneCallAt).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+          {request.phoneCallResponse && (
+            <div className="mt-3 rounded-lg bg-muted/40 p-3">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Verbal response</p>
+              <p className="text-sm">{request.phoneCallResponse}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {request.contentFlags && request.contentFlags.length > 0 && (
+        <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-red-500" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-red-700 dark:text-red-400">
+              Content Safety Flags
+            </p>
+          </div>
+          <div className="space-y-2">
+            {request.contentFlags.map((flag, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm">
+                <span className={`font-medium ${FLAG_COLORS[flag.type] || "text-muted-foreground"}`}>
+                  {FLAG_LABELS[flag.type] || flag.type}
+                </span>
+              </div>
+            ))}
+          </div>
+          {request.guardVerified && (
+            <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ShieldCheck className="h-3 w-3 text-green-500" />
+              Content was sanitized by the guard before storage
+            </div>
+          )}
+        </div>
+      )}
+
+      {!request.contentFlags?.length && request.guardVerified && (
+        <div className="mb-6 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <ShieldCheck className="h-3 w-3 text-green-500" />
+          Verified clean by guard
+        </div>
+      )}
 
       {request.question && (
         <div className="mb-6 rounded-xl border border-orange-500/20 bg-orange-500/5 p-4">

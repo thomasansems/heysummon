@@ -35,11 +35,14 @@ export async function POST(
       );
     }
 
+    const previousStatus = helpRequest.status;
+
     if (helpRequest.status === "closed") {
       // Idempotent: already closed
       return NextResponse.json({
         success: true,
         status: "closed",
+        previousStatus,
         closedAt: helpRequest.closedAt?.toISOString(),
       });
     }
@@ -58,6 +61,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       status: "closed",
+      previousStatus,
       closedAt: closedAt.toISOString(),
     });
   } catch (err) {

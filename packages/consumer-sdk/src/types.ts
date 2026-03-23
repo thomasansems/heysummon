@@ -32,13 +32,15 @@ export interface PendingEvent {
     | "new_message"
     | "keys_exchanged"
     | "responded"
-    | "closed";
+    | "closed" 
+    | "cancelled";
   requestId: string;
   refCode: string | null;
   from?: "provider" | "consumer";
   messageCount?: number;
   respondedAt?: string | null;
   latestMessageAt?: string | null;
+  cancelledAt?: string | null;
   question?: string | null;
   requiresApproval?: boolean;
   createdAt?: string;

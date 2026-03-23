@@ -20,6 +20,9 @@ export async function GET() {
       quietHoursStart: true,
       quietHoursEnd: true,
       availableDays: true,
+      phoneFirst: true,
+      phoneFirstIntegrationId: true,
+      phoneFirstTimeout: true,
       _count: { select: { apiKeys: true } },
       ipEvents: { orderBy: { lastSeen: "desc" } },
       channelProviders: {

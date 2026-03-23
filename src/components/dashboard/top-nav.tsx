@@ -8,7 +8,6 @@ import { useState, useRef, useEffect } from "react";
 const navItems = [
   { label: "Overview", href: "/dashboard" },
   { label: "Users", href: "/dashboard/providers" },
-  { label: "Channels", href: "/dashboard/channels" },
   { label: "Clients", href: "/dashboard/clients" },
   { label: "Requests", href: "/dashboard/requests" },
   { label: "Audit Logs", href: "/dashboard/audit-logs" },

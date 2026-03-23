@@ -13,13 +13,18 @@ echo "════════════════════════�
 # ── Submit a request ──
 section "Submit request for state transition tests"
 
-SUBMIT_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/help" \
+KEYS_JSON=$(generate_crypto_keys)
+SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
+ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
+SUBMIT_RESPONSE=$(curl -s -X POST "${GUARD_URL}/api/v1/help" \
   "${E2E_BYPASS_ARGS[@]}" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
     --arg apiKey "$CLIENT_KEY" \
+    --arg signPublicKey "$SIGN_PUB" \
+    --arg encryptPublicKey "$ENC_PUB" \
     --arg question "State transition test $(date +%s)" \
-    '{apiKey: $apiKey, question: $question, signPublicKey: "st-test-sign", encryptPublicKey: "st-test-encrypt"}'
+    '{apiKey: $apiKey, question: $question, signPublicKey: $signPublicKey, encryptPublicKey: $encryptPublicKey}'
   )")
 
 REQUEST_ID=$(echo "$SUBMIT_RESPONSE" | jq -r '.requestId // empty')
@@ -28,7 +33,7 @@ if [ -n "$REQUEST_ID" ] && [ "$REQUEST_ID" != "null" ]; then
   pass "Request submitted: $REQUEST_ID"
 else
   fail "Submit failed: $SUBMIT_RESPONSE"
-  summary
+  finish
 fi
 
 # ── Provider responds (transitions pending → responded) ──
@@ -83,4 +88,4 @@ else
   fail "Re-close failed: $RECLOSE"
 fi
 
-summary
+finish

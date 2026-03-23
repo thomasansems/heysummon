@@ -85,7 +85,6 @@ export default function ChannelsPage() {
           {[
             { type: "openclaw", icon: "/icons/openclaw.svg", label: "OpenClaw", enabled: true },
             { type: "telegram", icon: "/icons/telegram.svg", label: "Telegram", enabled: true },
-            { type: "signal", icon: "/icons/signal.svg", label: "Signal", enabled: false },
             { type: "slack", icon: "/icons/slack.svg", label: "Slack", enabled: false },
             { type: "whatsapp", icon: "/icons/whatsapp.svg", label: "WhatsApp", enabled: false },
           ].map((ch) => (

@@ -19,6 +19,7 @@
 - [Provider conversations](./guides/provider-conversations.md) — Respond via Telegram or dashboard
 - [API keys](./guides/api-keys.md) — Key types, rotation, scopes, IP allowlisting
 - [E2E encryption](./guides/encryption.md) — How encryption works
+- [Twilio integration](./guides/twilio.md) — Phone-first notifications via Twilio Voice
 
 ## Self-hosting
 

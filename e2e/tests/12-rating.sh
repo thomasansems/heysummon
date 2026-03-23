@@ -25,7 +25,7 @@ SUBMIT=$(curl -s -X POST "${GUARD_URL}/api/v1/help" \
 REQUEST_ID=$(echo "$SUBMIT" | jq -r '.requestId // empty')
 if [ -z "$REQUEST_ID" ] || [ "$REQUEST_ID" = "null" ]; then
   fail "Submit failed: $SUBMIT"
-  summary
+  finish
 fi
 pass "Request submitted: $REQUEST_ID"
 
@@ -139,4 +139,4 @@ else
   fail "Expected 400 for rating 6, got: $RATE_SIX_STATUS"
 fi
 
-summary
+finish

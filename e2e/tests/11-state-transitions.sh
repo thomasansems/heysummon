@@ -14,13 +14,15 @@ echo "════════════════════════�
 section "Submit request for state transition tests"
 
 KEYS_JSON=$(generate_crypto_keys)
+SIGN_PUB=$(echo "$KEYS_JSON" | jq -r '.signPublicKey')
+ENC_PUB=$(echo "$KEYS_JSON" | jq -r '.encryptPublicKey')
 SUBMIT_RESPONSE=$(curl -s -X POST "${GUARD_URL}/api/v1/help" \
   "${E2E_BYPASS_ARGS[@]}" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
     --arg apiKey "$CLIENT_KEY" \
-    --argjson signPublicKey "$(echo "$KEYS_JSON" | jq '.signPublicKey')" \
-    --argjson encryptPublicKey "$(echo "$KEYS_JSON" | jq '.encryptPublicKey')" \
+    --arg signPublicKey "$SIGN_PUB" \
+    --arg encryptPublicKey "$ENC_PUB" \
     --arg question "State transition test $(date +%s)" \
     '{apiKey: $apiKey, question: $question, signPublicKey: $signPublicKey, encryptPublicKey: $encryptPublicKey}'
   )")

@@ -2,7 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { ShieldAlert } from "lucide-react";
 import { StatusBadge } from "./status-badge";
+
+interface ContentFlag {
+  type: "xss" | "url" | "credit_card" | "phone" | "email" | "ssn_bsn";
+  original: string;
+  replacement: string;
+}
 
 interface HelpRequestItem {
   id: string;
@@ -10,7 +17,23 @@ interface HelpRequestItem {
   question: string | null;
   createdAt: string;
   deliveredAt: string | null;
+  contentFlags: ContentFlag[] | null;
+  guardVerified: boolean;
   apiKey: { name: string | null };
+}
+
+const SPAM_FLAG_TYPES = new Set(["xss", "credit_card", "ssn_bsn"]);
+
+function getFlagLabel(type: string): string {
+  const labels: Record<string, string> = {
+    xss: "XSS",
+    url: "URL defanged",
+    credit_card: "Credit card",
+    phone: "Phone redacted",
+    email: "Email redacted",
+    ssn_bsn: "SSN/BSN",
+  };
+  return labels[type] || type;
 }
 
 const filterOptions = [
@@ -21,6 +44,7 @@ const filterOptions = [
   { value: "responded", label: "Responded" },
   { value: "closed", label: "Closed" },
   { value: "expired", label: "Expired" },
+  { value: "flagged", label: "Flagged" },
 ];
 
 export function RequestList({ providerId }: { providerId?: string }) {
@@ -92,6 +116,15 @@ export function RequestList({ providerId }: { providerId?: string }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {req.contentFlags && req.contentFlags.length > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-xs text-red-700 dark:text-red-400"
+                    title={req.contentFlags.map((f) => getFlagLabel(f.type)).join(", ")}
+                  >
+                    <ShieldAlert className="h-3 w-3" />
+                    {req.contentFlags.some((f) => SPAM_FLAG_TYPES.has(f.type)) ? "Blocked" : "Sanitized"}
+                  </span>
+                )}
                 {!req.deliveredAt && req.status === "pending" && (
                   <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-400">
                     ⏳

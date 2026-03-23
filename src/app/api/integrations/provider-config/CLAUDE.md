@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #3337 | 9:30 AM | 🟣 | Updated client channels coming soon section with distinct icons | ~361 |
+| #3316 | 9:02 AM | ⚖️ | Integration architecture analysis defines three implementation patterns for new integrations | ~657 |
 </claude-mem-context>

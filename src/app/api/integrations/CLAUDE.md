@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #3337 | 9:30 AM | 🟣 | Updated client channels coming soon section with distinct icons | ~361 |
+| #3315 | 9:02 AM | ⚖️ | Integration roadmap research identified Slack, Discord, Signal, Email, and SMS as high-priority coming soon integrations | ~609 |
 </claude-mem-context>

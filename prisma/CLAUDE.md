@@ -8,5 +8,6 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #3316 | 9:02 AM | ⚖️ | Integration architecture analysis defines three implementation patterns for new integrations | ~657 |
-| #3307 | 8:56 AM | 🔵 | Request lifecycle managed through formal state machine with optimistic concurrency | ~457 |
+| #3315 | " | ⚖️ | Integration roadmap research identified Slack, Discord, Signal, Email, and SMS as high-priority coming soon integrations | ~609 |
+| #3298 | 8:54 AM | 🔵 | Database schema reveals extensible integration architecture with Twilio voice integration | ~439 |
 </claude-mem-context>

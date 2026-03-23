@@ -7,6 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #3320 | 9:10 AM | 🔵 | Channels page questioned for redundancy | ~206 |
 | #3316 | 9:02 AM | ⚖️ | Integration architecture analysis defines three implementation patterns for new integrations | ~657 |
-| #3307 | 8:56 AM | 🔵 | Request lifecycle managed through formal state machine with optimistic concurrency | ~457 |
+| #3309 | 8:57 AM | 🔵 | HTTP polling endpoint enables bidirectional event discovery for providers and consumers | ~570 |
 </claude-mem-context>

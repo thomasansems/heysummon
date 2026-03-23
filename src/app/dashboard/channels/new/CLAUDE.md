@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #3337 | 9:30 AM | 🟣 | Updated client channels coming soon section with distinct icons | ~361 |
+| #3333 | 9:28 AM | ✅ | Removed Signal from channel creation wizard | ~233 |
 </claude-mem-context>

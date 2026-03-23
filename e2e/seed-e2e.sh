@@ -44,6 +44,18 @@ async function seed() {
     });
   }
 
+  // ChannelProvider for provider A (required — help API rejects requests with no channel)
+  await prisma.channelProvider.create({
+    data: {
+      profileId: providerA.id,
+      type: 'openclaw',
+      name: 'E2E OpenClaw Channel',
+      isActive: true,
+      status: 'connected',
+      config: JSON.stringify({ openclaw: { notifyTarget: 'e2e-test' } }),
+    },
+  });
+
   // Client key for provider A
   const clientKeyA = 'hs_cli_' + crypto.randomBytes(24).toString('hex');
   await prisma.apiKey.create({
@@ -80,6 +92,18 @@ async function seed() {
       },
     });
   }
+
+  // ChannelProvider for provider B
+  await prisma.channelProvider.create({
+    data: {
+      profileId: providerB.id,
+      type: 'openclaw',
+      name: 'E2E OpenClaw Channel B',
+      isActive: true,
+      status: 'connected',
+      config: JSON.stringify({ openclaw: { notifyTarget: 'e2e-test-b' } }),
+    },
+  });
 
   // Client key for provider B
   const clientKeyB = 'hs_cli_' + crypto.randomBytes(24).toString('hex');

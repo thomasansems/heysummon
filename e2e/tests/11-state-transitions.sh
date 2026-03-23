@@ -13,13 +13,16 @@ echo "════════════════════════�
 # ── Submit a request ──
 section "Submit request for state transition tests"
 
-SUBMIT_RESPONSE=$(curl -s -X POST "${BASE_URL}/api/v1/help" \
+KEYS_JSON=$(generate_crypto_keys)
+SUBMIT_RESPONSE=$(curl -s -X POST "${GUARD_URL}/api/v1/help" \
   "${E2E_BYPASS_ARGS[@]}" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
     --arg apiKey "$CLIENT_KEY" \
+    --argjson signPublicKey "$(echo "$KEYS_JSON" | jq '.signPublicKey')" \
+    --argjson encryptPublicKey "$(echo "$KEYS_JSON" | jq '.encryptPublicKey')" \
     --arg question "State transition test $(date +%s)" \
-    '{apiKey: $apiKey, question: $question, signPublicKey: "st-test-sign", encryptPublicKey: "st-test-encrypt"}'
+    '{apiKey: $apiKey, question: $question, signPublicKey: $signPublicKey, encryptPublicKey: $encryptPublicKey}'
   )")
 
 REQUEST_ID=$(echo "$SUBMIT_RESPONSE" | jq -r '.requestId // empty')

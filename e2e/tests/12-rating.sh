@@ -13,7 +13,7 @@ echo "════════════════════════�
 # ── Submit and respond to a request ──
 section "Setup: submit + respond"
 
-SUBMIT=$(curl -s -X POST "${BASE_URL}/api/v1/help" \
+SUBMIT=$(curl -s -X POST "${GUARD_URL}/api/v1/help" \
   "${E2E_BYPASS_ARGS[@]}" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
@@ -70,7 +70,7 @@ fi
 # ── Rate on pending request should return 400 ──
 section "Rate on pending request (should be 400)"
 
-PENDING_SUBMIT=$(curl -s -X POST "${BASE_URL}/api/v1/help" \
+PENDING_SUBMIT=$(curl -s -X POST "${GUARD_URL}/api/v1/help" \
   "${E2E_BYPASS_ARGS[@]}" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
@@ -97,7 +97,7 @@ fi
 section "Invalid rating values (should be 400)"
 
 # Submit + respond for this test
-INVALID_SUBMIT=$(curl -s -X POST "${BASE_URL}/api/v1/help" \
+INVALID_SUBMIT=$(curl -s -X POST "${GUARD_URL}/api/v1/help" \
   "${E2E_BYPASS_ARGS[@]}" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \

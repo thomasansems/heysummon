@@ -3,7 +3,7 @@
 import { copyToClipboard } from "@/lib/clipboard";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { X, RotateCcw, ArrowDownLeft, ArrowUpRight, Phone } from "lucide-react";
+import { X, RotateCcw, ArrowDownLeft, ArrowUpRight, Phone, Clock } from "lucide-react";
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -42,6 +42,7 @@ interface HelpRequest {
   deliveredAt: string | null;
   phoneCallStatus: string | null;
   phoneCallAt: string | null;
+  clientTimedOutAt: string | null;
   apiKey: { name: string | null; provider: { name: string } | null };
 }
 
@@ -116,6 +117,19 @@ function PhoneCallBadge({ status }: { status: string | null }) {
     >
       <Phone className="h-3 w-3" />
       {phoneCallLabels[status] || status}
+    </span>
+  );
+}
+
+function ClientTimeoutBadge({ timedOutAt }: { timedOutAt: string | null }) {
+  if (!timedOutAt) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 px-2 py-0.5 text-xs font-medium"
+      title={`Client timed out: ${new Date(timedOutAt).toLocaleString()}`}
+    >
+      <Clock className="h-3 w-3" />
+      Client Timed Out
     </span>
   );
 }
@@ -412,6 +426,7 @@ export default function RequestsContent() {
                           </span>
                         )}
                         <PhoneCallBadge status={req.phoneCallStatus} />
+                        <ClientTimeoutBadge timedOutAt={req.clientTimedOutAt} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -494,6 +509,7 @@ export default function RequestsContent() {
                             </span>
                           )}
                           <PhoneCallBadge status={req.phoneCallStatus} />
+                          <ClientTimeoutBadge timedOutAt={req.clientTimedOutAt} />
                         </div>
                       </td>
                       <td className="px-4 py-2.5">

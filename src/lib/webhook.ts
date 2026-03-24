@@ -16,7 +16,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 
 export type WebhookPayload = {
-  type: 'new_request' | 'new_message' | 'closed' | 'responded' | 'keys_exchanged';
+  type: 'new_request' | 'new_message' | 'closed' | 'responded' | 'keys_exchanged' | 'client_timeout';
   requestId?: string;
   refCode?: string;
   question?: string | null;

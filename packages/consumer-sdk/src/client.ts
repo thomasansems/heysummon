@@ -114,4 +114,9 @@ export class HeySummonClient {
       `/api/v1/requests/by-ref/${refCode}`
     );
   }
+
+  /** Report that the client's blocking poll timed out */
+  async reportTimeout(requestId: string): Promise<void> {
+    await this.request<unknown>("POST", `/api/v1/help/${requestId}/timeout`, {});
+  }
 }

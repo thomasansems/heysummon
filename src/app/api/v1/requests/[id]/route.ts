@@ -80,6 +80,7 @@ export async function GET(
       phoneCallAt: helpRequest.phoneCallAt || null,
       phoneCallResponse: helpRequest.phoneCallResponse || null,
       phoneCallSid: helpRequest.phoneCallSid || null,
+      clientTimedOutAt: helpRequest.clientTimedOutAt || null,
       contentFlags: helpRequest.contentFlags ? JSON.parse(helpRequest.contentFlags) : null,
       guardVerified: helpRequest.guardVerified,
     },

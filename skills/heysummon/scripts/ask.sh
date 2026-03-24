@@ -1,10 +1,10 @@
 #!/bin/bash
-# HeySummon — Ask a human (blocking poll with async fallback)
+# HeySummon — Ask a human (blocking poll)
 #
 # Usage:
 #   ask.sh "<question>"                              — Blocking poll (default)
 #   ask.sh "<question>" "<context>" "<provider>"     — Blocking with context
-#   ask.sh --async "<question>" [context] [provider] — Non-blocking (watcher delivers later)
+#   ask.sh --async "<question>" [context] [provider] — Non-blocking (submit only)
 #   ask.sh --check                                   — Check inbox for pending responses
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -50,6 +50,12 @@ if [ -d "$INBOX_DIR" ] && [ "$(find "$INBOX_DIR" -maxdepth 1 -name '*.json' 2>/d
   echo "" >&2
 fi
 
+# Clean up stale pending files (older than 72h) from previous sessions
+PENDING_DIR="$SKILL_DIR/pending"
+if [ -d "$PENDING_DIR" ]; then
+  find "$PENDING_DIR" -maxdepth 1 -name '*.json' -mmin +4320 -delete 2>/dev/null
+fi
+
 # Build CLI args for blocking poll
 CLI_ARGS=(submit-and-poll --question "$QUESTION")
 [ -n "$CONTEXT" ] && CLI_ARGS+=(--context "$CONTEXT")
@@ -62,37 +68,9 @@ export HEYSUMMON_TIMEOUT="${HEYSUMMON_TIMEOUT:-900}"
 export HEYSUMMON_POLL_INTERVAL="${HEYSUMMON_POLL_INTERVAL:-3}"
 export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-}"
 
-# Save to pending/ so the watcher can pick it up if the blocking poll times out
-PENDING_DIR="$SKILL_DIR/pending"
-mkdir -p "$PENDING_DIR"
-
-# Run blocking poll — redirect stderr to tty if available, otherwise /dev/stderr
-if [ -e /dev/tty ] 2>/dev/null; then
-  OUTPUT=$($SDK_CLI "${CLI_ARGS[@]}" 2>/dev/tty)
-else
-  OUTPUT=$($SDK_CLI "${CLI_ARGS[@]}" 2>/dev/stderr)
-fi
+# Run blocking poll — the CLI handles timeout reporting to the server
+OUTPUT=$($SDK_CLI "${CLI_ARGS[@]}" 2>&2)
 EXIT_CODE=$?
-
-# If TIMEOUT, save to pending so watcher picks it up later
-if echo "$OUTPUT" | grep -q "^TIMEOUT:"; then
-  REF=$(echo "$OUTPUT" | grep -oP 'request \K[^\s.]+')
-  if [ -n "$REF" ]; then
-    node -e "
-      const fs = require('fs');
-      const entry = {
-        requestId: process.argv[1],
-        refCode: process.argv[1],
-        question: process.argv[2],
-        provider: process.argv[3] || 'default',
-        submittedAt: new Date().toISOString(),
-        timedOut: true
-      };
-      fs.writeFileSync(process.argv[4] + '/' + entry.requestId + '.json', JSON.stringify(entry, null, 2));
-    " "$REF" "$QUESTION" "$PROVIDER_NAME" "$PENDING_DIR" 2>/dev/null
-    echo "   (watcher will deliver the response when it arrives)" >&2
-  fi
-fi
 
 echo "$OUTPUT"
 exit $EXIT_CODE

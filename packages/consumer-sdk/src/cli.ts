@@ -245,21 +245,28 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
     providerName: providerArg || undefined,
   });
 
-  if (result.providerUnavailable) {
-    const next = result.nextAvailableAt
-      ? ` (available at ${new Date(result.nextAvailableAt).toLocaleTimeString()})`
-      : "";
-    process.stderr.write(
-      `Provider currently unavailable${next} — request queued, waiting for response...\n`
-    );
-  }
-
   if (!result.requestId) {
     process.stderr.write(`Failed to submit request: ${JSON.stringify(result)}\n`);
     process.exit(1);
   }
 
   const ref = result.refCode || result.requestId;
+
+  // When provider is unavailable, return immediately with a signal
+  // so the calling script can activate async watcher delivery instead of blocking
+  if (result.providerUnavailable) {
+    const next = result.nextAvailableAt
+      ? ` (available at ${new Date(result.nextAvailableAt).toLocaleTimeString()})`
+      : "";
+    process.stderr.write(
+      `Provider currently unavailable${next} — request queued.\n`
+    );
+    process.stdout.write(
+      `PROVIDER_UNAVAILABLE: Request ${ref} queued. The provider will be notified when they come online.\n`
+    );
+    return;
+  }
+
   process.stderr.write(
     `Request submitted [${ref}] — waiting for human response...\n`
   );
@@ -312,10 +319,13 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
     }
   }
 
+  // Report timeout to server (notifies provider, records timestamp)
+  await client.reportTimeout(result.requestId).catch(() => {});
+
   process.stderr.write(`\nTimeout after ${timeout}s — no response received.\n`);
   process.stderr.write(`   Request ref: ${ref}\n`);
   process.stdout.write(
-    `TIMEOUT: No response received after ${timeout}s for request ${ref}. The provider may still respond later.\n`
+    `TIMEOUT: No answer came back from the provider within the ${timeout}s timeout window. Request ref: ${ref}\n`
   );
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-import { X, RotateCcw, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { X, RotateCcw, ArrowDownLeft, ArrowUpRight, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   BarChart,
@@ -40,6 +40,7 @@ interface Stats {
     inbound: number;
     outbound: number;
     createdAt: string;
+    clientTimedOutAt: string | null;
     apiKey: { name: string | null };
   }[];
 }
@@ -425,6 +426,12 @@ export default function DashboardPage() {
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                           req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
                         }`}>{req.status === "active" ? "Active" : "Pending"}</span>
+                        {req.clientTimedOutAt && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 px-2 py-0.5 text-xs font-medium"
+                            title={`Client timed out: ${new Date(req.clientTimedOutAt).toLocaleString()}`}>
+                            <Clock className="h-3 w-3" />Client Timed Out
+                          </span>
+                        )}
                         {(req.inbound > 0 || req.outbound > 0) && (
                           <span className="inline-flex items-center gap-1.5">
                             {req.inbound > 0 && <span className="inline-flex items-center gap-0.5"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>}
@@ -466,9 +473,17 @@ export default function DashboardPage() {
                           {req.apiKey.name || "Unnamed"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
-                          }`}>{req.status === "active" ? "Active" : "Pending"}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                              req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
+                            }`}>{req.status === "active" ? "Active" : "Pending"}</span>
+                            {req.clientTimedOutAt && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 px-2 py-0.5 text-xs font-medium"
+                                title={`Client timed out: ${new Date(req.clientTimedOutAt).toLocaleString()}`}>
+                                <Clock className="h-3 w-3" />Client Timed Out
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">

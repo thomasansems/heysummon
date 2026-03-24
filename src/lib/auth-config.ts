@@ -154,13 +154,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
       }
-      // Always refresh role from DB so changes take effect without re-login
+      // Always refresh role + onboarding from DB so changes take effect without re-login
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true },
+          select: { role: true, onboardingComplete: true },
         });
         token.role = dbUser?.role ?? "provider";
+        token.onboardingComplete = dbUser?.onboardingComplete ?? false;
       }
       return token;
     },
@@ -169,6 +170,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // JWT strategy uses token, database strategy uses user
         session.user.id = (token?.id as string) || user?.id;
         session.user.role = (token?.role as string) ?? "provider";
+        session.user.onboardingComplete = (token?.onboardingComplete as boolean) ?? false;
       }
       return session;
     },

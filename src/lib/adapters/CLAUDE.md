@@ -13,4 +13,10 @@
 | #3302 | " | 🔵 | OpenClaw adapter implements minimal config-only integration pattern | ~305 |
 | #3301 | " | 🔵 | Telegram adapter implements webhook-based integration with Telegram Bot API | ~433 |
 | #3300 | 8:54 AM | 🔵 | Channel adapter architecture uses standardized TypeScript interfaces | ~310 |
+
+### Mar 24, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #3571 | 7:39 PM | 🔵 | Multi-Platform Client Integration Architecture | ~908 |
 </claude-mem-context>

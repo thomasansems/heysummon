@@ -11,4 +11,10 @@
 | #3314 | 8:59 AM | 🔵 | WhatsApp channel adapter fully implemented with 24-hour messaging window support | ~473 |
 | #3313 | " | 🔵 | Channel adapter registry shows Telegram and WhatsApp implemented with Signal, Discord, Email planned | ~326 |
 | #3311 | 8:58 AM | 🔵 | Channel types define roadmap with Telegram, WhatsApp, Signal, Discord, and Email support | ~434 |
+
+### Mar 24, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #3571 | 7:39 PM | 🔵 | Multi-Platform Client Integration Architecture | ~908 |
 </claude-mem-context>

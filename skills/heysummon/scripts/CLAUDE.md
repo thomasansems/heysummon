@@ -8,4 +8,15 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #3340 | 2:17 PM | 🔵 | HeySummon Skills Directory Platform Variants Catalogued | ~679 |
+
+### Mar 24, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #3435 | 12:42 AM | 🔴 | ask.sh detects PROVIDER_UNAVAILABLE signal and activates watcher immediately | ~347 |
+| #3433 | 12:41 AM | 🔵 | setup-watcher.sh manages PM2 lifecycle for heysummon-cc-watcher | ~351 |
+| #3432 | " | 🔵 | submit.sh provides pure async submission pattern without polling | ~367 |
+| #3430 | 12:40 AM | 🔵 | submit-request.sh already implements immediate provider unavailability detection | ~374 |
+| #3429 | " | 🔵 | HeySummon ask.sh timeout fallback mechanism analysis | ~373 |
+| #3428 | " | 🔵 | HeySummon skill timeout blocks when provider offline | ~299 |
 </claude-mem-context>

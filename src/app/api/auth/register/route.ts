@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         name: name?.trim() || null,
         role: isFirstUser ? "admin" : "provider",
         emailVerified: new Date(), // Auto-verified for self-hosted simplicity
-        onboardingComplete: isFirstUser, // Skip onboarding for admin
+        onboardingComplete: false, // All users go through onboarding
       },
     });
 

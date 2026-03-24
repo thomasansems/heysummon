@@ -26,6 +26,7 @@ export const AuditEventTypes = {
   DELIVERY_RETRY_ATTEMPTED: "DELIVERY_RETRY_ATTEMPTED",
   ESCALATION_TRIGGERED: "ESCALATION_TRIGGERED",
   STATE_TRANSITION: "STATE_TRANSITION",
+  CLIENT_TIMEOUT: "CLIENT_TIMEOUT",
 } as const;
 
 export type AuditEventType = (typeof AuditEventTypes)[keyof typeof AuditEventTypes];

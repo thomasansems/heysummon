@@ -223,6 +223,9 @@ model HelpRequest {
   // Provider notification tracking
   notifiedProviderAt     DateTime? // When provider was notified (null = deferred due to unavailability)
 
+  // Client timeout tracking
+  clientTimedOutAt       DateTime? // When the consumer's blocking poll timed out without a response
+
   // Channel adapter fields
   channelProviderId      String?
   channelProvider        ChannelProvider? @relation(fields: [channelProviderId], references: [id])

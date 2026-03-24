@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Phone, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Phone, ShieldAlert, ShieldCheck, Clock } from "lucide-react";
 import { ChatDisplay } from "./chat-display";
 import { ResponseForm } from "./response-form";
 import { StatusBadge } from "./status-badge";
@@ -33,6 +33,7 @@ interface HelpRequestDetail {
   phoneCallAt: string | null;
   phoneCallResponse: string | null;
   phoneCallSid: string | null;
+  clientTimedOutAt: string | null;
   contentFlags: ContentFlag[] | null;
   guardVerified: boolean;
 }
@@ -136,13 +137,22 @@ export function RequestDetail({ id }: { id: string }) {
             <StatusBadge status={request.status} />
             {request.deliveredAt ? (
               <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
-                ✓ Delivered
+                Delivered
               </span>
             ) : request.status !== "closed" && request.status !== "expired" ? (
               <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-400">
-                ⏳ Not delivered
+                Not delivered
               </span>
             ) : null}
+            {request.clientTimedOutAt && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 px-2 py-0.5 text-xs font-medium"
+                title={`Client timed out: ${new Date(request.clientTimedOutAt).toLocaleString()}`}
+              >
+                <Clock className="h-3 w-3" />
+                Client Timed Out
+              </span>
+            )}
           </div>
           <p className="mt-1 text-xs text-zinc-500">
             {new Date(request.createdAt).toLocaleString()} · via{" "}

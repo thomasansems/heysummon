@@ -22,10 +22,13 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { keyId, channel, subChannel } = body as {
+  const { keyId, channel, subChannel, timeout, pollInterval, globalInstall } = body as {
     keyId: string;
     channel: "openclaw" | "claudecode" | "codex" | "gemini" | "cursor";
     subChannel?: "telegram" | "whatsapp";
+    timeout?: number;
+    pollInterval?: number;
+    globalInstall?: boolean;
   };
 
   if (!keyId || !channel) {
@@ -54,6 +57,9 @@ export async function POST(request: NextRequest) {
       channel,
       subChannel: subChannel ?? null,
       providerName: apiKey.provider?.name ?? null,
+      ...(timeout != null && timeout !== 900 && { timeout }),
+      ...(pollInterval != null && pollInterval !== 3 && { pollInterval }),
+      ...(globalInstall === false && { globalInstall: false }),
     },
     secret,
     { expiresIn: SETUP_LINK_TTL_SECONDS }

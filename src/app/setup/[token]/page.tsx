@@ -12,6 +12,9 @@ interface SetupPayload {
   channel: ClientChannel;
   subChannel?: "telegram" | "whatsapp" | null;
   providerName?: string | null;
+  timeout?: number;
+  pollInterval?: number;
+  globalInstall?: boolean;
   exp: number;
 }
 
@@ -78,6 +81,9 @@ export default async function SetupPage({
           providerName={providerName}
           expiresAt={payload.exp}
           initialBound={bound}
+          timeout={payload.timeout}
+          pollInterval={payload.pollInterval}
+          globalInstall={payload.globalInstall}
         />
 
         <div className="mt-10 text-center text-xs text-zinc-600">

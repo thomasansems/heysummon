@@ -16,6 +16,12 @@ interface SetupFlowProps {
   expiresAt: number;
   /** Server-side bound check — skip rendering credentials entirely */
   initialBound?: boolean;
+  /** Custom timeout in seconds (default: 900) */
+  timeout?: number;
+  /** Custom poll interval in seconds (default: 3) */
+  pollInterval?: number;
+  /** Whether to install SDK globally (default: true) */
+  globalInstall?: boolean;
 }
 
 type OpenClawStep = "install" | "add-provider" | "watcher" | "hook" | "connected";
@@ -44,6 +50,9 @@ export default function SetupFlow({
   providerName,
   expiresAt,
   initialBound = false,
+  timeout = 900,
+  pollInterval = 3,
+  globalInstall = true,
 }: SetupFlowProps) {
   const isOpenClaw = channel === "openclaw";
   const isSkillBased = !isOpenClaw; // claudecode, codex, gemini, cursor
@@ -135,7 +144,8 @@ export default function SetupFlow({
   const clawhubUrl = `https://clawhub.ai/thomasansems/heysummon`;
 
   const skillDir = meta.skillDir;
-  const skillInstallCmd = `npm install -g @heysummon/consumer-sdk && \\
+  const npmInstallFlag = globalInstall ? " -g" : "";
+  const skillInstallCmd = `npm install${npmInstallFlag} @heysummon/consumer-sdk && \\
 mkdir -p ${skillDir}/scripts && \\
 for f in ask.sh sdk.sh submit.sh check-inbox.sh; do \\
   curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=$f" \\
@@ -146,8 +156,8 @@ curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=SKILL.md" \\
 cat > ${skillDir}/.env << 'EOF'
 HEYSUMMON_BASE_URL=${baseUrl}
 HEYSUMMON_API_KEY=${apiKey}
-HEYSUMMON_TIMEOUT=900
-HEYSUMMON_POLL_INTERVAL=3
+HEYSUMMON_TIMEOUT=${timeout}
+HEYSUMMON_POLL_INTERVAL=${pollInterval}
 EOF
 echo "Verifying connection..." && \\
 curl -sf "${baseUrl}/api/v1/whoami" \\

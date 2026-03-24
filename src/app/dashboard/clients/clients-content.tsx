@@ -4,7 +4,7 @@ import { copyToClipboard } from "@/lib/clipboard";
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -171,6 +171,12 @@ export default function ClientsContent() {
   const [wizardError, setWizardError] = useState<string | null>(null);
   const [wizardResult, setWizardResult] = useState<{ keyId: string; key: string; setupUrl: string; expiresAt: string } | null>(null);
 
+  // Advanced settings
+  const [wizardShowAdvanced, setWizardShowAdvanced] = useState(false);
+  const [wizardTimeout, setWizardTimeout] = useState(900);
+  const [wizardPollInterval, setWizardPollInterval] = useState(3);
+  const [wizardGlobalInstall, setWizardGlobalInstall] = useState(true);
+
   const loadKeys = () =>
     fetch("/api/v1/keys")
       .then((r) => {
@@ -210,6 +216,10 @@ export default function ClientsContent() {
     setWizardProviderId("");
     setWizardError(null);
     setWizardResult(null);
+    setWizardShowAdvanced(false);
+    setWizardTimeout(900);
+    setWizardPollInterval(3);
+    setWizardGlobalInstall(true);
   };
 
   const closeWizard = () => {
@@ -273,6 +283,9 @@ export default function ClientsContent() {
         keyId,
         channel: wizardChannel,
         subChannel: wizardSubChannel,
+        ...(wizardTimeout !== 900 && { timeout: wizardTimeout }),
+        ...(wizardPollInterval !== 3 && { pollInterval: wizardPollInterval }),
+        ...(wizardGlobalInstall === false && { globalInstall: false }),
       }),
     });
 
@@ -443,7 +456,68 @@ export default function ClientsContent() {
                   )}
                 </div>
 
+                {/* Advanced settings */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setWizardShowAdvanced((v) => !v)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {wizardShowAdvanced ? (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    )}
+                    Advanced settings
+                  </button>
 
+                  {wizardShowAdvanced && (
+                    <div className="mt-3 space-y-3 rounded-md border border-border bg-muted/20 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Request timeout (seconds)
+                        </label>
+                        <input
+                          type="number"
+                          min={10}
+                          max={3600}
+                          value={wizardTimeout}
+                          onChange={(e) => setWizardTimeout(Number(e.target.value) || 900)}
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                        />
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">How long the client waits for a response before timing out (default: 900)</p>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Poll interval (seconds)
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={wizardPollInterval}
+                          onChange={(e) => setWizardPollInterval(Number(e.target.value) || 3)}
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                        />
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">How often the client checks for new messages (default: 3)</p>
+                      </div>
+                      {wizardChannel !== "openclaw" && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="wizard-global-install"
+                            checked={wizardGlobalInstall}
+                            onChange={(e) => setWizardGlobalInstall(e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-border accent-foreground"
+                          />
+                          <label htmlFor="wizard-global-install" className="text-xs text-muted-foreground">
+                            Install SDK globally (<code className="text-[11px]">npm install -g</code>)
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-between gap-2">

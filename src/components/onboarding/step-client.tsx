@@ -125,7 +125,13 @@ export function StepClient({
       const linkRes = await fetch("/api/v1/setup-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyId: createdKeyId, channel, subChannel }),
+        body: JSON.stringify({
+          keyId: createdKeyId,
+          channel,
+          subChannel,
+          ...(timeout !== DEFAULT_TIMEOUT && { timeout }),
+          ...(pollInterval !== DEFAULT_POLL_INTERVAL && { pollInterval }),
+        }),
       });
       if (linkRes.ok) {
         const linkData = await linkRes.json();

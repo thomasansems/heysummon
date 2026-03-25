@@ -185,11 +185,17 @@ interface Provider {
   apiKeys: LinkedClient[];
 }
 
-function getProviderStatus(p: Provider): { label: string; colorClass: string } {
+function getProviderStatus(
+  p: Provider,
+  tunnelAccessible: boolean | null,
+): { label: string; colorClass: string } {
   if (!p.isActive) return { label: "Inactive", colorClass: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" };
 
   const telegramCh = p.channelProviders?.find((c) => c.type === "telegram");
   if (telegramCh) {
+    if (telegramCh.status === "connected" && tunnelAccessible === false) {
+      return { label: "Unreachable", colorClass: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" };
+    }
     return telegramCh.status === "connected"
       ? { label: "Connected", colorClass: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" }
       : { label: "Not connected", colorClass: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300" };
@@ -245,10 +251,10 @@ export default function ProvidersContent() {
   const [tunnelActive, setTunnelActive] = useState<boolean | null>(null);
 
   const fetchTunnelStatus = useCallback(() => {
-    fetch("/api/admin/tunnel/status").then(r => r.json()).then(d => setTunnelActive(d.active ?? false)).catch(() => setTunnelActive(false));
+    fetch("/api/admin/tunnel/status").then(r => r.json()).then(d => setTunnelActive(d.accessible ?? false)).catch(() => setTunnelActive(false));
   }, []);
 
-  useEffect(() => { if (wizardChannel === "telegram") fetchTunnelStatus(); }, [wizardChannel, fetchTunnelStatus]);
+  useEffect(() => { fetchTunnelStatus(); }, [fetchTunnelStatus]);
 
   const loadProviders = () =>
     fetch("/api/providers")
@@ -570,7 +576,7 @@ export default function ProvidersContent() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {p.channelProviders?.length > 0 ? <ChannelBadge channel={p.channelProviders[0]} /> : null}
-                    {(() => { const s = getProviderStatus(p); return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${s.colorClass}`}>{s.label}</span>; })()}
+                    {(() => { const s = getProviderStatus(p, tunnelActive); return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${s.colorClass}`}>{s.label}</span>; })()}
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>{p._count.apiKeys} clients</span>
@@ -613,7 +619,7 @@ export default function ProvidersContent() {
                         : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="px-4 py-2.5">
-                      {(() => { const s = getProviderStatus(p); return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${s.colorClass}`}>{s.label}</span>; })()}
+                      {(() => { const s = getProviderStatus(p, tunnelActive); return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${s.colorClass}`}>{s.label}</span>; })()}
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">{new Date(p.createdAt).toLocaleDateString()}</td>
                   </tr>
@@ -674,6 +680,7 @@ export default function ProvidersContent() {
               onClose={() => setSelectedProviderId(null)}
               onDeleted={() => { setSelectedProviderId(null); loadProviders(); }}
               onUpdated={() => loadProviders()}
+              tunnelAccessible={tunnelActive}
             />
           )}
         </SheetContent>

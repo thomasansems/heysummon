@@ -58,9 +58,11 @@ export async function GET() {
   const publicUrl = process.env.HEYSUMMON_PUBLIC_URL ?? null;
   if (publicUrl && !publicUrl.includes("localhost") && !publicUrl.includes("127.0.0.1")) {
     const method = detectMethod(publicUrl);
+    // For Tailscale URLs, verify the funnel is actually running
+    const accessible = method === "tailscale" ? tailscaleActive : true;
     return NextResponse.json({
-      accessible: true,
-      active: true, // backward compat
+      accessible,
+      active: accessible, // backward compat
       method,
       publicUrl,
       hostname: publicUrl,

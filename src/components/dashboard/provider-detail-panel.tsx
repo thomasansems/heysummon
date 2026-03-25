@@ -122,12 +122,18 @@ interface Provider {
 
 // ── Status / channel helpers (same as providers page) ────────────────────────
 
-function getProviderStatus(p: Provider): { label: string; colorClass: string } {
+function getProviderStatus(
+  p: Provider,
+  tunnelAccessible: boolean | null,
+): { label: string; colorClass: string } {
   if (!p.isActive)
     return { label: "Inactive", colorClass: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" };
 
   const telegramCh = p.channelProviders?.find((c) => c.type === "telegram");
   if (telegramCh) {
+    if (telegramCh.status === "connected" && tunnelAccessible === false) {
+      return { label: "Unreachable", colorClass: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" };
+    }
     return telegramCh.status === "connected"
       ? { label: "Connected", colorClass: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" }
       : { label: "Not connected", colorClass: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300" };
@@ -166,11 +172,13 @@ export function ProviderDetailPanel({
   onClose,
   onDeleted,
   onUpdated,
+  tunnelAccessible = null,
 }: {
   providerId: string;
   onClose: () => void;
   onDeleted: () => void;
   onUpdated: () => void;
+  tunnelAccessible?: boolean | null;
 }) {
   const [provider, setProvider] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
@@ -424,7 +432,7 @@ export function ProviderDetailPanel({
     return <p className="p-6 text-sm text-muted-foreground">Provider not found.</p>;
   }
 
-  const status = getProviderStatus(provider);
+  const status = getProviderStatus(provider, tunnelAccessible);
 
   // Suppress unused variable warning — onClose is called by the parent shell
   void onClose;

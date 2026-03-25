@@ -129,12 +129,12 @@ function getProviderStatus(
   if (!p.isActive)
     return { label: "Inactive", colorClass: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" };
 
-  const telegramCh = p.channelProviders?.find((c) => c.type === "telegram");
-  if (telegramCh) {
-    if (telegramCh.status === "connected" && tunnelAccessible === false) {
+  const webhookCh = p.channelProviders?.find((c) => c.type === "telegram" || c.type === "slack");
+  if (webhookCh) {
+    if (webhookCh.status === "connected" && tunnelAccessible === false) {
       return { label: "Unreachable", colorClass: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" };
     }
-    return telegramCh.status === "connected"
+    return webhookCh.status === "connected"
       ? { label: "Connected", colorClass: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" }
       : { label: "Not connected", colorClass: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300" };
   }
@@ -152,6 +152,8 @@ function getProviderStatus(
 function channelBadge(channel: ChannelProvider): { label: string; color: string } {
   if (channel.type === "telegram")
     return { label: "Telegram Bot", color: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300" };
+  if (channel.type === "slack")
+    return { label: "Slack", color: "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300" };
   if (channel.type === "openclaw")
     return { label: "OpenClaw", color: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" };
   return { label: channel.type, color: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400" };
@@ -301,12 +303,13 @@ export function ProviderDetailPanel({
     onUpdated();
   };
 
-  const saveTimezone = async () => {
+  const saveTimezone = async (tz?: string) => {
+    const value = tz ?? timezone;
     setSavingTimezone(true);
     await fetch(`/api/providers/${providerId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ timezone }),
+      body: JSON.stringify({ timezone: value }),
     });
     setSavingTimezone(false);
     setTimezoneSaved(true);
@@ -315,15 +318,17 @@ export function ProviderDetailPanel({
     onUpdated();
   };
 
-  const saveAvailability = async () => {
+  const saveAvailability = async (overrides?: { enabled?: boolean; days?: number[] }) => {
+    const enabled = overrides?.enabled ?? availEnabled;
+    const days = overrides?.days ?? availDays;
     setSavingAvail(true);
     await fetch(`/api/providers/${providerId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        quietHoursStart: availEnabled ? availFrom : null,
-        quietHoursEnd: availEnabled ? availUntil : null,
-        availableDays: availEnabled ? availDays.sort((a, b) => a - b).join(",") : null,
+        quietHoursStart: enabled ? availFrom : null,
+        quietHoursEnd: enabled ? availUntil : null,
+        availableDays: enabled ? days.sort((a, b) => a - b).join(",") : null,
       }),
     });
     setSavingAvail(false);
@@ -333,19 +338,21 @@ export function ProviderDetailPanel({
     onUpdated();
   };
 
-  const savePhoneFirst = async () => {
+  const savePhoneFirst = async (overrides?: { enabled?: boolean; integrationId?: string | null }) => {
+    const enabled = overrides?.enabled ?? phoneFirst;
+    const intId = overrides?.integrationId ?? phoneIntegrationId;
+
     setSavingPhone(true);
     setPhoneError(null);
 
     // If enabling phone-first, we need an integration selected and phone config
-    if (phoneFirst && phoneIntegrationId) {
-      // Save provider integration config (phone number etc.)
+    if (enabled && intId) {
       const cfgRes = await fetch("/api/integrations/provider-config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           profileId: providerId,
-          integrationId: phoneIntegrationId,
+          integrationId: intId,
           config: {
             phoneNumber: phoneNumber.trim(),
             twilioPhoneNumber: twilioPhoneNumber.trim(),
@@ -365,8 +372,8 @@ export function ProviderDetailPanel({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        phoneFirst,
-        phoneFirstIntegrationId: phoneFirst ? phoneIntegrationId : null,
+        phoneFirst: enabled,
+        phoneFirstIntegrationId: enabled ? intId : null,
         phoneFirstTimeout: phoneTimeout,
       }),
     });
@@ -415,8 +422,11 @@ export function ProviderDetailPanel({
     fetchProvider();
   };
 
-  const toggleDay = (d: number) =>
-    setAvailDays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
+  const toggleDay = (d: number) => {
+    const newDays = availDays.includes(d) ? availDays.filter((x) => x !== d) : [...availDays, d];
+    setAvailDays(newDays);
+    saveAvailability({ days: newDays });
+  };
 
   // ── Loading / not found ──────────────────────────────────────────────────
 
@@ -463,16 +473,14 @@ export function ProviderDetailPanel({
 
         {/* ── Provider name ────────────────────────────────── */}
         <div className="pt-8 mt-8 border-t border-border">
-          <h3 className="font-serif text-base font-semibold text-foreground mb-4">Provider name</h3>
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveName()} placeholder="e.g. Thomas — Support" />
-            </div>
-            <Button onClick={saveName} disabled={savingName} size="sm">
-              {savingName && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-              {nameSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save"}
-            </Button>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="font-serif text-base font-semibold text-foreground">Provider name</h3>
+            {savingName && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            {nameSaved && <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />}
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={saveName} onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }} placeholder="e.g. Thomas -- Support" />
           </div>
         </div>
 
@@ -489,32 +497,34 @@ export function ProviderDetailPanel({
 
         {/* ── Timezone ─────────────────────────────────────── */}
         <div className="pt-8 mt-8 border-t border-border">
-          <h3 className="font-serif text-base font-semibold text-foreground mb-4">Timezone</h3>
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Timezone</Label>
-              <select
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
-              >
-                {timezones.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
-              </select>
-            </div>
-            <Button onClick={saveTimezone} disabled={savingTimezone} size="sm">
-              {savingTimezone && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-              {timezoneSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save"}
-            </Button>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="font-serif text-base font-semibold text-foreground">Timezone</h3>
+            {savingTimezone && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            {timezoneSaved && <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />}
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Timezone</Label>
+            <select
+              value={timezone}
+              onChange={(e) => { setTimezone(e.target.value); saveTimezone(e.target.value); }}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+            >
+              {timezones.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+            </select>
           </div>
         </div>
 
         {/* ── Availability ─────────────────────────────────── */}
         <div className="pt-8 mt-8 border-t border-border">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-serif text-base font-semibold text-foreground">Availability</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-serif text-base font-semibold text-foreground">Availability</h3>
+              {savingAvail && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+              {availSaved && <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />}
+            </div>
             <button
               type="button"
-              onClick={() => setAvailEnabled((v) => !v)}
+              onClick={() => { const next = !availEnabled; setAvailEnabled(next); saveAvailability({ enabled: next }); }}
               className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${
                 availEnabled ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
               }`}
@@ -531,9 +541,9 @@ export function ProviderDetailPanel({
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Hours</Label>
                 <div className="flex items-center gap-3">
-                  <Input type="time" value={availFrom} onChange={(e) => setAvailFrom(e.target.value)} className="w-32" />
+                  <Input type="time" value={availFrom} onChange={(e) => setAvailFrom(e.target.value)} onBlur={() => saveAvailability()} className="w-32" />
                   <span className="text-sm text-muted-foreground">to</span>
-                  <Input type="time" value={availUntil} onChange={(e) => setAvailUntil(e.target.value)} className="w-32" />
+                  <Input type="time" value={availUntil} onChange={(e) => setAvailUntil(e.target.value)} onBlur={() => saveAvailability()} className="w-32" />
                 </div>
               </div>
 
@@ -557,11 +567,6 @@ export function ProviderDetailPanel({
                   })}
                 </div>
               </div>
-
-              <Button onClick={saveAvailability} disabled={savingAvail} size="sm">
-                {savingAvail && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                {availSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save availability"}
-              </Button>
             </div>
           )}
         </div>
@@ -569,10 +574,14 @@ export function ProviderDetailPanel({
         {/* ── Phone-first ──────────────────────────────────── */}
         <div className="pt-8 mt-8 border-t border-border">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-serif text-base font-semibold text-foreground">Phone first</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-serif text-base font-semibold text-foreground">Phone first</h3>
+              {savingPhone && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+              {phoneSaved && <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />}
+            </div>
             <button
               type="button"
-              onClick={() => setPhoneFirst((v) => !v)}
+              onClick={() => { const next = !phoneFirst; setPhoneFirst(next); savePhoneFirst({ enabled: next }); }}
               className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${
                 phoneFirst ? "bg-orange-600" : "bg-zinc-600 dark:bg-zinc-500"
               }`}
@@ -599,7 +608,7 @@ export function ProviderDetailPanel({
                     <Label className="text-xs text-muted-foreground mb-1.5 block">Voice integration</Label>
                     <select
                       value={phoneIntegrationId || ""}
-                      onChange={(e) => setPhoneIntegrationId(e.target.value || null)}
+                      onChange={(e) => { const val = e.target.value || null; setPhoneIntegrationId(val); savePhoneFirst({ integrationId: val }); }}
                       className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
                     >
                       <option value="">Select integration...</option>
@@ -618,6 +627,7 @@ export function ProviderDetailPanel({
                         <Input
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
+                          onBlur={() => savePhoneFirst()}
                           placeholder="+31612345678"
                           className="font-mono text-sm"
                         />
@@ -629,6 +639,7 @@ export function ProviderDetailPanel({
                         <Input
                           value={twilioPhoneNumber}
                           onChange={(e) => setTwilioPhoneNumber(e.target.value)}
+                          onBlur={() => savePhoneFirst()}
                           placeholder="+15551234567"
                           className="font-mono text-sm"
                         />
@@ -643,6 +654,7 @@ export function ProviderDetailPanel({
                           max={120}
                           value={phoneTimeout}
                           onChange={(e) => setPhoneTimeout(parseInt(e.target.value) || 30)}
+                          onBlur={() => savePhoneFirst()}
                           className="w-32"
                         />
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -655,19 +667,7 @@ export function ProviderDetailPanel({
               )}
 
               {phoneError && <p className="text-sm text-red-500">{phoneError}</p>}
-
-              <Button onClick={savePhoneFirst} disabled={savingPhone} size="sm">
-                {savingPhone && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                {phoneSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save phone settings"}
-              </Button>
             </div>
-          )}
-
-          {!phoneFirst && (
-            <Button onClick={savePhoneFirst} disabled={savingPhone} size="sm" variant="outline">
-              {savingPhone && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-              {phoneSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save"}
-            </Button>
           )}
         </div>
 

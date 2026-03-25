@@ -7,10 +7,6 @@ providers.json
 # Event logs
 *.jsonl
 
-# Active requests tracking
-.requests/
-active-requests/
-
 # Encryption keypairs
 .keys/
 *.pem
@@ -21,11 +17,3 @@ node_modules/
 # Temporary files
 *.log
 .DS_Store
-
-# Deduplication
-.seen-events.txt
-
-# Async inbox system (watcher runtime)
-pending/
-inbox/
-logs/

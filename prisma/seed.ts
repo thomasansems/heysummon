@@ -231,7 +231,49 @@ async function main() {
     create: { apiKeyId: pwCcTelegramKey.id, ip: "127.0.0.1", status: "allowed" },
   });
 
-  console.log(`✅ Playwright channel combination keys (4 total)`);
+  // Channel combo 5: OpenClaw consumer → Slack provider notification
+  const pwOcSlackKey = await prisma.apiKey.upsert({
+    where: { key: "hs_cli_pw_openclaw_slack_000000001" },
+    update: {},
+    create: {
+      key: "hs_cli_pw_openclaw_slack_000000001",
+      name: "PW OpenClaw→Slack",
+      userId: pwUser.id,
+      providerId: pwProfile.id,
+      isActive: true,
+      clientChannel: "openclaw",
+      clientSubChannel: null,
+      rateLimitPerMinute: 1000,
+    },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwOcSlackKey.id, ip: "127.0.0.1" } },
+    update: {},
+    create: { apiKeyId: pwOcSlackKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+
+  // Channel combo 6: Claude Code consumer → Slack provider notification
+  const pwCcSlackKey = await prisma.apiKey.upsert({
+    where: { key: "hs_cli_pw_claudecode_slack_00000001" },
+    update: {},
+    create: {
+      key: "hs_cli_pw_claudecode_slack_00000001",
+      name: "PW ClaudeCode→Slack",
+      userId: pwUser.id,
+      providerId: pwProfile.id,
+      isActive: true,
+      clientChannel: "claudecode",
+      clientSubChannel: null,
+      rateLimitPerMinute: 1000,
+    },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwCcSlackKey.id, ip: "127.0.0.1" } },
+    update: {},
+    create: { apiKeyId: pwCcSlackKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+
+  console.log(`✅ Playwright channel combination keys (6 total)`);
 
   // Mock Telegram channel for pw profile (used in Telegram notification tests)
   const existingTelegramChannel = await prisma.channelProvider.findFirst({
@@ -255,6 +297,33 @@ async function main() {
     console.log("✅ Playwright Telegram channel (mock)");
   } else {
     console.log("✅ Playwright Telegram channel exists");
+  }
+
+  // Mock Slack channel for pw profile (used in Slack notification tests)
+  const existingSlackChannel = await prisma.channelProvider.findFirst({
+    where: { profileId: pwProfile.id, type: "slack" },
+  });
+  if (!existingSlackChannel) {
+    await prisma.channelProvider.create({
+      data: {
+        profileId: pwProfile.id,
+        type: "slack",
+        name: "PW Test Slack Channel",
+        isActive: true,
+        config: JSON.stringify({
+          botToken: "xoxb-999999999999-9999999999999-PLAYWRIGHT_TEST",
+          signingSecret: "pw_slack_signing_secret_000000000000",
+          channelId: "C00PW00TEST",
+          teamId: "T00PW00TEST",
+          teamName: "PW Test Workspace",
+          botUserId: "U00PW00BOT",
+        }),
+        status: "connected",
+      },
+    });
+    console.log("✅ Playwright Slack channel (mock)");
+  } else {
+    console.log("✅ Playwright Slack channel exists");
   }
 
   // OpenClaw channel for pw profile (used in OpenClaw polling tests)
@@ -285,6 +354,8 @@ async function main() {
   console.log(`   OC→OpenClaw:   hs_cli_pw_openclaw_openclaw_0000001`);
   console.log(`   CC→OpenClaw:   hs_cli_pw_claudecode_openclaw_000001`);
   console.log(`   CC→Telegram:   hs_cli_pw_claudecode_telegram_00001`);
+  console.log(`   OC→Slack:      hs_cli_pw_openclaw_slack_000000001`);
+  console.log(`   CC→Slack:      hs_cli_pw_claudecode_slack_00000001`);
 }
 
 main()

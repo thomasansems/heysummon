@@ -2,13 +2,12 @@
 name: heysummon
 description: Ask a human expert for help via HeySummon. Use when you need approval, are stuck, or need human judgment. Triggers on "hey summon <name>" or "heysummon <name> <question>". Sends the question and returns the response.
 argument-hint: "<name> <question>"
-allowed-tools: "Bash(bash *scripts/*.sh*), Bash(node *scripts/*.js*), Read, Grep"
 license: SEE LICENSE IN LICENSE.md
 ---
 
-# HeySummon — Human in the Loop
+# HeySummon -- Human in the Loop
 
-When you need human input, approval, or are stuck on something that requires human judgment — use HeySummon to ask a human expert and **wait for their response** before continuing.
+When you need human input, approval, or are stuck on something that requires human judgment -- use HeySummon to ask a human expert and **wait for their response** before continuing.
 
 ## Setup
 
@@ -16,7 +15,7 @@ When you need human input, approval, or are stuck on something that requires hum
 bash $SKILL_DIR/scripts/setup.sh
 ```
 
-This prompts for your HeySummon base URL and API key, validates the key, registers the provider, and starts the background watcher.
+Prompts for your HeySummon base URL and API key, validates the key, and registers the provider.
 
 ## How to ask
 
@@ -31,17 +30,7 @@ bash $SKILL_DIR/scripts/ask.sh "Your question here"
 bash $SKILL_DIR/scripts/ask.sh "Is this the right approach?" '[{"role":"user","content":"context"}]' "ProviderName"
 ```
 
-The script **blocks and returns the human's answer** on stdout. If the timeout is reached, the background watcher will still capture the response.
-
-### Async mode (non-blocking)
-
-```bash
-# Submit and return immediately
-bash $SKILL_DIR/scripts/ask.sh --async "Your question here" "" "ProviderName"
-
-# Check for responses later
-bash $SKILL_DIR/scripts/ask.sh --check
-```
+The script **blocks and returns the human's answer** on stdout.
 
 ## Other commands
 
@@ -54,24 +43,19 @@ bash $SKILL_DIR/scripts/list-providers.sh
 
 # Check request status
 bash $SKILL_DIR/scripts/check-status.sh <refCode|requestId>
-
-# Watcher management (PM2)
-bash $SKILL_DIR/scripts/setup-watcher.sh start
-bash $SKILL_DIR/scripts/setup-watcher.sh stop
-bash $SKILL_DIR/scripts/setup-watcher.sh status
 ```
 
 ## Handling responses
 
 - **Normal response**: The provider's answer is returned on stdout. Use it to continue your work.
-- **Provider unavailable**: The request is queued and will be delivered when the provider comes online. Keep waiting for the response.
-- **`TIMEOUT`**: No response within 15 minutes. The watcher will capture it later — check with `ask.sh --check`.
+- **Provider unavailable**: The request is rejected and you are told when the provider will be available again. You can ask again at that time.
+- **`TIMEOUT`**: No response within 15 minutes. The request remains visible on the HeySummon dashboard. You can ask again if needed.
 
 ## Rules
 
-- **Always wait** for the response before continuing (in blocking mode)
-- **Be specific** — include relevant context in your question
-- **Don't spam** — one request at a time; don't ask trivial questions
+- **Always wait** for the response before continuing
+- **Be specific** -- include relevant context in your question
+- **Don't spam** -- one request at a time; don't ask trivial questions
 
 ## Configuration (.env)
 

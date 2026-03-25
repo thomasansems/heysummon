@@ -9,4 +9,10 @@
 |----|------|---|-------|------|
 | #3434 | 12:42 AM | 🔴 | CLI submit-and-poll now exits immediately when provider unavailable | ~355 |
 | #3431 | 12:41 AM | 🔵 | CLI submit-and-poll detects but ignores providerUnavailable flag | ~352 |
+
+### Mar 25, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #3697 | 10:50 PM | 🟣 | Added user-friendly IP authorization error handling to consumer SDK CLI | ~376 |
 </claude-mem-context>

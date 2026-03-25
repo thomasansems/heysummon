@@ -191,12 +191,12 @@ function getProviderStatus(
 ): { label: string; colorClass: string } {
   if (!p.isActive) return { label: "Inactive", colorClass: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" };
 
-  const telegramCh = p.channelProviders?.find((c) => c.type === "telegram");
-  if (telegramCh) {
-    if (telegramCh.status === "connected" && tunnelAccessible === false) {
+  const webhookCh = p.channelProviders?.find((c) => c.type === "telegram" || c.type === "slack");
+  if (webhookCh) {
+    if (webhookCh.status === "connected" && tunnelAccessible === false) {
       return { label: "Unreachable", colorClass: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" };
     }
-    return telegramCh.status === "connected"
+    return webhookCh.status === "connected"
       ? { label: "Connected", colorClass: "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300" }
       : { label: "Not connected", colorClass: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300" };
   }
@@ -226,6 +226,13 @@ function ChannelBadge({ channel }: { channel: ChannelProvider }) {
       </span>
     );
   }
+  if (channel.type === "slack") {
+    return (
+      <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+        Slack
+      </span>
+    );
+  }
   return (
     <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
       {channel.type}
@@ -243,15 +250,22 @@ export default function ProvidersContent() {
   // Wizard state
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2 | 3>(0);
   const [wizardName, setWizardName] = useState("");
-  const [wizardChannel, setWizardChannel] = useState<"openclaw" | "telegram" | null>(null);
+  const [wizardChannel, setWizardChannel] = useState<"openclaw" | "telegram" | "slack" | null>(null);
   const [wizardBotToken, setWizardBotToken] = useState("");
+  const [wizardSlackBotToken, setWizardSlackBotToken] = useState("");
+  const [wizardSlackSigningSecret, setWizardSlackSigningSecret] = useState("");
+  const [wizardSlackChannelId, setWizardSlackChannelId] = useState("");
   const [wizardCreating, setWizardCreating] = useState(false);
   const [wizardError, setWizardError] = useState("");
-  const [wizardResult, setWizardResult] = useState<{ providerId: string; providerKey: string; channel: "openclaw" | "telegram" } | null>(null);
+  const [wizardResult, setWizardResult] = useState<{ providerId: string; providerKey: string; channel: "openclaw" | "telegram" | "slack"; webhookUrl?: string } | null>(null);
   const [tunnelActive, setTunnelActive] = useState<boolean | null>(null);
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
 
   const fetchTunnelStatus = useCallback(() => {
-    fetch("/api/admin/tunnel/status").then(r => r.json()).then(d => setTunnelActive(d.accessible ?? false)).catch(() => setTunnelActive(false));
+    fetch("/api/admin/tunnel/status").then(r => r.json()).then(d => {
+      setTunnelActive(d.accessible ?? false);
+      setPublicUrl(d.publicUrl ?? null);
+    }).catch(() => setTunnelActive(false));
   }, []);
 
   useEffect(() => { fetchTunnelStatus(); }, [fetchTunnelStatus]);
@@ -269,6 +283,9 @@ export default function ProvidersContent() {
     setWizardName("");
     setWizardChannel(null);
     setWizardBotToken("");
+    setWizardSlackBotToken("");
+    setWizardSlackSigningSecret("");
+    setWizardSlackChannelId("");
     setWizardError("");
     setWizardResult(null);
   };
@@ -282,6 +299,10 @@ export default function ProvidersContent() {
     if (!wizardName.trim() || !wizardChannel) return;
     if (wizardChannel === "telegram" && !wizardBotToken.trim()) {
       setWizardError("Bot token is required for Telegram");
+      return;
+    }
+    if (wizardChannel === "slack" && (!wizardSlackBotToken.trim() || !wizardSlackSigningSecret.trim() || !wizardSlackChannelId.trim())) {
+      setWizardError("Bot token, signing secret, and channel ID are required for Slack");
       return;
     }
     setWizardCreating(true);
@@ -316,7 +337,49 @@ export default function ProvidersContent() {
       }
     }
 
-    setWizardResult({ providerId, providerKey, channel: wizardChannel });
+    let webhookUrl: string | undefined;
+
+    if (wizardChannel === "slack") {
+      const channelRes = await fetch("/api/channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId: providerId,
+          type: "slack",
+          name: `${wizardName.trim()} — Slack`,
+          config: {
+            botToken: wizardSlackBotToken.trim(),
+            signingSecret: wizardSlackSigningSecret.trim(),
+            channelId: wizardSlackChannelId.trim(),
+          },
+        }),
+      });
+
+      if (!channelRes.ok) {
+        const err = await channelRes.json().catch(() => ({}));
+        setWizardError(err.error || "Failed to connect Slack channel");
+        setWizardCreating(false);
+        return;
+      }
+
+      const channelData = await channelRes.json();
+      const heysummonChannelId = channelData.channel?.id;
+      const channelStatus = channelData.channel?.status;
+      const channelError = channelData.channel?.errorMessage;
+
+      if (channelStatus === "error" && channelError) {
+        setWizardError(channelError);
+        setWizardCreating(false);
+        return;
+      }
+
+      if (heysummonChannelId) {
+        const base = publicUrl || window.location.origin;
+        webhookUrl = `${base}/api/adapters/slack/${heysummonChannelId}/webhook`;
+      }
+    }
+
+    setWizardResult({ providerId, providerKey, channel: wizardChannel, webhookUrl });
     setWizardCreating(false);
     setWizardStep(3);
     loadProviders();
@@ -367,7 +430,7 @@ export default function ProvidersContent() {
 
                   <div>
                     <label className="mb-2 block text-xs font-medium text-muted-foreground">Notification channel <span className="text-red-400">*</span></label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <button
                         onClick={() => setWizardChannel("openclaw")}
                         className={`rounded-lg border p-4 text-left transition-colors ${wizardChannel === "openclaw" ? "border-orange-600 bg-orange-100/80 dark:bg-orange-950/30" : "border-border hover:border-muted-foreground"}`}
@@ -387,6 +450,16 @@ export default function ProvidersContent() {
                           <span className="text-sm font-medium text-foreground">Telegram Bot</span>
                         </div>
                         <p className="text-xs text-muted-foreground">Dedicated bot — forward requests to a chat</p>
+                      </button>
+                      <button
+                        onClick={() => setWizardChannel("slack")}
+                        className={`rounded-lg border p-4 text-left transition-colors ${wizardChannel === "slack" ? "border-purple-500 bg-purple-950/30" : "border-border hover:border-muted-foreground"}`}
+                      >
+                        <div className="mb-2 flex items-center gap-2">
+                          <img src="/icons/slack.svg" alt="Slack" className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display="none"; }} />
+                          <span className="text-sm font-medium text-foreground">Slack</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Receive requests in a Slack channel</p>
                       </button>
                     </div>
                   </div>
@@ -417,6 +490,75 @@ export default function ProvidersContent() {
                     </div>
                   )}
 
+                  {wizardChannel === "slack" && (
+                    <div className="space-y-3">
+                      <div className="rounded-lg border border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950/20 p-3 text-xs text-purple-700 dark:text-purple-300">
+                        <p className="mb-1.5 font-medium">Setup steps:</p>
+                        <ol className="list-decimal list-inside space-y-1.5 text-purple-700 dark:text-purple-400">
+                          <li>
+                            <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="underline">Create a Slack app</a> (From scratch)
+                          </li>
+                          <li>
+                            Go to <strong>OAuth &amp; Permissions</strong> and add Bot Token Scopes: <code className="rounded bg-purple-100 dark:bg-purple-900/40 px-1">chat:write</code>, <code className="rounded bg-purple-100 dark:bg-purple-900/40 px-1">channels:read</code>, and <code className="rounded bg-purple-100 dark:bg-purple-900/40 px-1">channels:history</code>
+                          </li>
+                          <li>Click <strong>Install to Workspace</strong> and copy the Bot token below</li>
+                          <li>Copy the <strong>Signing Secret</strong> from Basic Information</li>
+                          <li>Create a channel, invite the bot with <code className="rounded bg-purple-100 dark:bg-purple-900/40 px-1">/invite @YourBot</code>, and copy the Channel ID</li>
+                          <li>Go to <strong>Event Subscriptions</strong> and toggle it on (don&apos;t paste the URL yet)</li>
+                          <li>Under <strong>Subscribe to bot events</strong>, add <code className="rounded bg-purple-100 dark:bg-purple-900/40 px-1">message.channels</code> and click Save</li>
+                          <li>Click <strong>Create Provider</strong> below -- the Request URL to paste will be shown</li>
+                        </ol>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">Bot token <span className="text-red-400">*</span></label>
+                        <input
+                          value={wizardSlackBotToken}
+                          onChange={(e) => setWizardSlackBotToken(e.target.value)}
+                          placeholder="xoxb-..."
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
+                        />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Found under <strong>OAuth &amp; Permissions</strong> &gt; Bot User OAuth Token in your <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">Slack app</a>.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">Signing secret <span className="text-red-400">*</span></label>
+                        <input
+                          value={wizardSlackSigningSecret}
+                          onChange={(e) => setWizardSlackSigningSecret(e.target.value)}
+                          placeholder="abc123..."
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
+                        />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Found under <strong>Basic Information</strong> &gt; App Credentials &gt; Signing Secret.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">Channel ID <span className="text-red-400">*</span></label>
+                        <input
+                          value={wizardSlackChannelId}
+                          onChange={(e) => setWizardSlackChannelId(e.target.value)}
+                          placeholder="C0123456789"
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
+                        />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Right-click a channel in Slack &gt; View channel details &gt; copy the Channel ID at the bottom.
+                        </p>
+                      </div>
+                      {tunnelActive === false && (
+                        <div className="flex items-start gap-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2.5 text-xs text-orange-700 dark:text-orange-300">
+                          <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span><strong>Public access required.</strong> <a href="/dashboard/settings" className="underline font-medium">Go to Settings</a> to enable a tunnel first.</span>
+                        </div>
+                      )}
+                      {tunnelActive === true && (
+                        <div className="flex items-center gap-2 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 px-3 py-2 text-xs text-green-700 dark:text-green-300">
+                          <span>Public access is active — webhooks will be registered automatically.</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {wizardChannel === "openclaw" && (
                     <div className="rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20 p-3 text-xs text-orange-700 dark:text-orange-300">
                       <p className="mb-1 font-medium">How OpenClaw works:</p>
@@ -435,7 +577,7 @@ export default function ProvidersContent() {
                   <button onClick={closeWizard} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
                   <button
                     onClick={createProviderWizard}
-                    disabled={wizardCreating || !wizardName.trim() || !wizardChannel || (wizardChannel === "telegram" && !wizardBotToken.trim())}
+                    disabled={wizardCreating || !wizardName.trim() || !wizardChannel || (wizardChannel === "telegram" && !wizardBotToken.trim()) || (wizardChannel === "slack" && (!wizardSlackBotToken.trim() || !wizardSlackSigningSecret.trim() || !wizardSlackChannelId.trim()))}
                     className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
                   >
                     {wizardCreating ? "Creating..." : "Create Provider"}
@@ -488,6 +630,31 @@ export default function ProvidersContent() {
                         <p className="text-zinc-400">Open your Telegram bot and send <code className="rounded bg-muted px-1 text-foreground">/start</code>.</p>
                       </div>
                     </div>
+                    {!tunnelActive && (
+                      <div className="flex items-start gap-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2.5 text-xs text-orange-700 dark:text-orange-300">
+                        <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <span><strong>Action needed:</strong> Public access is not active yet. <a href="/dashboard/settings" className="underline font-medium">Go to Settings →</a></span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {wizardResult.channel === "slack" && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">Your Slack channel is connected! Paste this URL in your Slack app under Event Subscriptions &gt; Request URL:</p>
+                    <div className="rounded-lg border border-border bg-black p-4 text-xs">
+                      {wizardResult.webhookUrl ? (
+                        <div className="flex items-center gap-2">
+                          <code className="text-green-400 break-all">{wizardResult.webhookUrl}</code>
+                          <button onClick={() => copyKey(wizardResult.webhookUrl!)} className="shrink-0 text-orange-400 hover:text-orange-300">{copied === wizardResult.webhookUrl ? "Copied!" : "Copy"}</button>
+                        </div>
+                      ) : (
+                        <p className="text-zinc-400">Webhook URL could not be determined. Check the channel details in the provider panel.</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      After pasting, Slack will verify the URL automatically. Then reply to requests in the channel with <code className="rounded bg-muted px-1 text-foreground">reply HS-XXXX your answer</code> (no slash).
+                    </p>
                     {!tunnelActive && (
                       <div className="flex items-start gap-2 rounded-md border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2.5 text-xs text-orange-700 dark:text-orange-300">
                         <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -640,7 +807,7 @@ export default function ProvidersContent() {
           {[
             { label: "OpenClaw", icon: "/icons/openclaw.svg", active: true },
             { label: "Telegram", icon: "/icons/telegram.svg", active: true },
-            { label: "Slack", icon: "/icons/slack.svg", active: false },
+            { label: "Slack", icon: "/icons/slack.svg", active: true },
             { label: "WhatsApp", icon: "/icons/whatsapp.svg", active: false },
           ].map((ch) => (
             <div

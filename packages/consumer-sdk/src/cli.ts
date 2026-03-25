@@ -3,25 +3,19 @@
  * HeySummon Consumer SDK CLI
  *
  * Shared CLI entry point used by both Claude Code and OpenClaw skill scripts.
- * Subcommands: submit, submit-and-poll, add-provider, list-providers,
- *              check-status, watch, keygen
+ * Subcommands: submit-and-poll, add-provider, list-providers,
+ *              check-status, keygen
  *
  * All config comes from environment variables (set by the calling bash wrapper):
  *   HEYSUMMON_BASE_URL, HEYSUMMON_API_KEY, HEYSUMMON_PROVIDERS_FILE,
- *   HEYSUMMON_KEY_DIR, HEYSUMMON_REQUESTS_DIR, HEYSUMMON_TIMEOUT,
+ *   HEYSUMMON_TIMEOUT,
  *   HEYSUMMON_POLL_INTERVAL
  */
 
 import { HeySummonClient, HeySummonHttpError } from "./client.js";
 import { ProviderStore } from "./provider-store.js";
-import { RequestTracker } from "./request-tracker.js";
-import {
-  generateEphemeralKeys,
-  generatePersistentKeys,
-  loadPublicKeys,
-} from "./crypto.js";
-import type { PendingEvent, Message } from "./types.js";
-import { execSync } from "node:child_process";
+import { generateEphemeralKeys, generatePersistentKeys } from "./crypto.js";
+import type { Message } from "./types.js";
 import { existsSync } from "node:fs";
 
 // ---------------------------------------------------------------------------
@@ -51,133 +45,6 @@ function optEnv(name: string, fallback: string): string {
 // Commands
 // ---------------------------------------------------------------------------
 
-async function cmdSubmit(args: string[]): Promise<void> {
-  const question = getArg(args, "--question");
-  if (!question) {
-    process.stderr.write("Usage: cli submit --question <q> [--provider <name>] [--context <json>]\n");
-    process.exit(1);
-  }
-
-  const providerArg = getArg(args, "--provider");
-  const contextArg = getArg(args, "--context");
-  const baseUrl = requireEnv("HEYSUMMON_BASE_URL");
-  const providersFile = optEnv("HEYSUMMON_PROVIDERS_FILE", "");
-  const keyDir = optEnv("HEYSUMMON_KEY_DIR", "");
-  const requestsDir = optEnv("HEYSUMMON_REQUESTS_DIR", "");
-
-  // Resolve API key from provider store or env
-  let apiKey = process.env.HEYSUMMON_API_KEY || "";
-  let resolvedProvider = "";
-
-  if (providersFile && existsSync(providersFile)) {
-    const store = new ProviderStore(providersFile);
-
-    if (providerArg) {
-      const match = store.findByName(providerArg);
-      if (match) {
-        apiKey = match.apiKey;
-        resolvedProvider = match.name;
-      } else {
-        process.stderr.write(`Provider '${providerArg}' not found.\n`);
-        const all = store.load();
-        if (all.length) {
-          process.stderr.write("Available:\n");
-          for (const p of all) {
-            process.stderr.write(`  - ${p.name} (${p.providerName})\n`);
-          }
-        }
-        process.exit(1);
-      }
-    } else if (!apiKey) {
-      const def = store.getDefault();
-      if (def) {
-        apiKey = def.apiKey;
-        resolvedProvider = def.name;
-      }
-    }
-  }
-
-  if (!apiKey) {
-    process.stderr.write("No API key. Set HEYSUMMON_API_KEY or register a provider.\n");
-    process.exit(1);
-  }
-
-  // Generate or load keys
-  let signPublicKey: string;
-  let encryptPublicKey: string;
-
-  if (keyDir && existsSync(`${keyDir}/sign_public.pem`)) {
-    const keys = loadPublicKeys(keyDir);
-    signPublicKey = keys.signPublicKey;
-    encryptPublicKey = keys.encryptPublicKey;
-  } else if (keyDir) {
-    process.stderr.write(`Generating keypairs in ${keyDir}...\n`);
-    const keys = generatePersistentKeys(keyDir);
-    signPublicKey = keys.signPublicKey;
-    encryptPublicKey = keys.encryptPublicKey;
-  } else {
-    const keys = generateEphemeralKeys();
-    signPublicKey = keys.signPublicKey;
-    encryptPublicKey = keys.encryptPublicKey;
-  }
-
-  // Parse context messages
-  let messages: Array<{ role: string; content: string }> = [];
-  if (contextArg) {
-    try {
-      messages = JSON.parse(contextArg);
-    } catch {
-      // ignore parse errors
-    }
-  }
-
-  const client = new HeySummonClient({ baseUrl, apiKey });
-
-  if (resolvedProvider) {
-    process.stderr.write(`Provider: ${resolvedProvider}\n`);
-  }
-
-  const result = await client.submitRequest({
-    question,
-    messages: messages.length > 0 ? messages : undefined,
-    signPublicKey,
-    encryptPublicKey,
-    providerName: providerArg || undefined,
-  });
-
-  if (!result.requestId) {
-    process.stderr.write(`Request failed: ${JSON.stringify(result)}\n`);
-    process.exit(1);
-  }
-
-  // Track request
-  if (requestsDir) {
-    const tracker = new RequestTracker(requestsDir);
-    tracker.track(result.requestId, result.refCode, resolvedProvider || undefined);
-  }
-
-  // Sync provider name
-  if (providersFile && existsSync(providersFile) && apiKey) {
-    try {
-      const whoami = await client.whoami();
-      const pName = whoami.provider?.name || "";
-      if (pName) {
-        const store = new ProviderStore(providersFile);
-        const entry = store.findByKey(apiKey);
-        if (entry && entry.providerName !== pName) {
-          store.add({ ...entry, providerName: pName });
-          process.stderr.write(`Provider name updated: ${pName}\n`);
-        }
-      }
-    } catch {
-      // non-fatal
-    }
-  }
-
-  // Output result as JSON
-  process.stdout.write(JSON.stringify(result) + "\n");
-}
-
 async function cmdSubmitAndPoll(args: string[]): Promise<void> {
   const question = getArg(args, "--question");
   if (!question) {
@@ -194,7 +61,6 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
 
   // Resolve API key
   let apiKey = process.env.HEYSUMMON_API_KEY || "";
-  let resolvedProvider = "";
 
   if (providersFile && existsSync(providersFile)) {
     const store = new ProviderStore(providersFile);
@@ -202,7 +68,6 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
       const match = store.findByName(providerArg);
       if (match) {
         apiKey = match.apiKey;
-        resolvedProvider = match.name;
       } else {
         process.stderr.write(`Provider '${providerArg}' not found.\n`);
         process.exit(1);
@@ -211,7 +76,6 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
       const def = store.getDefault();
       if (def) {
         apiKey = def.apiKey;
-        resolvedProvider = def.name;
       }
     }
   }
@@ -237,13 +101,33 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
     }
   }
 
-  const result = await client.submitRequest({
-    question,
-    messages: messages.length > 0 ? messages : undefined,
-    signPublicKey: keys.signPublicKey,
-    encryptPublicKey: keys.encryptPublicKey,
-    providerName: providerArg || undefined,
-  });
+  let result;
+  try {
+    result = await client.submitRequest({
+      question,
+      messages: messages.length > 0 ? messages : undefined,
+      signPublicKey: keys.signPublicKey,
+      encryptPublicKey: keys.encryptPublicKey,
+      providerName: providerArg || undefined,
+    });
+  } catch (err) {
+    if (err instanceof HeySummonHttpError && err.status === 403) {
+      let parsed: { error?: string; hint?: string; ip?: string } = {};
+      try { parsed = JSON.parse(err.body); } catch { /* ignore */ }
+
+      const ip = parsed.ip || "unknown";
+      const hint = parsed.hint || "";
+      process.stderr.write(
+        `IP address ${ip} is not authorized for this API key.\n` +
+        `${hint ? hint + "\n" : ""}` +
+        `Your provider needs to allow this IP address in the HeySummon dashboard under Clients > IP Security.\n` +
+        `Once allowed, re-run this command.\n`
+      );
+      process.stdout.write(`IP_NOT_ALLOWED: IP address ${ip} is not authorized. Ask your provider to allow it in their HeySummon dashboard.\n`);
+      return;
+    }
+    throw err;
+  }
 
   if (!result.requestId) {
     process.stderr.write(`Failed to submit request: ${JSON.stringify(result)}\n`);
@@ -252,17 +136,12 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
 
   const ref = result.refCode || result.requestId;
 
-  // When provider is unavailable, return immediately with a signal
-  // so the calling script can activate async watcher delivery instead of blocking
-  if (result.providerUnavailable) {
-    const next = result.nextAvailableAt
-      ? ` (available at ${new Date(result.nextAvailableAt).toLocaleTimeString()})`
-      : "";
-    process.stderr.write(
-      `Provider currently unavailable${next} — request queued.\n`
-    );
+  // When provider is unavailable, the platform rejects the request
+  if (result.rejected) {
+    const msg = result.message || "Provider is not available right now.";
+    process.stderr.write(`${msg}\n`);
     process.stdout.write(
-      `PROVIDER_UNAVAILABLE: Request ${ref} queued. The provider will be notified when they come online.\n`
+      `PROVIDER_UNAVAILABLE: ${msg}${result.nextAvailableAt ? ` Next available: ${result.nextAvailableAt}` : ""}\n`
     );
     return;
   }
@@ -436,211 +315,6 @@ async function cmdCheckStatus(args: string[]): Promise<void> {
   }
 }
 
-async function cmdWatch(args: string[]): Promise<void> {
-  const notifyScript = getArg(args, "--notify-script");
-  const baseUrl = requireEnv("HEYSUMMON_BASE_URL");
-  const providersFile = requireEnv("HEYSUMMON_PROVIDERS_FILE");
-  const requestsDir = optEnv("HEYSUMMON_REQUESTS_DIR", "");
-  const pollInterval = parseInt(optEnv("HEYSUMMON_POLL_INTERVAL", "5"), 10);
-
-  const store = new ProviderStore(providersFile);
-  const tracker = requestsDir ? new RequestTracker(requestsDir) : null;
-
-  // In-memory dedup set
-  const seen = new Set<string>();
-
-  // Track persistent auth errors per provider — auto-shutdown after 30 min
-  const AUTH_SHUTDOWN_MS = 30 * 60 * 1000; // 30 minutes
-  const authErrors = new Map<string, { firstAt: number; count: number }>();
-
-  process.stderr.write(`Platform watcher started (pid ${process.pid})\n`);
-  process.stderr.write(`   Polling every ${pollInterval}s\n`);
-
-  // Write PID file for signaling
-  if (requestsDir) {
-    const { writeFileSync } = await import("node:fs");
-    const { join } = await import("node:path");
-    writeFileSync(join(requestsDir, ".watcher.pid"), String(process.pid));
-  }
-
-  while (true) {
-    const providers = store.load();
-    if (providers.length === 0) {
-      process.stderr.write("No providers registered.\n");
-      await sleep(pollInterval * 1000);
-      continue;
-    }
-
-    for (const provider of providers) {
-      try {
-        const client = new HeySummonClient({
-          baseUrl,
-          apiKey: provider.apiKey,
-        });
-        const { events } = await client.getPendingEvents();
-
-        for (const event of events) {
-          const from = event.from || "unknown";
-          const dedupKey = `${event.type}:${from}:${event.requestId}`;
-
-          // Stale check (>30 min)
-          if (event.createdAt) {
-            const age =
-              (Date.now() - new Date(event.createdAt).getTime()) / 1000 / 60;
-            if (age > 30) {
-              seen.add(dedupKey);
-              continue;
-            }
-          }
-
-          if (seen.has(dedupKey)) continue;
-          seen.add(dedupKey);
-
-          // Fetch response text for provider messages
-          let responseText = "";
-          if (
-            event.type === "new_message" &&
-            event.from === "provider" &&
-            event.requestId
-          ) {
-            try {
-              const { messages } = await client.getMessages(event.requestId);
-              const last = messages
-                .filter((m: Message) => m.from === "provider")
-                .pop();
-              if (last?.plaintext) {
-                responseText = last.plaintext;
-              } else if (last?.ciphertext) {
-                responseText = "(encrypted)";
-              }
-            } catch {
-              // non-fatal
-            }
-          }
-
-          // Build notification
-          const fileRef = tracker?.getRefCode(event.requestId) || "";
-          const ref = event.refCode || fileRef || event.requestId || "?";
-
-          let msg = "";
-          switch (event.type) {
-            case "keys_exchanged":
-              msg = `Key exchange completed for ${ref} — provider connected`;
-              break;
-            case "new_message":
-              if (event.from === "provider") {
-                msg = `New response from provider for ${ref}`;
-                if (responseText) msg += `\n${responseText}`;
-              }
-              break;
-            case "responded":
-              msg = `Provider responded to ${ref}`;
-              break;
-            case "closed":
-              msg = `Conversation ${ref} closed`;
-              if (tracker) tracker.remove(event.requestId);
-              break;
-            default:
-              msg = `HeySummon event (${event.type}) for ${ref}`;
-          }
-
-          if (!msg) continue;
-
-          // Build wake text with original question context
-          let wakeText = msg;
-          if (responseText && event.requestId) {
-            try {
-              const reqData = await client.getRequestByRef(fileRef || event.requestId);
-              const origQuestion = reqData.question || "";
-              const provName =
-                reqData.provider?.name || reqData.providerName || "the provider";
-
-              wakeText = `${ref} — ${provName} responded!`;
-              if (origQuestion)
-                wakeText += `\n\nYour question was: ${origQuestion}`;
-              wakeText += `\n\nAnswer: ${responseText}`;
-              wakeText += `\n\nProceed based on this answer.`;
-            } catch {
-              // non-fatal, use plain msg
-            }
-          }
-
-          // Deliver notification
-          if (notifyScript) {
-            try {
-              const eventJson = JSON.stringify({
-                event,
-                msg,
-                wakeText,
-                responseText,
-                ref,
-              });
-              execSync(`bash "${notifyScript}"`, {
-                input: eventJson,
-                stdio: ["pipe", "inherit", "inherit"],
-                timeout: 30_000,
-              });
-            } catch {
-              process.stderr.write(`Notify script failed for ${ref}\n`);
-            }
-          } else {
-            process.stdout.write(`${msg}\n`);
-          }
-
-          // ACK the event
-          await client.ackEvent(event.requestId).catch(() => {});
-        }
-      } catch (err) {
-        const isAuth = err instanceof HeySummonHttpError && err.isAuthError;
-
-        if (isAuth) {
-          const key = provider.apiKey;
-          const existing = authErrors.get(key);
-          if (!existing) {
-            authErrors.set(key, { firstAt: Date.now(), count: 1 });
-            process.stderr.write(
-              `Auth error for "${provider.name}" (${err instanceof HeySummonHttpError ? `HTTP ${err.status}` : "unknown"}). Will retry...\n`
-            );
-          } else {
-            existing.count++;
-            const elapsed = Date.now() - existing.firstAt;
-            if (elapsed >= AUTH_SHUTDOWN_MS) {
-              const status = err instanceof HeySummonHttpError ? err.status : "?";
-              const detail = err instanceof HeySummonHttpError ? err.body : String(err);
-              process.stderr.write(
-                `\n` +
-                `══════════════════════════════════════════════════════\n` +
-                `  HeySummon watcher shutting down\n` +
-                `\n` +
-                `  Provider "${provider.name}" has returned HTTP ${status}\n` +
-                `  for ${Math.round(elapsed / 60000)} minutes (${existing.count} attempts).\n` +
-                `\n` +
-                `  This usually means the API key was deleted or\n` +
-                `  deactivated on the HeySummon platform.\n` +
-                `\n` +
-                `  Detail: ${detail}\n` +
-                `\n` +
-                `  To fix: ask your provider for a new setup link,\n` +
-                `  then re-run the setup to get fresh credentials.\n` +
-                `══════════════════════════════════════════════════════\n`
-              );
-              process.exit(1);
-            }
-          }
-        } else {
-          // Clear auth error streak on non-auth errors (network issues etc.)
-          authErrors.delete(provider.apiKey);
-          process.stderr.write(
-            `Poll error for ${provider.name}: ${err instanceof Error ? err.message : String(err)}\n`
-          );
-        }
-      }
-    }
-
-    await sleep(pollInterval * 1000);
-  }
-}
-
 async function cmdKeygen(args: string[]): Promise<void> {
   const dir = getArg(args, "--dir") || optEnv("HEYSUMMON_KEY_DIR", "");
 
@@ -669,12 +343,10 @@ function sleep(ms: number): Promise<void> {
 const [command, ...rest] = process.argv.slice(2);
 
 const commands: Record<string, (args: string[]) => Promise<void>> = {
-  submit: cmdSubmit,
   "submit-and-poll": cmdSubmitAndPoll,
   "add-provider": cmdAddProvider,
   "list-providers": cmdListProviders,
   "check-status": cmdCheckStatus,
-  watch: cmdWatch,
   keygen: cmdKeygen,
 };
 

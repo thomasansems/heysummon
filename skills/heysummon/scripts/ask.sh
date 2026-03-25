@@ -4,23 +4,10 @@
 # Usage:
 #   ask.sh "<question>"                              — Blocking poll (default)
 #   ask.sh "<question>" "<context>" "<provider>"     — Blocking with context
-#   ask.sh --async "<question>" [context] [provider] — Non-blocking (submit only)
-#   ask.sh --check                                   — Check inbox for pending responses
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/sdk.sh"
-
-# Handle --check mode
-if [ "$1" = "--check" ]; then
-  exec bash "$SCRIPT_DIR/check-inbox.sh" "${@:2}"
-fi
-
-# Handle --async mode
-if [ "$1" = "--async" ]; then
-  shift
-  exec bash "$SCRIPT_DIR/submit.sh" "$@"
-fi
 
 # Load .env
 [ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
@@ -31,29 +18,12 @@ PROVIDER_NAME="${3:-}"
 
 if [ -z "$QUESTION" ]; then
   echo "Usage: ask.sh \"<question>\" [context] [provider-name]" >&2
-  echo "       ask.sh --async \"<question>\" [context] [provider]" >&2
-  echo "       ask.sh --check" >&2
   exit 1
 fi
 
 if [ -z "$HEYSUMMON_API_KEY" ]; then
   echo "HEYSUMMON_API_KEY not set. Run: bash $SCRIPT_DIR/setup.sh" >&2
   exit 1
-fi
-
-# Check inbox first — deliver any pending responses before asking a new question
-INBOX_DIR="$SKILL_DIR/inbox"
-if [ -d "$INBOX_DIR" ] && [ "$(find "$INBOX_DIR" -maxdepth 1 -name '*.json' 2>/dev/null | head -1)" ]; then
-  echo "--- Pending responses found in inbox ---" >&2
-  bash "$SCRIPT_DIR/check-inbox.sh" >&2
-  echo "--- End of pending responses ---" >&2
-  echo "" >&2
-fi
-
-# Clean up stale pending files (older than 72h) from previous sessions
-PENDING_DIR="$SKILL_DIR/pending"
-if [ -d "$PENDING_DIR" ]; then
-  find "$PENDING_DIR" -maxdepth 1 -name '*.json' -mmin +4320 -delete 2>/dev/null
 fi
 
 # Build CLI args for blocking poll

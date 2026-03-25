@@ -55,11 +55,17 @@ export const settingsUpdateSchema = z.object({
 // ── Provider schemas ──
 
 export const providerCreateSchema = z.object({
-  name: z.string().min(1, "Name is required").transform((s) => s.trim()),
+  name: z.string().min(1, "Name is required").max(100).regex(
+    /^[a-zA-Z0-9 _\-'.]+$/,
+    "Name may only contain letters, numbers, spaces, hyphens, underscores, apostrophes, and periods"
+  ).transform((s) => s.trim()),
 });
 
 export const providerUpdateSchema = z.object({
-  name: z.string().optional(),
+  name: z.string().max(100).regex(
+    /^[a-zA-Z0-9 _\-'.]+$/,
+    "Name may only contain letters, numbers, spaces, hyphens, underscores, apostrophes, and periods"
+  ).optional(),
   isActive: z.boolean().optional(),
   timezone: z.string().optional(),
   quietHoursStart: z.string().nullable().optional(),
@@ -140,7 +146,7 @@ export const messageCreateSchema = z.object({
 
 export const channelCreateSchema = z.object({
   profileId: z.string().min(1, "profileId is required"),
-  type: z.enum(["openclaw", "telegram"], { message: "type must be openclaw or telegram" }),
+  type: z.enum(["openclaw", "telegram", "slack"], { message: "type must be openclaw, telegram, or slack" }),
   name: z.string().min(1, "Name is required").transform((s) => s.trim()),
   config: z.record(z.string(), z.any()).default({}),
 });

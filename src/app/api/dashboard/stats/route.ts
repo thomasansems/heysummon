@@ -14,11 +14,21 @@ export async function GET() {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const [total, open, resolvedCount, expiredCount, recentRequests, prevRequests, topClientsRaw] = await Promise.all([
+  // Get provider profile IDs for missed request count
+  const providerProfiles = await prisma.userProfile.findMany({
+    where: { userId },
+    select: { id: true },
+  });
+  const profileIds = providerProfiles.map((p) => p.id);
+
+  const [total, open, resolvedCount, expiredCount, missedCount, recentRequests, prevRequests, topClientsRaw] = await Promise.all([
     prisma.helpRequest.count({ where: { expertId: userId } }),
     prisma.helpRequest.count({ where: { expertId: userId, status: { in: ["pending", "active"] } } }),
     prisma.helpRequest.count({ where: { expertId: userId, status: "responded" } }),
     prisma.helpRequest.count({ where: { expertId: userId, status: "expired" } }),
+    profileIds.length > 0
+      ? prisma.missedRequest.count({ where: { providerId: { in: profileIds } } })
+      : 0,
     // Last 7 days
     prisma.helpRequest.findMany({
       where: { expertId: userId, createdAt: { gte: sevenDaysAgo } },
@@ -100,7 +110,7 @@ export async function GET() {
   }));
 
   // Open requests with message preview + direction counts
-  const openRequests = await prisma.helpRequest.findMany({
+  const allOpenRequests = await prisma.helpRequest.findMany({
     where: { expertId: userId, status: { in: ["pending", "active"] } },
     select: {
       id: true,
@@ -109,7 +119,6 @@ export async function GET() {
       createdAt: true,
       deliveredAt: true,
       clientTimedOutAt: true,
-      question: true,
       apiKey: { select: { name: true } },
       _count: { select: { messageHistory: true } },
       messageHistory: {
@@ -117,10 +126,9 @@ export async function GET() {
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 10,
   });
 
-  const mappedOpenRequests = openRequests.map((r) => ({
+  const mapRequest = (r: typeof allOpenRequests[number]) => ({
     id: r.id,
     refCode: r.refCode,
     status: r.status,
@@ -130,19 +138,56 @@ export async function GET() {
     deliveredAt: r.deliveredAt,
     clientTimedOutAt: r.clientTimedOutAt,
     createdAt: r.createdAt,
-    question: r.question,
     apiKey: r.apiKey,
-  }));
+  });
+
+  // Split: truly open (client still waiting) vs unhandled (client timed out, never responded)
+  const openRequests = allOpenRequests.filter((r) => !r.clientTimedOutAt).slice(0, 10).map(mapRequest);
+  const unhandledRequests = allOpenRequests.filter((r) => r.clientTimedOutAt).slice(0, 10).map(mapRequest);
+
+  // Pending IP events — new IPs that need approval
+  const apiKeyIds = await prisma.apiKey.findMany({
+    where: { userId },
+    select: { id: true },
+  });
+  const pendingIpEvents = apiKeyIds.length > 0
+    ? await prisma.ipEvent.findMany({
+        where: {
+          apiKeyId: { in: apiKeyIds.map((k) => k.id) },
+          status: "pending",
+        },
+        select: {
+          id: true,
+          ip: true,
+          attempts: true,
+          lastSeen: true,
+          apiKey: { select: { id: true, name: true } },
+        },
+        orderBy: { lastSeen: "desc" },
+        take: 10,
+      })
+    : [];
 
   return NextResponse.json({
     total,
-    open,
+    open: openRequests.length,
+    unhandled: unhandledRequests.length,
     resolved: resolvedCount,
     expired: expiredCount,
+    missed: missedCount,
     avgResponseTime,
     activity,
     activityArr: activity.map((a) => a.current),
     topClients,
-    openRequests: mappedOpenRequests,
+    openRequests,
+    unhandledRequests,
+    pendingIpEvents: pendingIpEvents.map((e) => ({
+      id: e.id,
+      ip: e.ip,
+      attempts: e.attempts,
+      lastSeen: e.lastSeen,
+      clientName: e.apiKey?.name || "Unnamed",
+      apiKeyId: e.apiKey?.id,
+    })),
   });
 }

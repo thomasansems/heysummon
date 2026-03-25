@@ -26,6 +26,7 @@ const typeIcons: Record<string, string> = {
 const typeLabels: Record<string, string> = {
   openclaw: "OpenClaw",
   telegram: "Telegram",
+  slack: "Slack",
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -85,7 +86,7 @@ export default function ChannelsPage() {
           {[
             { type: "openclaw", icon: "/icons/openclaw.svg", label: "OpenClaw", enabled: true },
             { type: "telegram", icon: "/icons/telegram.svg", label: "Telegram", enabled: true },
-            { type: "slack", icon: "/icons/slack.svg", label: "Slack", enabled: false },
+            { type: "slack", icon: "/icons/slack.svg", label: "Slack", enabled: true },
             { type: "whatsapp", icon: "/icons/whatsapp.svg", label: "WhatsApp", enabled: false },
           ].map((ch) => (
             <Link

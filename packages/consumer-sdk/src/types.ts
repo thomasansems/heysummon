@@ -17,13 +17,16 @@ export interface SubmitRequestOptions {
 }
 
 export interface SubmitRequestResult {
-  requestId: string;
-  refCode: string;
-  status: string;
-  expiresAt: string;
-  providerUnavailable?: boolean;
-  nextAvailableAt?: string;
+  requestId?: string;
+  refCode?: string;
+  status?: string;
+  expiresAt?: string;
   serverPublicKey?: string;
+  // Rejection fields (provider unavailable)
+  rejected?: boolean;
+  reason?: string;
+  message?: string;
+  nextAvailableAt?: string;
 }
 
 export interface PendingEvent {

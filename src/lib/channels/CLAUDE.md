@@ -17,4 +17,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #3571 | 7:39 PM | 🔵 | Multi-Platform Client Integration Architecture | ~908 |
+
+### Mar 25, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #3672 | 10:34 PM | ✅ | Removed Resend button from mobile dashboard view | ~224 |
 </claude-mem-context>

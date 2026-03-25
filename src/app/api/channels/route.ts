@@ -4,11 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { channelCreateSchema, validateBody } from "@/lib/validations";
 import { openClawAdapter } from "@/lib/adapters/openclaw";
 import { telegramAdapter } from "@/lib/adapters/telegram";
+import { slackAdapter } from "@/lib/adapters/slack";
 import type { ChannelAdapter } from "@/lib/adapters/types";
 
 const adapters: Record<string, ChannelAdapter> = {
   openclaw: openClawAdapter,
   telegram: telegramAdapter,
+  slack: slackAdapter,
 };
 
 export async function GET() {

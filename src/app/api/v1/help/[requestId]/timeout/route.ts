@@ -120,7 +120,7 @@ async function notifyProviderTimeout(
     ? `\n\n*Question:* ${questionPreview.slice(0, 300)}${questionPreview.length > 300 ? "..." : ""}`
     : "";
 
-  const msg = `*Client timed out* waiting for your response on ${ref}.${preview}\n\nThe request is still open -- you can still respond from the dashboard.`;
+  const msg = `*Client timed out* waiting for your response on ${ref}.${preview}`;
 
   await sendMessage(cfg.botToken, cfg.providerChatId, msg);
 }

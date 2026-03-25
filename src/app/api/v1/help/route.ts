@@ -10,7 +10,9 @@ import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 import { sendMessage } from "@/lib/adapters/telegram";
-import type { TelegramConfig } from "@/lib/adapters/types";
+import { sendMessage as sendSlackMessage } from "@/lib/adapters/slack";
+import { escapeSlack } from "@/lib/channels/slack";
+import type { TelegramConfig, SlackConfig } from "@/lib/adapters/types";
 import { getPhoneFirstConfig, initiateProviderCall } from "@/lib/adapters/twilio-voice";
 
 /**
@@ -202,6 +204,65 @@ export async function POST(request: Request) {
       guardVerified = true;
     }
 
+    // ─── Provider availability check ───
+    // Check BEFORE creating the request — reject if provider is unavailable
+    // Scope to specific provider linked to this API key
+    const providerProfileForAvail = await prisma.userProfile.findFirst({
+      where: key.providerId
+        ? { id: key.providerId }
+        : { userId: key.userId },
+      select: { id: true, quietHoursStart: true, quietHoursEnd: true, availableDays: true, timezone: true },
+    });
+    const availCheck = providerProfileForAvail
+      ? getProviderAvailability(
+          providerProfileForAvail.quietHoursStart,
+          providerProfileForAvail.quietHoursEnd,
+          providerProfileForAvail.availableDays,
+          providerProfileForAvail.timezone
+        )
+      : { unavailable: false, nextAvailableAt: null };
+
+    if (availCheck.unavailable) {
+      // Track the missed request
+      if (providerProfileForAvail) {
+        await prisma.missedRequest.create({
+          data: {
+            apiKeyId: key.id,
+            providerId: providerProfileForAvail.id,
+            nextAvailableAt: availCheck.nextAvailableAt ? new Date(availCheck.nextAvailableAt) : null,
+            questionPreview: (body.questionPreview || question || "")?.slice(0, 200) || null,
+          },
+        });
+      }
+
+      logAuditEvent({
+        eventType: AuditEventTypes.HELP_REQUEST_SUBMITTED,
+        userId: key.userId,
+        apiKeyId: key.id,
+        success: false,
+        metadata: {
+          reason: "provider_unavailable",
+          apiKey: redactApiKey(apiKey),
+          nextAvailableAt: availCheck.nextAvailableAt,
+        },
+        request,
+      });
+
+      const tz = providerProfileForAvail?.timezone || "UTC";
+      const timeStr = availCheck.nextAvailableAt
+        ? new Date(availCheck.nextAvailableAt).toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit" })
+        : null;
+
+      return NextResponse.json({
+        rejected: true,
+        reason: "provider_unavailable",
+        nextAvailableAt: availCheck.nextAvailableAt,
+        message: timeStr
+          ? `Provider is not available right now. They will be available again at ${timeStr} (${tz}). You can ask your question again at that time.`
+          : `Provider is not available right now. Try again later.`,
+      });
+    }
+
     const refCode = await generateUniqueRefCode();
     const expiresAt = new Date(Date.now() + REQUEST_TTL_MS);
 
@@ -248,30 +309,18 @@ export async function POST(request: Request) {
     });
 
     // ─── Phone-first: attempt voice call before chat ───
-    // Check provider availability first — don't call if outside availability window
-    const providerProfileForAvail = await prisma.userProfile.findFirst({
-      where: { userId: key.userId },
-      select: { quietHoursStart: true, quietHoursEnd: true, availableDays: true, timezone: true },
-    });
-    const availCheck = providerProfileForAvail
-      ? getProviderAvailability(
-          providerProfileForAvail.quietHoursStart,
-          providerProfileForAvail.quietHoursEnd,
-          providerProfileForAvail.availableDays,
-          providerProfileForAvail.timezone
-        )
-      : { unavailable: false, nextAvailableAt: null };
-
+    // Scope to the specific provider linked to this API key, not all profiles for the user
     const providerProfiles = await prisma.userProfile.findMany({
-      where: { userId: key.userId },
+      where: key.providerId
+        ? { id: key.providerId }
+        : { userId: key.userId },
       select: { id: true, phoneFirst: true, phoneFirstIntegrationId: true },
     });
 
     let phoneFirstAttempted = false;
 
-    // Only attempt phone-first if provider is available
+    // Attempt phone-first call (provider is confirmed available at this point)
     for (const profile of providerProfiles) {
-      if (availCheck.unavailable) break;
       if (!profile.phoneFirst || !profile.phoneFirstIntegrationId) continue;
 
       const phoneConfig = await getPhoneFirstConfig(profile.id);
@@ -306,8 +355,7 @@ export async function POST(request: Request) {
 
     // Push Telegram notification to provider (fire-and-forget, non-blocking)
     // If phone-first was attempted, Telegram fallback happens via the status callback
-    // If provider is unavailable, defer notification until they come online
-    if (!phoneFirstAttempted && !availCheck.unavailable) {
+    if (!phoneFirstAttempted) {
       prisma.channelProvider.findFirst({
         where: {
           profileId: { in: providerProfiles.map(p => p.id) },
@@ -331,6 +379,32 @@ export async function POST(request: Request) {
         }).catch(() => {});
       }).catch((err) => {
         console.error("[help/route] Telegram notify failed:", err);
+      });
+
+      // Also try Slack notification (fire-and-forget, non-blocking)
+      prisma.channelProvider.findFirst({
+        where: {
+          profileId: { in: providerProfiles.map(p => p.id) },
+          type: "slack",
+          isActive: true,
+          status: "connected",
+        },
+      }).then(async (slackChannel) => {
+        if (!slackChannel) return;
+        const cfg = JSON.parse(slackChannel.config) as SlackConfig;
+        if (!cfg.channelId || !cfg.botToken) return;
+
+        const questionPreview = question ? `\n\n*Question:* ${escapeSlack(question.slice(0, 500))}${question.length > 500 ? "..." : ""}` : "";
+        const msg = `*New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`reply ${helpRequest.refCode} your answer\``;
+
+        await sendSlackMessage(cfg.botToken, cfg.channelId, msg);
+        // Mark as notified (if not already set by Telegram)
+        await prisma.helpRequest.update({
+          where: { id: helpRequest.id },
+          data: { notifiedProviderAt: new Date() },
+        }).catch(() => {});
+      }).catch((err) => {
+        console.error("[help/route] Slack notify failed:", err);
       });
     }
 
@@ -360,29 +434,12 @@ export async function POST(request: Request) {
       request,
     });
 
-    // Check provider availability to inform consumer
-    const providerProfile = await prisma.userProfile.findFirst({
-      where: { userId: key.userId },
-      select: { quietHoursStart: true, quietHoursEnd: true, availableDays: true, timezone: true },
-    });
-
-    const availability = providerProfile
-      ? getProviderAvailability(
-          providerProfile.quietHoursStart,
-          providerProfile.quietHoursEnd,
-          providerProfile.availableDays,
-          providerProfile.timezone
-        )
-      : { unavailable: false, nextAvailableAt: null };
-
     return NextResponse.json({
       requestId: helpRequest.id,
       refCode: helpRequest.refCode,
       status: "pending",
       expiresAt: helpRequest.expiresAt.toISOString(),
       ...(serverKeyPair && { serverPublicKey: serverKeyPair.publicKey }),
-      providerUnavailable: availability.unavailable,
-      nextAvailableAt: availability.nextAvailableAt,
       phoneFirstAttempted,
     });
   } catch (err) {

@@ -13,6 +13,11 @@ describe("Channel Validation Schemas", () => {
       expect(result.success).toBe(false);
     });
 
+    it("rejects invalid type", () => {
+      const result = channelCreateSchema.safeParse({ profileId: "abc", type: "discord", name: "Test" });
+      expect(result.success).toBe(false);
+    });
+
     it("requires name", () => {
       const result = channelCreateSchema.safeParse({ profileId: "abc", type: "openclaw" });
       expect(result.success).toBe(false);
@@ -34,6 +39,16 @@ describe("Channel Validation Schemas", () => {
         type: "telegram",
         name: "Bot",
         config: { botToken: "123:ABC" },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts valid slack input", () => {
+      const result = channelCreateSchema.safeParse({
+        profileId: "abc",
+        type: "slack",
+        name: "Support Channel",
+        config: { botToken: "xoxb-123", signingSecret: "secret", channelId: "C123" },
       });
       expect(result.success).toBe(true);
     });

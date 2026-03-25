@@ -3,7 +3,7 @@
 import { copyToClipboard } from "@/lib/clipboard";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { X, RotateCcw, ArrowDownLeft, ArrowUpRight, Phone, Clock } from "lucide-react";
+import { X, ArrowDownLeft, ArrowUpRight, Phone, Clock } from "lucide-react";
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -53,6 +53,7 @@ const FILTERS = [
   "failed",
   "expired",
   "cancelled",
+  "missed",
 ] as const;
 
 const statusStyles: Record<string, string> = {
@@ -64,6 +65,7 @@ const statusStyles: Record<string, string> = {
   expired: "bg-slate-100 text-slate-600 dark:bg-slate-950/60 dark:text-slate-300",
   failed: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
   cancelled: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+  missed: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
 };
 
 const dotStyles: Record<string, string> = {
@@ -75,6 +77,7 @@ const dotStyles: Record<string, string> = {
   expired: "bg-slate-500",
   failed: "bg-red-500",
   cancelled: "bg-red-400",
+  missed: "bg-amber-500",
 };
 
 const statusLabels: Record<string, string> = {
@@ -86,6 +89,7 @@ const statusLabels: Record<string, string> = {
   expired: "Expired",
   failed: "Failed",
   cancelled: "Cancelled",
+  missed: "Missed",
 };
 
 const phoneCallLabels: Record<string, string> = {
@@ -165,10 +169,22 @@ function deliveryTime(created: string, delivered: string | null) {
   return `${m}m ${s}s`;
 }
 
+interface MissedRequest {
+  id: string;
+  questionPreview: string | null;
+  nextAvailableAt: string | null;
+  createdAt: string;
+  clientName: string;
+  clientChannel: string | null;
+  providerName: string;
+}
+
 export default function RequestsContent() {
   const searchParams = useSearchParams();
   const [requests, setRequests] = useState<HelpRequest[]>([]);
+  const [missedRequests, setMissedRequests] = useState<MissedRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [missedLoading, setMissedLoading] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string | null>(searchParams.get("client"));
   const [providerFilter, setProviderFilter] = useState<string | null>(null);
@@ -185,9 +201,24 @@ export default function RequestsContent() {
       .catch(() => setLoading(false));
   }, []);
 
+  const fetchMissedRequests = useCallback(() => {
+    setMissedLoading(true);
+    fetch("/api/dashboard/missed-requests")
+      .then((r) => r.json())
+      .then((data) => {
+        setMissedRequests(data.missedRequests || []);
+        setMissedLoading(false);
+      })
+      .catch(() => setMissedLoading(false));
+  }, []);
+
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
+
+  useEffect(() => {
+    if (filter === "missed") fetchMissedRequests();
+  }, [filter, fetchMissedRequests]);
 
   useEffect(() => {
     const interval = setInterval(fetchRequests, 10_000);
@@ -206,17 +237,6 @@ export default function RequestsContent() {
     }
   }
 
-  async function handleResend(id: string) {
-    setActionLoading(id);
-    try {
-      const res = await fetch(`/api/v1/dashboard/requests/${id}/resend`, {
-        method: "POST",
-      });
-      if (res.ok) fetchRequests();
-    } finally {
-      setActionLoading(null);
-    }
-  }
 
   const uniqueClients = useMemo(() => {
     const set = new Set(requests.map((r) => r.apiKey.name || "Unnamed"));
@@ -302,6 +322,82 @@ export default function RequestsContent() {
         </select>
       </div>
 
+      {/* Missed requests view */}
+      {filter === "missed" ? (
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+          {missedLoading ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">Loading missed requests...</div>
+          ) : missedRequests.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">No missed requests</div>
+          ) : (
+            <>
+              <div className="md:hidden">
+                {missedRequests.map((m) => (
+                  <div key={m.id} className="border-b border-border p-4 space-y-2 last:border-0">
+                    <div className="flex items-center justify-between">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles.missed}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${dotStyles.missed}`} />
+                        Missed
+                      </span>
+                      <span className="text-xs text-muted-foreground">{timeAgo(m.createdAt)}</span>
+                    </div>
+                    {m.questionPreview && (
+                      <p className="text-sm text-foreground line-clamp-2">{m.questionPreview}</p>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Client: </span>
+                        <span className="text-foreground">{m.clientName}</span>
+                        {m.clientChannel && <span className="text-muted-foreground ml-1">({m.clientChannel})</span>}
+                      </div>
+                      {m.nextAvailableAt && (
+                        <div>
+                          <span className="text-muted-foreground">Next available: </span>
+                          <span className="text-foreground">{new Date(m.nextAvailableAt).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <table className="hidden md:table w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-muted-foreground">
+                    <th className={thClass}>Status</th>
+                    <th className={thClass}>Question</th>
+                    <th className={thClass}>Client</th>
+                    <th className={thClass}>Channel</th>
+                    <th className={thClass}>Next Available</th>
+                    <th className={thClass}>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {missedRequests.map((m) => (
+                    <tr key={m.id} className="border-b border-border last:border-0">
+                      <td className="px-4 py-2.5">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles.missed}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${dotStyles.missed}`} />
+                          Missed
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-foreground max-w-xs truncate">
+                        {m.questionPreview || "--"}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{m.clientName}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{m.clientChannel || "--"}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {m.nextAvailableAt ? new Date(m.nextAvailableAt).toLocaleString() : "--"}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{timeAgo(m.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      ) : (
+
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (
           <>
@@ -376,9 +472,6 @@ export default function RequestsContent() {
                 const display = getDisplayStatus(req);
                 const canCancel =
                   req.status === "pending" || req.status === "active";
-                const canResend = ["responded", "failed", "expired"].includes(
-                  req.status
-                );
                 const isLoading = actionLoading === req.id;
 
                 return (
@@ -390,12 +483,6 @@ export default function RequestsContent() {
                           <button onClick={() => handleCancel(req.id)} disabled={isLoading} title="Cancel"
                             className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors">
                             <X className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                        {canResend && (
-                          <button onClick={() => handleResend(req.id)} disabled={isLoading} title="Resend"
-                            className="rounded p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors">
-                            <RotateCcw className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
@@ -471,9 +558,6 @@ export default function RequestsContent() {
                   const display = getDisplayStatus(req);
                   const canCancel =
                     req.status === "pending" || req.status === "active";
-                  const canResend = ["responded", "expired", "closed"].includes(
-                    req.status
-                  );
                   const isLoading = actionLoading === req.id;
 
                   return (
@@ -535,12 +619,6 @@ export default function RequestsContent() {
                               <X className="h-3.5 w-3.5" />
                             </button>
                           )}
-                          {canResend && (
-                            <button onClick={() => handleResend(req.id)} disabled={isLoading} title="Resend"
-                              className="rounded p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors">
-                              <RotateCcw className="h-3.5 w-3.5" />
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -551,6 +629,8 @@ export default function RequestsContent() {
           </>
         )}
       </div>
+
+      )}
     </div>
   );
 }

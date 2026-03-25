@@ -8,7 +8,8 @@ const VALID_PLATFORMS = ["claudecode", "codex", "gemini", "cursor", "openclaw"] 
  * GET /api/v1/skill-scripts/:platform?file=ask.sh
  *
  * Serves skill files for any supported HeySummon platform skill.
- * Supported files: ask.sh, SKILL.md
+ * Supported files: ask.sh, sdk.sh, setup.sh, add-provider.sh,
+ *                  list-providers.sh, check-status.sh, SKILL.md
  * Used by the setup flow to let users download skill files directly.
  */
 export async function GET(
@@ -39,15 +40,25 @@ export async function GET(
       contentType: "text/plain; charset=utf-8",
       filename: "sdk.sh",
     },
-    "submit.sh": {
-      path: path.join(unifiedScriptsDir, "submit.sh"),
+    "setup.sh": {
+      path: path.join(unifiedScriptsDir, "setup.sh"),
       contentType: "text/plain; charset=utf-8",
-      filename: "submit.sh",
+      filename: "setup.sh",
     },
-    "check-inbox.sh": {
-      path: path.join(unifiedScriptsDir, "check-inbox.sh"),
+    "add-provider.sh": {
+      path: path.join(unifiedScriptsDir, "add-provider.sh"),
       contentType: "text/plain; charset=utf-8",
-      filename: "check-inbox.sh",
+      filename: "add-provider.sh",
+    },
+    "list-providers.sh": {
+      path: path.join(unifiedScriptsDir, "list-providers.sh"),
+      contentType: "text/plain; charset=utf-8",
+      filename: "list-providers.sh",
+    },
+    "check-status.sh": {
+      path: path.join(unifiedScriptsDir, "check-status.sh"),
+      contentType: "text/plain; charset=utf-8",
+      filename: "check-status.sh",
     },
     "SKILL.md": {
       path: path.join(platformSkillDir, "SKILL.md"),

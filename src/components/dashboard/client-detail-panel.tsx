@@ -45,7 +45,6 @@ const channelLabel = (channel: string | null, sub: string | null) => {
   if (channel === "openclaw") return { label: "OpenClaw · Telegram", color: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" };
   if (channel === "codex") return { label: "Codex CLI", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" };
   if (channel === "gemini") return { label: "Gemini CLI", color: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300" };
-  if (channel === "cursor") return { label: "Cursor", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300" };
   return null;
 };
 
@@ -224,16 +223,14 @@ export function ClientDetailPanel({
 
         {/* ── Client name ──────────────────────────────────── */}
         <div className="pt-8 mt-8 border-t border-border">
-          <SectionHeading>Client name</SectionHeading>
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveName()} placeholder="e.g. John's Assistant" />
-            </div>
-            <Button onClick={saveName} disabled={savingName} size="sm">
-              {savingName && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-              {nameSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save"}
-            </Button>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="font-serif text-base font-semibold text-foreground">Client name</h3>
+            {savingName && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            {nameSaved && <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />}
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={saveName} onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }} placeholder="e.g. John's Assistant" />
           </div>
         </div>
 
@@ -277,16 +274,14 @@ export function ClientDetailPanel({
 
         {/* ── Rate limit ───────────────────────────────────── */}
         <div className="pt-8 mt-8 border-t border-border">
-          <SectionHeading>Rate limit</SectionHeading>
-          <div className="flex items-end gap-3">
-            <div className="w-36">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Requests per minute</Label>
-              <Input type="number" value={rateLimit} onChange={(e) => setRateLimit(parseInt(e.target.value) || 150)} min={1} max={10000} />
-            </div>
-            <Button onClick={saveSettings} disabled={savingSettings} size="sm">
-              {savingSettings && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-              {settingsSaved ? <><Check className="mr-1.5 h-3.5 w-3.5" />Saved</> : "Save"}
-            </Button>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="font-serif text-base font-semibold text-foreground">Rate limit</h3>
+            {savingSettings && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            {settingsSaved && <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />}
+          </div>
+          <div className="w-36">
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Requests per minute</Label>
+            <Input type="number" value={rateLimit} onChange={(e) => setRateLimit(parseInt(e.target.value) || 150)} onBlur={saveSettings} onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }} min={1} max={10000} />
           </div>
         </div>
 

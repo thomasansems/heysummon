@@ -64,10 +64,12 @@ function NavGroup({
   items,
   label,
   pathname,
+  badges,
 }: {
   items: { label: string; href: string; icon: React.ElementType }[];
   label?: string;
   pathname: string;
+  badges?: Record<string, number>;
 }) {
   return (
     <SidebarGroup>
@@ -79,6 +81,7 @@ function NavGroup({
               item.href === "/dashboard"
                 ? pathname === "/dashboard"
                 : pathname.startsWith(item.href);
+            const badge = badges?.[item.href] ?? 0;
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
@@ -90,6 +93,11 @@ function NavGroup({
                   <Link href={item.href}>
                   <item.icon className="menu-icon h-[15px] w-[15px] shrink-0 text-sidebar-foreground/55" />
                   <span className="text-sm">{item.label}</span>
+                  {badge > 0 && (
+                    <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-white">
+                      {badge}
+                    </span>
+                  )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -108,7 +116,15 @@ export function AppSidebar() {
   const { open } = useSidebar();
 
   const [mounted, setMounted] = useState(false);
+  const [pendingIpCount, setPendingIpCount] = useState(0);
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    fetch("/api/dashboard/pending-ip-count")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.count) setPendingIpCount(data.count); })
+      .catch(() => {});
+  }, []);
 
   const userName = session?.user?.name ?? "";
   const userImage = session?.user?.image ?? "";
@@ -141,7 +157,7 @@ export function AppSidebar() {
 
       {/* Nav */}
       <SidebarContent className="gap-0">
-        <NavGroup items={mainNav} pathname={pathname} />
+        <NavGroup items={mainNav} pathname={pathname} badges={pendingIpCount > 0 ? { "/dashboard": pendingIpCount } : undefined} />
         <NavGroup items={providerNav} pathname={pathname} />
         <NavGroup items={adminNav} pathname={pathname} />
       </SidebarContent>

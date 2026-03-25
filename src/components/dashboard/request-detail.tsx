@@ -60,8 +60,6 @@ export function RequestDetail({ id }: { id: string }) {
   const [request, setRequest] = useState<HelpRequestDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [resending, setResending] = useState(false);
-  const [resendMessage, setResendMessage] = useState("");
 
   const fetchRequest = useCallback(() => {
     fetch(`/api/v1/requests/${id}`)
@@ -103,24 +101,6 @@ export function RequestDetail({ id }: { id: string }) {
     );
   }
 
-  const handleResend = async () => {
-    setResending(true);
-    setResendMessage("");
-    try {
-      const res = await fetch(`/api/v1/requests/${id}/resend`, { method: "POST" });
-      if (res.ok) {
-        setResendMessage("✅ Notification resent");
-        fetchRequest();
-      } else {
-        const data = await res.json();
-        setResendMessage(`❌ ${data.error || "Failed to resend"}`);
-      }
-    } catch {
-      setResendMessage("❌ Network error");
-    } finally {
-      setResending(false);
-    }
-  };
 
   return (
     <div>
@@ -163,20 +143,6 @@ export function RequestDetail({ id }: { id: string }) {
             )}
           </p>
         </div>
-        {!request.deliveredAt && request.status !== "closed" && request.status !== "expired" && (
-          <div className="flex flex-col items-end gap-1">
-            <button
-              onClick={handleResend}
-              disabled={resending}
-              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-500 disabled:opacity-50"
-            >
-              {resending ? "Resending..." : "🔔 Resend Notification"}
-            </button>
-            {resendMessage && (
-              <span className="text-xs text-zinc-400">{resendMessage}</span>
-            )}
-          </div>
-        )}
       </div>
 
       {request.phoneCallStatus && (

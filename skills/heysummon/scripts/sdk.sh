@@ -11,16 +11,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 _resolve_sdk() {
   # Override: explicit SDK dir
-  if [ -n "$HEYSUMMON_SDK_DIR" ] && [ -f "$HEYSUMMON_SDK_DIR/src/cli.ts" ]; then
-    echo "npx tsx $HEYSUMMON_SDK_DIR/src/cli.ts"
+  if [ -n "$HEYSUMMON_SDK_DIR" ] && [ -f "$HEYSUMMON_SDK_DIR/dist/cli.js" ]; then
+    echo "node $HEYSUMMON_SDK_DIR/dist/cli.js"
     return
   fi
 
   # Try git root (monorepo development)
   local GIT_ROOT
   GIT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"
-  if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/packages/consumer-sdk/src/cli.ts" ]; then
-    echo "npx tsx $GIT_ROOT/packages/consumer-sdk/src/cli.ts"
+  if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/packages/consumer-sdk/dist/cli.js" ]; then
+    echo "node $GIT_ROOT/packages/consumer-sdk/dist/cli.js"
     return
   fi
 

@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getPublicBaseUrl } from "@/lib/public-url";
-import jwt from "jsonwebtoken";
 
 const SETUP_LINK_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 /**
  * POST /api/v1/setup-link
  *
- * Generates a time-limited (24h) signed setup URL for a client key.
- * The URL expires after 24 hours, but auto-disables when the first device binds.
+ * Generates a time-limited (24h) setup URL for a client key.
+ * The URL contains only an opaque token — all sensitive data is stored server-side.
  *
- * Body: { keyId: string, channel: "openclaw" | "claudecode" | "codex" | "gemini" | "cursor", subChannel?: "telegram" | "whatsapp" }
+ * Body: { keyId: string, channel, subChannel?, timeout?, pollInterval?, globalInstall? }
  * Auth: dashboard user (must own the key)
  */
 export async function POST(request: NextRequest) {
@@ -35,41 +35,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "keyId and channel are required" }, { status: 400 });
   }
 
-  // Verify ownership
   const apiKey = await prisma.apiKey.findFirst({
     where: { id: keyId, provider: { userId: user.id } },
-    select: { id: true, key: true, name: true, provider: { select: { name: true } } },
+    select: { id: true, provider: { select: { name: true } } },
   });
 
   if (!apiKey) {
     return NextResponse.json({ error: "Key not found" }, { status: 404 });
   }
 
-  const secret = process.env.JWT_SECRET ?? process.env.NEXTAUTH_SECRET ?? "heysummon-setup-secret";
-
   const baseUrl = getPublicBaseUrl(request);
+  const opaqueToken = `st_${randomBytes(24).toString("base64url")}`;
+  const expiresAt = new Date(Date.now() + SETUP_LINK_TTL_SECONDS * 1000);
 
-  const token = jwt.sign(
-    {
-      keyId: apiKey.id,
-      key: apiKey.key,
+  await prisma.setupToken.create({
+    data: {
+      token: opaqueToken,
+      apiKeyId: apiKey.id,
       baseUrl,
       channel,
       subChannel: subChannel ?? null,
       providerName: apiKey.provider?.name ?? null,
-      ...(timeout != null && timeout !== 900 && { timeout }),
-      ...(pollInterval != null && pollInterval !== 3 && { pollInterval }),
-      ...(globalInstall === false && { globalInstall: false }),
+      timeout: timeout ?? 900,
+      pollInterval: pollInterval ?? 3,
+      globalInstall: globalInstall ?? true,
+      expiresAt,
     },
-    secret,
-    { expiresIn: SETUP_LINK_TTL_SECONDS }
-  );
+  });
 
-  const setupUrl = `${baseUrl}/setup/${token}`;
+  const setupUrl = `${baseUrl}/setup/${opaqueToken}`;
 
   return NextResponse.json({
     setupUrl,
     expiresInSeconds: SETUP_LINK_TTL_SECONDS,
-    expiresAt: new Date(Date.now() + SETUP_LINK_TTL_SECONDS * 1000).toISOString(),
+    expiresAt: expiresAt.toISOString(),
   });
 }

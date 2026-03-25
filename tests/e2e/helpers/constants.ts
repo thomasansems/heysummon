@@ -13,10 +13,17 @@ export const PW = {
   OC_OPENCLAW_KEY: "hs_cli_pw_openclaw_openclaw_0000001",
   CC_OPENCLAW_KEY: "hs_cli_pw_claudecode_openclaw_000001",
   CC_TELEGRAM_KEY: "hs_cli_pw_claudecode_telegram_00001",
+  OC_SLACK_KEY: "hs_cli_pw_openclaw_slack_000000001",
+  CC_SLACK_KEY: "hs_cli_pw_claudecode_slack_00000001",
 
   /** Mock Telegram bot token (seeded) */
   TELEGRAM_BOT_TOKEN: "999999999:PLAYWRIGHT_TEST_BOT_TOKEN_000000000",
   TELEGRAM_PROVIDER_CHAT_ID: "123456789",
+
+  /** Mock Slack credentials (seeded) */
+  SLACK_BOT_TOKEN: "xoxb-999999999999-9999999999999-PLAYWRIGHT_TEST",
+  SLACK_SIGNING_SECRET: "pw_slack_signing_secret_000000000000",
+  SLACK_CHANNEL_ID: "C00PW00TEST",
 } as const;
 
 export const BASE_URL = process.env.BASE_URL || "http://localhost:3425";

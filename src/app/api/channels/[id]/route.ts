@@ -4,11 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { channelUpdateSchema, validateBody } from "@/lib/validations";
 import { openClawAdapter } from "@/lib/adapters/openclaw";
 import { telegramAdapter } from "@/lib/adapters/telegram";
+import { slackAdapter } from "@/lib/adapters/slack";
 import type { ChannelAdapter, ChannelConfig } from "@/lib/adapters/types";
 
 const adapters: Record<string, ChannelAdapter> = {
   openclaw: openClawAdapter,
   telegram: telegramAdapter,
+  slack: slackAdapter,
 };
 
 async function getOwnedChannel(userId: string, channelId: string) {

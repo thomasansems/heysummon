@@ -8,7 +8,7 @@ interface Profile {
   name: string;
 }
 
-type ChannelType = "openclaw" | "telegram" | null;
+type ChannelType = "openclaw" | "telegram" | "slack" | null;
 
 const channelTypes = [
   {
@@ -24,11 +24,10 @@ const channelTypes = [
     description: "Receive help requests via a Telegram bot",
   },
   {
-    type: null,
+    type: "slack" as const,
     label: "Slack",
     icon: "/icons/slack.svg",
-    description: "Coming soon",
-    disabled: true,
+    description: "Receive help requests in a Slack channel",
   },
   {
     type: null,
@@ -48,8 +47,10 @@ export default function NewChannelPage() {
 
   // Form fields
   const [name, setName] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [botToken, setBotToken] = useState("");
+  const [slackBotToken, setSlackBotToken] = useState("");
+  const [slackSigningSecret, setSlackSigningSecret] = useState("");
+  const [slackChannelId, setSlackChannelId] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
@@ -83,6 +84,26 @@ export default function NewChannelPage() {
         return;
       }
       config.botToken = botToken.trim();
+    }
+    if (selectedType === "slack") {
+      if (!slackBotToken.trim()) {
+        setError("Bot token is required");
+        setCreating(false);
+        return;
+      }
+      if (!slackSigningSecret.trim()) {
+        setError("Signing secret is required");
+        setCreating(false);
+        return;
+      }
+      if (!slackChannelId.trim()) {
+        setError("Channel ID is required");
+        setCreating(false);
+        return;
+      }
+      config.botToken = slackBotToken.trim();
+      config.signingSecret = slackSigningSecret.trim();
+      config.channelId = slackChannelId.trim();
     }
 
     const res = await fetch("/api/channels", {
@@ -173,7 +194,7 @@ export default function NewChannelPage() {
         <div className="max-w-md space-y-4">
           <div className="rounded-lg border border-border bg-card p-5">
             <h2 className="mb-4 text-sm font-medium text-foreground">
-              Configure {selectedType === "telegram" ? "Telegram" : selectedType} Channel
+              Configure {selectedType === "telegram" ? "Telegram" : selectedType === "slack" ? "Slack" : selectedType} Channel
             </h2>
 
             {profiles.length === 0 ? (
@@ -240,6 +261,61 @@ export default function NewChannelPage() {
                       on Telegram.
                     </p>
                   </div>
+                )}
+
+                {selectedType === "slack" && (
+                  <>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        Bot Token
+                      </label>
+                      <input
+                        value={slackBotToken}
+                        onChange={(e) => setSlackBotToken(e.target.value)}
+                        placeholder="xoxb-..."
+                        className="w-full rounded-md border border-border bg-card px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Found under OAuth &amp; Permissions in your{" "}
+                        <a
+                          href="https://api.slack.com/apps"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-orange-600 hover:text-orange-800"
+                        >
+                          Slack app settings
+                        </a>.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        Signing Secret
+                      </label>
+                      <input
+                        value={slackSigningSecret}
+                        onChange={(e) => setSlackSigningSecret(e.target.value)}
+                        placeholder="abc123..."
+                        className="w-full rounded-md border border-border bg-card px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Found under Basic Information &gt; App Credentials in your Slack app.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        Channel ID
+                      </label>
+                      <input
+                        value={slackChannelId}
+                        onChange={(e) => setSlackChannelId(e.target.value)}
+                        placeholder="C0123456789"
+                        className="w-full rounded-md border border-border bg-card px-3 py-1.5 font-mono text-sm text-foreground outline-none focus:border-ring"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Right-click a channel in Slack, select &quot;View channel details&quot;, then copy the Channel ID at the bottom.
+                      </p>
+                    </div>
+                  </>
                 )}
 
                 {error && (

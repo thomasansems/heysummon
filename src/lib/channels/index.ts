@@ -1,6 +1,7 @@
 import type { ChannelAdapter, ChannelType } from "./types";
 import { telegramAdapter } from "./telegram";
 import { whatsappAdapter } from "./whatsapp";
+import { slackAdapter } from "./slack";
 
 export { CHANNEL_TYPES } from "./types";
 export type { ChannelAdapter, ChannelType, HelpRequestEvent, FormattedMessage } from "./types";
@@ -8,6 +9,7 @@ export type { ChannelAdapter, ChannelType, HelpRequestEvent, FormattedMessage } 
 const adapters: Record<string, ChannelAdapter> = {
   telegram: telegramAdapter,
   whatsapp: whatsappAdapter,
+  slack: slackAdapter,
 };
 
 /**

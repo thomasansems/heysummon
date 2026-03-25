@@ -1,4 +1,4 @@
-export const CHANNEL_TYPES = ["telegram", "whatsapp", "signal", "discord", "email"] as const;
+export const CHANNEL_TYPES = ["telegram", "whatsapp", "slack", "signal", "discord", "email"] as const;
 export type ChannelType = (typeof CHANNEL_TYPES)[number];
 
 export interface HelpRequestEvent {

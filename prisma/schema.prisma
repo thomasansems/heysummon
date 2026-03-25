@@ -89,6 +89,7 @@ model UserProfile {
   channelProviders ChannelProvider[]
   ipEvents         IpEvent[]
   integrationConfigs ProviderIntegrationConfig[]
+  missedRequests   MissedRequest[]
   createdAt        DateTime          @default(now())
 }
 
@@ -135,9 +136,30 @@ model ApiKey {
   lastPollAt           DateTime?     // Updated on every /api/v1/events/pending call — used for connection verification
   requests             HelpRequest[]
   ipEvents             IpEvent[]
+  missedRequests       MissedRequest[]
+  setupTokens          SetupToken[]
   createdAt            DateTime      @default(now())
 
   @@index([previousKeyHash])
+}
+
+model SetupToken {
+  id            String   @id @default(cuid())
+  token         String   @unique            // Opaque URL-safe token (st_xxxx)
+  apiKeyId      String
+  apiKey        ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  baseUrl       String
+  channel       String                      // "openclaw" | "claudecode" | "codex" | "gemini" | "cursor"
+  subChannel    String?                     // "telegram" | "whatsapp"
+  providerName  String?
+  timeout       Int      @default(900)
+  pollInterval  Int      @default(3)
+  globalInstall Boolean  @default(true)
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([token])
+  @@index([apiKeyId])
 }
 
 model IpEvent {
@@ -387,4 +409,19 @@ model DataRequest {
 
   @@index([userId])
   @@index([status])
+}
+
+model MissedRequest {
+  id              String      @id @default(cuid())
+  apiKeyId        String
+  apiKey          ApiKey      @relation(fields: [apiKeyId], references: [id])
+  providerId      String
+  provider        UserProfile @relation(fields: [providerId], references: [id])
+  nextAvailableAt DateTime?
+  questionPreview String?     // First ~200 chars for dashboard context
+  createdAt       DateTime    @default(now())
+
+  @@index([apiKeyId])
+  @@index([providerId])
+  @@index([createdAt])
 }

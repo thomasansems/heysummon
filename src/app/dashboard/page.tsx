@@ -1,7 +1,7 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-import { X, RotateCcw, ArrowDownLeft, ArrowUpRight, Clock } from "lucide-react";
+import { X, ArrowDownLeft, ArrowUpRight, Clock, ShieldAlert, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   BarChart,
@@ -23,26 +23,40 @@ interface DayActivity {
   avgResponse: number;
 }
 
+interface RequestSummary {
+  id: string;
+  refCode: string | null;
+  status: string;
+  messageCount: number;
+  inbound: number;
+  outbound: number;
+  createdAt: string;
+  clientTimedOutAt: string | null;
+  apiKey: { name: string | null };
+}
+
+interface PendingIpEvent {
+  id: string;
+  ip: string;
+  attempts: number;
+  lastSeen: string;
+  clientName: string;
+  apiKeyId: string;
+}
+
 interface Stats {
   total: number;
   open?: number;
+  unhandled?: number;
   resolved?: number;
   expired?: number;
+  missed?: number;
   avgResponseTime?: number;
   activity?: DayActivity[];
   topClients?: { name: string; count: number }[];
-  openRequests?: {
-    id: string;
-    refCode: string | null;
-    status: string;
-    question: string | null;
-    messageCount: number;
-    inbound: number;
-    outbound: number;
-    createdAt: string;
-    clientTimedOutAt: string | null;
-    apiKey: { name: string | null };
-  }[];
+  openRequests?: RequestSummary[];
+  unhandledRequests?: RequestSummary[];
+  pendingIpEvents?: PendingIpEvent[];
 }
 
 function timeAgo(date: string) {
@@ -142,12 +156,17 @@ export default function DashboardPage() {
     fetch("/api/dashboard/stats").then((r) => r.json()).then(setStats).catch(() => null);
   }
 
-  async function handleResend(id: string) {
-    setActionLoading(id);
-    await fetch(`/api/v1/dashboard/requests/${id}/resend`, { method: "POST" }).catch(() => null);
+  async function handleAllowIp(apiKeyId: string, eventId: string) {
+    setActionLoading(eventId);
+    await fetch(`/api/v1/keys/${apiKeyId}/ip-events/${eventId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "allowed" }),
+    }).catch(() => null);
     setActionLoading(null);
     fetch("/api/dashboard/stats").then((r) => r.json()).then(setStats).catch(() => null);
   }
+
 
   useEffect(() => {
     fetch("/api/dashboard/stats")
@@ -160,8 +179,8 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <h1 className="font-serif text-2xl font-semibold text-foreground">Overview</h1>
         {/* Stat card skeletons */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
+          {[...Array(6)].map((_, i) => (
             <div key={i} className="rounded-xl border border-border bg-card p-4 animate-pulse">
               <div className="h-3 w-24 rounded bg-muted mb-3" />
               <div className="h-7 w-12 rounded bg-muted" />
@@ -193,6 +212,8 @@ export default function DashboardPage() {
 
   // Normalize — guard against partial/missing fields from API
   const openRequests = stats.openRequests ?? [];
+  const unhandledRequests = stats.unhandledRequests ?? [];
+  const pendingIpEvents = stats.pendingIpEvents ?? [];
   const activity = stats.activity ?? [];
 
   const totalThisWeek = activity.reduce((s, d) => s + d.current, 0);
@@ -215,11 +236,13 @@ export default function DashboardPage() {
       <h1 className="font-serif text-2xl font-semibold text-foreground">Overview</h1>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
         {[
           { label: "Total Requests", value: stats.total ?? 0 },
           { label: "Open", value: stats.open ?? 0 },
+          { label: "Unhandled", value: stats.unhandled ?? 0 },
           { label: "Resolved", value: stats.resolved ?? 0 },
+          { label: "Missed", value: stats.missed ?? 0 },
           { label: "Avg Response", value: formatTime(stats.avgResponseTime ?? 0) },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-border bg-card p-4">
@@ -380,6 +403,80 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Pending IP Approvals */}
+      {pendingIpEvents.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldAlert className="h-4 w-4 text-amber-500" />
+              New IP Addresses
+            </span>
+            <span className="ml-2 inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+              {pendingIpEvents.length}
+            </span>
+          </h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            These IP addresses tried to connect but are not yet allowed. Allow them to let requests through.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-amber-500/20 bg-card">
+            {/* Mobile */}
+            <div className="md:hidden">
+              {pendingIpEvents.map((evt) => (
+                <div key={evt.id} className="border-b border-border p-4 space-y-2 last:border-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm text-foreground">{evt.ip}</span>
+                    <button
+                      onClick={() => handleAllowIp(evt.apiKeyId, evt.id)}
+                      disabled={actionLoading === evt.id}
+                      className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+                    >
+                      <Check className="h-3 w-3" />Allow
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{evt.clientName}</span>
+                    <span>{evt.attempts} attempt{evt.attempts !== 1 ? "s" : ""}</span>
+                    <span>{timeAgo(evt.lastSeen)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop */}
+            <table className="hidden md:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">IP Address</th>
+                  <th className="px-4 py-3 font-medium">Client</th>
+                  <th className="px-4 py-3 font-medium">Attempts</th>
+                  <th className="px-4 py-3 font-medium">Last Seen</th>
+                  <th className="px-4 py-3 font-medium w-24" />
+                </tr>
+              </thead>
+              <tbody>
+                {pendingIpEvents.map((evt) => (
+                  <tr key={evt.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-mono text-foreground">{evt.ip}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{evt.clientName}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{evt.attempts}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{timeAgo(evt.lastSeen)}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleAllowIp(evt.apiKeyId, evt.id)}
+                        disabled={actionLoading === evt.id}
+                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+                      >
+                        <Check className="h-3 w-3" />Allow
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Open Requests */}
       <div>
         <h2 className="mb-3 text-sm font-semibold text-foreground">
@@ -393,7 +490,7 @@ export default function DashboardPage() {
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           {openRequests.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
-              No open requests 🎉
+              No open requests
             </div>
           ) : (
             <>
@@ -413,31 +510,14 @@ export default function DashboardPage() {
                               <X className="h-3.5 w-3.5" />
                             </button>
                           )}
-                          <button onClick={() => handleResend(req.id)} disabled={isLoading} title="Resend"
-                            className="rounded p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors">
-                            <RotateCcw className="h-3.5 w-3.5" />
-                          </button>
                           <span className="text-xs text-muted-foreground ml-1">{timeAgo(req.createdAt)}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{req.question || "—"}</p>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span>{req.apiKey.name || "Unnamed"}</span>
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                           req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
                         }`}>{req.status === "active" ? "Active" : "Pending"}</span>
-                        {req.clientTimedOutAt && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 px-2 py-0.5 text-xs font-medium"
-                            title={`Client timed out: ${new Date(req.clientTimedOutAt).toLocaleString()}`}>
-                            <Clock className="h-3 w-3" />Client Timed Out
-                          </span>
-                        )}
-                        {(req.inbound > 0 || req.outbound > 0) && (
-                          <span className="inline-flex items-center gap-1.5">
-                            {req.inbound > 0 && <span className="inline-flex items-center gap-0.5"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>}
-                            {req.outbound > 0 && <span className="inline-flex items-center gap-0.5"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>}
-                          </span>
-                        )}
                       </div>
                     </div>
                   );
@@ -449,7 +529,6 @@ export default function DashboardPage() {
                 <thead>
                   <tr className="border-b border-border text-left text-muted-foreground">
                     <th className="px-4 py-3 font-medium">Ref</th>
-                    <th className="px-4 py-3 font-medium">Question</th>
                     <th className="px-4 py-3 font-medium">Client</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Messages</th>
@@ -466,24 +545,13 @@ export default function DashboardPage() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <CopyableRefCode code={req.refCode} />
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">
-                          {req.question || "—"}
-                        </td>
                         <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                           {req.apiKey.name || "Unnamed"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                              req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
-                            }`}>{req.status === "active" ? "Active" : "Pending"}</span>
-                            {req.clientTimedOutAt && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 px-2 py-0.5 text-xs font-medium"
-                                title={`Client timed out: ${new Date(req.clientTimedOutAt).toLocaleString()}`}>
-                                <Clock className="h-3 w-3" />Client Timed Out
-                              </span>
-                            )}
-                          </div>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            req.status === "active" ? "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
+                          }`}>{req.status === "active" ? "Active" : "Pending"}</span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -502,10 +570,6 @@ export default function DashboardPage() {
                                 <X className="h-3.5 w-3.5" />
                               </button>
                             )}
-                            <button onClick={() => handleResend(req.id)} disabled={isLoading} title="Resend"
-                              className="rounded p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-40 transition-colors">
-                              <RotateCcw className="h-3.5 w-3.5" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -517,6 +581,70 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Unhandled Requests — client timed out, provider never responded */}
+      {unhandledRequests.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">
+            Unhandled Requests
+            <span className="ml-2 inline-flex items-center rounded-full bg-orange-500/15 px-2 py-0.5 text-xs font-medium text-orange-600 dark:text-orange-400">
+              {stats.unhandled ?? 0}
+            </span>
+          </h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Requests where the client timed out waiting for a response. These will not be handled anymore.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-orange-500/20 bg-card">
+            {/* Mobile */}
+            <div className="md:hidden">
+              {unhandledRequests.map((req) => (
+                <div key={req.id} className="border-b border-border p-4 space-y-2 last:border-0">
+                  <div className="flex items-center justify-between">
+                    <CopyableRefCode code={req.refCode} />
+                    <span className="text-xs text-muted-foreground">{timeAgo(req.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{req.apiKey.name || "Unnamed"}</span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 px-2 py-0.5 text-xs font-medium">
+                      <Clock className="h-3 w-3" />Unhandled
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop */}
+            <table className="hidden md:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">Ref</th>
+                  <th className="px-4 py-3 font-medium">Client</th>
+                  <th className="px-4 py-3 font-medium">Timed Out</th>
+                  <th className="px-4 py-3 font-medium text-right">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {unhandledRequests.map((req) => (
+                  <tr key={req.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <CopyableRefCode code={req.refCode} />
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                      {req.apiKey.name || "Unnamed"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                      {req.clientTimedOutAt ? timeAgo(req.clientTimedOutAt) : "---"}
+                    </td>
+                    <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
+                      {timeAgo(req.createdAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

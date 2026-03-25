@@ -19,4 +19,10 @@
 | #3430 | 12:40 AM | 🔵 | submit-request.sh already implements immediate provider unavailability detection | ~374 |
 | #3429 | " | 🔵 | HeySummon ask.sh timeout fallback mechanism analysis | ~373 |
 | #3428 | " | 🔵 | HeySummon skill timeout blocks when provider offline | ~299 |
+
+### Mar 25, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #3717 | 11:27 PM | 🔴 | Updated onboarding script list to match simplified skill architecture | ~344 |
 </claude-mem-context>

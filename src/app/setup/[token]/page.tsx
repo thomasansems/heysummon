@@ -1,39 +1,54 @@
 import { notFound } from "next/navigation";
-import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
-import SetupFlow from "./SetupFlow";
+import { CopyButton } from "./copy-button";
 
-type ClientChannel = "openclaw" | "claudecode" | "codex" | "gemini" | "cursor";
+type ClientChannel = "openclaw" | "claudecode" | "codex" | "gemini";
 
-interface SetupPayload {
-  keyId: string;
-  key: string;
-  baseUrl: string;
+const PLATFORM_META: Record<ClientChannel, { label: string; skillDir: string }> = {
+  openclaw: { label: "OpenClaw", skillDir: "skills/heysummon" },
+  claudecode: { label: "Claude Code", skillDir: ".claude/skills/heysummon" },
+  codex: { label: "Codex CLI", skillDir: ".codex/skills/heysummon" },
+  gemini: { label: "Gemini CLI", skillDir: ".gemini/skills/heysummon" },
+};
+
+/** Wrap a string in single quotes for safe shell interpolation (prevents $() and backtick expansion) */
+function shellEscape(s: string): string {
+  return "'" + s.replace(/'/g, "'\\''") + "'";
+}
+
+function buildInstallCommand(opts: {
   channel: ClientChannel;
-  subChannel?: "telegram" | "whatsapp" | null;
-  providerName?: string | null;
-  timeout?: number;
-  pollInterval?: number;
-  globalInstall?: boolean;
-  exp: number;
-}
+  skillDir: string;
+  baseUrl: string;
+  apiKey: string;
+  timeout: number;
+  pollInterval: number;
+  globalInstall: boolean;
+  providerName: string;
+}): string {
+  const { channel, skillDir, baseUrl, apiKey, timeout, pollInterval, globalInstall, providerName } = opts;
+  const safeName = shellEscape(providerName);
 
-async function verifyToken(token: string): Promise<SetupPayload | null> {
-  try {
-    const secret = process.env.JWT_SECRET ?? process.env.NEXTAUTH_SECRET ?? "heysummon-setup-secret";
-    const payload = jwt.verify(token, secret) as SetupPayload;
-    return payload;
-  } catch {
-    return null;
+  if (channel === "openclaw") {
+    return `cd ~/clawd && HEYSUMMON_BASE_URL="${baseUrl}" bash skills/heysummon/scripts/add-provider.sh ${apiKey} ${safeName}`;
   }
-}
 
-async function isKeyBound(keyId: string): Promise<boolean> {
-  const boundIp = await prisma.ipEvent.findFirst({
-    where: { apiKeyId: keyId, status: "allowed" },
-    select: { id: true },
-  });
-  return !!boundIp;
+  const npmFlag = globalInstall ? " -g" : "";
+  return `npm install${npmFlag} @heysummon/consumer-sdk && \\
+mkdir -p ${skillDir}/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-provider.sh list-providers.sh check-status.sh; do \\
+  curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=$f" \\
+    -o ${skillDir}/scripts/$f && chmod +x ${skillDir}/scripts/$f; \\
+done && \\
+curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=SKILL.md" \\
+  -o ${skillDir}/SKILL.md && \\
+cat > ${skillDir}/.env << 'EOF'
+HEYSUMMON_BASE_URL=${baseUrl}
+HEYSUMMON_API_KEY=${apiKey}
+HEYSUMMON_TIMEOUT=${timeout}
+HEYSUMMON_POLL_INTERVAL=${pollInterval}
+EOF
+echo "HeySummon skill installed successfully."`;
 }
 
 export default async function SetupPage({
@@ -42,59 +57,147 @@ export default async function SetupPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const payload = await verifyToken(token);
 
-  if (!payload) {
+  const record = await prisma.setupToken.findFirst({
+    where: { token },
+    include: {
+      apiKey: { select: { id: true, key: true, name: true } },
+    },
+  });
+
+  if (!record) {
     notFound();
   }
 
-  const providerName = payload.providerName ?? "your provider";
-  const expired = Date.now() / 1000 > payload.exp;
-  const bound = !expired && await isKeyBound(payload.keyId);
+  const expired = new Date() > record.expiresAt;
+  const channel = record.channel as ClientChannel;
+  const meta = PLATFORM_META[channel] ?? PLATFORM_META.claudecode;
+  const providerName = record.providerName ?? "your provider";
+
+  const bound = !expired && !!(await prisma.ipEvent.findFirst({
+    where: { apiKeyId: record.apiKeyId, status: "allowed" },
+    select: { id: true },
+  }));
+
+  const installCmd = buildInstallCommand({
+    channel,
+    skillDir: meta.skillDir,
+    baseUrl: record.baseUrl,
+    apiKey: record.apiKey.key,
+    timeout: record.timeout,
+    pollInterval: record.pollInterval,
+    globalInstall: record.globalInstall,
+    providerName,
+  });
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-zinc-300">
       <div className="mx-auto max-w-2xl px-6 py-16">
 
         {/* Header */}
         <div className="mb-10">
           <div className="mb-3 flex items-center gap-3">
-            <img src="/hey-summon.png" alt="HeySummon logo" className="h-8 w-8" />
+            <img src="/hey-summon.png" alt="HeySummon" className="h-8 w-8" />
             <h1 className="text-2xl font-bold text-white">HeySummon Setup</h1>
           </div>
-          {!bound && !expired && (
-            <p className="text-sm text-zinc-400">
-              You&apos;ve been invited to connect to{" "}
-              <span className="font-medium text-white">&quot;{providerName}&quot;</span>.
-              Follow the steps below — your credentials are already pre-filled.
-            </p>
-          )}
+          <p className="text-sm text-zinc-500">
+            Connect {meta.label} to provider{" "}
+            <span className="text-white font-medium">&quot;{providerName}&quot;</span>
+          </p>
         </div>
 
-        {/* Interactive setup flow (Client Component) — credentials only passed when not bound */}
-        <SetupFlow
-          keyId={payload.keyId}
-          apiKey={bound ? "" : payload.key}
-          baseUrl={bound ? "" : payload.baseUrl}
-          channel={payload.channel}
-          subChannel={payload.subChannel}
-          providerName={providerName}
-          expiresAt={payload.exp}
-          initialBound={bound}
-          timeout={payload.timeout}
-          pollInterval={payload.pollInterval}
-          globalInstall={payload.globalInstall}
-        />
+        {/* Expired */}
+        {expired && (
+          <div className="rounded-lg border border-red-800/50 bg-red-950/20 p-6">
+            <p className="text-red-400 font-semibold">This setup link has expired.</p>
+            <p className="mt-2 text-sm text-zinc-500">
+              Setup links are valid for 24 hours. Ask your provider to generate a new one from the dashboard.
+            </p>
+          </div>
+        )}
 
-        <div className="mt-10 text-center text-xs text-zinc-600">
-          HeySummon — Human-in-the-loop for AI agents ·{" "}
-          <a href="https://heysummon.app" className="text-zinc-500 underline hover:text-zinc-400">
-            heysummon.app
-          </a>{" "}
-          ·{" "}
-          <a href="/help" className="text-zinc-500 underline hover:text-zinc-400">
-            Help & FAQ
-          </a>
+        {/* Already bound */}
+        {bound && (
+          <div className="rounded-lg border border-green-800/50 bg-green-950/20 p-6">
+            <p className="text-green-400 font-semibold">This client is already configured.</p>
+            <p className="mt-2 text-sm text-zinc-500">
+              A device has been bound to this API key. If you need to reconfigure, ask your provider
+              to reset the IP bindings and generate a new setup link.
+            </p>
+          </div>
+        )}
+
+        {/* Active setup instructions */}
+        {!expired && !bound && (
+          <div className="space-y-8">
+
+            {/* OpenClaw: pre-install step */}
+            {channel === "openclaw" && (
+              <section>
+                <h2 className="mb-3 text-lg font-semibold text-white">1. Install skill</h2>
+                <p className="mb-3 text-sm text-zinc-400">
+                  Install the HeySummon skill if you haven&apos;t already:
+                </p>
+                <div className="group relative rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                  <pre className="overflow-x-auto font-mono text-sm text-green-400 whitespace-pre-wrap break-all pr-16">
+                    npx clawhub@latest install heysummon
+                  </pre>
+                  <CopyButton text="npx clawhub@latest install heysummon" />
+                </div>
+              </section>
+            )}
+
+            {/* Main install/register command */}
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-white">
+                {channel === "openclaw" ? "2. Register provider" : "1. Install the skill"}
+              </h2>
+              <p className="mb-3 text-sm text-zinc-400">
+                {channel === "openclaw"
+                  ? "Run this from your OpenClaw agent workspace:"
+                  : `Run this in your project directory:`}
+              </p>
+              <div className="group relative rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                <pre className="overflow-x-auto font-mono text-sm text-green-400 whitespace-pre-wrap break-all pr-16">
+                  {installCmd}
+                </pre>
+                <CopyButton text={installCmd} />
+              </div>
+              <p className="mt-3 text-xs text-zinc-600">
+                Credentials are pre-filled. The command downloads the skill scripts and configures the connection.
+              </p>
+            </section>
+
+            {/* Verify */}
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-white">
+                {channel === "openclaw" ? "3. Verify" : "2. Verify"}
+              </h2>
+              <p className="text-sm text-zinc-400">
+                After running the command, try asking your agent to summon {providerName}:
+              </p>
+              <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                <p className="font-mono text-sm text-zinc-300 italic">
+                  &quot;Hey summon {providerName} to confirm this connection works&quot;
+                </p>
+              </div>
+              <p className="mt-3 text-xs text-zinc-600">
+                The first request automatically binds your device IP. Your provider will see the
+                request on their dashboard.
+              </p>
+            </section>
+
+            {/* Validity */}
+            <p className="text-xs text-zinc-600">
+              This link is valid until{" "}
+              {record.expiresAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}.
+            </p>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="mt-12 border-t border-zinc-800/50 pt-6 text-center text-xs text-zinc-600">
+          HeySummon -- Human-in-the-loop for AI agents
         </div>
       </div>
     </div>

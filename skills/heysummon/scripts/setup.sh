@@ -1,35 +1,15 @@
 #!/bin/bash
 # HeySummon — Skill Setup
-# Creates .env with API key and base URL, registers provider, starts watcher.
-# Auto-detects platform (OpenClaw vs Claude Code) and runs appropriate setup.
+# Creates .env with API key and base URL, registers provider.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/sdk.sh"
 ENV_FILE="$SKILL_DIR/.env"
 
-# --- Platform detection ---
-# Detects which AI platform is running based on environment or config directories.
-# OpenClaw: ~/.openclaw/ exists or OPENCLAW_HOME is set
-# Codex CLI: CODEX_HOME is set or ~/.codex/ exists
-# Gemini CLI: GEMINI_HOME is set or ~/.gemini/ exists
-# Cursor: CURSOR_HOME is set or ~/.cursor/ exists
-# Claude Code: default fallback
-PLATFORM="claudecode"
-if [ -d "$HOME/.openclaw" ] || [ -n "$OPENCLAW_HOME" ]; then
-  PLATFORM="openclaw"
-elif [ -d "$HOME/.codex" ] || [ -n "$CODEX_HOME" ]; then
-  PLATFORM="codex"
-elif [ -d "$HOME/.gemini" ] || [ -n "$GEMINI_HOME" ]; then
-  PLATFORM="gemini"
-elif [ -d "$HOME/.cursor" ] || [ -n "$CURSOR_HOME" ]; then
-  PLATFORM="cursor"
-fi
-
 echo ""
 echo "HeySummon — Skill Setup"
 echo "======================="
-echo "Platform: $PLATFORM"
 echo ""
 
 if [ -f "$ENV_FILE" ]; then
@@ -89,21 +69,8 @@ export HEYSUMMON_BASE_URL="$BASE_URL"
 export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
 $SDK_CLI add-provider --key "$API_KEY" 2>/dev/null && echo "" || echo "Provider registration skipped (non-fatal)."
 
-# --- Platform-specific watcher setup ---
-if [ "$PLATFORM" = "openclaw" ]; then
-  echo ""
-  echo "Running OpenClaw setup (keypairs, hooks, watcher)..."
-  bash "$SCRIPT_DIR/openclaw-setup.sh"
-else
-  echo ""
-  echo "Starting $PLATFORM response watcher..."
-  bash "$SCRIPT_DIR/setup-watcher.sh" start
-fi
-
 echo ""
 echo "Setup complete. Use HeySummon:"
 echo ""
 echo "  bash $SKILL_DIR/scripts/ask.sh \"Your question\""
-echo "  bash $SKILL_DIR/scripts/ask.sh --async \"Your question\""
-echo "  bash $SKILL_DIR/scripts/ask.sh --check"
 echo ""

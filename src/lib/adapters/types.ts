@@ -13,9 +13,18 @@ export interface TelegramConfig {
   providerChatId?: string;
 }
 
-export type ChannelType = "openclaw" | "telegram";
+export interface SlackConfig {
+  botToken: string;
+  signingSecret: string;
+  channelId: string;
+  teamId?: string;
+  teamName?: string;
+  botUserId?: string;
+}
 
-export type ChannelConfig = OpenClawConfig | TelegramConfig;
+export type ChannelType = "openclaw" | "telegram" | "slack";
+
+export type ChannelConfig = OpenClawConfig | TelegramConfig | SlackConfig;
 
 export interface ChannelAdapter {
   type: ChannelType;

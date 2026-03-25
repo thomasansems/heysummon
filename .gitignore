@@ -4,6 +4,7 @@
 .env.local
 .next/
 .vercel
+dist
 docker-compose.override.yml
 guard/dist/
 guard/node_modules/

@@ -19,22 +19,26 @@ export async function GET(
 ) {
   const { requestId } = await params;
 
+  // Require API key authentication
+  const providedApiKey = _request.headers.get("x-api-key");
+  if (!providedApiKey) {
+    return NextResponse.json({ error: "Missing x-api-key header" }, { status: 401 });
+  }
+
+  const authResult = await validateApiKeyRequest(_request);
+  if (!authResult.ok) return authResult.response;
+
   const helpRequest = await prisma.helpRequest.findUnique({
     where: { id: requestId },
     include: { apiKey: { select: { key: true } } },
   });
 
-  // If x-api-key header provided, verify it matches the request's API key + device token
-  const providedApiKey = _request.headers.get("x-api-key");
-  if (providedApiKey) {
-    const authResult = await validateApiKeyRequest(_request);
-    if (!authResult.ok) return authResult.response;
-    if (helpRequest?.apiKey?.key !== providedApiKey) {
-      return NextResponse.json({ error: "Invalid API key for this request" }, { status: 403 });
-    }
+  if (!helpRequest) {
+    return NextResponse.json({ error: "Request not found" }, { status: 404 });
   }
 
-  if (!helpRequest) {
+  // Verify the API key owns this request
+  if (helpRequest.apiKey?.key !== providedApiKey) {
     return NextResponse.json({ error: "Request not found" }, { status: 404 });
   }
 

@@ -1,27 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendMessage } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
 
-interface TelegramUpdate {
-  update_id: number;
-  message?: {
-    message_id: number;
-    from?: {
-      id: number;
-      first_name?: string;
-      last_name?: string;
-      username?: string;
-    };
-    chat: {
-      id: number;
-      type: string;
-    };
-    date: number;
-    text?: string;
-  };
-}
+/** Max length for a provider reply via Telegram */
+const MAX_REPLY_LENGTH = 10_000;
+
+const telegramUpdateSchema = z.object({
+  update_id: z.number(),
+  message: z.object({
+    message_id: z.number(),
+    from: z.object({
+      id: z.number(),
+      first_name: z.string().optional(),
+      last_name: z.string().optional(),
+      username: z.string().optional(),
+    }).optional(),
+    chat: z.object({
+      id: z.number(),
+      type: z.string(),
+    }),
+    date: z.number(),
+    text: z.string().max(10_000).optional(),
+  }).optional(),
+});
 
 export async function POST(
   request: NextRequest,
@@ -51,8 +55,18 @@ export async function POST(
     return NextResponse.json({ error: "Invalid secret" }, { status: 403 });
   }
 
-  // Parse the Telegram update
-  const update: TelegramUpdate = await request.json();
+  // Parse and validate the Telegram update
+  let raw: unknown;
+  try {
+    raw = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const parsed = telegramUpdateSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ ok: true }); // Silently reject malformed payloads
+  }
+  const update = parsed.data;
   const message = update.message;
 
   if (!message?.text || !message.chat) {
@@ -68,10 +82,25 @@ export async function POST(
     data: { lastHeartbeat: new Date() },
   });
 
-  // ── /start ── Provider registering themselves with the bot
+  // ── /start <token> ── Provider registering themselves with the bot
   if (text === "/start" || text.startsWith("/start ")) {
-    // Store providerChatId so we can push notifications to them
-    const newConfig: TelegramConfig = { ...config, providerChatId: chatId };
+    // Require setup token to prevent unauthorized chat binding
+    const token = text.split(/\s+/)[1]?.trim();
+    if (!config.setupToken || !token || token !== config.setupToken) {
+      await sendMessage(
+        config.botToken,
+        chatId,
+        "Please use the setup link from your HeySummon dashboard to connect this bot."
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // Store providerChatId and clear the one-time setup token
+    const newConfig: TelegramConfig = {
+      ...config,
+      providerChatId: chatId,
+      setupToken: undefined,
+    };
     await prisma.channelProvider.update({
       where: { id },
       data: {
@@ -83,7 +112,7 @@ export async function POST(
     await sendMessage(
       config.botToken,
       chatId,
-      `✅ *HeySummon connected!*\n\nYou'll receive new help requests here. Reply with:\n\`/reply HS-XXXX your answer\`\n\nOr view all open requests in your dashboard.`
+      `*HeySummon connected!*\n\nYou'll receive new help requests here. Reply with:\n\`/reply HS-XXXX your answer\`\n\nOr view all open requests in your dashboard.`
     );
 
     return NextResponse.json({ ok: true });
@@ -94,6 +123,15 @@ export async function POST(
   if (replyMatch) {
     const refCode = replyMatch[1].toUpperCase();
     const answer = replyMatch[2].trim();
+
+    if (answer.length > MAX_REPLY_LENGTH) {
+      await sendMessage(
+        config.botToken,
+        chatId,
+        `Reply is too long (${answer.length} chars). Maximum is ${MAX_REPLY_LENGTH}.`
+      );
+      return NextResponse.json({ ok: true });
+    }
 
     // Validate: must come from the registered providerChatId
     if (!config.providerChatId) {

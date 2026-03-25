@@ -8,18 +8,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { validateApiKeyRequest } from '@/lib/api-key-auth';
+import { requireJsonContentType } from '@/lib/validations';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 
+/** Block webhook URLs pointing to private/internal networks */
+function isPrivateUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    const hostname = url.hostname.toLowerCase();
+
+    // Block localhost variants
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]') {
+      return true;
+    }
+
+    // Block private IP ranges (RFC1918, link-local, etc.)
+    const parts = hostname.split('.').map(Number);
+    if (parts.length === 4 && parts.every((n) => !isNaN(n))) {
+      if (parts[0] === 10) return true;                                    // 10.0.0.0/8
+      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true; // 172.16.0.0/12
+      if (parts[0] === 192 && parts[1] === 168) return true;              // 192.168.0.0/16
+      if (parts[0] === 169 && parts[1] === 254) return true;              // 169.254.0.0/16 link-local
+      if (parts[0] === 0) return true;                                     // 0.0.0.0/8
+    }
+
+    // Block metadata endpoints (cloud providers)
+    if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal') {
+      return true;
+    }
+
+    // Require HTTPS for webhook URLs
+    if (url.protocol !== 'https:') return true;
+
+    return false;
+  } catch {
+    return true; // Invalid URL = block
+  }
+}
+
 const RegisterSchema = z.object({
-  url: z.string().url('Must be a valid URL'),
+  url: z.string().url('Must be a valid URL').max(2048),
   name: z.string().min(1).max(100).optional(),
   secret: z.string().min(16).max(256).optional(),
-  headers: z.record(z.string(), z.string()).optional(),
+  headers: z.record(z.string().max(256), z.string().max(4096)).optional(),
 });
 
 // POST /api/v1/webhooks — Register a webhook
 export async function POST(req: NextRequest) {
+  const ctError = requireJsonContentType(req);
+  if (ctError) return ctError;
+
   const auth = await validateApiKeyRequest(req);
   if (!auth.ok) return auth.response;
   const userId = auth.apiKey.userId;
@@ -37,6 +76,13 @@ export async function POST(req: NextRequest) {
   }
 
   const { url, name = 'My Webhook', secret, headers } = parsed.data;
+
+  if (isPrivateUrl(url)) {
+    return NextResponse.json(
+      { error: 'Webhook URL must be a public HTTPS endpoint' },
+      { status: 400 }
+    );
+  }
 
   const profile = await prisma.userProfile.findFirst({ where: { userId } });
   if (!profile) {

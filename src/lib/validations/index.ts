@@ -3,7 +3,19 @@ import { NextResponse } from "next/server";
 
 // ── Helpers ──
 
-export function validateBody<T>(schema: z.ZodSchema<T>, data: unknown): 
+/** Reject requests whose Content-Type is not application/json */
+export function requireJsonContentType(request: Request): NextResponse | null {
+  const ct = request.headers.get("content-type") ?? "";
+  if (!ct.includes("application/json")) {
+    return NextResponse.json(
+      { error: "Content-Type must be application/json" },
+      { status: 415 }
+    );
+  }
+  return null;
+}
+
+export function validateBody<T>(schema: z.ZodSchema<T>, data: unknown):
   { success: true; data: T } | { success: false; response: NextResponse } {
   const result = schema.safeParse(data);
   if (!result.success) {
@@ -94,15 +106,15 @@ export const requestPatchSchema = z.object({
 // ── V1 Help schema ──
 
 export const helpCreateSchema = z.object({
-  apiKey: z.string().min(1, "apiKey is required"),
-  signPublicKey: z.string().optional(),
-  encryptPublicKey: z.string().optional(),
-  publicKey: z.string().optional(),
-  messages: z.array(z.any()).optional(),
-  question: z.string().optional(),
-  questionPreview: z.string().optional(),
+  apiKey: z.string().min(1, "apiKey is required").max(512),
+  signPublicKey: z.string().max(2048).optional(),
+  encryptPublicKey: z.string().max(2048).optional(),
+  publicKey: z.string().max(4096).optional(),
+  messages: z.array(z.any()).max(200).optional(),
+  question: z.string().max(50_000).optional(),
+  questionPreview: z.string().max(500).optional(),
   requiresApproval: z.boolean().optional(),
-  messageCount: z.number().int().min(0).optional(),
+  messageCount: z.number().int().min(0).max(1000).optional(),
 });
 
 // ── V1 Key Exchange schema ──
@@ -116,12 +128,12 @@ export const keyExchangeSchema = z.object({
 
 export const messageCreateSchema = z.object({
   from: z.enum(["consumer", "provider"], { message: "from must be consumer or provider" }),
-  plaintext: z.string().optional(),
-  ciphertext: z.string().optional(),
-  iv: z.string().optional(),
-  authTag: z.string().optional(),
-  signature: z.string().optional(),
-  messageId: z.string().optional(),
+  plaintext: z.string().max(100_000).optional(),
+  ciphertext: z.string().max(200_000).optional(),
+  iv: z.string().max(512).optional(),
+  authTag: z.string().max(512).optional(),
+  signature: z.string().max(2048).optional(),
+  messageId: z.string().max(256).optional(),
 });
 
 // ── Channel schemas ──

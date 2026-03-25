@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
-import { helpCreateSchema, validateBody } from "@/lib/validations";
+import { helpCreateSchema, validateBody, requireJsonContentType } from "@/lib/validations";
 import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
@@ -88,6 +88,9 @@ const DEBUG = process.env.DEBUG === "true";
  */
 export async function POST(request: Request) {
   try {
+    const ctError = requireJsonContentType(request);
+    if (ctError) return ctError;
+
     const raw = await request.json();
     const parsed = validateBody(helpCreateSchema, raw);
     if (!parsed.success) return parsed.response;

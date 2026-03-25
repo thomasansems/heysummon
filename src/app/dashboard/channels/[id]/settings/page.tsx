@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 interface ChannelData {
@@ -28,6 +28,7 @@ export default function ChannelSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     fetch(`/api/channels/${params.id}`)
@@ -72,6 +73,18 @@ export default function ChannelSettingsPage() {
     await fetch(`/api/channels/${params.id}`, { method: "DELETE" });
     router.push("/dashboard/channels");
   };
+
+  const regenerateSetupToken = useCallback(async () => {
+    setRegenerating(true);
+    try {
+      const res = await fetch(`/api/channels/${params.id}/regenerate-token`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setChannel((prev) => prev ? { ...prev, config: JSON.stringify(data.config) } : prev);
+      }
+    } catch { /* ignore */ }
+    setRegenerating(false);
+  }, [params.id]);
 
   if (!channel) {
     return (
@@ -154,7 +167,7 @@ export default function ChannelSettingsPage() {
             </div>
           )}
           {channel.type === "telegram" && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div>
                 <span className="text-xs text-muted-foreground">Bot Username</span>
                 <p className="text-sm text-foreground">
@@ -168,6 +181,53 @@ export default function ChannelSettingsPage() {
                     ? config.botToken.slice(0, 10) + "..." + config.botToken.slice(-4)
                     : "Not set"}
                 </p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground">Chat Binding</span>
+                {config.providerChatId ? (
+                  <p className="text-sm text-green-600">
+                    Connected (chat {String(config.providerChatId).slice(0, 6)}...)
+                  </p>
+                ) : (
+                  <p className="text-sm text-amber-600">Not connected yet</p>
+                )}
+              </div>
+
+              {/* Setup link or regenerate */}
+              <div className="rounded-md border border-border bg-muted/30 p-3">
+                {typeof config.setupToken === "string" && typeof config.botUsername === "string" ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Open this link in Telegram to bind your chat:
+                    </p>
+                    <a
+                      href={`https://t.me/${config.botUsername}?start=${config.setupToken}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block break-all font-mono text-sm text-blue-500 hover:underline"
+                    >
+                      https://t.me/{String(config.botUsername)}?start={String(config.setupToken)}
+                    </a>
+                    <p className="text-xs text-muted-foreground">
+                      This is a one-time link. It will be invalidated after use.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      {config.providerChatId
+                        ? "Chat is already bound. Regenerate to re-pair with a different Telegram account."
+                        : "Generate a setup link to bind your Telegram account."}
+                    </p>
+                    <button
+                      onClick={regenerateSetupToken}
+                      disabled={regenerating}
+                      className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                    >
+                      {regenerating ? "Generating..." : config.providerChatId ? "Regenerate Setup Link" : "Generate Setup Link"}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

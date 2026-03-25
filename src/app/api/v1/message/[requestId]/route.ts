@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { messageCreateSchema, validateBody } from "@/lib/validations";
+import { messageCreateSchema, validateBody, requireJsonContentType } from "@/lib/validations";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
@@ -23,6 +23,9 @@ export async function POST(
   { params }: { params: Promise<{ requestId: string }> }
 ) {
   try {
+    const ctError = requireJsonContentType(request);
+    if (ctError) return ctError;
+
     const { requestId } = await params;
 
     // ── Auth: require x-api-key ──

@@ -124,8 +124,9 @@ export const telegramAdapter: ChannelAdapter = {
       throw new Error(result.error);
     }
 
-    // Generate webhook secret
+    // Generate webhook secret and setup token for /start auth
     const webhookSecret = crypto.randomBytes(32).toString("hex");
+    const setupToken = crypto.randomBytes(16).toString("hex");
     // Use canonical public URL (Tailscale Funnel / Cloudflare / HEYSUMMON_PUBLIC_URL)
     // NEVER use localtunnel — use `tailscale funnel 3425` instead
     const baseUrl = getPublicBaseUrl();
@@ -134,7 +135,7 @@ export const telegramAdapter: ChannelAdapter = {
     // Set webhook
     await setWebhook(tgConfig.botToken, webhookUrl, webhookSecret);
 
-    // Update channel with bot username and webhook secret
+    // Update channel with bot username, webhook secret, and setup token
     await prisma.channelProvider.update({
       where: { id: channelId },
       data: {
@@ -142,6 +143,7 @@ export const telegramAdapter: ChannelAdapter = {
           ...tgConfig,
           botUsername: result.username,
           webhookSecret,
+          setupToken,
         }),
         status: "connected",
       },

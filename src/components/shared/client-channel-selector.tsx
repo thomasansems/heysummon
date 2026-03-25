@@ -26,6 +26,13 @@ const CLIENT_CHANNELS = [
     disabled: false,
   },
   {
+    id: "cursor" as const,
+    label: "Cursor",
+    icon: "/icons/cursor.svg",
+    description: "Cursor editor -- skill in rules",
+    disabled: false,
+  },
+  {
     id: null,
     label: "Gemini CLI",
     icon: "/icons/gemini.svg",

@@ -13,5 +13,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #3581 | 8:49 PM | 🔵 | Binding Issue Identified in Fresh Codec Setup Process | ~250 |
 | #3571 | 7:39 PM | 🔵 | Multi-Platform Client Integration Architecture | ~908 |
 </claude-mem-context>

@@ -60,6 +60,7 @@ const channelLabel = (channel: string | null, sub: string | null) => {
   if (channel === "openclaw") return { label: "OpenClaw · Telegram", color: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" };
   if (channel === "codex") return { label: "Codex CLI", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" };
   if (channel === "gemini") return { label: "Gemini CLI", color: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300" };
+  if (channel === "cursor") return { label: "Cursor", color: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300" };
   return null;
 };
 
@@ -93,6 +94,13 @@ const CLIENT_CHANNELS = [
     label: "Codex CLI",
     icon: "/icons/codex.svg",
     description: "OpenAI — terminal agent",
+    disabled: false,
+  },
+  {
+    id: "cursor" as const,
+    label: "Cursor",
+    icon: "/icons/cursor.svg",
+    description: "Cursor editor -- skill in rules",
     disabled: false,
   },
   {
@@ -773,6 +781,7 @@ export default function ClientsContent() {
             { label: "OpenClaw", icon: "/icons/openclaw.svg", active: true },
             { label: "Claude Code", icon: "/icons/claudecode.svg", active: true },
             { label: "Codex CLI", icon: "/icons/codex.svg", active: true },
+            { label: "Cursor", icon: "/icons/cursor.svg", active: true },
             { label: "Gemini CLI", icon: "/icons/gemini.svg", active: false },
             { label: "OpenAI", icon: "/icons/openai.svg", active: false },
             { label: "NanoClaw", icon: "/icons/docker.svg", active: false },

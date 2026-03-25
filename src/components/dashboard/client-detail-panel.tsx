@@ -292,7 +292,14 @@ export function ClientDetailPanel({
 
         {/* ── Setup link ───────────────────────────────────── */}
         <div className="pt-8 mt-8 border-t border-border">
-          <SectionHeading>Setup link</SectionHeading>
+          <SectionHeading>
+            Setup link{(() => {
+              const ch = channelLabel(client.clientChannel, client.clientSubChannel);
+              if (!ch) return null;
+              const isSkill = client.clientChannel !== "openclaw";
+              return <span className="font-normal text-muted-foreground"> ({ch.label}{isSkill ? " · Skill" : ""})</span>;
+            })()}
+          </SectionHeading>
           {isBound ? (
             <p className="text-sm text-muted-foreground">
               This client is already bound. To rebind, reset the IP bindings below first — then a new setup link can be generated.

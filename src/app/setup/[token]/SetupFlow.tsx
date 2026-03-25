@@ -99,6 +99,8 @@ export default function SetupFlow({
 
   // Skill-based platform state (Claude Code, Codex, Gemini, Cursor)
   const [skillStep, setSkillStep] = useState<SkillInstallStep>("install");
+  const [skillVerifyStatus, setSkillVerifyStatus] = useState<VerifyStatus>("idle");
+  const [skillVerifyElapsed, setSkillVerifyElapsed] = useState(0);
 
   // Connection verification loop
   const startVerification = useCallback(async () => {
@@ -129,6 +131,42 @@ export default function SetupFlow({
             setVerifyStatus("connected");
             setConnectedIp(data.allowedIps?.[0] ?? null);
             setOpenClawStep("connected");
+          }
+        }
+      } catch {
+        // Network error — keep polling
+      }
+    }, VERIFY_POLL_INTERVAL_MS);
+  }, [keyId]);
+
+  // Skill-based binding verification (polls /api/v1/setup/bound for IP binding)
+  const startSkillVerification = useCallback(() => {
+    setSkillVerifyStatus("checking");
+    setSkillVerifyElapsed(0);
+    const start = Date.now();
+
+    const poll = setInterval(async () => {
+      const elapsed = Date.now() - start;
+      setSkillVerifyElapsed(Math.floor(elapsed / 1000));
+
+      if (elapsed > VERIFY_TIMEOUT_MS) {
+        clearInterval(poll);
+        setSkillVerifyStatus("timeout");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/v1/setup/bound", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keyId }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.bound) {
+            clearInterval(poll);
+            setSkillVerifyStatus("connected");
+            setSkillStep("connected");
           }
         }
       } catch {
@@ -634,10 +672,13 @@ echo "Connected and device bound successfully."`;
             </div>
             {skillStep === "install" && (
               <button
-                onClick={() => setSkillStep("connected")}
+                onClick={() => {
+                  startSkillVerification();
+                  setSkillStep("connected");
+                }}
                 className="mt-4 rounded-md bg-orange-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-500"
               >
-                Done — finish →
+                Done — verify connection →
               </button>
             )}
           </Step>
@@ -645,19 +686,72 @@ echo "Connected and device bound successfully."`;
           <Step
             number={2}
             total={2}
-            title="You're connected!"
-            status={skillStep === "connected" ? "done" : "idle"}
+            title={skillVerifyStatus === "connected" ? "Device bound successfully" : skillVerifyStatus === "timeout" ? "Binding not detected" : "Verifying connection..."}
+            status={
+              skillStep === "connected"
+                ? skillVerifyStatus === "connected"
+                  ? "done"
+                  : "active"
+                : "idle"
+            }
           >
-            <p className="text-sm text-zinc-400">
-              {meta.label} will now use the HeySummon skill when it needs expert input from{" "}
-              <span className="font-medium text-white">&quot;{providerName}&quot;</span>. It will pause, send
-              your question to them, and resume automatically when they respond.
-            </p>
-            <p className="mt-2 text-xs text-zinc-500">
-              Use <code className="rounded bg-zinc-800 px-1 font-mono">/heysummon</code> in{" "}
-              {meta.label} to invoke it manually, or the agent will use it automatically when it needs human input.
-            </p>
             {skillStep === "connected" && (
+              <>
+                {skillVerifyStatus === "checking" && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-zinc-400">
+                      Waiting for the install command to complete and bind this device...
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-600 border-t-orange-500" />
+                      <span className="text-xs text-zinc-500">Checking... ({skillVerifyElapsed}s)</span>
+                    </div>
+                  </div>
+                )}
+
+                {skillVerifyStatus === "timeout" && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-zinc-400">
+                      No device binding was detected within 60 seconds. This usually means the install
+                      command did not complete successfully.
+                    </p>
+                    <div className="rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-xs text-zinc-400 space-y-1">
+                      <p className="font-medium text-zinc-300">Troubleshooting:</p>
+                      <ul className="list-disc list-inside space-y-0.5">
+                        <li>Make sure the full install command ran without errors</li>
+                        <li>Check that <code className="rounded bg-zinc-700 px-1">curl</code> can reach the server</li>
+                        <li>Verify the <code className="rounded bg-zinc-700 px-1">.env</code> file was created in <code className="rounded bg-zinc-700 px-1">{skillDir}/</code></li>
+                      </ul>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSkillStep("install");
+                        setSkillVerifyStatus("idle");
+                        setSkillVerifyElapsed(0);
+                      }}
+                      className="rounded-md border border-zinc-600 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+                    >
+                      ← Try again
+                    </button>
+                  </div>
+                )}
+
+                {skillVerifyStatus === "connected" && (
+                  <>
+                    <p className="text-sm text-zinc-400">
+                      {meta.label} will now use the HeySummon skill when it needs expert input from{" "}
+                      <span className="font-medium text-white">&quot;{providerName}&quot;</span>. It will pause, send
+                      your question to them, and resume automatically when they respond.
+                    </p>
+                    <p className="mt-2 text-xs text-zinc-500">
+                      Use <code className="rounded bg-zinc-800 px-1 font-mono">/heysummon</code> in{" "}
+                      {meta.label} to invoke it manually, or the agent will use it automatically when it needs human input.
+                    </p>
+                  </>
+                )}
+              </>
+            )}
+            {skillStep === "connected" && skillVerifyStatus === "connected" && (
               <div className="mt-3 flex gap-3">
                 <a
                   href="/dashboard"

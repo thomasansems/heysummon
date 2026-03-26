@@ -30,6 +30,8 @@ jobs:
 
       - name: Build docs site
         run: npm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Build succeeded
         run: echo "✅ Docs build verified — Vercel will deploy automatically"

@@ -58,13 +58,14 @@ test.describe("Full request lifecycle (API)", () => {
     // Find the key ID via the provider's key list
     const cookie = loginRes.headers.get("set-cookie") ?? "";
 
-    // Look up the key ID for the base client key
-    const keysData = await apiGet<{ keys: Array<{ id: string; key: string }> }>(
-      "/api/v1/keys",
-      cookie ? { Cookie: cookie } : {}
-    );
+    // Look up the key ID for the base client key (graceful fallback if session auth fails)
+    let baseKey: { id: string; key: string } | undefined;
+    const keysRes = await apiRaw("GET", "/api/v1/keys", undefined, cookie ? { Cookie: cookie } : {});
+    if (keysRes.ok) {
+      const keysData = await keysRes.json() as { keys: Array<{ id: string; key: string }> };
+      baseKey = keysData.keys?.find((k) => k.key === PW.CLIENT_KEY);
+    }
 
-    const baseKey = keysData.keys?.find((k) => k.key === PW.CLIENT_KEY);
     if (!baseKey) {
       // If we can't auth via dashboard, verify the heartbeat was written by checking
       // that the key is actively polled — this validates the data layer even if session

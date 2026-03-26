@@ -63,6 +63,12 @@ jobs:
         env:
           NEXTAUTH_SECRET: e2e-secret
 
+      - name: Seed Playwright data
+        run: npm run db:seed
+        env:
+          DATABASE_URL: "file:./e2e-test.db"
+          NEXTAUTH_SECRET: e2e-secret
+
       - name: Build platform
         run: npm run build
         env:

@@ -2,64 +2,74 @@ import { BASE_URL, GUARD_URL } from "./constants";
 
 type Headers = Record<string, string>;
 
-/** Typed GET request against the local dev server */
-export async function apiGet<T>(path: string, headers?: Headers): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, { headers });
-  if (!res.ok) {
+/**
+ * Assert the HTTP status matches what the test expects.
+ * Produces a clear failure message: "GET /api/v1/help → expected 200, got 403: {...}"
+ */
+async function assertStatus(
+  method: string,
+  path: string,
+  res: Response,
+  expectedStatus: number
+): Promise<void> {
+  if (res.status !== expectedStatus) {
     const text = await res.text().catch(() => "(no body)");
-    throw new Error(`GET ${path} → ${res.status}: ${text}`);
+    throw new Error(
+      `${method} ${path} → expected HTTP ${expectedStatus}, got ${res.status}: ${text}`
+    );
   }
+}
+
+/** Typed GET request — asserts expectedStatus (default 200) */
+export async function apiGet<T>(
+  path: string,
+  headers?: Headers,
+  expectedStatus = 200
+): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, { headers });
+  await assertStatus("GET", path, res, expectedStatus);
   return res.json() as Promise<T>;
 }
 
-/** Typed POST request against the local dev server.
- *  When GUARD_URL differs from BASE_URL (CI has REQUIRE_GUARD=true),
- *  all /api/v1/* requests are routed through the Guard proxy.
+/**
+ * Typed POST request — asserts expectedStatus (default 200).
+ * Routes /api/v1/* through Guard proxy when GUARD_URL is set (CI: REQUIRE_GUARD=true).
  */
 export async function apiPost<T>(
   path: string,
   body: unknown,
-  headers?: Headers
+  headers?: Headers,
+  expectedStatus = 200
 ): Promise<T> {
   const useGuard = GUARD_URL && GUARD_URL !== BASE_URL && path.startsWith("/api/v1/");
   const url = useGuard ? `${GUARD_URL}${path}` : `${BASE_URL}${path}`;
-  
-  // Debug logging for /api/v1/help submissions
-  if (path === "/api/v1/help") {
-    console.log(`[apiPost] ${path} → ${useGuard ? "Guard" : "Direct"} (${url})`);
-  }
-  
+
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "(no body)");
-    throw new Error(`POST ${path} → ${res.status}: ${text}`);
-  }
+  await assertStatus("POST", path, res, expectedStatus);
   return res.json() as Promise<T>;
 }
 
-/** Typed PATCH request against the local dev server */
+/** Typed PATCH request — asserts expectedStatus (default 200) */
 export async function apiPatch<T>(
   path: string,
   body: unknown,
-  headers?: Headers
+  headers?: Headers,
+  expectedStatus = 200
 ): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "(no body)");
-    throw new Error(`PATCH ${path} → ${res.status}: ${text}`);
-  }
+  await assertStatus("PATCH", path, res, expectedStatus);
   return res.json() as Promise<T>;
 }
 
-/** Returns raw Response without throwing (for testing error responses) */
+/** Returns raw Response without throwing — use when testing error/edge cases */
 export async function apiRaw(
   method: string,
   path: string,

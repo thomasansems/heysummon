@@ -9,7 +9,7 @@
  * Always call this when generating any URL that will be shared externally:
  * - Setup links (magic links for clients)
  * - Telegram webhook registration
- * - Skill install / MCP install snippets
+ * - Skill install snippets
  */
 export function getPublicBaseUrl(request?: Request): string {
   // 1. Explicit public URL — Tailscale Funnel, Cloudflare Tunnel, or manually configured

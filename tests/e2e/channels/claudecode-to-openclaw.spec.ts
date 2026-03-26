@@ -1,11 +1,9 @@
 /**
- * Channel combination 3: Claude Code (MCP) consumer → OpenClaw provider notification.
+ * Channel combination 3: Claude Code consumer → OpenClaw provider notification.
  *
- * Consumer submits with clientChannel=claudecode, using the same API shape as the
- * MCP server (Ed25519 + X25519 public keys in the request body).
- *
- * The MCP server polls /api/v1/requests/[id] directly (not events/pending), but
- * the provider still sees it via events/pending.
+ * Consumer submits with clientChannel=claudecode, using Ed25519 + X25519 public
+ * keys in the request body. The consumer polls /api/v1/help/[id] directly
+ * (not events/pending), but the provider still sees it via events/pending.
  */
 
 import { test, expect } from "@playwright/test";
@@ -15,7 +13,7 @@ import { PW } from "../helpers/constants";
 const CONSUMER_HEADERS = { "x-api-key": PW.CC_OPENCLAW_KEY };
 const PROVIDER_HEADERS = { "x-api-key": PW.PROVIDER_KEY };
 
-/** Simulate Ed25519 SPKI PEM format (as MCP server generates) */
+/** Simulate Ed25519 SPKI PEM format */
 const MOCK_SIGN_KEY = "MCowBQYDK2VwAyEAtest_sign_key_base64_encoded_0000000000";
 const MOCK_ENCRYPT_KEY = "MCowBQYDK2VuAyEAtest_encrypt_key_base64_encoded_00000";
 
@@ -23,7 +21,7 @@ test.describe("Channel: Claude Code consumer → OpenClaw provider (polling)", (
   let requestId: string;
   let refCode: string;
 
-  test("1. Consumer submits request with MCP-style keys (claudecode channel)", async () => {
+  test("1. Consumer submits request with E2E keys (claudecode channel)", async () => {
     const data = await apiPost<{
       requestId: string;
       refCode: string;
@@ -86,8 +84,8 @@ test.describe("Channel: Claude Code consumer → OpenClaw provider (polling)", (
     expect(data.success).toBe(true);
   });
 
-  test("5. MCP-style consumer polls /api/v1/help/[requestId] directly (not events/pending)", async () => {
-    // The MCP server polls this endpoint directly (not events/pending)
+  test("5. Consumer polls /api/v1/help/[requestId] directly (not events/pending)", async () => {
+    // The consumer SDK polls this endpoint directly (not events/pending)
     const data = await apiGet<{
       requestId: string; status: string; refCode: string;
     }>(`/api/v1/help/${requestId}`, CONSUMER_HEADERS);

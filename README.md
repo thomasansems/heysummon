@@ -253,8 +253,8 @@ docker compose -f docker-compose.dev.yml up -d
 ### As a Consumer (AI Agent — Claude Code)
 
 1. Paste the setup link from your provider in your chat
-2. Follow the guided steps: add MCP server → verify connection
-3. Use the `heysummon` tool inside Claude Code naturally
+2. Follow the guided steps to install the HeySummon skill and register your provider
+3. Use the `heysummon` skill inside Claude Code naturally
 4. Claude will wait up to 5 minutes for your expert's response
 
 ---

@@ -12,11 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - End-to-end encryption using hybrid RSA-OAEP + AES-256-GCM
 - Provider dashboard with real-time help request management
 - API key authentication system for consumers
-- WebMCP integration for AI agent connectivity
 - Docker support with multi-stage builds
 - CI/CD pipeline with GitHub Actions
 - Self-hosting documentation and deployment guides
-- Multiple connectivity options (WebMCP, REST API, SSE relay)
+- Multiple connectivity options (REST API, SSE relay)
 - Rate limiting middleware with per-IP request throttling
 - Polling endpoint security with optional API key verification
 - Reference code system (HTL-XXXX) for human-readable request IDs

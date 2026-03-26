@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   const statusFilter = request.nextUrl.searchParams.get("status") ?? undefined;
 
-  // Support API key auth for provider polling (MCP-first skill watcher)
+  // Support API key auth for provider polling
   const apiKey = request.headers.get("x-api-key");
   let userId: string | null = null;
 

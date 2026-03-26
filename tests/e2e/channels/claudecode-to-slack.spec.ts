@@ -1,8 +1,8 @@
 /**
- * Channel combination 6: Claude Code (MCP) consumer -> Slack provider notification.
+ * Channel combination 6: Claude Code consumer -> Slack provider notification.
  *
  * Tests the full Slack reply flow:
- * 1. Consumer (MCP-style) submits -> platform sends Slack notification
+ * 1. Consumer submits -> platform sends Slack notification
  * 2. Provider can reply via /reply HS-XXXX command through Slack webhook
  * 3. Consumer polling detects the response
  */
@@ -112,7 +112,7 @@ test.describe("Channel: Claude Code consumer -> Slack provider (reply flow)", ()
     expect(match?.type).toBe("new_message");
   });
 
-  test("6. MCP-style status check shows responded", async () => {
+  test("6. Consumer status check shows responded", async () => {
     const data = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,
       CONSUMER_HEADERS,

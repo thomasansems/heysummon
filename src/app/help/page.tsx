@@ -57,7 +57,6 @@ export default function HelpPage() {
           <ul className="space-y-1.5 text-sm">
             <li><a href="#getting-started" className="text-primary hover:underline">Getting started</a></li>
             <li><a href="#openclaw" className="text-primary hover:underline">OpenClaw setup</a></li>
-            <li><a href="#claudecode" className="text-primary hover:underline">Claude Code (MCP) setup</a></li>
             <li><a href="#openclaw-json" className="text-primary hover:underline">Configuring openclaw.json</a></li>
             <li><a href="#troubleshooting" className="text-primary hover:underline">Troubleshooting FAQ</a></li>
             <li><a href="#contact" className="text-primary hover:underline">Contact your provider</a></li>
@@ -103,28 +102,6 @@ export default function HelpPage() {
                 <a href="#openclaw-json" className="text-primary hover:underline">See the full guide below.</a>
               </li>
             </ol>
-          </Section>
-
-          <Section id="claudecode" title="Claude Code (MCP) setup">
-            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-              Claude Code uses the <Code>@heysummon/mcp</Code> package as an MCP server.
-              The setup link guides you through:
-            </p>
-            <ol className="text-sm text-muted-foreground space-y-3 list-decimal list-inside leading-relaxed">
-              <li>
-                <strong className="text-foreground">Add the MCP server</strong> — Runs{" "}
-                <Code>claude mcp add heysummon</Code> which registers the server globally in Claude Code.
-              </li>
-              <li>
-                <strong className="text-foreground">Verify the connection</strong> — The setup page
-                confirms your key is configured correctly and Claude Code can reach HeySummon.
-              </li>
-            </ol>
-            <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
-              Once set up, you can call{" "}
-              <Code>heysummon(question=&quot;your question&quot;)</Code> inside Claude Code to request
-              expert help. Claude will wait up to 5 minutes for a response.
-            </p>
           </Section>
 
           <Section id="openclaw-json" title="Configuring openclaw.json (OpenClaw hook)">
@@ -215,18 +192,6 @@ export default function HelpPage() {
               <Qa q="I added a new provider but the watcher doesn't pick them up.">
                 The watcher reloads <Code>~/.heysummon/providers.json</Code> each polling cycle — no
                 restart needed. Wait up to 10 seconds for the next poll.
-              </Qa>
-
-              <Qa q="claude mcp list doesn't show heysummon.">
-                The <Code>claude mcp add</Code> command must be run in a terminal, not inside Claude
-                Code itself. After adding, fully restart Claude Code. Check with{" "}
-                <Code>claude mcp list</Code> in a fresh terminal.
-              </Qa>
-
-              <Qa q="The MCP tool times out.">
-                Default timeout is 300 seconds (5 minutes). Your provider may be in their quiet hours
-                or unavailable. Check with your provider. You can also call{" "}
-                <Code>heysummon_status(requestId=&quot;...&quot;)</Code> to check the request status later.
               </Qa>
 
               <Qa q="My agent wakes up but with the wrong session.">

@@ -1,8 +1,8 @@
 /**
- * Channel combination 4: Claude Code (MCP) consumer → Telegram provider notification.
+ * Channel combination 4: Claude Code consumer → Telegram provider notification.
  *
  * Tests the full Telegram reply flow:
- * 1. Consumer (MCP-style) submits → platform sends Telegram notification
+ * 1. Consumer submits → platform sends Telegram notification
  * 2. Provider can reply via /reply HS-XXXX command through Telegram webhook
  * 3. Consumer polling detects the response
  */
@@ -119,7 +119,7 @@ test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)"
     expect(match?.type).toBe("new_message");
   });
 
-  test("6. MCP-style status check shows responded", async () => {
+  test("6. Consumer status check shows responded", async () => {
     const data = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,
       CONSUMER_HEADERS

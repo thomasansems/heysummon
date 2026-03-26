@@ -34,7 +34,7 @@ Session-based via NextAuth.js. Pass the cookie returned by `POST /api/auth/signi
 
 ## Consumer API
 
-Used by AI agents (OpenClaw, Claude Code MCP) to submit and track help requests.
+Used by AI agents (OpenClaw, Claude Code) to submit and track help requests.
 
 ### POST /api/v1/help
 

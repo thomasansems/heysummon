@@ -6,7 +6,7 @@ import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 /**
  * GET /api/v1/providers — Returns the provider linked to this client API key.
  *
- * Used by the `heysummon_providers` MCP tool to list available human experts.
+ * Used by consumer clients to list available human experts.
  * Auth: x-api-key (client key)
  */
 export async function GET(request: Request) {

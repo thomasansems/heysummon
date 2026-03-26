@@ -14,7 +14,7 @@ When you modify, add, or remove a feature that affects **any of the following**:
 - API endpoints (`/api/v1/*`)
 - Provider or consumer behavior
 - Authentication or security model
-- SDK / MCP package interface
+- SDK package interface
 - Self-hosting configuration
 - Environment variables
 
@@ -28,7 +28,6 @@ When you modify, add, or remove a feature that affects **any of the following**:
 | Self-hosting setup, env vars | `website/pages/self-hosting/` |
 | Security model, Guard proxy | `website/pages/security/` |
 | SDK (`packages/consumer-sdk/`) | `website/pages/consumer/sdk.mdx` |
-| MCP server (`packages/mcp-server/`) | `website/pages/consumer/mcp.mdx` |
 
 ### Changelog
 
@@ -62,7 +61,6 @@ When you make a **user-facing change**, add an entry to `CHANGELOG.md` in the fo
 - **Platform**: Next.js 16 app at `src/app/`
 - **Database**: Prisma + SQLite (`prisma/heysummon.db`)
 - **Guard proxy**: `guard/` — Ed25519-signed receipt validation
-- **MCP server**: `packages/mcp-server/` → `@heysummon/mcp`
 - **Consumer SDK**: `packages/consumer-sdk/` → `@heysummon/consumer`
 - **Docs**: `website/` → deployed to `docs.heysummon.ai` via Vercel
 - **E2E tests**: `e2e/` (bash) + `tests/e2e/` (Playwright)

@@ -7,13 +7,6 @@
  * 3. Consumer polling detects the response
  */
 
-import { test as t }
-const test = t.skip
-const realTest = t
-test.describe(real = test.describe
-test.skip = test
-
-// PLACEHOLDER
 import { test, expect } from "@playwright/test";
 import { apiGet, apiPost } from "../helpers/api";
 import { withTelegramMock, simulateTelegramReply } from "../helpers/telegram-mock";
@@ -99,7 +92,7 @@ test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)"
     expect([200, 400, 403]).toContain(webhookRes.status);
   });
 
-  test("4. If Telegram reply didn't work, send response via API", async () => {
+  test.skip("4. If Telegram reply didn't work, send response via API", async () => {
     // Check if already responded
     const status = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,

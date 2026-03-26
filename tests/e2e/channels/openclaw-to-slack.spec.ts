@@ -8,13 +8,6 @@
  * 3. Allow the consumer to poll and receive the response
  */
 
-import { test as t }
-const test = t.skip
-const realTest = t
-test.describe(real = test.describe
-test.skip = test
-
-// PLACEHOLDER
 import { test, expect } from "@playwright/test";
 import { apiGet, apiPost } from "../helpers/api";
 import { PW } from "../helpers/constants";

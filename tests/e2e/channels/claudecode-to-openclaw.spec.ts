@@ -8,13 +8,6 @@
  * the provider still sees it via events/pending.
  */
 
-import { test as t }
-const test = t.skip
-const realTest = t
-test.describe(real = test.describe
-test.skip = test
-
-// PLACEHOLDER
 import { test, expect } from "@playwright/test";
 import { apiGet, apiPost } from "../helpers/api";
 import { PW } from "../helpers/constants";
@@ -51,7 +44,7 @@ test.describe("Channel: Claude Code consumer → OpenClaw provider (polling)", (
   });
 
   test("2. Platform stores the consumer Ed25519/X25519 public keys on the request", async () => {
-    // Keys are visible via the provider's events/pending endpoint (not consumer GET)
+    // Keys are visible via the provider's events/pending endpoint
     const data = await apiGet<{
       events: Array<{
         type: string;
@@ -63,7 +56,6 @@ test.describe("Channel: Claude Code consumer → OpenClaw provider (polling)", (
 
     const match = data.events.find((e) => e.requestId === requestId);
     expect(match).toBeTruthy();
-    // Provider receives the consumer's public keys so they can set up E2E encryption
     expect(match?.consumerSignPubKey).toBe(MOCK_SIGN_KEY);
     expect(match?.consumerEncryptPubKey).toBe(MOCK_ENCRYPT_KEY);
   });

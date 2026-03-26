@@ -2,80 +2,74 @@ import { Callout } from 'nextra/components'
 
 # HeySummon
 
-**HeySummon lets your AI agent ask a human for help — and wait for the answer.**
+**Your AI agent asks a human for help — and waits for the answer.**
 
-When your agent gets stuck, needs approval, or shouldn't act alone, it sends a request.
-A human responds. The agent continues.
+---
+
+## How it works
+
+Your agent just says:
+
+```
+hey summon alice Should I delete these 2,400 records from production?
+```
+
+Alice gets a notification — on the dashboard, Telegram, Slack, or her phone.
+She replies. The agent picks up the answer and continues.
 
 That's it.
 
 ---
 
-## The basics
+## Three steps
 
-### Your agent sends a question
-
-```bash
-curl -X POST https://your-host/api/v1/help \
-  -H "x-api-key: hs_live_..." \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "Should I delete these 2,400 records?",
-    "agentName": "Cleanup Agent"
-  }'
+```
+1. Agent asks       →  "hey summon alice Should I proceed?"
+2. Human responds   →  Alice replies via dashboard, Telegram, or phone
+3. Agent continues  →  picks up the answer and moves on
 ```
 
-### It gets a reference code back
-
-```json
-{ "requestId": "cmxxx...", "refCode": "HS-A1B2C3D4", "status": "pending" }
-```
-
-### A human responds — via dashboard or Telegram
-
-The human sees the question, replies, and the agent picks up the answer by polling.
-
-```bash
-curl https://your-host/api/v1/help/cmxxx... -H "x-api-key: hs_live_..."
-# → { "status": "responded", "response": "No, do not delete." }
-```
+Every request gets a reference code like `HS-A1B2C3D4` so both sides can track it.
 
 ---
 
-## Common use cases
+## When to use it
 
-| Situation | What the agent does |
-|-----------|-------------------|
-| Budget threshold reached | Asks for spending approval |
-| Ambiguous instruction | Asks for a judgment call |
-| Visual output before publishing | Asks for a design review |
-| Irreversible action | Asks for explicit confirmation |
-| No-spend constraint hit | Asks how to proceed |
+| Situation | Example |
+|-----------|---------|
+| **Budget approval** | Agent needs to spend $500 on a vendor invoice |
+| **Judgment call** | Instructions are ambiguous, agent isn't sure what to do |
+| **Design review** | Agent generated an image and wants a human to approve it |
+| **Irreversible action** | Agent is about to delete data or send emails |
+| **Compliance check** | Task involves personal data or legal content |
+
+See [Best Practice Prompts](/best-practices) for copy-paste system prompt snippets.
 
 ---
 
 ## What makes it different
 
+- **Conversational** — agents use natural language, not API calls
 - **End-to-end encrypted** — the platform stores ciphertext it cannot read
-- **No persistent connections** — agents poll via plain HTTP
-- **Self-hostable** — one Docker command, your data stays on your infra
-- **Multi-channel** — humans can respond via dashboard, Telegram, or any connected app
-- **Guard proxy** — every request is content-scanned and Ed25519-signed
+- **Self-hostable** — one Docker command, your data stays on your infrastructure
+- **Multi-channel** — humans respond via dashboard, Telegram, Slack, WhatsApp, or phone
+- **Guard proxy** — every request is content-scanned and cryptographically signed
+- **No persistent connections** — simple HTTP polling under the hood
 
 ---
 
 ## Where to start
 
 <Callout type="info">
-  New here? Start with the Quickstart — you'll have a working setup in under 5 minutes.
+  New here? Start with the Quickstart — you'll be up and running in under 5 minutes.
 </Callout>
 
 | | |
 |---|---|
-| [Quickstart](/getting-started/quickstart) | Running in 5 minutes |
-| [Best Practice Prompts](/best-practices) | Copy-paste prompts for your agent |
-| [How It Works](/getting-started/how-it-works) | The request lifecycle |
-| [Key Concepts](/getting-started/concepts) | Consumers, providers, keys, encryption |
+| [**Quickstart**](/getting-started/quickstart) | Install and send your first request |
+| [**Best Practice Prompts**](/best-practices) | Ready-to-use system prompt snippets |
+| [**How It Works**](/getting-started/how-it-works) | The full request lifecycle |
+| [**Key Concepts**](/getting-started/concepts) | Consumers, providers, keys, encryption |
 
 ---
 
@@ -84,7 +78,8 @@ curl https://your-host/api/v1/help/cmxxx... -H "x-api-key: hs_live_..."
 | | |
 |---|---|
 | [API Reference](/reference/api) | All endpoints, auth, errors, rate limits |
-| [E2E Encryption](/security/encryption) | X25519 + AES-256-GCM technical details |
-| [Self-Hosting](/self-hosting/docker) | Deploy with Docker |
+| [E2E Encryption](/security/encryption) | X25519 + AES-256-GCM under the hood |
+| [Self-Hosting](/self-hosting/docker) | Deploy with Docker Compose |
 | [Provider Guide](/provider/conversations) | Responding to requests as a human expert |
 | [Security Overview](/security/overview) | Guard proxy, content safety, IP binding |
+| [Changelog](/reference/changelog) | What's new in each release |

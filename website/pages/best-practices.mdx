@@ -2,204 +2,147 @@ import { Callout } from 'nextra/components'
 
 # Best Practice Prompts
 
-Copy these snippets into your AI agent's system prompt to teach it when to call HeySummon.
-Each one targets a specific situation where a human should be in the loop.
+Copy these snippets into your AI agent's system prompt. They teach the agent
+**when** to use HeySummon — the agent simply writes `hey summon NAME QUESTION`
+in conversation and HeySummon handles the rest.
 
 <Callout type="info">
-  Always pass an `agentName` so the human expert knows who is asking. Use a short,
-  descriptive name like `"Finance Agent"` or `"Design Reviewer v2"`.
+  Replace `NAME` with the provider name configured in your HeySummon instance
+  (e.g. `alice`, `thomas`, `ops-team`).
 </Callout>
 
 ---
 
-## 1. Spending money / using a budget
+## 1. Spending money or using a budget
 
-Use when your agent can make purchases, authorize payments, or consume a paid resource.
+Use when your agent can make purchases, authorize payments, or consume paid resources.
 
 ```
-You have access to a payment tool and a budget of $[LIMIT] per task.
+You have access to tools that can spend money. Your spending limit without
+approval is $[LIMIT].
 
-Before spending, committing, or authorizing ANY amount above $[THRESHOLD], you MUST
-request human approval via HeySummon:
+Before spending, committing, or authorizing ANY amount above this limit, you MUST
+ask for human approval:
 
-  POST /api/v1/help
-  {
-    "question": "I need to spend $[AMOUNT] on [REASON]. Approve?",
-    "agentName": "Finance Agent",
-    "context": {
-      "amount": ...,
-      "vendor": "...",
-      "invoice_id": "...",
-      "justification": "..."
-    }
-  }
+  hey summon NAME I need to spend $[AMOUNT] on [REASON]. Here's the context:
+  vendor is [VENDOR], invoice [ID]. Should I proceed?
 
-Wait for the human response before taking any action. Do not proceed on timeout —
-abort and report that the action was not completed.
+Wait for the response before taking any action. If no response arrives, do NOT
+proceed — abort and report that the action was not completed.
 ```
 
 ---
 
-## 2. Hard spending cap — never spend without approval
+## 2. Zero-spend constraint — never spend without approval
 
-Use when your agent operates in a zero-spend mode (read-only cost guardrail).
+Use when your agent operates in read-only / zero-spend mode.
 
 ```
-You are not authorized to spend, commit, or authorize any money.
+You are NOT authorized to spend any money or commit to any paid resource.
 
-If you encounter a situation where spending money would unblock your task, do not
-guess or proceed. Instead, escalate via HeySummon:
+If completing your task requires spending money, do not guess or work around it.
+Ask for guidance:
 
-  POST /api/v1/help
-  {
-    "question": "I need to spend money to complete this task but I am not authorized. Please advise.",
-    "agentName": "Cost-Constrained Agent",
-    "context": {
-      "task": "...",
-      "blocked_by": "...",
-      "estimated_cost": "...",
-      "alternatives_considered": [...]
-    }
-  }
+  hey summon NAME I need to spend money to complete this task but I'm not
+  authorized. The task is [TASK], the blocker is [BLOCKER], estimated cost
+  is [AMOUNT]. How should I proceed?
 
-Report the HeySummon reference code (e.g. HS-A1B2C3D4) to the user so they can
-track the request.
+Do not continue until you receive a response.
 ```
 
 ---
 
 ## 3. Judgment call — uncertain or ambiguous situation
 
-Use when your agent hits an ambiguous instruction, conflicting requirements, or a
-decision where a wrong call could have real consequences.
+Use when your agent hits ambiguity, conflicting requirements, or a decision
+where a wrong call has real consequences.
 
 ```
-When you are uncertain about the right action and ANY of the following is true:
+When you are uncertain about the right action and any of the following is true:
 - Your confidence is below 80%
 - A wrong choice would affect real users, data, or money
-- Two or more reasonable interpretations exist and you cannot determine the correct one
+- Two or more valid interpretations exist
 
-...do not guess. Escalate to a human via HeySummon:
+Do not guess. Ask a human:
 
-  POST /api/v1/help
-  {
-    "question": "I need a judgment call: [describe the situation clearly and concisely]",
-    "agentName": "Orchestrator Agent",
-    "context": {
-      "task": "...",
-      "options_considered": ["option A: ...", "option B: ..."],
-      "my_recommendation": "...",
-      "reason_for_uncertainty": "..."
-    }
-  }
+  hey summon NAME I need a judgment call. The situation is [DESCRIBE].
+  I see these options: [A] or [B]. I'd recommend [X] because [REASON],
+  but I'm not confident. What should I do?
 
-Summarize the options and your recommendation. The human will pick or redirect.
-Wait for the response before continuing.
+Summarize the options and your recommendation. Wait for the response.
 ```
 
 ---
 
 ## 4. Design and visual review
 
-Use when your agent generates, modifies, or is about to publish any visual output —
-UI screenshots, generated images, brand assets, or design changes.
+Use when your agent generates, modifies, or is about to publish any visual
+output — UI, images, brand assets, or design changes.
 
 ```
-Before publishing, committing, or sending any visual output to end-users, request a
-human review via HeySummon:
+Before publishing any visual output to end-users, ask for a human review:
 
-  POST /api/v1/help
-  {
-    "question": "Please review this [image / UI change / design asset] before I publish it.",
-    "agentName": "Design Agent",
-    "context": {
-      "description": "...",
-      "preview_url": "...",   // or "image_base64": "..."
-      "destination": "...",   // where it will be published
-      "changes_from_previous": "..."
-    }
-  }
+  hey summon NAME Please review this [image/UI change/design] before I
+  publish it. Here's what it looks like: [DESCRIPTION or URL].
+  It will be published to [DESTINATION].
 
-Only proceed after receiving explicit approval. Silence is not approval — if no
-response arrives within [TIMEOUT] minutes, do not publish and notify the requester.
+Only proceed after receiving explicit approval. Silence is NOT approval — if
+no response arrives, do not publish.
 ```
 
 ---
 
 ## 5. Irreversible or high-impact action
 
-Use when your agent is about to do something that cannot easily be undone — deleting
-records, sending emails to real users, deploying to production, or publishing content.
+Use when your agent is about to do something that cannot be undone — deleting
+records, sending emails to real users, deploying to production, publishing content.
 
 ```
-Before taking any irreversible or high-impact action, you MUST ask for explicit
-human confirmation via HeySummon:
+Before taking any irreversible action, you MUST ask for confirmation:
 
-  POST /api/v1/help
-  {
-    "question": "I am about to [action]. This cannot be undone. Please confirm.",
-    "agentName": "Deployment Agent",
-    "context": {
-      "action": "...",
-      "affected_systems": [...],
-      "affected_records_count": ...,
-      "estimated_impact": "...",
-      "rollback_plan": "none / ..."
-    }
-  }
+  hey summon NAME I'm about to [ACTION]. This affects [COUNT] records/users
+  and cannot be undone. Should I proceed?
 
-If you do not receive confirmation within [TIMEOUT] minutes, abort the action and
-log that it was not completed. Never assume approval.
+If you do not receive confirmation, abort the action. Never assume approval.
 ```
 
 ---
 
-## Integration tips
+## How it works under the hood
 
-**Always name your agent.** Pass `agentName` on every request so the human expert
-knows which agent is asking — especially important when multiple agents share the
-same HeySummon instance.
+When the agent writes `hey summon NAME QUESTION`, HeySummon:
 
-**Set a timeout and a default.** Decide in advance what happens if no human responds:
-- `"onTimeout": "abort"` — safest default for destructive or financial actions
-- `"onTimeout": "escalate"` — notify a second human or channel
+1. **Sends an encrypted help request** to the platform
+2. **Notifies the human** via their preferred channel (dashboard, Telegram, Slack, phone)
+3. **Waits for the response** — polling every few seconds, up to 15 minutes
+4. **Returns the answer** directly to the agent, which continues its work
 
-**Provide context, not just a question.** The faster a human can understand the
-situation, the faster they can respond. Include amounts, IDs, options, and your
-recommendation.
+The agent doesn't need to know about API endpoints, keys, or encryption —
+the HeySummon skill handles all of that.
 
-**Use the reference code.** Every request returns an `HS-XXXXXXXX` reference code.
-Log it, surface it in your UI, and include it in follow-up messages. Humans can
-reply directly with `[HS-A1B2C3D4] Approved` from any connected channel.
+---
 
-```js
-// Full example — financial approval with timeout
-const response = await fetch('https://your-heysummon-host/api/v1/help', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.HS_API_KEY },
-  body: JSON.stringify({
-    question: 'Should I approve this $2,400 vendor invoice?',
-    agentName: 'Finance Agent',
-    context: { vendor: 'Acme Corp', amount: 2400, invoice_id: 'INV-0042' },
-  }),
-});
+## For humans: responding to requests
 
-const { requestId, refCode } = await response.json();
-// refCode = "HS-A1B2C3D4" — show this to your user so they can track it
+When an agent asks for help, the human expert gets notified. They can respond from:
 
-// Poll for the human's answer
-let answer;
-while (!answer) {
-  await new Promise(r => setTimeout(r, 5000));
-  const poll = await fetch(`https://your-heysummon-host/api/v1/help/${requestId}`, {
-    headers: { 'x-api-key': process.env.HS_API_KEY },
-  });
-  const data = await poll.json();
-  if (data.status === 'responded') answer = data.response;
-}
+| Channel | How to respond |
+|---------|---------------|
+| **Dashboard** | Open the request, type your answer, click Respond |
+| **Telegram** | Reply to the notification message |
+| **Slack** | Reply in the thread |
+| **Phone** | Answer the call, speak your response |
 
-console.log('Human said:', answer);
-```
+Every request has a reference code (e.g. `HS-A1B2C3D4`) for easy tracking.
+
+---
+
+## Tips
+
+- **Be specific.** The more context the agent provides, the faster the human can respond.
+- **One question at a time.** Don't ask multiple things in a single request.
+- **Name your provider.** Always use a specific provider name so HeySummon routes the request correctly.
+- **Set expectations.** If no response arrives within the timeout (default 15 min), the agent should abort — not guess.
 
 ---
 

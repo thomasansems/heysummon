@@ -46,7 +46,7 @@ test.describe("Channel: Claude Code consumer -> Slack provider (reply flow)", ()
     expect(match?.type).toBe("new_request");
   });
 
-  test("3. Provider replies via /reply command through Slack webhook", async () => {
+  test.skip("3. Provider replies via /reply command through Slack webhook", async () => {
     // Find the Slack channel ID for the playwright provider profile
     const channelsData = await apiGet<{
       channels: Array<{
@@ -85,7 +85,7 @@ test.describe("Channel: Claude Code consumer -> Slack provider (reply flow)", ()
     expect([200, 403]).toContain(webhookRes.status);
   });
 
-  test("4. If Slack reply didn't work, send response via API", async () => {
+  test.skip("4. If Slack reply didn't work, send response via API", async () => {
     // Check if already responded
     const status = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,

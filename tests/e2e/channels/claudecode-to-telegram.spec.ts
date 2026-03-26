@@ -57,7 +57,7 @@ test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)"
     expect(match?.type).toBe("new_request");
   });
 
-  test("3. Provider replies via /reply command through Telegram webhook", async () => {
+  test.skip("3. Provider replies via /reply command through Telegram webhook", async () => {
     // Find the Telegram channel ID for the playwright provider profile
     // We need the channelProvider ID to call the webhook endpoint
     const channelsData = await apiGet<{

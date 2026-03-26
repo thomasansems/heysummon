@@ -1,56 +1,90 @@
-# Introduction
+import { Callout } from 'nextra/components'
 
-HeySummon is the **Human-in-the-Loop API** for AI agents.
+# HeySummon
 
-When your AI agent gets stuck — needs approval, hits ambiguity, or lacks context — it sends an encrypted help request. A human expert answers via the dashboard or messaging app. The agent picks up the response in real time.
+**HeySummon lets your AI agent ask a human for help — and wait for the answer.**
 
-Think of it as a **pager for your AI agents**.
+When your agent gets stuck, needs approval, or shouldn't act alone, it sends a request.
+A human responds. The agent continues.
+
+That's it.
 
 ---
 
-## How it works
+## The basics
 
+### Your agent sends a question
+
+```bash
+curl -X POST https://your-host/api/v1/help \
+  -H "x-api-key: hs_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Should I delete these 2,400 records?",
+    "agentName": "Cleanup Agent"
+  }'
 ```
-AI Agent  ──POST /api/v1/help──▶  HeySummon  ──notification──▶  Human Expert
-                                                              │
-AI Agent  ◀──GET /api/v1/help/:id──  HeySummon  ◀──PATCH──  Dashboard
+
+### It gets a reference code back
+
+```json
+{ "requestId": "cmxxx...", "refCode": "HS-A1B2C3D4", "status": "pending" }
 ```
 
-1. **Agent submits a help request** — encrypted, with a reference code like `HS-A1B2C3D4`
-2. **Human receives a notification** — via dashboard, Telegram, or any connected channel
-3. **Human responds** — in the dashboard or by replying to the notification
-4. **Agent gets the answer** — via HTTP polling
+### A human responds — via dashboard or Telegram
+
+The human sees the question, replies, and the agent picks up the answer by polling.
+
+```bash
+curl https://your-host/api/v1/help/cmxxx... -H "x-api-key: hs_live_..."
+# → { "status": "responded", "response": "No, do not delete." }
+```
 
 ---
 
-## Key features
+## Common use cases
 
-- **End-to-end encrypted** — X25519 DH + AES-256-GCM + Ed25519 signatures. The platform stores ciphertext it cannot read.
-- **Simple integration** — HTTP polling for updates. No persistent connections needed.
-- **Self-hostable** — One Docker command. Your data stays on your infrastructure.
-- **Reference codes** — Every request gets an `HS-XXXXXXXX` code for easy tracking and replies.
-- **Guard proxy** — Ed25519-signed requests. Every message is cryptographically authenticated.
-- **Multi-provider** — Multiple human experts. Requests routed to available providers.
-- **CLI installer** — `npx heysummon` gets you running in under 2 minutes.
-- **IP Security** — Provider and client keys can be bound to specific IPs and devices.
-
----
-
-## Who is this for?
-
-| Use case | Example |
-|----------|---------|
-| **AI coding agents** | Agent needs approval before deleting a database |
-| **Automation pipelines** | n8n workflow needs a human to verify a contract |
-| **Customer support bots** | Bot escalates to a human when it can't answer |
-| **Data labeling** | AI asks a human to classify an ambiguous example |
-| **Any agentic workflow** | Agent pauses and waits for human input |
+| Situation | What the agent does |
+|-----------|-------------------|
+| Budget threshold reached | Asks for spending approval |
+| Ambiguous instruction | Asks for a judgment call |
+| Visual output before publishing | Asks for a design review |
+| Irreversible action | Asks for explicit confirmation |
+| No-spend constraint hit | Asks how to proceed |
 
 ---
 
-## Next steps
+## What makes it different
 
-- [Quickstart](/getting-started/quickstart) — Running in 5 minutes
-- [API Reference](/reference/api) — Full endpoint reference
-- [Self-Hosting](/self-hosting/docker) — Deploy with Docker
-- [Provider Guide](/provider/conversations) — Responding to requests
+- **End-to-end encrypted** — the platform stores ciphertext it cannot read
+- **No persistent connections** — agents poll via plain HTTP
+- **Self-hostable** — one Docker command, your data stays on your infra
+- **Multi-channel** — humans can respond via dashboard, Telegram, or any connected app
+- **Guard proxy** — every request is content-scanned and Ed25519-signed
+
+---
+
+## Where to start
+
+<Callout type="info">
+  New here? Start with the Quickstart — you'll have a working setup in under 5 minutes.
+</Callout>
+
+| | |
+|---|---|
+| [Quickstart](/getting-started/quickstart) | Running in 5 minutes |
+| [Best Practice Prompts](/best-practices) | Copy-paste prompts for your agent |
+| [How It Works](/getting-started/how-it-works) | The request lifecycle |
+| [Key Concepts](/getting-started/concepts) | Consumers, providers, keys, encryption |
+
+---
+
+## Going deeper
+
+| | |
+|---|---|
+| [API Reference](/reference/api) | All endpoints, auth, errors, rate limits |
+| [E2E Encryption](/security/encryption) | X25519 + AES-256-GCM technical details |
+| [Self-Hosting](/self-hosting/docker) | Deploy with Docker |
+| [Provider Guide](/provider/conversations) | Responding to requests as a human expert |
+| [Security Overview](/security/overview) | Guard proxy, content safety, IP binding |

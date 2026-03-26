@@ -1,4 +1,10 @@
-# HeySummon Documentation
+# HeySummon Documentation (Legacy)
+
+> **The live documentation is at [`/website/pages/`](../website/pages/) and is published automatically to [docs.heysummon.ai](https://docs.heysummon.ai).**
+>
+> The files in this `/docs/` directory are kept for reference only. Do not update them — update the website instead.
+
+---
 
 ## Getting started
 

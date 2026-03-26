@@ -142,8 +142,18 @@ async function main() {
   });
   await prisma.ipEvent.upsert({
     where: { apiKeyId_ip: { apiKeyId: pwBaseKey.id, ip: "127.0.0.1" } },
+  });  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwBaseKey.id, ip: "::1" } },
+    update: {},
+    create: { apiKeyId: pwBaseKey.id, ip: "::1", status: "allowed" },
+  });
     update: {},
     create: { apiKeyId: pwBaseKey.id, ip: "127.0.0.1", status: "allowed" },
+  });  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwBaseKey.id, ip: "::1" } },
+    update: {},
+    create: { apiKeyId: pwBaseKey.id, ip: "::1", status: "allowed" },
+  });
   });
   console.log(`✅ Playwright base client key`);
 

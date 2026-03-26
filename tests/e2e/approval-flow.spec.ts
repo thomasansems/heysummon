@@ -58,10 +58,10 @@ test.describe("Approval workflow", () => {
 
   test("4. Approved request status is responded", async () => {
     const data = await apiGet<{
-      request: { status: string; approvalDecision: string };
+      requestId: string; status: string; approvalDecision: string;
     }>(`/api/v1/help/${approveRequestId}`, CONSUMER_HEADERS);
-    expect(data.request.status).toBe("responded");
-    expect(data.request.approvalDecision).toBe("approved");
+    expect(data.status).toBe("responded");
+    expect(data.approvalDecision).toBe("approved");
   });
 
   test("5. Re-approving returns 409 (already decided)", async () => {
@@ -86,9 +86,9 @@ test.describe("Approval workflow", () => {
 
   test("7. Denied request has correct decision", async () => {
     const data = await apiGet<{
-      request: { status: string; approvalDecision: string };
+      requestId: string; status: string; approvalDecision: string;
     }>(`/api/v1/help/${denyRequestId}`, CONSUMER_HEADERS);
-    expect(data.request.status).toBe("responded");
-    expect(data.request.approvalDecision).toBe("denied");
+    expect(data.status).toBe("responded");
+    expect(data.approvalDecision).toBe("denied");
   });
 });

@@ -158,13 +158,13 @@ test.describe("Full request lifecycle (API)", () => {
   });
 
   test("9. Request status is 'responded'", async () => {
-    const data = await apiGet<{ request: { status: string; refCode: string } }>(
+    const data = await apiGet<{ requestId: string; status: string; refCode: string }>(
       `/api/v1/help/${requestId}`,
       CLIENT_HEADERS
     );
 
-    expect(data.request.status).toBe("responded");
-    expect(data.request.refCode).toBe(refCode);
+    expect(data.status).toBe("responded");
+    expect(data.refCode).toBe(refCode);
   });
 
   test("10. whoami returns 404 for invalid key", async () => {

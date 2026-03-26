@@ -42,14 +42,14 @@ test.describe("Active monitor: auto-expiration", () => {
     //
     // For now, verify the monitor's behavior by checking that the GET endpoint
     // correctly reports expired status when expiresAt is in the past.
-    const data = await apiGet<{ request: { status: string; expiresAt: string } }>(
+    const data = await apiGet<{ requestId: string; status: string; expiresAt: string }>(
       `/api/v1/help/${requestId}`,
       CLIENT_HEADERS
     );
     // The request should still be pending (it was just created, TTL is 72h)
-    expect(data.request.status).toBe("pending");
+    expect(data.status).toBe("pending");
     // expiresAt should be in the future
-    expect(new Date(data.request.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    expect(new Date(data.expiresAt).getTime()).toBeGreaterThan(Date.now());
   });
 
   test("3. Verify state machine rejects invalid transitions", async () => {
@@ -64,11 +64,11 @@ test.describe("Active monitor: auto-expiration", () => {
     expect(closeData.previousStatus).toBe("pending");
 
     // Verify the request is now closed
-    const statusData = await apiGet<{ request: { status: string } }>(
+    const statusData = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,
       CLIENT_HEADERS
     );
-    expect(statusData.request.status).toBe("closed");
+    expect(statusData.status).toBe("closed");
   });
 });
 

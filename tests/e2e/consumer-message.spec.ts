@@ -49,11 +49,11 @@ test.describe("Consumer message flow", () => {
   });
 
   test("4. Request status is responded after provider message", async () => {
-    const data = await apiGet<{ request: { status: string } }>(
+    const data = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,
       CONSUMER_HEADERS
     );
-    expect(data.request.status).toBe("responded");
+    expect(data.status).toBe("responded");
   });
 
   test("5. Consumer can still send messages after provider responded", async () => {

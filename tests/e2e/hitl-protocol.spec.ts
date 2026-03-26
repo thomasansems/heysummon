@@ -63,11 +63,11 @@ for (const { name, consumerKey } of CHANNEL_COMBOS) {
       expect(data.success).toBe(true);
 
       // Verify status transitioned via state machine
-      const status = await apiGet<{ request: { status: string } }>(
+      const status = await apiGet<{ requestId: string; status: string }>(
         `/api/v1/help/${requestId}`,
         CONSUMER_HEADERS
       );
-      expect(status.request.status).toBe("responded");
+      expect(status.status).toBe("responded");
     });
 
     test("4. Consumer rates the response", async () => {

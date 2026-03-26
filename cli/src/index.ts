@@ -29,11 +29,15 @@ function printHelp(): void {
     --help, -h    Show this help message
     --version, -v Show version number
 
+  Init options:
+    --yes, -y     Use defaults, skip prompts (quickstart)
+
   Start options:
     --daemon, -d  Run server in background
 
   Examples:
-    npx heysummon              # First-time setup
+    npx heysummon              # First-time setup (interactive)
+    npx heysummon --yes        # Quickstart with defaults
     npx heysummon start -d     # Start in background
     npx heysummon status       # Check if running
 `);
@@ -54,9 +58,11 @@ async function main(): Promise<void> {
   }
 
   try {
+    const yes = args.includes("--yes") || args.includes("-y");
+
     switch (command) {
       case "init":
-        await init();
+        await init({ yes });
         break;
       case "start":
         await start(args.slice(1));

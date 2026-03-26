@@ -1,50 +1,59 @@
-import * as readline from "readline";
+import * as p from "@clack/prompts";
+import pc from "picocolors";
 
-function createInterface(): readline.Interface {
-  return readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+function handleCancel(value: unknown): void {
+  if (p.isCancel(value)) {
+    p.cancel("Setup cancelled.");
+    process.exit(0);
+  }
 }
 
-export function ask(question: string, defaultValue?: string): Promise<string> {
-  return new Promise((resolve) => {
-    const rl = createInterface();
-    const prompt = defaultValue
-      ? `  ${question} (${defaultValue}): `
-      : `  ${question}: `;
-    rl.question(prompt, (answer) => {
-      rl.close();
-      resolve(answer.trim() || defaultValue || "");
-    });
+export async function ask(
+  message: string,
+  defaultValue?: string
+): Promise<string> {
+  const value = await p.text({
+    message,
+    defaultValue,
+    placeholder: defaultValue,
   });
+  handleCancel(value);
+  return value as string;
 }
 
-export function askYesNo(
-  question: string,
+export async function askYesNo(
+  message: string,
   defaultValue: boolean = true
 ): Promise<boolean> {
-  return new Promise((resolve) => {
-    const rl = createInterface();
-    const hint = defaultValue ? "Y/n" : "y/N";
-    rl.question(`  ${question} (${hint}): `, (answer) => {
-      rl.close();
-      const trimmed = answer.trim().toLowerCase();
-      if (trimmed === "") {
-        resolve(defaultValue);
-      } else {
-        resolve(trimmed === "y" || trimmed === "yes");
-      }
-    });
+  const value = await p.confirm({
+    message,
+    initialValue: defaultValue,
   });
+  handleCancel(value);
+  return value as boolean;
 }
 
-export function askSecret(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    const rl = createInterface();
-    rl.question(`  ${question}: `, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
+export async function askSecret(message: string): Promise<string> {
+  const value = await p.password({
+    message,
   });
+  handleCancel(value);
+  return value as string;
+}
+
+export async function askConfirmText(
+  message: string,
+  expected: string
+): Promise<boolean> {
+  const value = await p.text({
+    message,
+    placeholder: expected,
+    validate: (v) => {
+      if (v !== expected) {
+        return `Type ${pc.bold(expected)} to confirm, or press Ctrl+C to cancel.`;
+      }
+    },
+  });
+  handleCancel(value);
+  return value === expected;
 }

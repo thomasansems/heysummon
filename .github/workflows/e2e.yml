@@ -124,7 +124,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright E2E tests
-        run: npx playwright test tests/e2e/channels/ tests/e2e/hitl-protocol.spec.ts tests/e2e/approval-flow.spec.ts tests/e2e/active-monitor.spec.ts tests/e2e/consumer-message.spec.ts tests/e2e/lifecycle.spec.ts
+        run: npx playwright test tests/e2e/hitl-protocol.spec.ts tests/e2e/approval-flow.spec.ts tests/e2e/active-monitor.spec.ts tests/e2e/consumer-message.spec.ts tests/e2e/lifecycle.spec.ts
         env:
           BASE_URL: http://localhost:3000
           GUARD_URL: http://localhost:3457

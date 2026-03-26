@@ -27,3 +27,9 @@ export const PW = {
 } as const;
 
 export const BASE_URL = process.env.BASE_URL || "http://localhost:3425";
+
+/**
+ * Guard URL — used for /api/v1/help submissions when REQUIRE_GUARD=true in CI.
+ * Falls back to BASE_URL for local dev (where REQUIRE_GUARD is false).
+ */
+export const GUARD_URL = process.env.GUARD_URL || BASE_URL;

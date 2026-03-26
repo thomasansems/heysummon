@@ -1,4 +1,4 @@
-import { BASE_URL } from "./constants";
+import { BASE_URL, GUARD_URL } from "./constants";
 
 type Headers = Record<string, string>;
 
@@ -12,13 +12,17 @@ export async function apiGet<T>(path: string, headers?: Headers): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** Typed POST request against the local dev server */
+/** Typed POST request against the local dev server.
+ *  Help submissions (/api/v1/help) are routed through the Guard proxy
+ *  when GUARD_URL is set (CI has REQUIRE_GUARD=true).
+ */
 export async function apiPost<T>(
   path: string,
   body: unknown,
   headers?: Headers
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const url = path === "/api/v1/help" ? `${GUARD_URL}${path}` : `${BASE_URL}${path}`;
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),

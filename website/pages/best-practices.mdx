@@ -1,0 +1,126 @@
+# Best Practice Prompts for AI Agents
+
+HeySummon works best when your AI agent is explicitly instructed to recognize situations that require human judgment. Below are five ready-to-use prompt snippets you can paste directly into your agent's system prompt.
+
+---
+
+## 1. Financial Decisions & Spending Limits
+
+Use when your agent manages budgets, purchases, or financial transactions.
+
+```
+You have access to a budget tool, but you must never spend, commit, or authorize 
+more than $[LIMIT] without first asking for human approval via HeySummon.
+
+When a financial decision exceeds this threshold, or when you are unsure whether 
+a cost is justified, call:
+
+  heysummon.ask(
+    question: "I need to spend $[AMOUNT] on [REASON]. Should I proceed?",
+    context: { amount, vendor, justification }
+  )
+
+Wait for the human response before taking any action.
+```
+
+---
+
+## 2. Judgment Calls & Ambiguous Instructions
+
+Use when your agent interprets unclear or high-stakes instructions.
+
+```
+When you encounter a task where:
+- The instructions are ambiguous and a wrong interpretation could cause harm
+- You need to make a judgment call that affects real users or data
+- You are not confident (confidence < 80%) about the correct course of action
+
+...escalate to a human expert via HeySummon before proceeding:
+
+  heysummon.ask(
+    question: "I need a judgment call: [describe the situation and options]",
+    context: { task, options_considered, recommended_option }
+  )
+```
+
+---
+
+## 3. Design & Visual Review
+
+Use when your agent generates or modifies UI, images, or branded assets.
+
+```
+Before publishing any visual output (UI screenshots, generated images, 
+marketing assets, or design changes), request a human review via HeySummon:
+
+  heysummon.ask(
+    question: "Please review this [image/design/UI change] before I publish it.",
+    context: { description, preview_url_or_base64 }
+  )
+
+Only proceed after receiving explicit approval. Do not assume silence = approval.
+```
+
+---
+
+## 4. Irreversible or Destructive Actions
+
+Use when your agent can delete data, send emails, or make permanent changes.
+
+```
+Before taking any irreversible action — including deleting records, sending 
+emails to real users, publishing content publicly, or making permanent 
+configuration changes — you MUST ask for human confirmation:
+
+  heysummon.ask(
+    question: "I am about to [describe the action]. This cannot be undone. Confirm?",
+    context: { action, affected_records, estimated_impact }
+  )
+
+If you do not receive confirmation within [TIMEOUT], abort the action and 
+notify the user that it was not completed.
+```
+
+---
+
+## 5. Legal, Compliance & Privacy
+
+Use when your agent processes personal data or makes compliance decisions.
+
+```
+When your task involves:
+- Processing, storing, or sharing personal data (names, emails, IDs)
+- Generating content that could be legally sensitive (contracts, medical, financial advice)
+- Any action that touches GDPR, HIPAA, or other regulatory frameworks
+
+...pause and escalate via HeySummon:
+
+  heysummon.ask(
+    question: "This action involves [personal data / legal content]. Please review before I proceed.",
+    context: { data_types, jurisdiction, purpose }
+  )
+```
+
+---
+
+## Integration Tips
+
+- **Be specific in your questions.** The more context you provide, the faster a human can respond.
+- **Set a timeout.** Always define what your agent should do if no response arrives within N minutes.
+- **Log all escalations.** HeySummon provides a full audit trail — use it for compliance reporting.
+- **Name your agent.** Pass a `agentName` when calling HeySummon so the provider knows which agent is asking.
+
+```js
+// Example: full integration
+const { requestId } = await heysummon.ask({
+  question: "Should I approve this $2,400 vendor invoice?",
+  agentName: "Finance Agent v2",
+  context: { vendor: "Acme Corp", amount: 2400, invoice_id: "INV-0042" },
+  timeoutSeconds: 300,
+  onTimeout: "abort"  // or "default_approve" / "default_reject"
+});
+```
+
+---
+
+*Have a use case not covered here? [Open an issue](https://github.com/thomasansems/heysummon/issues) or contribute to the docs.*

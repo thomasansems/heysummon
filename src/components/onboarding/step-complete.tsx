@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface StepCompleteProps {
   providerName: string;
@@ -67,17 +68,17 @@ export function StepComplete({ providerName, clientName }: StepCompleteProps) {
       </button>
 
       <div className="mt-4 flex justify-center gap-4 text-xs text-muted-foreground">
-        <a href="/dashboard/providers" className="hover:text-foreground">
+        <Link href="/dashboard/providers" className="hover:text-foreground">
           Manage Providers
-        </a>
+        </Link>
         <span>·</span>
-        <a href="/dashboard/clients" className="hover:text-foreground">
+        <Link href="/dashboard/clients" className="hover:text-foreground">
           Manage Clients
-        </a>
+        </Link>
         <span>·</span>
-        <a href="/help" className="hover:text-foreground">
+        <Link href="/help" className="hover:text-foreground">
           Help & FAQ
-        </a>
+        </Link>
       </div>
     </div>
   );

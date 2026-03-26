@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-env node */
+/* global process, require */
 /* eslint-disable no-undef */
 /**
  * HeySummon OpenAPI spec generator for OWASP ZAP

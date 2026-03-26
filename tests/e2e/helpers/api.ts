@@ -13,15 +13,22 @@ export async function apiGet<T>(path: string, headers?: Headers): Promise<T> {
 }
 
 /** Typed POST request against the local dev server.
- *  Help submissions (/api/v1/help) are routed through the Guard proxy
- *  when GUARD_URL is set (CI has REQUIRE_GUARD=true).
+ *  When GUARD_URL differs from BASE_URL (CI has REQUIRE_GUARD=true),
+ *  all /api/v1/* requests are routed through the Guard proxy.
  */
 export async function apiPost<T>(
   path: string,
   body: unknown,
   headers?: Headers
 ): Promise<T> {
-  const url = path === "/api/v1/help" ? `${GUARD_URL}${path}` : `${BASE_URL}${path}`;
+  const useGuard = GUARD_URL && GUARD_URL !== BASE_URL && path.startsWith("/api/v1/");
+  const url = useGuard ? `${GUARD_URL}${path}` : `${BASE_URL}${path}`;
+  
+  // Debug logging for /api/v1/help submissions
+  if (path === "/api/v1/help") {
+    console.log(`[apiPost] ${path} → ${useGuard ? "Guard" : "Direct"} (${url})`);
+  }
+  
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },

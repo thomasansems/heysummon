@@ -44,17 +44,21 @@ test.describe("Channel: Claude Code consumer → OpenClaw provider (polling)", (
   });
 
   test("2. Platform stores the consumer Ed25519/X25519 public keys on the request", async () => {
+    // Keys are visible via the provider's events/pending endpoint (not consumer GET)
     const data = await apiGet<{
-      request: {
+      events: Array<{
+        type: string;
+        requestId: string;
         consumerSignPubKey: string | null;
         consumerEncryptPubKey: string | null;
-        status: string;
-      };
-    }>(`/api/v1/help/${requestId}`, CONSUMER_HEADERS);
+      }>;
+    }>("/api/v1/events/pending", PROVIDER_HEADERS);
 
-    // The keys should be stored (MCP sends them for E2E encryption)
-    expect(data.request.consumerSignPubKey).toBe(MOCK_SIGN_KEY);
-    expect(data.request.consumerEncryptPubKey).toBe(MOCK_ENCRYPT_KEY);
+    const match = data.events.find((e) => e.requestId === requestId);
+    expect(match).toBeTruthy();
+    // Provider receives the consumer's public keys so they can set up E2E encryption
+    expect(match?.consumerSignPubKey).toBe(MOCK_SIGN_KEY);
+    expect(match?.consumerEncryptPubKey).toBe(MOCK_ENCRYPT_KEY);
   });
 
   test("3. Provider polls events/pending and sees the request", async () => {
@@ -86,11 +90,10 @@ test.describe("Channel: Claude Code consumer → OpenClaw provider (polling)", (
   test("5. MCP-style consumer polls /api/v1/help/[requestId] directly (not events/pending)", async () => {
     // The MCP server polls this endpoint directly (not events/pending)
     const data = await apiGet<{
-      request: { status: string; refCode: string };
-      messages: Array<{ from: string }>;
+      requestId: string; status: string; refCode: string;
     }>(`/api/v1/help/${requestId}`, CONSUMER_HEADERS);
 
-    expect(data.request.status).toBe("responded");
-    expect(data.request.refCode).toBe(refCode);
+    expect(data.status).toBe("responded");
+    expect(data.refCode).toBe(refCode);
   });
 });

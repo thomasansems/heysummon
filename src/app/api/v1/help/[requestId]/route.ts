@@ -61,6 +61,7 @@ export async function GET(
     status: helpRequest.status,
     createdAt: helpRequest.createdAt.toISOString(),
     expiresAt: helpRequest.expiresAt.toISOString(),
+    ...(helpRequest.approvalDecision ? { approvalDecision: helpRequest.approvalDecision } : {}),
   };
 
   if (helpRequest.respondedAt) {

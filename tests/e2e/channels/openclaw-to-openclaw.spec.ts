@@ -63,10 +63,10 @@ test.describe("Channel: OpenClaw consumer → OpenClaw provider (pure polling)",
   });
 
   test("5. Request status is responded", async () => {
-    const data = await apiGet<{ request: { status: string } }>(
+    const data = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,
       CONSUMER_HEADERS
     );
-    expect(data.request.status).toBe("responded");
+    expect(data.status).toBe("responded");
   });
 });

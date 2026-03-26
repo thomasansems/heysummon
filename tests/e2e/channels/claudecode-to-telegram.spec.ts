@@ -94,12 +94,12 @@ test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)"
 
   test("4. If Telegram reply didn't work, send response via API", async () => {
     // Check if already responded
-    const status = await apiGet<{ request: { status: string } }>(
+    const status = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,
       CONSUMER_HEADERS
     );
 
-    if (status.request.status !== "responded") {
+    if (status.status !== "responded") {
       const data = await apiPost<{ success: boolean }>(
         `/api/v1/message/${requestId}`,
         { from: "provider", plaintext: "CC→Telegram test response" },
@@ -120,10 +120,10 @@ test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)"
   });
 
   test("6. MCP-style status check shows responded", async () => {
-    const data = await apiGet<{ request: { status: string } }>(
+    const data = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,
       CONSUMER_HEADERS
     );
-    expect(data.request.status).toBe("responded");
+    expect(data.status).toBe("responded");
   });
 });

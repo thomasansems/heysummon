@@ -142,18 +142,13 @@ async function main() {
   });
   await prisma.ipEvent.upsert({
     where: { apiKeyId_ip: { apiKeyId: pwBaseKey.id, ip: "127.0.0.1" } },
-  });  await prisma.ipEvent.upsert({
-    where: { apiKeyId_ip: { apiKeyId: pwBaseKey.id, ip: "::1" } },
-    update: {},
-    create: { apiKeyId: pwBaseKey.id, ip: "::1", status: "allowed" },
-  });
     update: {},
     create: { apiKeyId: pwBaseKey.id, ip: "127.0.0.1", status: "allowed" },
-  });  await prisma.ipEvent.upsert({
+  });
+  await prisma.ipEvent.upsert({
     where: { apiKeyId_ip: { apiKeyId: pwBaseKey.id, ip: "::1" } },
     update: {},
     create: { apiKeyId: pwBaseKey.id, ip: "::1", status: "allowed" },
-  });
   });
   console.log(`✅ Playwright base client key`);
 
@@ -177,6 +172,11 @@ async function main() {
     update: {},
     create: { apiKeyId: pwOcTelegramKey.id, ip: "127.0.0.1", status: "allowed" },
   });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwOcTelegramKey.id, ip: "::1" } },
+    update: {},
+    create: { apiKeyId: pwOcTelegramKey.id, ip: "::1", status: "allowed" },
+  });
 
   // Channel combo 2: OpenClaw consumer → OpenClaw provider notification (pure polling)
   const pwOcOpenclawKey = await prisma.apiKey.upsert({
@@ -197,6 +197,11 @@ async function main() {
     where: { apiKeyId_ip: { apiKeyId: pwOcOpenclawKey.id, ip: "127.0.0.1" } },
     update: {},
     create: { apiKeyId: pwOcOpenclawKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwOcOpenclawKey.id, ip: "::1" } },
+    update: {},
+    create: { apiKeyId: pwOcOpenclawKey.id, ip: "::1", status: "allowed" },
   });
 
   // Channel combo 3: Claude Code consumer → OpenClaw provider notification
@@ -219,6 +224,11 @@ async function main() {
     update: {},
     create: { apiKeyId: pwCcOpenclawKey.id, ip: "127.0.0.1", status: "allowed" },
   });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwCcOpenclawKey.id, ip: "::1" } },
+    update: {},
+    create: { apiKeyId: pwCcOpenclawKey.id, ip: "::1", status: "allowed" },
+  });
 
   // Channel combo 4: Claude Code consumer → Telegram provider notification
   const pwCcTelegramKey = await prisma.apiKey.upsert({
@@ -239,6 +249,11 @@ async function main() {
     where: { apiKeyId_ip: { apiKeyId: pwCcTelegramKey.id, ip: "127.0.0.1" } },
     update: {},
     create: { apiKeyId: pwCcTelegramKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwCcTelegramKey.id, ip: "::1" } },
+    update: {},
+    create: { apiKeyId: pwCcTelegramKey.id, ip: "::1", status: "allowed" },
   });
 
   // Channel combo 5: OpenClaw consumer → Slack provider notification
@@ -261,6 +276,11 @@ async function main() {
     update: {},
     create: { apiKeyId: pwOcSlackKey.id, ip: "127.0.0.1", status: "allowed" },
   });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwOcSlackKey.id, ip: "::1" } },
+    update: {},
+    create: { apiKeyId: pwOcSlackKey.id, ip: "::1", status: "allowed" },
+  });
 
   // Channel combo 6: Claude Code consumer → Slack provider notification
   const pwCcSlackKey = await prisma.apiKey.upsert({
@@ -281,6 +301,11 @@ async function main() {
     where: { apiKeyId_ip: { apiKeyId: pwCcSlackKey.id, ip: "127.0.0.1" } },
     update: {},
     create: { apiKeyId: pwCcSlackKey.id, ip: "127.0.0.1", status: "allowed" },
+  });
+  await prisma.ipEvent.upsert({
+    where: { apiKeyId_ip: { apiKeyId: pwCcSlackKey.id, ip: "::1" } },
+    update: {},
+    create: { apiKeyId: pwCcSlackKey.id, ip: "::1", status: "allowed" },
   });
 
   console.log(`✅ Playwright channel combination keys (6 total)`);

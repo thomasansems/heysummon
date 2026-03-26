@@ -1,56 +1,85 @@
-# Introduction
+import { Callout } from 'nextra/components'
 
-HeySummon is the **Human-in-the-Loop API** for AI agents.
+# HeySummon
 
-When your AI agent gets stuck — needs approval, hits ambiguity, or lacks context — it sends an encrypted help request. A human expert answers via the dashboard or messaging app. The agent picks up the response in real time.
-
-Think of it as a **pager for your AI agents**.
+**Your AI agent asks a human for help — and waits for the answer.**
 
 ---
 
 ## How it works
 
+Your agent just says:
+
 ```
-AI Agent  ──POST /api/v1/help──▶  HeySummon  ──notification──▶  Human Expert
-                                                              │
-AI Agent  ◀──GET /api/v1/help/:id──  HeySummon  ◀──PATCH──  Dashboard
+hey summon alice Should I delete these 2,400 records from production?
 ```
 
-1. **Agent submits a help request** — encrypted, with a reference code like `HS-A1B2C3D4`
-2. **Human receives a notification** — via dashboard, Telegram, or any connected channel
-3. **Human responds** — in the dashboard or by replying to the notification
-4. **Agent gets the answer** — via HTTP polling
+Alice gets a notification — on the dashboard, Telegram, Slack, or her phone.
+She replies. The agent picks up the answer and continues.
+
+That's it.
 
 ---
 
-## Key features
+## Three steps
 
-- **End-to-end encrypted** — X25519 DH + AES-256-GCM + Ed25519 signatures. The platform stores ciphertext it cannot read.
-- **Simple integration** — HTTP polling for updates. No persistent connections needed.
-- **Self-hostable** — One Docker command. Your data stays on your infrastructure.
-- **Reference codes** — Every request gets an `HS-XXXXXXXX` code for easy tracking and replies.
-- **Guard proxy** — Ed25519-signed requests. Every message is cryptographically authenticated.
-- **Multi-provider** — Multiple human experts. Requests routed to available providers.
-- **CLI installer** — `npx heysummon` gets you running in under 2 minutes.
-- **IP Security** — Provider and client keys can be bound to specific IPs and devices.
+```
+1. Agent asks       →  "hey summon alice Should I proceed?"
+2. Human responds   →  Alice replies via dashboard, Telegram, or phone
+3. Agent continues  →  picks up the answer and moves on
+```
 
----
-
-## Who is this for?
-
-| Use case | Example |
-|----------|---------|
-| **AI coding agents** | Agent needs approval before deleting a database |
-| **Automation pipelines** | n8n workflow needs a human to verify a contract |
-| **Customer support bots** | Bot escalates to a human when it can't answer |
-| **Data labeling** | AI asks a human to classify an ambiguous example |
-| **Any agentic workflow** | Agent pauses and waits for human input |
+Every request gets a reference code like `HS-A1B2C3D4` so both sides can track it.
 
 ---
 
-## Next steps
+## When to use it
 
-- [Quickstart](/getting-started/quickstart) — Running in 5 minutes
-- [API Reference](/reference/api) — Full endpoint reference
-- [Self-Hosting](/self-hosting/docker) — Deploy with Docker
-- [Provider Guide](/provider/conversations) — Responding to requests
+| Situation | Example |
+|-----------|---------|
+| **Budget approval** | Agent needs to spend $500 on a vendor invoice |
+| **Judgment call** | Instructions are ambiguous, agent isn't sure what to do |
+| **Design review** | Agent generated an image and wants a human to approve it |
+| **Irreversible action** | Agent is about to delete data or send emails |
+| **Compliance check** | Task involves personal data or legal content |
+
+See [Best Practice Prompts](/best-practices) for copy-paste system prompt snippets.
+
+---
+
+## What makes it different
+
+- **Conversational** — agents use natural language, not API calls
+- **End-to-end encrypted** — the platform stores ciphertext it cannot read
+- **Self-hostable** — one Docker command, your data stays on your infrastructure
+- **Multi-channel** — humans respond via dashboard, Telegram, Slack, WhatsApp, or phone
+- **Guard proxy** — every request is content-scanned and cryptographically signed
+- **No persistent connections** — simple HTTP polling under the hood
+
+---
+
+## Where to start
+
+<Callout type="info">
+  New here? Start with the Quickstart — you'll be up and running in under 5 minutes.
+</Callout>
+
+| | |
+|---|---|
+| [**Quickstart**](/getting-started/quickstart) | Install and send your first request |
+| [**Best Practice Prompts**](/best-practices) | Ready-to-use system prompt snippets |
+| [**How It Works**](/getting-started/how-it-works) | The full request lifecycle |
+| [**Key Concepts**](/getting-started/concepts) | Consumers, providers, keys, encryption |
+
+---
+
+## Going deeper
+
+| | |
+|---|---|
+| [API Reference](/reference/api) | All endpoints, auth, errors, rate limits |
+| [E2E Encryption](/security/encryption) | X25519 + AES-256-GCM under the hood |
+| [Self-Hosting](/self-hosting/docker) | Deploy with Docker Compose |
+| [Provider Guide](/provider/conversations) | Responding to requests as a human expert |
+| [Security Overview](/security/overview) | Guard proxy, content safety, IP binding |
+| [Changelog](/reference/changelog) | What's new in each release |

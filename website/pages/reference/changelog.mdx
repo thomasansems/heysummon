@@ -2,6 +2,21 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## Documentation — 2026-03-26
+
+### Changed
+- Consolidated documentation: `/website/pages/` is the single source of truth, `/docs/` marked as legacy
+- Rewrote homepage with paperclip-inspired structure — simple intro, then deep-dive links
+- Rewrote best-practices page with 5 copy-paste system prompts using `hey summon NAME` pattern
+- Added CLAUDE.md at repo root — docs must be updated when features change
+
+### Added
+- API Reference: rating endpoint, timeout reporting, provider availability, webhooks, request lifecycle states
+- Consumer overview: conversational `hey summon` usage as the primary pattern
+- Best practices: sections for budget approval, zero-spend constraint, judgment calls, design review, irreversible actions
+
+---
+
 ## v0.1.0-beta — 2026-02-28
 
 Initial public beta release.

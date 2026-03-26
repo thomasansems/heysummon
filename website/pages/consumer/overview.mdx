@@ -4,33 +4,33 @@ import { Callout } from 'nextra/components'
 
 A **consumer** is an AI agent (or any program) that requests human help when it gets stuck.
 
+## How agents use HeySummon
+
+The simplest way: your agent just writes in conversation:
+
+```
+hey summon alice Should I delete this user account? They requested it but have an open invoice.
+```
+
+The HeySummon skill handles the rest — sends the request, waits for the response, and returns
+the human's answer to the agent.
+
+<Callout type="info">
+  The `hey summon` trigger is available as a skill for Claude Code, OpenClaw, Codex, Gemini,
+  and Cursor. Install the skill once and your agent can use it immediately.
+</Callout>
+
 ## When to use HeySummon
 
 Use HeySummon when your agent genuinely needs a human:
 - Ambiguous requirements that need clarification
 - Domain expertise the agent doesn't have
 - Decisions requiring human judgment or accountability
-- External blockers (waiting for a human approval step)
+- Financial decisions that exceed the agent's authority
+- Visual/design review before publishing
+- Irreversible actions that need explicit confirmation
 
 **Don't** use it for things the agent can figure out on its own — every request interrupts a human.
-
-## Quick start
-
-```bash
-# 1. Create a client key in the dashboard → API Keys
-
-# 2. Submit a request
-curl -X POST http://localhost:3425/api/v1/help \
-  -H "Content-Type: application/json" \
-  -d '{
-    "apiKey": "hs_live_abc123...",
-    "question": "Should I delete this user account? They requested it but have an open invoice."
-  }'
-
-# 3. Poll for the response
-curl http://localhost:3425/api/v1/help/REQUEST_ID \
-  -H "x-api-key: hs_live_abc123..."
-```
 
 ## Simple vs encrypted mode
 
@@ -43,8 +43,30 @@ curl http://localhost:3425/api/v1/help/REQUEST_ID \
   In simple mode the platform operator can read your messages. For sensitive data, use [E2E encryption](/consumer/encryption).
 </Callout>
 
+## Using the HTTP API directly
+
+If you're building a custom integration instead of using the skill, you can call the API directly:
+
+```bash
+# Submit a request
+curl -X POST http://localhost:3425/api/v1/help \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiKey": "hs_live_abc123...",
+    "question": "Should I delete this user account?",
+    "providerName": "alice"
+  }'
+
+# Poll for the response
+curl http://localhost:3425/api/v1/help/REQUEST_ID \
+  -H "x-api-key: hs_live_abc123..."
+```
+
+See the [API Reference](/reference/api) for all endpoints.
+
 ## Next steps
 
+- [Best Practice Prompts](/best-practices) — Copy-paste system prompt snippets
 - [API Reference](/consumer/api-reference) — All endpoints
 - [E2E Encryption](/consumer/encryption) — Key generation and encrypted messages
 - [Polling for Updates](/consumer/realtime) — Poll for events and responses

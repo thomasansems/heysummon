@@ -19,6 +19,8 @@ All endpoints require `x-api-key` authentication unless noted.
 | `question` | string | ✅ | Question for the human expert |
 | `signPublicKey` | string | ❌ | Ed25519 public key (enables E2E) |
 | `encryptPublicKey` | string | ❌ | X25519 public key (enables E2E) |
+| `providerName` | string | ❌ | Route to a specific provider |
+| `requiresApproval` | boolean | ❌ | Provider must approve before responding |
 | `messages` | string | ❌ | Encrypted conversation history |
 | `messageCount` | number | ❌ | Count of messages in history |
 
@@ -104,6 +106,34 @@ Closes the request. Provider key required.
 
 ---
 
+### Rate a response
+`POST /api/v1/rate/:requestId`
+
+**Header:** `x-api-key`
+
+```json
+{ "rating": 4, "feedback": "Very helpful, thank you" }
+```
+
+**Response `200`:**
+```json
+{ "success": true, "rating": 4 }
+```
+
+Rating is `1`–`5`. Each request can only be rated once — a second call returns `409`.
+
+---
+
+### Report timeout
+`POST /api/v1/help/:requestId/timeout`
+
+**Header:** `x-api-key`
+
+Tells the server the consumer gave up waiting. The request stays visible on the
+dashboard so the provider can still respond later.
+
+---
+
 ## Events
 
 ### Pending events
@@ -138,6 +168,71 @@ Mark an event as delivered.
   "type": "client"
 }
 ```
+
+---
+
+## Provider availability
+
+Providers can configure availability windows. If a request is submitted outside
+the provider's available hours, the API returns:
+
+```json
+{
+  "rejected": true,
+  "nextAvailableAt": "2026-03-27T09:00:00Z",
+  "message": "Provider is currently unavailable. Next available at 09:00 CET."
+}
+```
+
+Availability is configured per provider profile in the dashboard:
+- **Quiet hours** — start/end time in the provider's timezone
+- **Available days** — which days of the week the provider accepts requests
+
+---
+
+## Webhooks
+
+HeySummon can send webhook notifications to external endpoints when events occur.
+
+**Payload:**
+
+```json
+{
+  "type": "new_request",
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "question": "Should I proceed?"
+}
+```
+
+**Event types:** `new_request`, `new_message`, `responded`, `closed`, `client_timeout`, `keys_exchanged`
+
+**Security:** Every webhook includes an `X-HeySummon-Signature` header containing
+an HMAC-SHA256 signature of the payload body. Verify this against your webhook secret
+before trusting the payload.
+
+---
+
+## Request lifecycle
+
+Requests move through these states:
+
+```
+pending → reviewing → active → responded → closed
+                                    ↗
+pending → expired (72h TTL)
+pending → cancelled
+```
+
+| State | Meaning |
+|-------|---------|
+| `pending` | Submitted, waiting for provider |
+| `reviewing` | Provider has opened the request |
+| `active` | Provider is composing a response |
+| `responded` | Provider sent a response |
+| `closed` | Consumer acknowledged and closed |
+| `expired` | No response within 72 hours |
+| `cancelled` | Explicitly cancelled |
 
 ---
 

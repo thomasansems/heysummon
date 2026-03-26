@@ -64,7 +64,7 @@ jobs:
           NEXTAUTH_SECRET: e2e-secret
 
       - name: Seed Playwright data
-        run: npm run db:seed
+        run: npx tsx prisma/seed.ts
         env:
           DATABASE_URL: "file:./e2e-test.db"
           NEXTAUTH_SECRET: e2e-secret

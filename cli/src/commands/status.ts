@@ -34,7 +34,7 @@ export async function status(): Promise<void> {
 
   if (!isInitialized()) {
     console.log(`  ${color.yellow("○")} Not installed`);
-    console.log(`  ${color.dim("Run")} ${color.cyan("npx heysummon")} ${color.dim("to get started.")}`);
+    console.log(`  ${color.dim("Run")} ${color.cyan("npx @heysummon/app")} ${color.dim("to get started.")}`);
     console.log("");
     return;
   }

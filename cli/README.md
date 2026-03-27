@@ -45,7 +45,7 @@ One command gets you from zero to a running server.
 ## Quick Start
 
 ```bash
-npx heysummon
+npx @heysummon/app
 ```
 
 The interactive installer walks you through everything. Takes ~2 minutes. No Docker or Git required.
@@ -171,7 +171,7 @@ No self-hosting at all — [cloud.heysummon.ai](https://cloud.heysummon.ai) is t
 
 | Method | Database | Tunnel | Best for |
 |---|---|---|---|
-| `npx heysummon` (this CLI) | SQLite | Manual / reverse proxy | Quick start, single machine |
+| `npx @heysummon/app` (this CLI) | SQLite | Manual / reverse proxy | Quick start, single machine |
 | Docker Compose | PostgreSQL | Cloudflare / Tailscale / Ngrok | Production, teams |
 | Cloud | Managed | Built-in | Zero ops |
 

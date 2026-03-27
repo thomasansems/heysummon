@@ -36,10 +36,10 @@ function printHelp(): void {
     --daemon, -d  Run server in background
 
   Examples:
-    npx heysummon              # First-time setup (interactive)
-    npx heysummon --yes        # Quickstart with defaults
-    npx heysummon start -d     # Start in background
-    npx heysummon status       # Check if running
+    npx @heysummon/app              # First-time setup (interactive)
+    npx @heysummon/app --yes        # Quickstart with defaults
+    npx @heysummon/app start -d     # Start in background
+    npx @heysummon/app status       # Check if running
 `);
 }
 

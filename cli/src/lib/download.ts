@@ -5,7 +5,7 @@ import { execSync } from "child_process";
 import { getAppDir, ensureDir } from "./config";
 
 const GITHUB_API = "https://api.github.com";
-const REPO = "thomasansems/heysummon";
+const REPO = "@heysummon/app";
 
 interface GithubRelease {
   tag_name: string;

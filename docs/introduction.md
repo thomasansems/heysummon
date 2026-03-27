@@ -31,7 +31,7 @@ AI Agent  ◀──GET /api/v1/help/:id──  HeySummon  ◀──PATCH──  
 - **Reference codes** — Every request gets an `HS-XXXXXXXX` code for easy tracking and replies.
 - **Guard proxy** — Ed25519-signed requests. Every message is cryptographically authenticated.
 - **Multi-provider** — Multiple human experts. Requests are routed to available providers.
-- **CLI installer** — `npx heysummon` gets you running in under 2 minutes.
+- **CLI installer** — `npx @heysummon/app` gets you running in under 2 minutes.
 
 ---
 

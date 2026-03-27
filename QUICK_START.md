@@ -7,7 +7,7 @@ Get HeySummon running locally and submit your first human-in-the-loop request.
 ## Fastest Way: NPX Installer
 
 ```bash
-npx heysummon
+npx @heysummon/app
 ```
 
 That's it. The interactive installer handles everything: download, secrets, config, database, and starts the server. Skip to **Step 6** below once it's running.

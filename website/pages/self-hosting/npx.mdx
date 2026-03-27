@@ -7,7 +7,7 @@ The fastest way to get HeySummon running. No Docker, no Git, no manual configura
 ## Install
 
 ```bash
-npx heysummon
+npx @heysummon/app
 ```
 
 The interactive installer:

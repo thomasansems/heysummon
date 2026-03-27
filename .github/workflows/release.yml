@@ -73,15 +73,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Smoke test: install from npm and verify --version output
-      - name: Smoke test — npx heysummon --version
+      - name: Smoke test — npx @heysummon/app --version
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           # Wait a moment for npm registry to propagate
           sleep 10
-          PUBLISHED=$(npx --yes heysummon@${VERSION} --version 2>/dev/null || echo "")
+          PUBLISHED=$(npx --yes @heysummon/app@${VERSION} --version 2>/dev/null || echo "")
           echo "Published version output: $PUBLISHED"
           if [ "$PUBLISHED" != "$VERSION" ]; then
             echo "::error::Smoke test failed — expected $VERSION, got '$PUBLISHED'"
             exit 1
           fi
-          echo "✅ Smoke test passed: heysummon@$VERSION"
+          echo "✅ Smoke test passed: @heysummon/app@$VERSION"

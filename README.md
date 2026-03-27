@@ -51,7 +51,7 @@ HeySummon offers three ways to get started, depending on your use case:
 
 | Method | Database | Best for | Time |
 |--------|----------|----------|------|
-| `npx heysummon` | SQLite | Quick install, trying it out | ~2 min |
+| `npx @heysummon/app` | SQLite | Quick install, trying it out | ~2 min |
 | `curl … \| bash` (install.sh) | PostgreSQL | Self-hosting, production | ~2 min |
 | `docker compose -f docker-compose.dev.yml up` | PostgreSQL | Contributing, building from source | ~5 min |
 | `npm run dev` | SQLite | Local development | ~5 min |
@@ -59,7 +59,7 @@ HeySummon offers three ways to get started, depending on your use case:
 ### Option 1: NPX Installer (Quickest)
 
 ```bash
-npx heysummon
+npx @heysummon/app
 ```
 
 Interactive setup — downloads the latest release, generates secrets, configures auth, and starts the server. No Docker or Git required.

@@ -1,6 +1,6 @@
 # HeySummon — Self-Hosting via Docker Compose
 # Uses pre-built images from GHCR. No source code required.
-# Images: ghcr.io/thomasansems/heysummon (app) + ghcr.io/thomasansems/heysummon-guard (guard)
+# Image: ghcr.io/thomasansems/heysummon
 #
 # Quick start:
 #   curl -O https://raw.githubusercontent.com/thomasansems/heysummon/main/docker-compose.yml
@@ -19,29 +19,6 @@
 # Contributing / building from source? Use docker-compose.dev.yml instead.
 
 services:
-  # ── Key Generation (runs once on first startup) ──
-  guard-keygen:
-    image: ghcr.io/thomasansems/heysummon-guard:${HEYSUMMON_VERSION:-latest}
-    user: "0:0"
-    entrypoint: ["sh", "-c", "
-      if [ ! -f /keys/.guard-keys-generated ]; then
-        node -e \"
-          const nacl = require('tweetnacl');
-          const kp = nacl.sign.keyPair();
-          const priv = Buffer.from(kp.secretKey).toString('hex');
-          const pub = Buffer.from(kp.publicKey).toString('hex');
-          require('fs').writeFileSync('/keys/guard-signing-key', priv);
-          require('fs').writeFileSync('/keys/guard-public-key', pub);
-          require('fs').writeFileSync('/keys/.guard-keys-generated', 'done');
-          console.log('Guard Ed25519 keys generated.');
-        \";
-      else
-        echo 'Guard keys already exist, skipping generation.';
-      fi
-    "]
-    volumes:
-      - guard-keys:/keys
-
   db-migrate:
     image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
     entrypoint: ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss"]
@@ -70,49 +47,15 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── Guard: Single entry point (reverse proxy) ──
-  heysummon-guard:
-    image: ghcr.io/thomasansems/heysummon-guard:${HEYSUMMON_VERSION:-latest}
+  app:
+    image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
     restart: unless-stopped
-    read_only: true
-    cap_drop: [ALL]
-    security_opt:
-      - no-new-privileges:true
     ports:
-      - "${GUARD_PORT:-3445}:3000"
+      - "${PORT:-3445}:3000"
     networks:
       - frontend
       - backend
     depends_on:
-      guard-keygen:
-        condition: service_completed_successfully
-      app:
-        condition: service_healthy
-    environment:
-      PORT: "3000"
-      PLATFORM_URL: http://app:3000
-      GUARD_SIGNING_KEY_FILE: /keys/guard-signing-key
-    entrypoint: ["sh", "-c", "
-      export GUARD_SIGNING_KEY=$$(cat /keys/guard-signing-key);
-      exec node dist/index.js
-    "]
-    volumes:
-      - guard-keys:/keys:ro
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
-  # ── Platform: Internal only ──
-  app:
-    image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
-    restart: unless-stopped
-    networks:
-      - backend
-    depends_on:
-      guard-keygen:
-        condition: service_completed_successfully
       db-migrate:
         condition: service_completed_successfully
       db:
@@ -124,15 +67,7 @@ services:
       AUTH_TRUST_HOST: "true"
       AUTH_GITHUB_ID: ${AUTH_GITHUB_ID:-}
       AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET:-}
-      GUARD_PUBLIC_KEY_FILE: /keys/guard-public-key
-      REQUIRE_GUARD: "true"
       HEYSUMMON_PUBLIC_URL: ${HEYSUMMON_PUBLIC_URL:-}
-    entrypoint: ["sh", "-c", "
-      export GUARD_PUBLIC_KEY=$$(cat /keys/guard-public-key);
-      exec node server.js
-    "]
-    volumes:
-      - guard-keys:/keys:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/v1/health"]
       interval: 10s
@@ -150,7 +85,7 @@ services:
     networks:
       - frontend
     depends_on:
-      heysummon-guard:
+      app:
         condition: service_healthy
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
@@ -170,7 +105,7 @@ services:
     networks:
       - frontend
     depends_on:
-      heysummon-guard:
+      app:
         condition: service_healthy
     environment:
       TS_AUTHKEY: ${TAILSCALE_AUTHKEY:-}
@@ -191,11 +126,11 @@ services:
     image: ngrok/ngrok:latest
     restart: unless-stopped
     profiles: ["ngrok"]
-    command: http heysummon-guard:3000 --log stdout ${NGROK_DOMAIN:+--domain=${NGROK_DOMAIN}}
+    command: http app:3000 --log stdout ${NGROK_DOMAIN:+--domain=${NGROK_DOMAIN}}
     networks:
       - frontend
     depends_on:
-      heysummon-guard:
+      app:
         condition: service_healthy
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
@@ -217,5 +152,4 @@ networks:
 
 volumes:
   pgdata:
-  guard-keys:
   tailscale-state:

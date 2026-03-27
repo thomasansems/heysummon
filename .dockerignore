@@ -1,11 +1,7 @@
 node_modules
-guard/node_modules
-guard/dist
 .next
 .git
 .gitignore
 *.md
-relay/node_modules
-relay/dist
 .env*
 !.env.example

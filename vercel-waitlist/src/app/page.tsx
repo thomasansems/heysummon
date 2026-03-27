@@ -2,6 +2,18 @@
 
 import { useState } from "react";
 
+const colors = {
+  bgDeep: "#0f1410",
+  bgCard: "#1e2420",
+  textHeading: "#e8e4df",
+  textBody: "#9a958e",
+  textMuted: "#6b6660",
+  primary: "#ff826d",
+  white: "#ffffff",
+  borderSubtle: "rgba(255,255,255,0.1)",
+  bgSubtle: "rgba(255,255,255,0.05)",
+};
+
 export default function Home() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -43,8 +55,14 @@ export default function Home() {
     }}>
       {/* Logo */}
       <div style={{ marginBottom: "2rem" }}>
-        <span style={{ fontSize: "2.5rem", fontWeight: 700, color: "#fff", letterSpacing: "-0.02em" }}>
-          hey<span style={{ color: "#a78bfa" }}>Summon</span>
+        <span style={{
+          fontSize: "2.5rem",
+          fontWeight: 700,
+          color: colors.textHeading,
+          letterSpacing: "-0.02em",
+          fontFamily: "'Joti One', Georgia, serif",
+        }}>
+          HeySummon
         </span>
       </div>
 
@@ -53,44 +71,73 @@ export default function Home() {
         display: "inline-flex",
         alignItems: "center",
         gap: "0.5rem",
-        border: "1px solid rgba(139,92,246,0.3)",
-        background: "rgba(139,92,246,0.1)",
-        color: "#c4b5fd",
+        border: `1px solid ${colors.borderSubtle}`,
+        background: colors.bgSubtle,
+        color: colors.textBody,
         borderRadius: "999px",
         padding: "0.4rem 1rem",
         fontSize: "0.8rem",
         marginBottom: "1.5rem",
+        fontFamily: "'JetBrains Mono', monospace",
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#a78bfa", display: "inline-block" }} />
+        <span style={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: colors.primary,
+          display: "inline-block",
+        }} />
         Provider platform — coming soon
       </div>
 
       {/* Heading */}
-      <h1 style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", fontWeight: 700, lineHeight: 1.15, margin: "0 0 1rem", maxWidth: 600 }}>
+      <h1 style={{
+        fontSize: "clamp(2rem, 5vw, 3.5rem)",
+        fontWeight: 400,
+        lineHeight: 1.15,
+        margin: "0 0 1rem",
+        maxWidth: 600,
+        color: colors.textHeading,
+        fontFamily: "'Joti One', Georgia, serif",
+      }}>
         When AI gets stuck,{" "}
-        <span style={{ background: "linear-gradient(to right, #a78bfa, #e879f9)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+        <span style={{ color: colors.primary }}>
           you answer.
         </span>
       </h1>
 
-      <p style={{ color: "#a1a1aa", fontSize: "1.1rem", maxWidth: 480, lineHeight: 1.6, margin: "0 0 2.5rem" }}>
-        HeySummon connects AI agents to human experts in realtime. Be the first to access the provider platform — join the waitlist.
+      <p style={{
+        color: colors.textBody,
+        fontSize: "1.1rem",
+        maxWidth: 480,
+        lineHeight: 1.6,
+        margin: "0 0 2.5rem",
+      }}>
+        HeySummon connects AI agents to human experts in realtime.
+        Be the first to access the provider platform — join the waitlist.
       </p>
 
       {/* Form */}
       {status === "success" ? (
         <div style={{
-          background: "rgba(139,92,246,0.1)",
-          border: "1px solid rgba(139,92,246,0.3)",
+          background: colors.bgSubtle,
+          border: `1px solid ${colors.borderSubtle}`,
           borderRadius: "1rem",
           padding: "1.5rem 2rem",
-          color: "#c4b5fd",
+          color: colors.textHeading,
           fontSize: "1rem",
         }}>
-          🎉 {message}
+          {message}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", width: "100%", maxWidth: 400 }}>
+        <form onSubmit={handleSubmit} style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "1rem",
+          width: "100%",
+          maxWidth: 400,
+        }}>
           <input
             type="email"
             value={email}
@@ -101,12 +148,13 @@ export default function Home() {
               width: "100%",
               padding: "0.85rem 1.25rem",
               borderRadius: "999px",
-              border: "1px solid rgba(255,255,255,0.1)",
-              background: "rgba(255,255,255,0.05)",
-              color: "#fff",
+              border: `1px solid ${colors.borderSubtle}`,
+              background: colors.bgSubtle,
+              color: colors.textHeading,
               fontSize: "1rem",
               outline: "none",
               boxSizing: "border-box",
+              fontFamily: "'DM Sans', system-ui, sans-serif",
             }}
           />
           <button
@@ -117,28 +165,29 @@ export default function Home() {
               padding: "0.85rem",
               borderRadius: "999px",
               border: "none",
-              background: status === "loading" ? "#6d28d9" : "#7c3aed",
-              color: "#fff",
+              background: status === "loading" ? colors.textMuted : colors.white,
+              color: colors.bgDeep,
               fontSize: "1rem",
               fontWeight: 600,
               cursor: status === "loading" ? "default" : "pointer",
+              fontFamily: "'DM Sans', system-ui, sans-serif",
             }}
           >
-            {status === "loading" ? "Joining..." : "Join Waitlist →"}
+            {status === "loading" ? "Joining..." : "Join Waitlist"}
           </button>
           {status === "error" && (
-            <p style={{ color: "#f87171", fontSize: "0.875rem", margin: 0 }}>{message}</p>
+            <p style={{ color: colors.primary, fontSize: "0.875rem", margin: 0 }}>{message}</p>
           )}
         </form>
       )}
 
       {/* Footer */}
-      <p style={{ marginTop: "3rem", color: "#52525b", fontSize: "0.8rem" }}>
-        Open source ·{" "}
-        <a href="https://github.com/thomasansems/heysummon" style={{ color: "#71717a", textDecoration: "underline" }}>
+      <p style={{ marginTop: "3rem", color: colors.textMuted, fontSize: "0.8rem" }}>
+        Open source · {" "}
+        <a href="https://github.com/thomasansems/heysummon" style={{ color: colors.textBody, textDecoration: "none" }}>
           GitHub
         </a>{" "}
-        · <a href="https://heysummon.ai" style={{ color: "#71717a", textDecoration: "underline" }}>heysummon.ai</a>
+        · <a href="https://heysummon.ai" style={{ color: colors.textBody, textDecoration: "none" }}>heysummon.ai</a>
       </p>
     </main>
   );

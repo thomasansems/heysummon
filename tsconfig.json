@@ -44,6 +44,10 @@
     "e2e",
     "prisma/seed.ts",
     "website",
-    "cli"
+    "cli",
+    "landingspage",
+    "landingpage",
+    "vercel-waitlist",
+    "waitlist-app"
   ]
 }

@@ -57,14 +57,14 @@ html {
 
 /* Nova – Olive base – Orange theme */
 :root {
-  --background: oklch(98.83% 0.00274 84.297);
-  --foreground: oklch(0.16 0.012 80);
-  --card: oklch(98.83% 0.00274 84.297);
-  --card-foreground: oklch(0.16 0.012 80);
+  --background: #0f1410;
+  --foreground: #1b1e1c;
+  --card: #0f1410;
+  --card-foreground: #1e2420;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.012 80);
+  --popover-foreground: #1e2420;
   --primary: #fdb15f;
-  --primary-foreground: oklch(0.16 0.012 80);
+  --primary-foreground: #1e2420;
   --secondary: oklch(0.96 0.008 80);
   --secondary-foreground: oklch(0.25 0.012 80);
   --muted: oklch(0.96 0.006 90);
@@ -83,9 +83,9 @@ html {
   --chart-5: oklch(0.37 0.11 28);
   --radius: 0.5rem;
   --sidebar: oklch(0.97 0.006 90);
-  --sidebar-foreground: oklch(0.16 0.012 80);
+  --sidebar-foreground: #1e2420;
   --sidebar-primary: #fdb15f;
-  --sidebar-primary-foreground: oklch(0.16 0.012 80);
+  --sidebar-primary-foreground: #1e2420;
   --sidebar-accent: oklch(0.94 0.025 60);
   --sidebar-accent-foreground: oklch(0.35 0.08 50);
   --sidebar-border: oklch(0.91 0.008 90);

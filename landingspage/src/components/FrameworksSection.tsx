@@ -111,14 +111,14 @@ export function FrameworksSection() {
         </motion.div>
 
         {/* Bento Grid */}
-        <div className="grid md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {/* Left: Conversation example per client */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
-            className="md:col-span-3 relative rounded-2xl overflow-hidden border border-white/10 min-h-[520px]"
+            className="md:col-span-3 relative rounded-2xl overflow-hidden border border-white/10 min-h-[400px] md:min-h-[520px]"
           >
             <img
               src="https://images.pexels.com/photos/5890532/pexels-photo-5890532.jpeg?auto=compress&cs=tinysrgb&w=1200"

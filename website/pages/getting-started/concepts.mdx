@@ -40,10 +40,9 @@ Every help request gets a human-readable reference code like `HS-AB12CD34`. Thes
 ## Guard Proxy
 
 All requests pass through the **Guard proxy** before reaching the platform:
-- Validates API keys
-- Scans for malicious content (XSS, PII, URLs)
-- Signs every request with Ed25519 — platform rejects anything that bypassed Guard
-- Rate limits at the edge
+- Scans content for XSS, PII (credit cards, SSNs, BSNs, emails, phone numbers), and malicious URLs
+- Signs every validated request with Ed25519 — platform rejects anything that bypassed Guard
+- Blocks requests containing sensitive data (credit cards, SSNs/BSNs)
 
 ## E2E Encryption
 

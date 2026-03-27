@@ -27,7 +27,7 @@ Think of it as **a pager for your AI agents**: when they hit a wall, they summon
 ### Why HeySummon?
 
 - **AI agents aren't perfect.** They get stuck on ambiguous tasks, need approvals, or lack context. HeySummon gives them a structured way to ask for help without breaking their workflow.
-- **E2E encrypted.** The platform never reads your messages — RSA-OAEP + AES-256-GCM hybrid encryption.
+- **E2E encrypted.** The platform never reads your messages — X25519 + AES-256-GCM end-to-end encryption.
 - **Self-hostable.** Run it on your own infrastructure with full control, or use the managed cloud.
 
 ## Features
@@ -35,12 +35,12 @@ Think of it as **a pager for your AI agents**: when they hit a wall, they summon
 | | Feature | Description |
 |---|---|---|
 | 📡 | **HTTP Polling** | Event discovery via polling API with acknowledgment |
-| 🔐 | **E2E Encryption** | RSA-OAEP + AES-256-GCM — zero-knowledge relay |
+| 🔐 | **E2E Encryption** | X25519 + AES-256-GCM — zero-knowledge relay |
 | 👥 | **Multi-Provider** | Multiple human experts can handle requests |
 | 🔑 | **API Keys** | Issue and manage consumer API keys from the dashboard |
 | 📊 | **Dashboard** | Review, decrypt, and respond to requests in a clean UI |
 | 📎 | **Reference Codes** | `HS-XXXX` codes for easy tracking |
-| ⏱️ | **Auto-Expiry** | Requests expire after 24 hours |
+| ⏱️ | **Auto-Expiry** | Requests expire after 72 hours |
 | 🐳 | **Docker Ready** | One command to deploy with Postgres |
 
 ## Quick Start
@@ -200,7 +200,7 @@ docker compose -f docker-compose.dev.yml up -d
 |--------|----------|------|-------------|
 | `POST` | `/api/v1/help` | API key | Submit encrypted help request |
 | `GET` | `/api/v1/help/:id` | API key | Poll status / get encrypted response |
-| `POST` | `/api/v1/key-exchange` | API key | Exchange public keys for E2E |
+| `POST` | `/api/v1/key-exchange/:requestId` | API key | Exchange public keys for E2E |
 | `GET` | `/api/v1/events/pending` | API key | Poll for pending events |
 
 ### Provider API (dashboard)
@@ -230,7 +230,7 @@ docker compose -f docker-compose.dev.yml up -d
 - **NextAuth.js v5** — Email/password by default, GitHub + Google OAuth opt-in
 - **HTTP Polling** — Event discovery via polling API
 - **Tailwind CSS** + shadcn/ui — Dashboard UI
-- **RSA-OAEP + AES-256-GCM** — Hybrid E2E encryption
+- **X25519 + AES-256-GCM** — E2E encryption with Ed25519 signatures
 
 ## Quick Start by Role
 
@@ -272,8 +272,8 @@ All `HEYSUMMON_*` variables are optional unless marked required.
 | `ALLOW_REGISTRATION` | `false` | Set `true` to allow multiple users to register |
 | `HEYSUMMON_RETENTION_DAYS` | disabled | Auto-delete requests older than N days |
 | `DEBUG` | `false` | Set `true` for verbose API logging |
-| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | — | GitHub OAuth credentials (optional) |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | — | Google OAuth credentials (optional) |
+| `GITHUB_ID` / `GITHUB_SECRET` | — | GitHub OAuth credentials (optional) |
+| `GOOGLE_ID` / `GOOGLE_SECRET` | — | Google OAuth credentials (optional) |
 | `GUARD_SIGNING_KEY` | — | Ed25519 private key for Guard (auto-generated in Docker) |
 | `GUARD_PUBLIC_KEY` | — | Ed25519 public key for Platform (auto-generated in Docker) |
 | `REQUIRE_GUARD` | `false` | Set `true` to reject requests not signed by Guard |
@@ -297,7 +297,7 @@ All `HEYSUMMON_*` variables are optional unless marked required.
 
 ## API Reference
 
-See [`docs/api.md`](docs/api.md) for the full API reference with request/response shapes, authentication, rate limits, and error codes.
+See the [full API reference](https://docs.heysummon.ai/reference/api) for request/response shapes, authentication, rate limits, and error codes.
 
 ---
 

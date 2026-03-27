@@ -163,10 +163,15 @@ Check your API key is valid.
 
 ## Rate limits
 
+**Per IP (Platform edge middleware):**
+
 | Route | Limit |
 |-------|-------|
 | `/api/v1/*` | 60 req/min per IP |
-| Polling (`GET /api/v1/help/*`) | 30 req/min per IP |
+| Legacy polling (`GET /api/v1/help/*`) | 30 req/min per IP |
+| Events polling (`GET /api/v1/events/*`) | 300 req/min per IP |
+
+Each API key also has a per-key rate limit (default: 150 req/min, configurable in dashboard).
 
 ---
 

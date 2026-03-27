@@ -29,12 +29,22 @@ Keys are validated using timing-safe comparison (resistant to timing attacks).
 
 ## Rate limiting
 
+Rate limiting is applied by the Platform's edge middleware (not Guard). Two layers:
+
+**IP-based (in-memory, resets on restart):**
+
 | Route | Limit |
 |-------|-------|
 | All `/api/v1/*` routes | 60 req/min per IP |
 | Legacy polling (`GET /api/v1/help/*`) | 30 req/min per IP |
+| Events polling (`GET /api/v1/events/*`) | 300 req/min per IP |
+| Dashboard pages | 120 req/min per IP |
 
-Rate limiting is applied by Guard at the edge. Responses return `429 Too Many Requests` when exceeded.
+**Per-key (database-backed, persistent):**
+
+Each API key has a configurable `rateLimitPerMinute` (default: 150). This limit survives restarts and is independent of IP.
+
+Responses return `429 Too Many Requests` when either limit is exceeded.
 
 ## Key features
 

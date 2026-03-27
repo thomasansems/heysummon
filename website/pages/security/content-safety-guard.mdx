@@ -2,34 +2,37 @@ import { Callout } from 'nextra/components'
 
 # Content Safety Guard
 
-All requests flow through the **Guard proxy** before reaching the platform. Guard validates, scans, and signs every request.
+All requests flow through the **Guard proxy** before reaching the platform. Guard scans content for safety issues and signs every request with Ed25519.
 
 ---
 
 ## What Guard checks
 
+Guard validates content on `POST` requests to `/api/v1/help` and `/api/v1/message/*`. All other requests are proxied without content inspection.
+
 | Check | What it does | Response on fail |
 |-------|-------------|-----------------|
-| **API key validation** | Key exists, is active, not expired | `401` |
-| **IP binding** | Request IP matches bound IP (if configured) | `403` |
-| **Content scanning** | Detects XSS, HTML injection, script tags | `422` |
-| **PII detection** | Credit cards, SSNs (US), BSNs (Dutch) | `422` |
-| **URL defanging** | Neutralises malicious URLs in content | Cleaned |
+| **HTML/XSS sanitization** | Strips HTML tags, script injection, dangerous attributes | Cleaned |
+| **PII detection** | Credit cards (Luhn-validated), SSNs (US), BSNs (Dutch) | `422` (blocked) |
+| **Email detection** | Detects email address patterns | Redacted |
+| **Phone detection** | International and local phone number formats | Redacted |
+| **URL defanging** | Converts URLs to safe format (`hxxps://`, `[.]`) | Cleaned |
 | **Oversized payloads** | Rejects bodies >1MB | `413` |
-| **Rate limiting** | 60 req/min per IP | `429` |
+
+API key validation, IP binding, and rate limiting are handled by the **Platform**, not Guard.
 
 ---
 
 ## Guard receipt
 
-After all checks pass, Guard signs the request with Ed25519:
+After content checks pass, Guard creates a signed receipt and attaches it as headers:
 
 ```
-X-Guard-Receipt: <base64 Ed25519 signature>
-X-Guard-Timestamp: 1709123456789
+x-guard-receipt: <base64 JSON payload with contentHash, timestamp, nonce>
+x-guard-receipt-sig: <base64 Ed25519 detached signature>
 ```
 
-The Platform verifies this signature on every request. If the signature is missing or invalid, the request is rejected with `403`.
+The receipt payload contains a SHA-256 hash of the sanitized content, a timestamp, and a random nonce for replay protection. The Platform verifies the Ed25519 signature, checks that the timestamp is within 5 minutes, and tracks nonces to prevent replays. If the signature is missing or invalid, the request is rejected with `403`.
 
 <Callout type="warning">
   The Guard signing keypair is generated during setup and stored securely. The private key never leaves the Guard process. The Platform only has the public key.
@@ -70,11 +73,9 @@ Guard is a **standalone Express server** that runs in its own Docker container:
 ```
 /guard
 ├── src/
-│   ├── index.ts        # Express app + proxy middleware
-│   ├── scanner.ts      # Content scanning (XSS, PII, URLs)
-│   ├── auth.ts         # Key validation
-│   ├── receipt.ts      # Ed25519 signing
-│   └── rate-limit.ts   # Per-IP rate limiting
+│   ├── index.ts            # Express app + proxy middleware
+│   ├── content-safety.ts   # Content scanning (XSS, PII, URL defanging)
+│   └── crypto.ts           # Ed25519 receipt signing
 ```
 
 In production Docker, Guard is the **only service with an exposed port** (`:3445`). The Platform has no exposed ports — it's only reachable via Guard on the internal Docker network.

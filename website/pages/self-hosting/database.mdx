@@ -18,12 +18,18 @@ Key models:
 | Model | Description |
 |-------|-------------|
 | `User` | Dashboard users (providers) |
-| `UserProfile` | Provider profiles — one user can have multiple profiles |
-| `ApiKey` | Client and provider keys |
-| `HelpRequest` | Incoming help requests |
-| `Message` | Messages in a conversation |
+| `UserProfile` | Provider profiles — availability, timezone, quiet hours |
+| `ApiKey` | Client (`hs_live_*`) and provider (`hs_prov_*`) keys |
+| `HelpRequest` | Help requests with encryption keys, status, and expiry |
+| `Message` | E2E encrypted messages (ciphertext, iv, authTag, signature) |
+| `ChannelProvider` | Telegram/Slack/WhatsApp integrations per provider |
 | `IpEvent` | IP binding events per key / profile |
-| `AuditLog` | Action history |
+| `SetupToken` | Setup link JWTs for client onboarding |
+| `ProviderMetrics` | Aggregated provider stats (ratings, response times) |
+| `MissedRequest` | Tracks requests missed during provider unavailability |
+| `RateLimit` | Per-key rate limit counters |
+| `AuditLog` | Action history with event type, IP, user agent |
+| `GdprSettings` | Data retention, consent, and privacy config |
 
 ---
 

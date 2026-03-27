@@ -2,6 +2,33 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## Documentation Audit — 2026-03-27
+
+### Fixed
+- README: Updated encryption references from RSA-OAEP to X25519 + AES-256-GCM (3 occurrences)
+- README: Fixed auto-expiry from 24 hours to 72 hours
+- README: Fixed key-exchange endpoint path (added `:requestId`)
+- README: Fixed OAuth env var names (`AUTH_GITHUB_*` to `GITHUB_*`, `AUTH_GOOGLE_*` to `GOOGLE_*`)
+- Guard docs: Removed incorrect claims that Guard validates API keys and does rate limiting (Platform handles both)
+- Guard docs: Fixed receipt header names (`x-guard-receipt` + `x-guard-receipt-sig`)
+- Guard docs: Fixed source file structure to match actual code (`content-safety.ts`, `crypto.ts`)
+- Guard docs: Added missing PII detection types (email, phone number)
+- Architecture: Corrected E2E encryption flow diagram — removed legacy `serverPublicKey`, shows v4 key-exchange
+- Architecture: Fixed security model to attribute auth and rate limiting to Platform, not Guard
+- Rate limiting: Documented all tiers (60 API, 30 legacy polling, 300 events polling per IP) plus per-key limits
+- API reference: Fixed NPX base URL from `:3000` to `:3435`
+- API reference: Added key-exchange endpoint documentation with `messageId` field
+- Env vars: Fixed `REQUIRE_GUARD` default from `true` to `false`
+- Env vars: Replaced `REQUEST_TTL_HOURS` with actual var name `HEYSUMMON_REQUEST_TTL_MS`
+- Env vars: Added `HEYSUMMON_DEFAULT_RATE_LIMIT`, `HEYSUMMON_EDITION`, `DEBUG`
+- Env vars: Fixed Google OAuth var names to match code (`GOOGLE_ID`/`GOOGLE_SECRET`)
+- Database: Added missing models (ChannelProvider, SetupToken, ProviderMetrics, MissedRequest, RateLimit, GdprSettings)
+- NPX/Quickstart: Fixed default port from 3000 to 3435
+- Contributing: Updated project structure (packages dir, docs marked legacy)
+- Encryption storage example: Updated to show v4 fields (provider keys instead of `serverPublicKey`)
+
+---
+
 ## Infrastructure — 2026-03-26
 
 ### Changed

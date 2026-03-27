@@ -15,14 +15,18 @@ Generate Ed25519 keypair
 Generate X25519 keypair
          │
          │  POST /api/v1/help
-         │  { signPublicKey, encryptPublicKey, encryptedQuestion }
+         │  { signPublicKey, encryptPublicKey, question }
          ├──────────────────────────────▶
          │                                        ──notification──▶
-         │  ◀── serverPublicKey ─────────
          │                                                      Generate keypairs
          │                              ◀── POST /key-exchange ──
-         │  ◀──────────────── encrypted response ───────────────
-Decrypt with private key
+         │                                   { signPubKey, encryptPubKey }
+         │
+         │  Both sides derive shared secret via X25519 DH
+         │  Messages encrypted with AES-256-GCM, signed with Ed25519
+         │
+         │  ◀──────────── encrypted messages (via polling) ─────
+Verify signature, decrypt
 ```
 
 ---

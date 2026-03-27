@@ -2,7 +2,7 @@ import { Callout } from 'nextra/components'
 
 # API Reference
 
-Base URL: `http://your-instance:3445` (Docker) or `http://localhost:3000` (NPX)
+Base URL: `http://your-instance:3445` (Docker) or `http://localhost:3435` (NPX/CLI)
 
 All endpoints require `x-api-key` authentication unless noted.
 
@@ -58,6 +58,29 @@ Look up any request using its `HS-XXXXXXXX` reference code.
 
 ---
 
+## Key Exchange
+
+### Exchange public keys
+`POST /api/v1/key-exchange/:requestId`
+
+**Header:** `x-api-key: hs_prov_*`
+
+Provider sends their public keys to enable E2E encryption with the consumer.
+
+```json
+{
+  "signPublicKey": "hex-encoded-Ed25519-public-key",
+  "encryptPublicKey": "hex-encoded-X25519-public-key"
+}
+```
+
+**Response `200`:**
+```json
+{ "success": true }
+```
+
+---
+
 ## Messages
 
 ### Send a message
@@ -80,7 +103,8 @@ Or encrypted:
   "ciphertext": "...",
   "iv": "...",
   "authTag": "...",
-  "signature": "..."
+  "signature": "...",
+  "messageId": "uuid"
 }
 ```
 

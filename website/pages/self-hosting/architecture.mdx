@@ -29,15 +29,16 @@ HeySummon is designed around security, reliable delivery, and zero-knowledge rel
 The single entry point. All external traffic goes through Guard first.
 
 **What Guard does:**
-- Validates the `x-api-key` header
-- Scans content for XSS, PII (credit cards, SSNs, BSNs), malicious URLs
-- Adds an `X-Guard-Receipt` (Ed25519 signature) to every request
-- Proxies to Platform on the internal network
+- Scans content for XSS, PII (credit cards, SSNs, BSNs, emails, phone numbers), malicious URLs
+- Defangs URLs in content (`https://` becomes `hxxps://`, dots become `[.]`)
+- Blocks requests containing credit card numbers or SSN/BSN patterns
+- Signs every validated request with Ed25519 (`x-guard-receipt` + `x-guard-receipt-sig` headers)
+- Proxies all requests to Platform on the internal network
 
 **Why Guard exists:**
-- Platform never handles unauthenticated or unscanned requests
-- Every message is cryptographically signed — Platform can verify it came through Guard
-- Rate limiting and IP blocking at the edge
+- Platform rejects any request that wasn't signed by Guard — content is always scanned first
+- Content safety enforcement is cryptographically verifiable, not just middleware
+- Guard is the only service with an exposed port — Platform is internal-only
 
 ---
 
@@ -76,7 +77,7 @@ AI Agent
   │  POST /api/v1/help (with x-api-key)
   ▼
 Guard
-  │  Validates key, scans content, adds X-Guard-Receipt
+  │  Scans content, signs with Ed25519 receipt
   ▼
 Platform
   │  Verifies receipt, stores encrypted request, generates ref code
@@ -103,16 +104,22 @@ Generate Ed25519 keypair
 Generate X25519 keypair
                     ──── POST /api/v1/help ────▶
                          (signPubKey, encryptPubKey,
-                          encrypted question)
+                          question)
                                                 ──── notification ────▶
-                    ◀── serverPublicKey ─────────
                                                               Generate keypairs
                                                 ◀── POST /key-exchange ──
-                    ◀──────────────── response (encrypted) ──────────────
-Decrypt with private key
+                                                     (signPubKey, encryptPubKey)
+
+  Both sides derive shared secret via X25519 DH — never transmitted
+  Per-message keys via HKDF-SHA256, encrypted with AES-256-GCM
+  Every message signed with Ed25519
+
+                    ◀──── encrypted messages (via polling) ──────────────
+Verify signature,
+decrypt with derived key
 ```
 
-The platform only stores ciphertext and never has the private keys to decrypt it.
+The platform stores only ciphertext and public keys. Private keys never leave client devices, and the shared secret is computed locally — the platform cannot decrypt messages.
 
 ---
 
@@ -120,10 +127,10 @@ The platform only stores ciphertext and never has the private keys to decrypt it
 
 | Threat | Mitigation |
 |--------|-----------|
-| Unauthenticated requests | Guard validates `x-api-key` before proxying |
+| Unauthenticated requests | Platform validates `x-api-key` with HMAC-SHA256 comparison |
 | Malicious content | Guard scans for XSS, PII, URLs before signing |
 | Request forgery | Ed25519 receipts — Platform rejects requests without valid Guard signature |
 | Data exposure | E2E encryption — platform stores ciphertext only |
-| Brute force | Rate limiting per IP (60 req/min on API, 30 on polling) |
+| Brute force | Rate limiting per IP at the Platform edge (60 req/min API, 30 legacy polling, 300 events polling) |
 | Key compromise | Key rotation with 24h grace period, IP binding, device tokens |
 | Direct platform access | Platform on internal Docker network, no exposed ports |

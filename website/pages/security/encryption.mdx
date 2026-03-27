@@ -76,10 +76,11 @@ An attacker with only database access cannot brute-force the original key value 
   "refCode": "HS-A1B2C3D4",
   "status": "responded",
   "question": "AqP3Kj...base64ciphertext...==",
-  "consumerSignPubKey": "MCo...base64pubkey...=",
-  "consumerEncryptPubKey": "MCo...base64pubkey...=",
-  "serverPublicKey": "MCo...base64pubkey...="
+  "consumerSignPubKey": "MCo...hex-encoded-Ed25519-pubkey...",
+  "consumerEncryptPubKey": "MCo...hex-encoded-X25519-pubkey...",
+  "providerSignPubKey": "MCo...hex-encoded-Ed25519-pubkey...",
+  "providerEncryptPubKey": "MCo...hex-encoded-X25519-pubkey..."
 }
 ```
 
-The `question` field is ciphertext — the platform cannot read it.
+The `question` field is ciphertext — the platform cannot read it. Public keys are stored for routing only; the shared secret is derived locally and never touches the server.

@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'landingpage/**'
+      - 'landingspage/**'
   workflow_dispatch:
 
 jobs:
@@ -21,32 +21,32 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: landingpage/package-lock.json
+          cache-dependency-path: landingspage/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: landingpage
+        working-directory: landingspage
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: landingpage
+        working-directory: landingspage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_HOMEPAGE }}
 
       - name: Build homepage
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: landingpage
+        working-directory: landingspage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_HOMEPAGE }}
 
       - name: Deploy to Vercel
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: landingpage
+        working-directory: landingspage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_HOMEPAGE }}

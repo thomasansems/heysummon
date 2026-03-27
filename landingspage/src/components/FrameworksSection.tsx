@@ -186,6 +186,16 @@ export function FrameworksSection() {
                   onClick={() => { setActiveIndex(i); setProgress(0); }}
                   className="w-full text-left"
                 >
+                  {/* Progress loader bar */}
+                  {i === activeIndex && (
+                    <div className="h-0.5 bg-white/5 rounded-full mx-3 mt-1">
+                      <motion.div
+                        className="h-full bg-white/30 rounded-full"
+                        style={{ width: `${progress}%` }}
+                        transition={{ duration: 0.05 }}
+                      />
+                    </div>
+                  )}
                   <div className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
                     i === activeIndex ? 'bg-white/5' : 'hover:bg-white/[0.03]'
                   }`}>
@@ -214,16 +224,7 @@ export function FrameworksSection() {
                       </AnimatePresence>
                     </div>
                   </div>
-                  {/* Progress loader bar */}
-                  {i === activeIndex && (
-                    <div className="h-0.5 bg-white/5 rounded-full mx-3 mt-1">
-                      <motion.div
-                        className="h-full bg-primary/60 rounded-full"
-                        style={{ width: `${progress}%` }}
-                        transition={{ duration: 0.05 }}
-                      />
-                    </div>
-                  )}
+
                 </button>
               ))}
             </div>
@@ -241,7 +242,7 @@ export function FrameworksSection() {
 
             {/* Provider section */}
             <div className="border-t border-white/10 pt-6 mt-auto">
-              <h4 className="text-sm font-semibold text-text-heading mb-1">Provider Side</h4>
+              <h4 className="font-serif text-2xl mb-2 text-text-heading">Provider Side</h4>
               <p className="text-xs text-text-body mb-4">Human experts respond through their preferred channel.</p>
               <div className="flex items-center gap-4">
                 {providerCurrent.map(item => (

@@ -18,8 +18,10 @@ const config: DocsThemeConfig = {
       <meta property="og:description" content="Documentation for HeySummon — Human in the Loop as a Service" />
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=swap" rel="stylesheet" />
       <link rel="icon" href="/favicon.ico" sizes="any" />
-      <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+      <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+      <link rel="icon" href="/favicon-96x96.png" sizes="96x96" type="image/png" />
       <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+      <link rel="manifest" href="/site.webmanifest" />
     </>
   ),
 }

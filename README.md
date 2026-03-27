@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🦞 HeySummon
+<img src="landingspage/public/sumo.jpg" alt="HeySummon" width="100%" />
+
+# hey summon Pete
 
 **Human in the Loop as a Service**
 

@@ -55,15 +55,11 @@ export default function Home() {
     }}>
       {/* Logo */}
       <div style={{ marginBottom: "2rem" }}>
-        <span style={{
-          fontSize: "2.5rem",
-          fontWeight: 700,
-          color: colors.textHeading,
-          letterSpacing: "-0.02em",
-          fontFamily: "'Joti One', Georgia, serif",
-        }}>
-          HeySummon
-        </span>
+        <img
+          src="/logo.png"
+          alt="HeySummon"
+          style={{ height: "5rem", width: "auto" }}
+        />
       </div>
 
       {/* Badge */}

@@ -15,4 +15,12 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #3672 | 10:34 PM | ✅ | Removed Resend button from mobile dashboard view | ~224 |
+
+### Mar 27, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #4303 | 3:15 AM | 🔴 | Fixed hashDeviceToken divergence by importing from api-key-auth.ts | ~426 |
+| #4287 | 3:09 AM | 🔵 | Platform-side Guard receipt verification with replay protection | ~465 |
+| #4204 | 2:37 AM | 🔵 | HeySummon Security Assessment Completed - 8 Findings Identified | ~1001 |
 </claude-mem-context>

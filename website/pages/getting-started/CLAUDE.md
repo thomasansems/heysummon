@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #3963 | 12:53 AM | 🟣 | Created 3 Reddit launch posts for HeySummon | ~549 |
+| #4053 | 1:11 AM | 🔵 | HeySummon Request Workflow and Event System | ~585 |
+| #4038 | 1:08 AM | 🔵 | HeySummon Core Concepts and Security Model | ~600 |
 </claude-mem-context>

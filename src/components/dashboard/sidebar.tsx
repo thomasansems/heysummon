@@ -24,7 +24,7 @@ export function Sidebar() {
     <aside className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex items-center gap-2 border-b border-sidebar-border px-6 py-5">
         <Link href="/" className="flex items-center text-xl text-sidebar-foreground" style={{ fontFamily: 'var(--font-dm-sans)', fontWeight: 700 }}>
-          heySummon
+          "hey summon"
         </Link>
       </div>
 

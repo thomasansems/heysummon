@@ -58,7 +58,7 @@ export function TopNav() {
           href="/dashboard"
           className="flex items-center gap-2 text-sm font-bold text-black"
         >
-          <span style={{ fontFamily: 'var(--font-dm-sans)', fontWeight: 700, fontSize: '1.15rem' }}>heySummon</span>
+          <span style={{ fontFamily: 'var(--font-dm-sans)', fontWeight: 700, fontSize: '1.15rem' }}>"hey summon"</span>
         </Link>
 
         <nav className="flex items-center gap-0.5 sm:gap-1">

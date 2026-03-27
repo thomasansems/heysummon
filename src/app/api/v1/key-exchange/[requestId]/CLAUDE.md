@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #3963 | 12:53 AM | 🟣 | Created 3 Reddit launch posts for HeySummon | ~549 |
+| #4302 | 3:15 AM | 🔴 | Fixed TOCTOU race condition in key-exchange endpoint with atomic updateMany | ~477 |
 </claude-mem-context>

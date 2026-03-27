@@ -12,4 +12,5 @@ node_modules/
 playwright-report/
 tailscale-config/state/
 test-results/
+coverage/
 .agents

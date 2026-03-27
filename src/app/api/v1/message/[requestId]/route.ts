@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { messageCreateSchema, validateBody, requireJsonContentType } from "@/lib/validations";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
+import { checkContentSafety } from "@/lib/content-safety-middleware";
 
 /**
  * POST /api/v1/message/:requestId — Send a message (encrypted or plaintext)
@@ -104,6 +105,14 @@ export async function POST(
 
     // Support plaintext messages (unencrypted, for simple reply flows)
     if (plaintext && !ciphertext) {
+      // Run content safety on plaintext messages from consumers
+      if (from === "consumer") {
+        const safetyCheck = checkContentSafety({ plaintext });
+        if (!safetyCheck.passed) {
+          return safetyCheck.response;
+        }
+      }
+
       const crypto = await import("node:crypto");
       ciphertext = Buffer.from(plaintext).toString("base64");
       iv = "plaintext";

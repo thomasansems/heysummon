@@ -5,8 +5,4 @@ const withNextra = nextra({
   themeConfig: './theme.config.tsx',
 })
 
-export default withNextra({
-  // Nextra 2.x uses webpack config internally.
-  // Disable Turbopack to prevent "webpack config with no turbopack config" error.
-  turbopack: {},
-})
+export default withNextra({})

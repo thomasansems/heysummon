@@ -2,7 +2,7 @@ import React from 'react'
 import { DocsThemeConfig } from 'nextra-theme-docs'
 
 const config: DocsThemeConfig = {
-  logo: <span style={{ fontWeight: 700, fontSize: '1.2em', fontFamily: 'DM Sans, sans-serif' }}>heySummon <span style={{ fontWeight: 400, opacity: 0.6 }}>Docs</span></span>,
+  logo: <span style={{ fontWeight: 700, fontSize: '1.2em', fontFamily: 'DM Sans, sans-serif' }}>"hey summon" <span style={{ fontWeight: 400, opacity: 0.6 }}>Docs</span></span>,
   project: {
     link: 'https://github.com/thomasansems/heysummon',
   },

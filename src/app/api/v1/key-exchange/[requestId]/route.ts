@@ -1,8 +1,8 @@
 export const runtime = "nodejs";
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { validateProviderKey } from "@/lib/provider-key-auth";
 import { keyExchangeSchema, validateBody } from "@/lib/validations";
 import { sanitizeError } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
@@ -10,7 +10,8 @@ import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 /**
  * POST /api/v1/key-exchange/:requestId — Provider sends their public keys
  *
- * Session-authenticated. Only the assigned provider (expertId) can exchange keys.
+ * API-key authenticated (x-api-key with hs_prov_* prefix).
+ * Only the assigned provider (expertId) can exchange keys.
  * This completes the key exchange: consumer already sent their keys in POST /help,
  * now provider sends theirs and both can derive the shared secret via X25519 DH.
  *
@@ -18,17 +19,12 @@ import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
  * Returns: { success: true }
  */
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ requestId: string }> }
 ) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
+    const authResult = await validateProviderKey(request);
+    if (!authResult.ok) return authResult.response;
 
     const { requestId } = await params;
     const raw = await request.json();
@@ -49,8 +45,10 @@ export async function POST(
       );
     }
 
+    const provider = authResult.provider;
+
     // Only the assigned provider can exchange keys
-    if (helpRequest.expertId !== user.id) {
+    if (helpRequest.expertId !== provider.userId) {
       return NextResponse.json(
         { error: "Not authorized for this request" },
         { status: 403 }
@@ -67,7 +65,7 @@ export async function POST(
     if (helpRequest.providerSignPubKey || helpRequest.providerEncryptPubKey) {
       return NextResponse.json(
         { error: "Provider keys already exchanged for this request" },
-        { status: 400 }
+        { status: 409 }
       );
     }
 
@@ -83,7 +81,7 @@ export async function POST(
 
     logAuditEvent({
       eventType: AuditEventTypes.KEY_EXCHANGE,
-      userId: user.id,
+      userId: provider.userId,
       success: true,
       metadata: { requestId },
       request,

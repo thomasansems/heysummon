@@ -137,23 +137,20 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0" style={sidebarStyle}>
 
-      {open && (
+      {/* {open && ( */}
         <SidebarHeader className="px-2 py-2.5">
           <Link href="/dashboard" className="flex items-center gap-2 px-2.5 pt-2">
             <Image
               src="/hey-summon.png"
               alt="HeySummon logo"
-              width={22}
-              height={22}
-              className="h-5 w-5 shrink-0"
+              width={open ? 26 : 18}
+              height={open ? 26 : 18}
+              className={`${open ? "h-6 w-6" : "h-4 w-4"} shrink-0 ml--1.5 transition-all`}
               priority
             />
-            <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
-              HeySummon
-            </span>
           </Link>
         </SidebarHeader>
-      )}
+      {/* )} */}
 
       {/* Nav */}
       <SidebarContent className="gap-0">

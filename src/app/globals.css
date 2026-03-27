@@ -93,9 +93,9 @@ html {
 }
 
 .dark {
-  --background: oklch(0.155 0.008 80);
+  --background: #0f1410; 
   --foreground: oklch(0.97 0.004 90);
-  --card: oklch(0.19 0.008 80);
+  --card: #191d1a;
   --card-foreground: oklch(0.97 0.004 90);
   --popover: oklch(0.22 0.008 80);
   --popover-foreground: oklch(0.97 0.004 90);
@@ -117,7 +117,7 @@ html {
   --chart-3: oklch(0.56 0.16 38);
   --chart-4: oklch(0.47 0.14 33);
   --chart-5: oklch(0.37 0.11 28);
-  --sidebar:  oklch(0.155 0.008 80);
+  --sidebar:  #0f1410;
   --sidebar-foreground: oklch(0.97 0.004 90);
   --sidebar-primary: #fdb15f;
   --sidebar-primary-foreground: oklch(0.12 0.005 80);

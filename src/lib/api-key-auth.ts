@@ -7,13 +7,25 @@ const AUTO_BLACKLIST_THRESHOLD = 20;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
 /**
+ * Get the HMAC secret from environment. Throws if NEXTAUTH_SECRET is not set.
+ */
+export function getHmacSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      "NEXTAUTH_SECRET is not set. Refusing to start with an insecure fallback."
+    );
+  }
+  return secret;
+}
+
+/**
  * Hash a device token using HMAC-SHA256 with the server secret.
  * Deterministic for DB lookup, but requires NEXTAUTH_SECRET to reproduce —
  * infeasible to reverse from DB alone.
  */
 export function hashDeviceToken(token: string): string {
-  const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
-  return crypto.createHmac("sha256", hmacSecret).update(token).digest("hex");
+  return crypto.createHmac("sha256", getHmacSecret()).update(token).digest("hex");
 }
 
 /**
@@ -163,8 +175,7 @@ export async function validateApiKeyRequest(
   // HMAC with server secret (NEXTAUTH_SECRET) — deterministic for DB lookup but
   // infeasible to reverse without the server secret, even with DB access.
   if (!keyRecord) {
-    const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
-    const hashedKey = crypto.createHmac("sha256", hmacSecret).update(apiKeyValue).digest("hex");
+    const hashedKey = crypto.createHmac("sha256", getHmacSecret()).update(apiKeyValue).digest("hex");
     keyRecord = await prisma.apiKey.findFirst({
       where: {
         previousKeyHash: hashedKey,

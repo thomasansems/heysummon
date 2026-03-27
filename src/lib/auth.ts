@@ -1,5 +1,6 @@
 import { auth } from "./auth-config";
 import { prisma } from "./prisma";
+import crypto from "crypto";
 
 export async function getCurrentUser() {
   const session = await auth();
@@ -14,10 +15,5 @@ export async function getCurrentUser() {
 }
 
 export function generateApiKey(prefix: "hs_cli_" | "hs_prov_" = "hs_cli_"): string {
-  const chars = "0123456789abcdef";
-  let key = prefix;
-  for (let i = 0; i < 32; i++) {
-    key += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return key;
+  return prefix + crypto.randomBytes(16).toString("hex");
 }

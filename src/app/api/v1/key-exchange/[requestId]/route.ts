@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import { keyExchangeSchema, validateBody } from "@/lib/validations";
 import { sanitizeError } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
@@ -9,6 +10,7 @@ import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 /**
  * POST /api/v1/key-exchange/:requestId — Provider sends their public keys
  *
+ * Session-authenticated. Only the assigned provider (expertId) can exchange keys.
  * This completes the key exchange: consumer already sent their keys in POST /help,
  * now provider sends theirs and both can derive the shared secret via X25519 DH.
  *
@@ -20,6 +22,14 @@ export async function POST(
   { params }: { params: Promise<{ requestId: string }> }
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      );
+    }
+
     const { requestId } = await params;
     const raw = await request.json();
     const parsed = validateBody(keyExchangeSchema, raw);
@@ -36,6 +46,14 @@ export async function POST(
       return NextResponse.json(
         { error: "Request not found" },
         { status: 404 }
+      );
+    }
+
+    // Only the assigned provider can exchange keys
+    if (helpRequest.expertId !== user.id) {
+      return NextResponse.json(
+        { error: "Not authorized for this request" },
+        { status: 403 }
       );
     }
 
@@ -65,7 +83,7 @@ export async function POST(
 
     logAuditEvent({
       eventType: AuditEventTypes.KEY_EXCHANGE,
-      userId: helpRequest.expertId,
+      userId: user.id,
       success: true,
       metadata: { requestId },
       request,

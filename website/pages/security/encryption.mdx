@@ -2,7 +2,11 @@ import { Callout } from 'nextra/components'
 
 # Encryption
 
-HeySummon uses a **zero-knowledge** hybrid encryption scheme. The server stores ciphertext it cannot read.
+HeySummon uses an **end-to-end encrypted** hybrid encryption scheme. The server stores ciphertext it cannot read.
+
+<Callout type="warning">
+  HeySummon is a **content-blind relay**, not a zero-knowledge system. The platform can see metadata (reference codes, timestamps, request status) but cannot read encrypted message content. See [Security Overview](/security/overview) for the full visibility table.
+</Callout>
 
 ## Algorithms
 

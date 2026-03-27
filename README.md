@@ -37,7 +37,7 @@ Think of it as **a pager for your AI agents**: when they hit a wall, they summon
 | | Feature | Description |
 |---|---|---|
 | 📡 | **HTTP Polling** | Event discovery via polling API with acknowledgment |
-| 🔐 | **E2E Encryption** | X25519 + AES-256-GCM — zero-knowledge relay |
+| 🔐 | **E2E Encryption** | X25519 + AES-256-GCM — content-blind relay |
 | 👥 | **Multi-Provider** | Multiple human experts can handle requests |
 | 🔑 | **API Keys** | Issue and manage consumer API keys from the dashboard |
 | 📊 | **Dashboard** | Review, decrypt, and respond to requests in a clean UI |

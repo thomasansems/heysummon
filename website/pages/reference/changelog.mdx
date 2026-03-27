@@ -13,6 +13,9 @@ import { Callout } from 'nextra/components'
 - Provider dashboard responses now pass through Guard content safety scanning (HTML sanitization, URL defanging, PII detection) — previously these bypassed the safety pipeline entirely
 - Dashboard response endpoint verifies Guard receipt when `REQUIRE_GUARD=true`
 
+### Changed
+- `REQUIRE_GUARD` now defaults to `true` (secure-by-default). Self-hosters who intentionally want to skip Guard must explicitly set `REQUIRE_GUARD=false`. A startup warning is logged when Guard is disabled.
+
 ---
 
 ## Infrastructure — 2026-03-26

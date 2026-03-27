@@ -7,7 +7,7 @@ import { requestPatchSchema, validateBody } from "@/lib/validations";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import { sendResponseToTelegram } from "@/lib/adapters/telegram";
 
-const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
+const REQUIRE_GUARD = process.env.REQUIRE_GUARD !== "false";
 
 export async function GET(
   _request: Request,

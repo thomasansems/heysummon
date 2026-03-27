@@ -1,0 +1,73 @@
+name: Publish @heysummon/app to npm
+
+on:
+  push:
+    paths:
+      - "cli/package.json"
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no actual publish)"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        working-directory: cli
+        run: npm install
+
+      - name: Build
+        working-directory: cli
+        run: npm run build
+
+      - name: Get package version
+        id: pkg
+        run: echo "version=$(node -p "require('./cli/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version already published
+        id: check
+        run: |
+          if npm view @heysummon/app@${{ steps.pkg.outputs.version }} version 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.check.outputs.exists == 'false' && inputs.dry_run != 'true'
+        working-directory: cli
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dry run publish
+        if: inputs.dry_run == 'true'
+        working-directory: cli
+        run: npm publish --dry-run --access public
+
+      - name: Skip (already published)
+        if: steps.check.outputs.exists == 'true'
+        run: echo "Version ${{ steps.pkg.outputs.version }} already on npm — bump the version to publish."
+
+      - name: Deprecate old 'heysummon' package
+        if: steps.check.outputs.exists == 'false' && inputs.dry_run != 'true'
+        run: npm deprecate heysummon "Moved to @heysummon/app — please update your install command." || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

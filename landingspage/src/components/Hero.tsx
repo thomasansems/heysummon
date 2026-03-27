@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { trackWaitlistClick, trackDocsClick } from '../lib/analytics';
 
 const names = ["Elon", "John Doe", "Thomas", "Pete"];
 
@@ -73,10 +74,10 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="flex flex-col sm:flex-row justify-center gap-4"
         >
-          <a href="https://cloud.heysummon.ai" target="_blank" rel="noopener noreferrer" className="bg-white text-bg-deep px-6 py-3 rounded-full font-semibold hover:bg-text-heading transition-colors flex items-center justify-center gap-2">
+          <a href="https://cloud.heysummon.ai" target="_blank" rel="noopener noreferrer" onClick={() => trackWaitlistClick('hero')} className="bg-white text-bg-deep px-6 py-3 rounded-full font-semibold hover:bg-text-heading transition-colors flex items-center justify-center gap-2">
             Join Waiting List
           </a>
-          <a href="https://docs.heysummon.ai" target="_blank" rel="noopener noreferrer" className="bg-transparent border border-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/5 transition-colors text-center">
+          <a href="https://docs.heysummon.ai" target="_blank" rel="noopener noreferrer" onClick={() => trackDocsClick('hero')} className="bg-transparent border border-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/5 transition-colors text-center">
             Read the Docs
           </a>
         </motion.div>

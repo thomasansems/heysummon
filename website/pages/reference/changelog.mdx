@@ -2,6 +2,16 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.1.0-alpha.2 — 2026-03-27
+
+### Fixed
+- API key generation now uses cryptographically secure random bytes (`crypto.randomBytes`) instead of `Math.random()`
+- Reference code generation hardened with CSPRNG
+- Removed insecure `"fallback-dev-secret"` from HMAC operations; server now refuses to start without `NEXTAUTH_SECRET`
+- Key-exchange endpoint now requires session authentication and verifies the caller is the assigned provider
+
+---
+
 ## Infrastructure — 2026-03-26
 
 ### Changed

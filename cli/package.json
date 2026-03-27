@@ -1,7 +1,7 @@
 {
   "name": "@heysummon/app",
   "version": "0.1.0",
-  "description": "HeySummon \u2014 Human-in-the-loop for AI agents. Install & run with one command.",
+  "description": "HeySummon — Human-in-the-loop for AI agents. Install & run with one command.",
   "bin": {
     "heysummon": "./bin/cli.js"
   },
@@ -31,5 +31,8 @@
   "dependencies": {
     "@clack/prompts": "^0.10.0",
     "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }

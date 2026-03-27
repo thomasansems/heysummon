@@ -83,3 +83,32 @@ An attacker with only database access cannot brute-force the original key value 
 ```
 
 The `question` field is ciphertext — the platform cannot read it.
+
+---
+
+## Data classification
+
+Not all fields are encrypted. HeySummon uses a deliberate mix of encrypted and plaintext data depending on operational requirements:
+
+| Field | Storage | Why |
+|-------|---------|-----|
+| `question` | Encrypted (AES-256-GCM) | Full question content — zero-knowledge |
+| `messages` | Encrypted (AES-256-GCM) | Full conversation history — zero-knowledge |
+| `response` | Encrypted (AES-256-GCM) | Provider response — zero-knowledge |
+| `questionPreview` | **Plaintext** (max 200 chars) | Notification preview — see below |
+| `refCode` | Plaintext | Human-readable reference code for routing |
+| `status` | Plaintext | Request lifecycle state |
+
+### Why is questionPreview plaintext?
+
+`questionPreview` is an optional, consumer-provided excerpt (max 200 characters) used for:
+
+- **Telegram/Slack notifications** — providers see what the request is about without decrypting
+- **Text-to-speech** — phone-first voice flow reads the preview aloud
+- **Dashboard previews** — provider dashboard shows context before opening
+
+The consumer SDK controls what goes into `questionPreview`. If the consumer omits it, the server falls back to server-side decryption of the legacy `question` field (when a `serverPrivateKey` exists) for notification purposes only.
+
+<Callout type="warning">
+  Do not put sensitive data in `questionPreview`. It is stored and transmitted in plaintext by design. Use the encrypted `question` field for the full request content.
+</Callout>

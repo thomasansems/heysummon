@@ -1,11 +1,13 @@
 import { prisma } from "./prisma";
+import crypto from "crypto";
 
 const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 export function generateRefCode(): string {
+  const bytes = crypto.randomBytes(8);
   let code = "HS-";
   for (let i = 0; i < 8; i++) {
-    code += CHARS[Math.floor(Math.random() * CHARS.length)];
+    code += CHARS[bytes[i] % CHARS.length];
   }
   return code;
 }

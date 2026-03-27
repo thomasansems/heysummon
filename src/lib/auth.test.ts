@@ -1,16 +1,12 @@
 import { describe, it, expect } from "vitest";
+import crypto from "crypto";
 
 // Test generateApiKey directly to avoid importing next-auth dependencies
 // We inline the function logic since the module has side-effect imports
 describe("generateApiKey", () => {
   // Re-implement to test the algorithm without triggering next-auth import
   function generateApiKey(): string {
-    const chars = "0123456789abcdef";
-    let key = "hs_";
-    for (let i = 0; i < 32; i++) {
-      key += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return key;
+    return "hs_" + crypto.randomBytes(16).toString("hex");
   }
 
   it("starts with hs_ prefix", () => {

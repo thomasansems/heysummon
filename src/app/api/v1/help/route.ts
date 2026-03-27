@@ -73,7 +73,14 @@ function getProviderAvailability(
   }
 }
 
-const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
+const REQUIRE_GUARD = process.env.REQUIRE_GUARD !== "false";
+
+if (!REQUIRE_GUARD) {
+  console.warn(
+    "[SECURITY] REQUIRE_GUARD is disabled. Requests will be accepted without Guard content safety verification. " +
+    "Set REQUIRE_GUARD=true (or remove the variable) for production use."
+  );
+}
 const REQUEST_TTL_MS = parseInt(process.env.HEYSUMMON_REQUEST_TTL_MS || String(72 * 60 * 60 * 1000), 10);
 const DEBUG = process.env.DEBUG === "true";
 
@@ -85,8 +92,8 @@ const DEBUG = process.env.DEBUG === "true";
  *   2. Guard validates content, signs Ed25519 receipt, proxies to Platform
  *   3. Platform verifies X-Guard-Receipt header
  *
- * If REQUIRE_GUARD=true, a valid guard receipt is mandatory.
- * If not set, guard is optional (backward compatible for dev without Guard).
+ * Guard receipt is required by default (REQUIRE_GUARD defaults to true).
+ * Set REQUIRE_GUARD=false to disable for development without Guard.
  */
 export async function POST(request: Request) {
   try {
@@ -194,7 +201,7 @@ export async function POST(request: Request) {
     let guardVerified = false;
 
     if (hasReceipt) {
-      const receipt = verifyGuardReceipt(receiptB64, signatureB64);
+      const receipt = await verifyGuardReceipt(receiptB64, signatureB64);
       if (!receipt) {
         return NextResponse.json(
           { error: "Invalid guard receipt. Signature verification failed, receipt expired, or replay detected." },

@@ -411,6 +411,15 @@ model DataRequest {
   @@index([status])
 }
 
+model UsedNonce {
+  id        String   @id @default(cuid())
+  nonce     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 model MissedRequest {
   id              String      @id @default(cuid())
   apiKeyId        String

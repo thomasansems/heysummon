@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
-import crypto from "crypto";
+import { hashDeviceToken } from "./api-key-auth";
 
 const AUTO_BLACKLIST_THRESHOLD = 20;
-
-/**
- * Hash a device token using SHA-256.
- */
-export function hashDeviceToken(token: string): string {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
 
 /**
  * Extract client IP from request headers.

@@ -14,11 +14,18 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
  * Content-submission routes that require Guard validation before proxying.
  * POST requests to these paths run through the content safety pipeline.
  */
-const CONTENT_ROUTES = ["/api/v1/help", "/api/v1/message/"];
+const CONTENT_ROUTES: { methods: string[]; path: string }[] = [
+  { methods: ["POST"], path: "/api/v1/help" },
+  { methods: ["POST"], path: "/api/v1/message/" },
+  { methods: ["PATCH"], path: "/api/v1/requests/" },
+];
 
 function isContentRoute(method: string, path: string): boolean {
-  if (method !== "POST") return false;
-  return CONTENT_ROUTES.some((route) => path === route || path.startsWith(route));
+  return CONTENT_ROUTES.some(
+    (route) =>
+      route.methods.includes(method) &&
+      (path === route.path || path.startsWith(route.path))
+  );
 }
 
 // ── Health check (not proxied) ──
@@ -45,18 +52,32 @@ app.use((req, res, next) => {
   }
 
   try {
-    // Extract text content to validate from the request body
+    // Extract ALL text fields from the request body and validate each independently.
+    // Using || short-circuit would let an attacker sneak malicious content through
+    // a secondary field (e.g. question="clean" + response="<script>...") because
+    // the Guard would only validate the first truthy field while the Platform
+    // processes a different one.
     const body = req.body;
-    const text =
-      body?.question ||
-      (Array.isArray(body?.messages)
-        ? body.messages
-            .map((m: { content?: string }) => m.content || "")
-            .join("\n")
-        : null) ||
-      body?.plaintext;
+    const textFields: { key: string; value: string }[] = [];
+    if (body?.question && typeof body.question === "string") {
+      textFields.push({ key: "question", value: body.question });
+    }
+    if (body?.response && typeof body.response === "string") {
+      textFields.push({ key: "response", value: body.response });
+    }
+    if (body?.plaintext && typeof body.plaintext === "string") {
+      textFields.push({ key: "plaintext", value: body.plaintext });
+    }
+    if (Array.isArray(body?.messages)) {
+      const joined = body.messages
+        .map((m: { content?: string }) => m.content || "")
+        .join("\n");
+      if (joined) {
+        textFields.push({ key: "messages", value: joined });
+      }
+    }
 
-    if (!text || typeof text !== "string") {
+    if (textFields.length === 0) {
       // No content to validate — attach receipt for empty content and proxy
       const receipt = createReceipt("");
       req.headers["x-guard-receipt"] = receipt.token;
@@ -69,7 +90,9 @@ app.use((req, res, next) => {
       return next();
     }
 
-    const safety = validateContent(text);
+    // Validate each text field independently
+    const allText = textFields.map((f) => f.value).join("\n");
+    const safety = validateContent(allText);
 
     if (safety.blocked) {
       return res.status(422).json({
@@ -83,13 +106,23 @@ app.use((req, res, next) => {
     req.headers["x-guard-receipt"] = receipt.token;
     req.headers["x-guard-receipt-sig"] = receipt.signature;
 
-    // Update body if sanitized
-    if (safety.sanitizedText !== text) {
-      if (body.question) {
-        body.question = safety.sanitizedText;
+    // Sanitize each field individually so each gets its own correct sanitized output
+    for (const field of textFields) {
+      if (field.key === "messages") continue; // messages are an array, handled below
+      const fieldSafety = validateContent(field.value);
+      if (fieldSafety.sanitizedText !== field.value) {
+        body[field.key] = fieldSafety.sanitizedText;
       }
-      if (body.plaintext) {
-        body.plaintext = safety.sanitizedText;
+    }
+    // Sanitize individual message contents if messages were present
+    if (Array.isArray(body?.messages)) {
+      for (const m of body.messages) {
+        if (m.content && typeof m.content === "string") {
+          const msgSafety = validateContent(m.content);
+          if (msgSafety.sanitizedText !== m.content) {
+            m.content = msgSafety.sanitizedText;
+          }
+        }
       }
     }
 

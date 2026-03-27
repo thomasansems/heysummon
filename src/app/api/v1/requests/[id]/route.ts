@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decryptMessage } from "@/lib/crypto";
+import { verifyGuardReceipt } from "@/lib/guard-crypto";
 import { requestPatchSchema, validateBody } from "@/lib/validations";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import { sendResponseToTelegram } from "@/lib/adapters/telegram";
+
+const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
 
 export async function GET(
   _request: Request,
@@ -114,6 +117,28 @@ export async function PATCH(
 
   if (helpRequest.status === "responded") {
     return NextResponse.json({ error: "Already responded" }, { status: 400 });
+  }
+
+  // ─── Guard Receipt Verification (Ed25519) ───
+  const receiptB64 = request.headers.get("x-guard-receipt");
+  const signatureB64 = request.headers.get("x-guard-receipt-sig");
+  const hasReceipt = receiptB64 && signatureB64;
+
+  if (REQUIRE_GUARD && !hasReceipt) {
+    return NextResponse.json(
+      { error: "Guard receipt required. All requests must go through the Guard reverse proxy." },
+      { status: 403 }
+    );
+  }
+
+  if (hasReceipt) {
+    const receipt = verifyGuardReceipt(receiptB64, signatureB64);
+    if (!receipt) {
+      return NextResponse.json(
+        { error: "Invalid guard receipt. Signature verification failed, receipt expired, or replay detected." },
+        { status: 403 }
+      );
+    }
   }
 
   // Store plaintext response — consumer gets it encrypted via polling endpoint

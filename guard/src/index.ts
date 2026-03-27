@@ -14,11 +14,18 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
  * Content-submission routes that require Guard validation before proxying.
  * POST requests to these paths run through the content safety pipeline.
  */
-const CONTENT_ROUTES = ["/api/v1/help", "/api/v1/message/"];
+const CONTENT_ROUTES: { methods: string[]; path: string }[] = [
+  { methods: ["POST"], path: "/api/v1/help" },
+  { methods: ["POST"], path: "/api/v1/message/" },
+  { methods: ["PATCH"], path: "/api/v1/requests/" },
+];
 
 function isContentRoute(method: string, path: string): boolean {
-  if (method !== "POST") return false;
-  return CONTENT_ROUTES.some((route) => path === route || path.startsWith(route));
+  return CONTENT_ROUTES.some(
+    (route) =>
+      route.methods.includes(method) &&
+      (path === route.path || path.startsWith(route.path))
+  );
 }
 
 // ── Health check (not proxied) ──
@@ -49,6 +56,7 @@ app.use((req, res, next) => {
     const body = req.body;
     const text =
       body?.question ||
+      body?.response ||
       (Array.isArray(body?.messages)
         ? body.messages
             .map((m: { content?: string }) => m.content || "")
@@ -87,6 +95,9 @@ app.use((req, res, next) => {
     if (safety.sanitizedText !== text) {
       if (body.question) {
         body.question = safety.sanitizedText;
+      }
+      if (body.response) {
+        body.response = safety.sanitizedText;
       }
       if (body.plaintext) {
         body.plaintext = safety.sanitizedText;

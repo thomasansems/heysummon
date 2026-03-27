@@ -132,7 +132,7 @@ export async function PATCH(
   }
 
   if (hasReceipt) {
-    const receipt = verifyGuardReceipt(receiptB64, signatureB64);
+    const receipt = await verifyGuardReceipt(receiptB64, signatureB64);
     if (!receipt) {
       return NextResponse.json(
         { error: "Invalid guard receipt. Signature verification failed, receipt expired, or replay detected." },

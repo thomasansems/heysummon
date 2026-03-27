@@ -1,20 +1,15 @@
 import { sign } from "tweetnacl";
+import { prisma } from "@/lib/prisma";
 
 const MAX_RECEIPT_AGE_MS = 5 * 60 * 1000; // 5 minutes
 const NONCE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-/**
- * In-memory nonce store with TTL cleanup.
- * Prevents replay attacks by rejecting duplicate nonces.
- */
-const usedNonces = new Map<string, number>();
-
-// Clean up expired nonces every 60 seconds
+// Background cleanup: delete expired nonces every 60 seconds.
+// Fire-and-forget — must not block the request path.
 setInterval(() => {
-  const now = Date.now();
-  for (const [nonce, expiresAt] of usedNonces) {
-    if (now > expiresAt) usedNonces.delete(nonce);
-  }
+  prisma.usedNonce
+    .deleteMany({ where: { expiresAt: { lt: new Date() } } })
+    .catch(() => {});
 }, 60_000);
 
 export interface ReceiptPayload {
@@ -27,12 +22,12 @@ export interface ReceiptPayload {
  * Verify an Ed25519-signed Guard receipt from request headers.
  *
  * Returns the parsed receipt payload if valid, or null if invalid.
- * Checks: signature validity, timestamp freshness, nonce uniqueness.
+ * Checks: signature validity, timestamp freshness, nonce uniqueness (DB-backed).
  */
-export function verifyGuardReceipt(
+export async function verifyGuardReceipt(
   receiptB64: string,
   signatureB64: string
-): ReceiptPayload | null {
+): Promise<ReceiptPayload | null> {
   const publicKeyHex = process.env.GUARD_PUBLIC_KEY;
   if (!publicKeyHex) {
     console.error("GUARD_PUBLIC_KEY not configured");
@@ -80,12 +75,20 @@ export function verifyGuardReceipt(
     return null;
   }
 
-  // Check nonce uniqueness (replay protection)
-  if (usedNonces.has(payload.nonce)) {
+  // Check nonce uniqueness (DB-backed replay protection).
+  // Atomic create: if the nonce already exists, the unique constraint throws.
+  try {
+    await prisma.usedNonce.create({
+      data: {
+        nonce: payload.nonce,
+        expiresAt: new Date(Date.now() + NONCE_TTL_MS),
+      },
+    });
+  } catch {
+    // Unique constraint violation = nonce already used
     console.warn("Guard receipt rejected: nonce reused (replay detected)");
     return null;
   }
-  usedNonces.set(payload.nonce, Date.now() + NONCE_TTL_MS);
 
   return payload;
 }

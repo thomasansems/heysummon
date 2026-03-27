@@ -2,6 +2,30 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## Docker Refactor — 2026-03-27
+
+### Changed
+- **Breaking:** Merged Guard content safety into the main app as built-in middleware. The separate `heysummon-guard` Docker image is no longer needed.
+- Simplified Docker deployment: just app + PostgreSQL (no more Guard proxy, keygen service, or shared key volumes)
+- Content safety (HTML sanitization, URL defanging, PII detection/blocking) now runs in-process on API routes
+- Removed Ed25519 receipt signing system (`x-guard-receipt` headers no longer used)
+- Single Docker image: `ghcr.io/thomasansems/heysummon`
+
+### Removed
+- `ghcr.io/thomasansems/heysummon-guard` Docker image (deprecated)
+- `Dockerfile.allinone` (superseded by single Dockerfile)
+- `docker-compose.prod.yml`, `docker-compose.cloudflare.yml`, `docker-compose.ngrok.yml`, `docker-compose.tailscale.yml` (superseded by profiles in `docker-compose.yml`)
+- Environment variables: `GUARD_SIGNING_KEY`, `GUARD_PUBLIC_KEY`, `REQUIRE_GUARD`, `GUARD_PORT`
+- `guard/` directory and `scripts/generate-guard-keys.ts`
+
+### Migration
+If upgrading from a previous version:
+1. Pull the new `docker-compose.yml`
+2. Remove `GUARD_*` and `REQUIRE_GUARD` from your `.env`
+3. Run `docker compose up -d` — the guard-keygen and heysummon-guard services are no longer defined
+
+---
+
 ## Documentation Audit — 2026-03-27
 
 ### Fixed
@@ -67,10 +91,9 @@ Initial public beta release.
 - `POST /api/v1/events/ack/:id` — acknowledge delivery
 
 **Security**
-- Guard proxy — Ed25519-signed receipts on every request
 - Content safety scanning — XSS, PII (CC, SSN, BSN), malicious URLs
 - OWASP ZAP automated scanning in CI (runs on every PR + nightly)
-- Malicious content CI gate — build fails if Guard lets dangerous content through
+- Malicious content CI gate — build fails if content safety lets dangerous content through
 - HMAC-SHA256 API key hashing (replaces plain SHA256)
 - IP binding per key and per provider profile
 
@@ -81,7 +104,7 @@ Initial public beta release.
 - IP Security inline on Clients and Users dashboard pages
 
 **Infrastructure**
-- Docker deployment with Guard, Platform, PostgreSQL
+- Docker deployment with app and PostgreSQL
 - NPX installer (`npx @heysummon/app`) for local/personal use
 - GitHub Container Registry images at `ghcr.io/thomasansems/heysummon`
 - Automated release workflow with Docker image publishing

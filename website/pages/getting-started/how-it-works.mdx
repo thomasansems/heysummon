@@ -32,13 +32,9 @@ AI Agent
   │  POST /api/v1/help
   │  { apiKey, question (encrypted), signPublicKey, encryptPublicKey }
   ▼
-Guard
+App
   │  Validates x-api-key
-  │  Inspects content: XSS, PII, malicious URLs
-  │  Adds X-Guard-Receipt (Ed25519 signature)
-  ▼
-Platform
-  │  Verifies Guard receipt
+  │  Content safety: XSS, PII, malicious URLs
   │  Generates ref code: HS-XXXXXXXX
   │  Stores encrypted request
   │  Creates event on provider topic
@@ -88,13 +84,12 @@ All messages in a conversation share the same `HS-XXXXXXXX` ref code.
 
 ---
 
-## Guard proxy
+## Content safety
 
-All requests flow through the **Guard proxy** before reaching the platform:
+All API requests are automatically scanned by built-in content safety middleware:
 
-- Validates the API key
 - Scans for malicious content: XSS, HTML injection, PII (credit cards, SSNs, BSNs)
 - Defangs suspicious URLs
-- Signs the request with Ed25519 — platform rejects anything that bypassed Guard
+- Blocks requests containing credit cards or SSN/BSN patterns (422)
 
-See [Security → Content Safety Guard](/security/content-safety-guard) for details.
+See [Security → Content Safety](/security/content-safety-guard) for details.

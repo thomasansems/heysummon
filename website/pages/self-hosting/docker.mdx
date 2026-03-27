@@ -2,7 +2,7 @@ import { Callout } from 'nextra/components'
 
 # Docker
 
-The recommended way to self-host HeySummon. Includes Guard, Platform, and PostgreSQL.
+The recommended way to self-host HeySummon. Runs the app and PostgreSQL in Docker.
 
 ## Prerequisites
 
@@ -26,35 +26,30 @@ This script:
 
 Open `http://localhost:3445` when done.
 
-## Docker images
+## Docker image
 
 ```
-ghcr.io/thomasansems/heysummon        # main platform
-ghcr.io/thomasansems/heysummon-guard  # guard proxy
+ghcr.io/thomasansems/heysummon
 ```
 
 Pull manually:
 
 ```bash
 docker pull ghcr.io/thomasansems/heysummon:latest
-docker pull ghcr.io/thomasansems/heysummon-guard:latest
 ```
 
 ## Architecture
 
 ```
 Internet
-    │
-    ▼
-Guard (:3445)          — Ed25519 signing, rate limiting, key validation
-    │
-    ▼ (internal network only)
-Platform (Next.js)     — API, dashboard, auth
-    │
-    └──▶ PostgreSQL     — data storage
+    |
+    v
+App (:3445)            — API, dashboard, auth, content safety
+    |
+    +---> PostgreSQL   — data storage
 ```
 
-Guard is the **only** externally reachable service. Platform has no exposed ports.
+Content safety (HTML sanitization, URL defanging, PII detection/blocking) runs as built-in middleware inside the app.
 
 ## Making it public
 
@@ -95,8 +90,7 @@ HEYSUMMON_VERSION=0.1.0 docker compose up -d
 ## Logs
 
 ```bash
-docker compose logs -f app              # Platform logs
-docker compose logs -f heysummon-guard  # Guard logs
+docker compose logs -f app
 ```
 
 ## Backups

@@ -276,9 +276,6 @@ All `HEYSUMMON_*` variables are optional unless marked required.
 | `DEBUG` | `false` | Set `true` for verbose API logging |
 | `GITHUB_ID` / `GITHUB_SECRET` | — | GitHub OAuth credentials (optional) |
 | `GOOGLE_ID` / `GOOGLE_SECRET` | — | Google OAuth credentials (optional) |
-| `GUARD_SIGNING_KEY` | — | Ed25519 private key for Guard (auto-generated in Docker) |
-| `GUARD_PUBLIC_KEY` | — | Ed25519 public key for Platform (auto-generated in Docker) |
-| `REQUIRE_GUARD` | `false` | Set `true` to reject requests not signed by Guard |
 | `CLOUDFLARE_TUNNEL_TOKEN` | — | Token for Cloudflare tunnel profile |
 | `TAILSCALE_AUTHKEY` | — | Auth key for Tailscale tunnel profile |
 | `NGROK_AUTHTOKEN` | — | Token for Ngrok tunnel profile |

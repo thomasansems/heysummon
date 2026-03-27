@@ -53,7 +53,7 @@ See [Best Practice Prompts](/best-practices) for copy-paste system prompt snippe
 - **End-to-end encrypted** — the platform stores ciphertext it cannot read
 - **Self-hostable** — one Docker command, your data stays on your infrastructure
 - **Multi-channel** — humans respond via dashboard, Telegram, Slack, WhatsApp, or phone
-- **Guard proxy** — every request is content-scanned and cryptographically signed
+- **Content safety** — every request is scanned for XSS, PII, and malicious URLs
 - **No persistent connections** — simple HTTP polling under the hood
 
 ---
@@ -81,5 +81,5 @@ See [Best Practice Prompts](/best-practices) for copy-paste system prompt snippe
 | [E2E Encryption](/security/encryption) | X25519 + AES-256-GCM under the hood |
 | [Self-Hosting](/self-hosting/docker) | Deploy with Docker Compose |
 | [Provider Guide](/provider/conversations) | Responding to requests as a human expert |
-| [Security Overview](/security/overview) | Guard proxy, content safety, IP binding |
+| [Security Overview](/security/overview) | Content safety, encryption, IP binding |
 | [Changelog](/reference/changelog) | What's new in each release |

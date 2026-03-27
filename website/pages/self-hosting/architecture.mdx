@@ -9,47 +9,40 @@ HeySummon is designed around security, reliable delivery, and zero-knowledge rel
 ## Components
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                  Docker internal network                 │
-│                                                          │
-│  ┌─────────┐    ┌──────────────┐    ┌────────────────┐  │
-│  │  Guard  │───▶│   Platform   │───▶│   PostgreSQL   │  │
-│  │  :3445  │    │  (Next.js)   │    └────────────────┘  │
-│  │ Ed25519 │    │  (internal)  │                        │
-│  └─────────┘    └──────────────┘                        │
-│       ▲                                                  │
-│       │                                                  │
-└──────────────────────────────────────────────────────────┘
++------------------------------------------------------+
+|                Docker internal network                |
+|                                                       |
+|  +-------------+                +------------------+  |
+|  |     App     |-------------->|    PostgreSQL     |  |
+|  |   :3445     |               +------------------+  |
+|  | (Next.js)   |                                      |
+|  +-------------+                                      |
+|        ^                                              |
+|        |                                              |
++------------------------------------------------------+
 ```
 
 ---
 
-## Guard
+## App (Next.js)
 
-The single entry point. All external traffic goes through Guard first.
-
-**What Guard does:**
-- Scans content for XSS, PII (credit cards, SSNs, BSNs, emails, phone numbers), malicious URLs
-- Defangs URLs in content (`https://` becomes `hxxps://`, dots become `[.]`)
-- Blocks requests containing credit card numbers or SSN/BSN patterns
-- Signs every validated request with Ed25519 (`x-guard-receipt` + `x-guard-receipt-sig` headers)
-- Proxies all requests to Platform on the internal network
-
-**Why Guard exists:**
-- Platform rejects any request that wasn't signed by Guard — content is always scanned first
-- Content safety enforcement is cryptographically verifiable, not just middleware
-- Guard is the only service with an exposed port — Platform is internal-only
-
----
-
-## Platform (Next.js)
-
-The core application. Runs on an **internal network with no exposed ports**.
+The single service that handles everything:
 
 - App Router API routes under `/api/*` and `/api/v1/*`
 - Dashboard UI for human experts
 - Auth via NextAuth.js (email/password + optional OAuth)
 - Prisma ORM with PostgreSQL (or SQLite for NPX installs)
+- Built-in content safety middleware
+
+### Content safety (built-in)
+
+Content safety runs as in-process middleware on API routes. Every incoming request is automatically scanned before processing.
+
+**What it does:**
+- Scans content for XSS and strips HTML tags
+- Defangs URLs in content (`https://` becomes `hxxps://`, dots become `[.]`)
+- Detects PII: credit cards, SSNs, BSNs, emails, phone numbers
+- Blocks requests containing credit card numbers or SSN/BSN patterns (returns 422)
 
 ---
 
@@ -58,8 +51,8 @@ The core application. Runs on an **internal network with no exposed ports**.
 Events are delivered via **HTTP polling**. Clients poll `GET /api/v1/events/pending` to receive updates.
 
 ```
-Provider Watcher  ──▶  GET /api/v1/events/pending
-Dashboard Browser ──▶  GET /api/v1/events/pending
+Provider Watcher  -->  GET /api/v1/events/pending
+Dashboard Browser -->  GET /api/v1/events/pending
 ```
 
 The polling endpoint:
@@ -73,23 +66,21 @@ The polling endpoint:
 
 ```
 AI Agent
-  │
-  │  POST /api/v1/help (with x-api-key)
-  ▼
-Guard
-  │  Scans content, signs with Ed25519 receipt
-  ▼
-Platform
-  │  Verifies receipt, stores encrypted request, generates ref code
-  │  Creates event on provider topic
-  ▼
+  |
+  |  POST /api/v1/help (with x-api-key)
+  v
+App
+  |  Content safety middleware scans and sanitizes
+  |  Stores encrypted request, generates ref code
+  |  Creates event on provider topic
+  v
 Provider watcher / Dashboard (via polling)
-                       │
-                       │  Human reads, responds
-                       ▼
-                   Platform
-                       │  Updates request status, creates event
-                       ▼
+                       |
+                       |  Human reads, responds
+                       v
+                   App
+                       |  Updates request status, creates event
+                       v
                    AI Agent (via polling)
 ```
 
@@ -102,19 +93,19 @@ Consumer (AI Agent)           Platform (blind relay)         Provider (Human)
 
 Generate Ed25519 keypair
 Generate X25519 keypair
-                    ──── POST /api/v1/help ────▶
+                    ---- POST /api/v1/help ---->
                          (signPubKey, encryptPubKey,
                           question)
-                                                ──── notification ────▶
+                                                ---- notification ---->
                                                               Generate keypairs
-                                                ◀── POST /key-exchange ──
+                                                <-- POST /key-exchange --
                                                      (signPubKey, encryptPubKey)
 
   Both sides derive shared secret via X25519 DH — never transmitted
   Per-message keys via HKDF-SHA256, encrypted with AES-256-GCM
   Every message signed with Ed25519
 
-                    ◀──── encrypted messages (via polling) ──────────────
+                    <---- encrypted messages (via polling) --------------
 Verify signature,
 decrypt with derived key
 ```
@@ -128,9 +119,7 @@ The platform stores only ciphertext and public keys. Private keys never leave cl
 | Threat | Mitigation |
 |--------|-----------|
 | Unauthenticated requests | Platform validates `x-api-key` with HMAC-SHA256 comparison |
-| Malicious content | Guard scans for XSS, PII, URLs before signing |
-| Request forgery | Ed25519 receipts — Platform rejects requests without valid Guard signature |
+| Malicious content | Built-in middleware scans for XSS, PII, URLs on every request |
 | Data exposure | E2E encryption — platform stores ciphertext only |
 | Brute force | Rate limiting per IP at the Platform edge (60 req/min API, 30 legacy polling, 300 events polling) |
 | Key compromise | Key rotation with 24h grace period, IP binding, device tokens |
-| Direct platform access | Platform on internal Docker network, no exposed ports |

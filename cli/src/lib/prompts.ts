@@ -18,7 +18,9 @@ export async function ask(
     placeholder: defaultValue,
   });
   handleCancel(value);
-  return value as string;
+  // After handleCancel, value is guaranteed to be string (not symbol)
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+  return String(value);
 }
 
 export async function askYesNo(
@@ -30,7 +32,7 @@ export async function askYesNo(
     initialValue: defaultValue,
   });
   handleCancel(value);
-  return value as boolean;
+  return Boolean(value);
 }
 
 export async function askSecret(message: string): Promise<string> {
@@ -38,7 +40,7 @@ export async function askSecret(message: string): Promise<string> {
     message,
   });
   handleCancel(value);
-  return value as string;
+  return String(value);
 }
 
 export async function askConfirmText(
@@ -55,5 +57,5 @@ export async function askConfirmText(
     },
   });
   handleCancel(value);
-  return value === expected;
+  return String(value) === expected;
 }

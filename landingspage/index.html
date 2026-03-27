@@ -11,6 +11,21 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Umami analytics (privacy-friendly, GDPR-compliant, no cookies for tracking) -->
+    <!-- Set VITE_UMAMI_URL and VITE_UMAMI_WEBSITE_ID env vars to activate -->
+    <script>
+      (function() {
+        var id = '%VITE_UMAMI_WEBSITE_ID%';
+        var url = '%VITE_UMAMI_URL%';
+        if (id && url && !id.startsWith('%')) {
+          var s = document.createElement('script');
+          s.defer = true;
+          s.dataset.websiteId = id;
+          s.src = url + '/script.js';
+          document.head.appendChild(s);
+        }
+      })();
+    </script>
   </body>
 </html>
 

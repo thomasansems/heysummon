@@ -11,20 +11,23 @@ import { FrameworksSection } from './components/FrameworksSection';
 import { SecuritySection } from './components/SecuritySection';
 import { CTASection } from './components/CTASection';
 import { Footer } from './components/Footer';
+import { AnalyticsProvider } from './components/AnalyticsProvider';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-bg-deep text-text-body font-sans selection:bg-primary/30">
-      <Navbar />
-      <main>
-        <Hero />
-        <VideoSection />
-        <SkillSection />
-        <FrameworksSection />
-        <SecuritySection />
-        <CTASection />
-      </main>
-      <Footer />
-    </div>
+    <AnalyticsProvider>
+      <div className="min-h-screen bg-bg-deep text-text-body font-sans selection:bg-primary/30">
+        <Navbar />
+        <main>
+          <Hero />
+          <VideoSection />
+          <SkillSection />
+          <FrameworksSection />
+          <SecuritySection />
+          <CTASection />
+        </main>
+        <Footer />
+      </div>
+    </AnalyticsProvider>
   );
 }

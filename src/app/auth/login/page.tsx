@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { LobsterBackground } from "@/components/auth/lobster-background";
+import { HeySummonIcon } from "@/components/icons/HeySummonIcon";
 
 // Direct signIn call without SessionProvider dependency
 async function doSignIn(provider: string, options: Record<string, unknown>): Promise<{ error?: string; url?: string } | undefined> {
@@ -152,16 +153,33 @@ function LoginForm() {
   const hasDivider = flags.formLogin && (hasOAuth || flags.magicLink);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <LobsterBackground />
+    <div className="relative flex min-h-screen items-end justify-center px-4 pb-16 sm:items-center sm:pb-0">
+
+      {/* Background image with gradient overlay */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/sumo.jpg"
+          alt=""
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/60 to-background" />
+      </div>
+
+      <Image
+          src="/hey-summon.png"
+          alt=""
+          width={32}
+          height={32}
+          className="object-cover w-8 h-8 mx-auto absolute top-5 left-5"
+          priority
+        />
+
+
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 text-center">
-          <Link
-            href="/"
-            className="mb-4 inline-flex items-center gap-2 text-lg font-bold text-foreground"
-          >
-            HeySummon
-          </Link>
+
           <h1 className="mt-6 text-2xl font-semibold text-foreground">
             {mode === "login"
               ? "Welcome back"
@@ -178,7 +196,7 @@ function LoginForm() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-lg p-6">
           {error && (
             <div className="mb-4 rounded-md bg-red-950/40 px-3 py-2 text-sm text-red-400">
               {error}
@@ -225,7 +243,7 @@ function LoginForm() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Your name (optional)"
-                        className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                        className="mb-3 w-full rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                       />
                     </>
                   )}
@@ -240,7 +258,7 @@ function LoginForm() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="you@example.com"
-                    className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    className="mb-3 w-full rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
 
                   <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
@@ -254,7 +272,7 @@ function LoginForm() {
                     required
                     minLength={8}
                     placeholder={mode === "register" ? "Min. 8 characters" : "••••••••"}
-                    className="mb-4 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    className="mb-4 w-full rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
 
                   <button
@@ -302,7 +320,7 @@ function LoginForm() {
                     <div className="w-full border-t border-border" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="bg-card px-2 text-muted-foreground">or continue with</span>
+                    <span className="bg-background/60 px-2 text-muted-foreground">or continue with</span>
                   </div>
                 </div>
               )}
@@ -320,7 +338,7 @@ function LoginForm() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="you@example.com"
-                    className="mb-3 w-full rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    className="mb-3 w-full rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
                   <button
                     type="submit"
@@ -341,7 +359,7 @@ function LoginForm() {
                     }
                   }}
                   disabled={!email}
-                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-background disabled:opacity-50"
+                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-white/10 disabled:opacity-50"
                 >
                   ✉️ Send Magic Link instead
                 </button>
@@ -364,7 +382,7 @@ function LoginForm() {
                   {flags.google && (
                     <button
                       onClick={() => doSignIn("google", { callbackUrl })}
-                      className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-background"
+                      className="flex w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-white/10"
                     >
                       <svg className="h-5 w-5" viewBox="0 0 24 24">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />

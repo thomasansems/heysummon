@@ -1,7 +1,7 @@
 {
-  "name": "heysummon",
+  "name": "@heysummon/app",
   "version": "0.1.0",
-  "description": "HeySummon — Human-in-the-loop for AI agents. Install & run with one command.",
+  "description": "HeySummon \u2014 Human-in-the-loop for AI agents. Install & run with one command.",
   "bin": {
     "heysummon": "./bin/cli.js"
   },

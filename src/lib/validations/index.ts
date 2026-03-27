@@ -116,7 +116,10 @@ export const helpCreateSchema = z.object({
   signPublicKey: z.string().max(2048).optional(),
   encryptPublicKey: z.string().max(2048).optional(),
   publicKey: z.string().max(4096).optional(),
-  messages: z.array(z.any()).max(200).optional(),
+  messages: z.array(z.object({
+    role: z.string().min(1).max(64),
+    content: z.string().max(100_000),
+  })).max(200).optional(),
   question: z.string().max(50_000).optional(),
   questionPreview: z.string().max(500).optional(),
   requiresApproval: z.boolean().optional(),

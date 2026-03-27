@@ -1,7 +1,4 @@
 {
-  "rootDirectory": "vercel-waitlist",
-  "buildCommand": "next build",
-  "installCommand": "npm install",
   "ignoreCommand": "exit 1",
   "github": {
     "silent": true

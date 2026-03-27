@@ -106,15 +106,17 @@ export async function POST(
     // Support plaintext messages (unencrypted, for simple reply flows)
     if (plaintext && !ciphertext) {
       // Run content safety on plaintext messages from consumers
+      let safeText = plaintext;
       if (from === "consumer") {
         const safetyCheck = checkContentSafety({ plaintext });
         if (!safetyCheck.passed) {
           return safetyCheck.response;
         }
+        safeText = safetyCheck.sanitizedText || plaintext;
       }
 
       const crypto = await import("node:crypto");
-      ciphertext = Buffer.from(plaintext).toString("base64");
+      ciphertext = Buffer.from(safeText).toString("base64");
       iv = "plaintext";
       authTag = "plaintext";
       signature = "plaintext";

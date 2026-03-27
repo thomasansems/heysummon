@@ -26,7 +26,7 @@ export function SkillSection() {
 
   return (
     <section id="skill" className="py-32 px-8 max-w-6xl mx-auto">
-      <div className="grid md:grid-cols-2 gap-16 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
         <div>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -102,7 +102,7 @@ export function SkillSection() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 1.4, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-          className="relative rounded-2xl overflow-hidden min-h-[500px] border border-white/10"
+          className="relative rounded-2xl overflow-hidden min-h-[350px] md:min-h-[500px] border border-white/10"
         >
           <img src="https://images.pexels.com/photos/167698/pexels-photo-167698.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Forest" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-bg-deep via-bg-deep/50 to-transparent" />
@@ -121,7 +121,7 @@ export function SkillSection() {
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
                 <span className="text-xs font-mono text-text-muted ml-2">terminal</span>
               </div>
-              <div className="p-6 font-mono text-sm leading-relaxed overflow-x-auto">
+              <div className="p-4 sm:p-6 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto">
                 <div className="text-primary">$ npx skill.sh install heysummon</div>
                 <div className="text-text-muted mt-2">Installing HeySummon skill...</div>
                 <div className="text-green-check mt-1">&#10003; Skill installed successfully</div>

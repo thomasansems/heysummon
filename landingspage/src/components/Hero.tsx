@@ -51,9 +51,9 @@ export function Hero() {
           <span>Quick response</span>
         </motion.div>
 
-        <h1 className="font-serif text-5xl md:text-7xl leading-tight tracking-tight mb-6 whitespace-nowrap">
+        <h1 className="font-serif text-3xl sm:text-5xl md:text-7xl leading-tight tracking-tight mb-6">
           <span>Hey Summon</span>{' '}
-          <span className="inline-block min-w-[150px] text-left">
+          <span className="inline-block min-w-[2ch] text-left">
             {currentText}<span className="animate-pulse">|</span>
           </span>
         </h1>
@@ -62,21 +62,21 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-xl text-text-body max-w-2xl mx-auto mb-10"
+          className="text-base sm:text-lg md:text-xl text-text-body max-w-2xl mx-auto mb-10"
         >
-          Easily install a skill via the <code className="text-white bg-white/10 px-2 py-1 rounded">npx skill.sh</code> framework. Your agent asks, a human responds, and the workflow continues.
+          A self-hosted, open-source platform that gives your AI agents a direct line to human experts. Install a skill via <code className="text-white bg-white/10 px-2 py-1 rounded">npx skill.sh</code>, your agent asks, a human responds, and the workflow continues. Your data never leaves your infrastructure.
         </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="flex justify-center gap-4"
+          className="flex flex-col sm:flex-row justify-center gap-4"
         >
-          <a href="https://cloud.heysummon.ai" target="_blank" rel="noopener noreferrer" className="bg-white text-bg-deep px-6 py-3 rounded-full font-semibold hover:bg-text-heading transition-colors flex items-center gap-2">
+          <a href="https://cloud.heysummon.ai" target="_blank" rel="noopener noreferrer" className="bg-white text-bg-deep px-6 py-3 rounded-full font-semibold hover:bg-text-heading transition-colors flex items-center justify-center gap-2">
             Join Waiting List
           </a>
-          <a href="https://docs.heysummon.ai" target="_blank" rel="noopener noreferrer" className="bg-transparent border border-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/5 transition-colors">
+          <a href="https://docs.heysummon.ai" target="_blank" rel="noopener noreferrer" className="bg-transparent border border-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/5 transition-colors text-center">
             Read the Docs
           </a>
         </motion.div>

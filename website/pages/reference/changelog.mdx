@@ -8,7 +8,8 @@ import { Callout } from 'nextra/components'
 - API key generation now uses cryptographically secure random bytes (`crypto.randomBytes`) instead of `Math.random()`
 - Reference code generation hardened with CSPRNG
 - Removed insecure `"fallback-dev-secret"` from HMAC operations; server now refuses to start without `NEXTAUTH_SECRET`
-- Key-exchange endpoint now requires session authentication and verifies the caller is the assigned provider
+- Key-exchange endpoint now requires provider API key authentication (`x-api-key` with `hs_prov_*` prefix) with IP binding, device secret, and machine ID validation — matching the auth pattern used by all other provider endpoints
+- Duplicate key-exchange attempts now return `409 Conflict` instead of `400`
 
 ---
 

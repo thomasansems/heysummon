@@ -73,7 +73,7 @@ export async function init(opts?: { yes?: boolean }): Promise<void> {
       p.cancel("Setup cancelled.");
       process.exit(0);
     }
-    port = parseInt(portInput, 10) || 3435;
+    port = parseInt(String(portInput), 10) || 3435;
 
     p.log.info(
       `HeySummon will be available at: ${color.cyan(`http://localhost:${port}`)}`
@@ -88,7 +88,7 @@ export async function init(opts?: { yes?: boolean }): Promise<void> {
       p.cancel("Setup cancelled.");
       process.exit(0);
     }
-    publicUrl = urlInput;
+    publicUrl = String(urlInput);
   } else {
     p.log.info(
       `Using defaults: port ${color.cyan("3435")}, URL ${color.cyan(publicUrl)}`

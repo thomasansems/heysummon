@@ -15,4 +15,16 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #3697 | 10:50 PM | 🟣 | Added user-friendly IP authorization error handling to consumer SDK CLI | ~376 |
+
+### Mar 27, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #4081 | 1:16 AM | 🔵 | HeySummon SDK Type System and Event Types | ~666 |
+| #4079 | 1:15 AM | 🔵 | HeySummon Consumer SDK Client Implementation | ~667 |
+| #4074 | 1:14 AM | 🔵 | HeySummon Consumer SDK API Surface | ~526 |
+| #4064 | 1:12 AM | 🟣 | Competitive Battlecards for Top 5 HITL Competitors | ~937 |
+| #4054 | 1:11 AM | 🔵 | E2E Encryption Implementation Details | ~438 |
+| #3963 | 12:53 AM | 🟣 | Created 3 Reddit launch posts for HeySummon | ~549 |
+| #3898 | 12:06 AM | 🔵 | Third sub-agent research completed comprehensive technical/product analysis | ~556 |
 </claude-mem-context>

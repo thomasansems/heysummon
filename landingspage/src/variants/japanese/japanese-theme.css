@@ -1,0 +1,112 @@
+/**
+ * Japanese anime-art variant theme tokens.
+ * Scoped to .japanese-variant root to avoid leaking into control (A).
+ *
+ * Color palette: Azuki-inspired deep indigo + crimson + gold
+ * Typography: Noto Serif JP for headings, Zen Kaku Gothic New for body
+ */
+
+.japanese-variant {
+  --color-bg-deep:           #1a1a2e;
+  --color-bg-card:           #252540;
+  --color-text-heading:      #faf5ef;
+  --color-text-body:         #c4b5a0;
+  --color-text-muted:        #8a7d6e;
+  --color-primary:           #dc2626;
+  --color-accent-gold:       #f59e0b;
+  --color-accent-vermillion: #ff4500;
+  --color-ink-black:         #0d0d0d;
+  --color-green-check:       #34d399;
+
+  --font-serif: 'Noto Serif JP', 'Joti One', Georgia, serif;
+  --font-sans:  'Zen Kaku Gothic New', 'DM Sans', system-ui, sans-serif;
+  --font-mono:  'JetBrains Mono', monospace;
+
+  background-color: var(--color-bg-deep);
+  color: var(--color-text-body);
+  font-family: var(--font-sans);
+}
+
+/* Heading overrides scoped to variant */
+.japanese-variant h1,
+.japanese-variant h2,
+.japanese-variant h3,
+.japanese-variant h4,
+.japanese-variant h5,
+.japanese-variant h6 {
+  color: var(--color-text-heading);
+  font-family: var(--font-serif);
+}
+
+/* Brush stroke border utility */
+.japanese-variant .brush-border {
+  border-image: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent-gold) 50%,
+    var(--color-primary) 100%
+  ) 1;
+  border-width: 2px;
+  border-style: solid;
+}
+
+/* Ink wash overlay utility */
+.japanese-variant .ink-wash-overlay {
+  position: relative;
+}
+
+.japanese-variant .ink-wash-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(13, 13, 13, 0.15) 40%,
+    rgba(26, 26, 46, 0.4) 100%
+  );
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Wooden plaque card utility */
+.japanese-variant .wooden-plaque {
+  background: linear-gradient(
+    145deg,
+    #3a2f25 0%,
+    #2a2218 50%,
+    #1f1a14 100%
+  );
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 158, 11, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Paper texture background */
+.japanese-variant .paper-texture {
+  background-color: var(--color-bg-card);
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(250, 245, 239, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(245, 158, 11, 0.02) 0%, transparent 50%);
+}
+
+/* Gold accent utilities */
+.japanese-variant .gold-accent {
+  color: var(--color-accent-gold);
+}
+
+.japanese-variant .gold-border {
+  border-color: var(--color-accent-gold);
+}
+
+/* Crimson primary button */
+.japanese-variant .btn-crimson {
+  background-color: var(--color-primary);
+  color: var(--color-text-heading);
+  transition: background-color 0.2s ease;
+}
+
+.japanese-variant .btn-crimson:hover {
+  background-color: #b91c1c;
+}

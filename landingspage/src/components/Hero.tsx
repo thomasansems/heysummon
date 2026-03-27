@@ -31,11 +31,12 @@ export function Hero() {
   }, [currentText, isDeleting, nameIndex]);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
+    // Hero should be places at the bottom of the page, so it can be the first thing users see when they scroll down
+    <section className="relative min-h-screen flex items-center pt-80 justify-center overflow-hidden pt-24">
       {/* Background image */}
       <div className="absolute inset-0 z-0">
-        <img src="https://images.pexels.com/photos/796217/pexels-photo-796217.jpeg?auto=compress&cs=tinysrgb&w=1920" alt="Background" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-bg-deep/40 via-bg-deep/50 to-bg-deep/100" />
+        <img src="/sumo.jpg" alt="Background" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-bg-deep/10 via-bg-deep/60 to-bg-deep/100" />
       </div>
 
       <div className="relative z-10 text-center max-w-6xl px-8">

@@ -20,6 +20,21 @@ const TIMEOUT_PRESETS = [
   { value: -1, label: "Custom", desc: "" },
 ];
 
+const SUMMON_CONTEXT_PRESETS = [
+  {
+    label: "Strict",
+    text: "Only summon when the AI is completely stuck and cannot proceed without human input. Do not summon for style preferences or minor decisions.",
+  },
+  {
+    label: "Budget-conscious",
+    text: "Summon only for decisions that could cost money or affect billing. Proceed autonomously on all other tasks.",
+  },
+  {
+    label: "Safety-first",
+    text: "Summon before any destructive action (deleting data, modifying production, changing permissions). Proceed autonomously for read-only and development tasks.",
+  },
+];
+
 const PLATFORM_META: Record<string, { label: string; skillDir: string }> = {
   openclaw: { label: "OpenClaw", skillDir: "skills/heysummon" },
   claudecode: { label: "Claude Code", skillDir: ".claude/skills/heysummon" },
@@ -58,6 +73,7 @@ export function StepClient({
   const [customTimeout, setCustomTimeout] = useState<number | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
+  const [summonContext, setSummonContext] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   // Created client data
@@ -121,6 +137,15 @@ export function StepClient({
       setKeyId(createdKeyId);
       setApiKey(createdApiKey);
 
+      // Save summoning context to provider profile (if set)
+      if (summonContext.trim()) {
+        await fetch(`/api/providers/${providerId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ summonContext: summonContext.trim() }),
+        });
+      }
+
       // Generate setup link
       const linkRes = await fetch("/api/v1/setup-link", {
         method: "POST",
@@ -168,7 +193,7 @@ cat > ${skillDir}/.env << 'EOF'
 HEYSUMMON_BASE_URL=${baseUrl}
 HEYSUMMON_API_KEY=${apiKey}
 HEYSUMMON_TIMEOUT=${timeout}
-HEYSUMMON_POLL_INTERVAL=${pollInterval}
+HEYSUMMON_POLL_INTERVAL=${pollInterval}${summonContext.trim() ? `\nHEYSUMMON_SUMMON_CONTEXT=${summonContext.trim()}` : ""}
 EOF
 echo "Verifying connection..." && \\
 curl -sf "${baseUrl}/api/v1/whoami" \\
@@ -345,6 +370,43 @@ B) Create a /discounts endpoint myself`}</pre>
             )}
           </div>
 
+          {/* Summoning context */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              Summoning guidelines (optional)
+            </label>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              Tell the AI when it should and shouldn&apos;t summon you. This context
+              is included in the consumer&apos;s environment.
+            </p>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {SUMMON_CONTEXT_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => setSummonContext(preset.text)}
+                  className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    summonContext === preset.text
+                      ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
+                      : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={summonContext}
+              onChange={(e) => setSummonContext(e.target.value.slice(0, 500))}
+              placeholder="e.g. Only summon me when you need architecture decisions or production access..."
+              rows={3}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring resize-none"
+            />
+            <p className="mt-1 text-right text-[11px] text-muted-foreground">
+              {summonContext.length}/500
+            </p>
+          </div>
+
           {/* Advanced settings — poll interval */}
           <div>
             <button
@@ -417,6 +479,16 @@ B) Create a /discounts endpoint myself`}</pre>
       {/* Phase: Connecting */}
       {phase === "connecting" && (
         <div className="space-y-4 animate-in fade-in duration-200">
+          {summonContext.trim() && (
+            <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/10 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1">
+                Summoning guidelines
+              </p>
+              <p className="text-xs text-foreground whitespace-pre-wrap">
+                {summonContext.trim()}
+              </p>
+            </div>
+          )}
           {isSkillBased ? (
             <div className="rounded-lg border border-border bg-black p-4">
               <p className="mb-2 text-xs text-muted-foreground font-medium">

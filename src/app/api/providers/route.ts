@@ -23,6 +23,7 @@ export async function GET() {
       phoneFirst: true,
       phoneFirstIntegrationId: true,
       phoneFirstTimeout: true,
+      summonContext: true,
       _count: { select: { apiKeys: true } },
       ipEvents: { orderBy: { lastSeen: "desc" } },
       channelProviders: {

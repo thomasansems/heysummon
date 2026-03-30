@@ -27,6 +27,7 @@ export async function GET(
       digestTime: true,
       tagline: true,
       taglineEnabled: true,
+      summonContext: true,
       userId: true,
     },
   });
@@ -72,6 +73,9 @@ export async function PATCH(
   if (body.availableDays !== undefined) data.availableDays = body.availableDays;
   if (body.digestTime !== undefined) data.digestTime = body.digestTime;
 
+  // Summoning context
+  if (body.summonContext !== undefined) data.summonContext = (body.summonContext as string)?.slice(0, 500) || null;
+
   // Phone-first
   if (body.phoneFirst !== undefined) data.phoneFirst = body.phoneFirst;
   if (body.phoneFirstIntegrationId !== undefined) data.phoneFirstIntegrationId = body.phoneFirstIntegrationId;
@@ -91,6 +95,7 @@ export async function PATCH(
       digestTime: true,
       tagline: true,
       taglineEnabled: true,
+      summonContext: true,
     },
   });
 

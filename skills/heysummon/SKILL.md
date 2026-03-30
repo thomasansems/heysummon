@@ -51,6 +51,16 @@ bash $SKILL_DIR/scripts/check-status.sh <refCode|requestId>
 - **Provider unavailable**: The request is rejected and you are told when the provider will be available again. You can ask again at that time.
 - **`TIMEOUT`**: No response within 15 minutes. The request remains visible on the HeySummon dashboard. You can ask again if needed.
 
+## When to summon
+
+If `HEYSUMMON_SUMMON_CONTEXT` is set in your `.env`, follow those guidelines to decide when to summon the provider. The provider wrote these instructions specifically for you.
+
+If no summoning context is configured, use these defaults:
+- Summon when you are **stuck** and cannot proceed without human input
+- Summon when a decision requires **human judgment** (architecture, UX, business logic)
+- Summon when you need **approval** before a destructive or irreversible action
+- Do **not** summon for trivial questions you can resolve yourself
+
 ## Rules
 
 - **Always wait** for the response before continuing
@@ -64,4 +74,5 @@ HEYSUMMON_BASE_URL=http://localhost:3425
 HEYSUMMON_API_KEY=hs_cli_your_key_here
 HEYSUMMON_TIMEOUT=900
 HEYSUMMON_POLL_INTERVAL=3
+HEYSUMMON_SUMMON_CONTEXT=Only summon when stuck or need approval
 ```

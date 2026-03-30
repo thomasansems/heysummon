@@ -81,6 +81,7 @@ model UserProfile {
   machineId        String?
   tagline          String?           // Optional upsell tagline appended to responses (max 160 chars)
   taglineEnabled   Boolean           @default(false)
+  summonContext    String?           // Advisory text for AI: when to summon this provider (max 500 chars)
   phoneFirst       Boolean           @default(false) // If true, attempt phone call before chat
   phoneFirstIntegrationId String?    // Which voice integration to use for phone-first
   phoneFirstTimeout       Int        @default(30)    // Seconds to wait for phone pickup before fallback
@@ -152,6 +153,7 @@ model SetupToken {
   channel       String                      // "openclaw" | "claudecode" | "codex" | "gemini" | "cursor"
   subChannel    String?                     // "telegram" | "whatsapp"
   providerName  String?
+  summonContext String?              // Copied from provider profile at link-creation time
   timeout       Int      @default(900)
   pollInterval  Int      @default(3)
   globalInstall Boolean  @default(true)

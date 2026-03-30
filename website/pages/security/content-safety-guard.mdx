@@ -1,14 +1,14 @@
 import { Callout } from 'nextra/components'
 
-# Content Safety Guard
+# Content Safety
 
-All requests flow through the **Guard proxy** before reaching the platform. Guard scans content for safety issues and signs every request with Ed25519.
+Content safety runs as built-in middleware inside the HeySummon app. Every incoming request is automatically scanned before processing.
 
 ---
 
-## What Guard checks
+## What it checks
 
-Guard validates content on `POST` requests to `/api/v1/help` and `/api/v1/message/*`. All other requests are proxied without content inspection.
+Content safety validates `POST` requests to `/api/v1/help` and `/api/v1/message/*`.
 
 | Check | What it does | Response on fail |
 |-------|-------------|-----------------|
@@ -17,26 +17,8 @@ Guard validates content on `POST` requests to `/api/v1/help` and `/api/v1/messag
 | **Email detection** | Detects email address patterns | Redacted |
 | **Phone detection** | International and local phone number formats | Redacted |
 | **URL defanging** | Converts URLs to safe format (`hxxps://`, `[.]`) | Cleaned |
-| **Oversized payloads** | Rejects bodies >1MB | `413` |
 
-API key validation, IP binding, and rate limiting are handled by the **Platform**, not Guard.
-
----
-
-## Guard receipt
-
-After content checks pass, Guard creates a signed receipt and attaches it as headers:
-
-```
-x-guard-receipt: <base64 JSON payload with contentHash, timestamp, nonce>
-x-guard-receipt-sig: <base64 Ed25519 detached signature>
-```
-
-The receipt payload contains a SHA-256 hash of the sanitized content, a timestamp, and a random nonce for replay protection. The Platform verifies the Ed25519 signature, checks that the timestamp is within 5 minutes, and tracks nonces to prevent replays. If the signature is missing or invalid, the request is rejected with `403`.
-
-<Callout type="warning">
-  The Guard signing keypair is generated during setup and stored securely. The private key never leaves the Guard process. The Platform only has the public key.
-</Callout>
+API key validation, IP binding, and rate limiting are separate middleware layers.
 
 ---
 
@@ -55,27 +37,24 @@ bash e2e/zap-malicious-check.sh
 ```
 
 Tests verified:
-- ✅ Credit card number → Guard blocks (422)
-- ✅ SSN → Guard blocks (422)
-- ✅ BSN (Dutch) → Guard blocks (422)
-- ✅ XSS `<script>` → Guard sanitizes or rejects
-- ✅ SQL injection → Platform handles safely (no 500)
-- ✅ Oversized payload (>1MB) → rejected (413)
-- ✅ No API key → 401
-- ✅ Message to nonexistent request → 403/404
+- Credit card number -> blocked (422)
+- SSN -> blocked (422)
+- BSN (Dutch) -> blocked (422)
+- XSS `<script>` -> sanitized
+- SQL injection -> handled safely (no 500)
+- No API key -> 401
+- Message to nonexistent request -> 403/404
 
 ---
 
-## Guard architecture
+## Implementation
 
-Guard is a **standalone Express server** that runs in its own Docker container:
+Content safety is implemented as two modules in the main app:
 
 ```
-/guard
-├── src/
-│   ├── index.ts            # Express app + proxy middleware
-│   ├── content-safety.ts   # Content scanning (XSS, PII, URL defanging)
-│   └── crypto.ts           # Ed25519 receipt signing
+src/lib/
+  content-safety.ts           # Content scanning (XSS, PII, URL defanging)
+  content-safety-middleware.ts # Route-level middleware (extract text, check, block/pass)
 ```
 
-In production Docker, Guard is the **only service with an exposed port** (`:3445`). The Platform has no exposed ports — it's only reachable via Guard on the internal Docker network.
+The middleware extracts text from request bodies (`question`, `messages[].content`, `plaintext`), runs the safety pipeline, and either blocks the request (422) or passes sanitized content through to the route handler.

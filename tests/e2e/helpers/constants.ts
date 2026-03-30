@@ -26,24 +26,5 @@ export const PW = {
   SLACK_CHANNEL_ID: "C00PW00TEST",
 } as const;
 
-// Read URLs from environment (GitHub Actions) or use defaults (local dev)
-const rawBaseUrl = process.env.BASE_URL || "http://localhost:3425";
-const rawGuardUrl = process.env.GUARD_URL; // Only set if explicitly passed
-
-export const BASE_URL = rawBaseUrl;
-
-/**
- * Guard URL — used when REQUIRE_GUARD=true in CI.
- * In CI, this is set separately (http://localhost:3457).
- * In local dev, defaults to BASE_URL (REQUIRE_GUARD=false).
- */
-export const GUARD_URL = rawGuardUrl || BASE_URL;
-
-// Debug: log the URLs being used (visible in test output)
-if (typeof console !== "undefined") {
-  console.log(`[PW Constants] BASE_URL=${BASE_URL}`);
-  console.log(`[PW Constants] GUARD_URL=${GUARD_URL}`);
-  if (rawGuardUrl) {
-    console.log(`[PW Constants] Using Guard proxy (REQUIRE_GUARD=true mode)`);
-  }
-}
+// Read URL from environment (GitHub Actions) or use default (local dev)
+export const BASE_URL = process.env.BASE_URL || "http://localhost:3425";

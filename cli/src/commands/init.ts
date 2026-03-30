@@ -65,7 +65,7 @@ export async function init(opts?: { yes?: boolean }): Promise<void> {
 
   if (!quickstart) {
     const portInput = await p.text({
-      message: "Guard port (app entry point)",
+      message: "App port",
       defaultValue: "3435",
       placeholder: "3435",
     });

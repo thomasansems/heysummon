@@ -69,6 +69,5 @@ Run both before opening a PR.
 ## Security
 
 - Never log or expose API keys, secrets, or private keys.
-- All API endpoints must go through the Guard proxy — do not add routes that bypass it.
-- Content safety scanning runs in Guard — do not remove or skip it.
+- Content safety middleware runs in-process on API routes — do not remove or skip it.
 - E2E encryption is opt-in for consumers — the platform must never store plaintext for encrypted requests.

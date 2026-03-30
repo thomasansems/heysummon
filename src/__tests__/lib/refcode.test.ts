@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateRefCode } from "./refcode";
+import { generateRefCode } from "../../lib/refcode";
 
 describe("generateRefCode", () => {
   it("returns HS-XXXXXXXX format", () => {

@@ -12,6 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:report": "vitest run --coverage --reporter=html",
     "test:all": "vitest run && playwright test",
     "db:seed": "tsx prisma/seed.ts"
   },

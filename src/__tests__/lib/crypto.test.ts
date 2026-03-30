@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateKeyPair, encryptMessage, decryptMessage } from "./crypto";
+import { generateKeyPair, encryptMessage, decryptMessage } from "../../lib/crypto";
 
 describe("generateKeyPair", () => {
   it("returns valid PEM public and private keys", () => {
@@ -25,7 +25,7 @@ describe("encryptMessage / decryptMessage roundtrip", () => {
   });
 
   it("handles unicode / long messages", () => {
-    const msg = "🔥".repeat(500);
+    const msg = "\u{1f525}".repeat(500);
     const encrypted = encryptMessage(msg, publicKey);
     expect(decryptMessage(encrypted, privateKey)).toBe(msg);
   });

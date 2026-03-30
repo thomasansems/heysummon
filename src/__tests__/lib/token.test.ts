@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createVerifyToken, verifyToken } from "./token";
+import { createVerifyToken, verifyToken } from "../../lib/token";
 
 describe("token", () => {
   it("creates and verifies a token", () => {

@@ -21,6 +21,8 @@ export interface SafetyResult {
  */
 export function sanitizeHtml(text: string): { text: string; flags: ContentFlag[] } {
   const window = new JSDOM("").window;
+  // jsdom's DOMWindow is structurally compatible but not assignable to DOMPurify's WindowLike
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const purify = DOMPurify(window as any);
   const clean = purify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
 
@@ -32,7 +34,7 @@ export function sanitizeHtml(text: string): { text: string; flags: ContentFlag[]
 }
 
 /**
- * Defang URLs: https → hxxps, dots in domain → [.]
+ * Defang URLs: https -> hxxps, dots in domain -> [.]
  */
 export function defangUrls(text: string): { text: string; flags: ContentFlag[] } {
   const flags: ContentFlag[] = [];

@@ -1,10 +1,10 @@
-import { BASE_URL, GUARD_URL } from "./constants";
+import { BASE_URL } from "./constants";
 
 type Headers = Record<string, string>;
 
 /**
  * Assert the HTTP status matches what the test expects.
- * Produces a clear failure message: "GET /api/v1/help → expected 200, got 403: {...}"
+ * Produces a clear failure message: "GET /api/v1/help -> expected 200, got 403: {...}"
  */
 async function assertStatus(
   method: string,
@@ -31,20 +31,14 @@ export async function apiGet<T>(
   return res.json() as Promise<T>;
 }
 
-/**
- * Typed POST request — asserts expectedStatus (default 200).
- * Routes /api/v1/* through Guard proxy when GUARD_URL is set (CI: REQUIRE_GUARD=true).
- */
+/** Typed POST request — asserts expectedStatus (default 200) */
 export async function apiPost<T>(
   path: string,
   body: unknown,
   headers?: Headers,
   expectedStatus = 200
 ): Promise<T> {
-  const useGuard = GUARD_URL && GUARD_URL !== BASE_URL && path.startsWith("/api/v1/");
-  const url = useGuard ? `${GUARD_URL}${path}` : `${BASE_URL}${path}`;
-
-  const res = await fetch(url, {
+  const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),

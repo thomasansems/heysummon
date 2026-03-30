@@ -1,4 +1,4 @@
-# E2E test environment — self-contained platform + Guard + DB
+# E2E test environment — self-contained app + DB
 # Usage: docker compose -f e2e/docker-compose.e2e.yml up -d
 #        bash e2e/e2e-test.sh
 #        docker compose -f e2e/docker-compose.e2e.yml down -v
@@ -20,20 +20,6 @@ services:
       timeout: 2s
       retries: 10
 
-  guard:
-    build:
-      context: ../guard
-      dockerfile: Dockerfile
-    environment:
-      PORT: "3000"
-      PLATFORM_URL: "http://app:3000"
-      GUARD_SIGNING_KEY: "${GUARD_SIGNING_KEY}"
-    ports:
-      - "3457:3000"
-    depends_on:
-      app:
-        condition: service_healthy
-
   app:
     build:
       context: ..
@@ -42,8 +28,6 @@ services:
       DATABASE_URL: "postgresql://heysummon:heysummon_e2e@db:5432/heysummon_e2e"
       NEXTAUTH_URL: "http://localhost:3000"
       NEXTAUTH_SECRET: "e2e-secret"
-      REQUIRE_GUARD: "true"
-      GUARD_PUBLIC_KEY: "${GUARD_PUBLIC_KEY}"
       PORT: "3000"
     ports:
       - "3000:3000"

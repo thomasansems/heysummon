@@ -13,7 +13,6 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_APP: ghcr.io/${{ github.repository }}
-  IMAGE_GUARD: ghcr.io/${{ github.repository }}-guard
 
 jobs:
   build-and-push:
@@ -39,8 +38,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── App image metadata ──
-      - name: Extract metadata (app)
+      - name: Extract metadata
         id: meta-app
         uses: docker/metadata-action@v5
         with:
@@ -50,19 +48,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
-      # ── Guard image metadata ──
-      - name: Extract metadata (guard)
-        id: meta-guard
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_GUARD }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
-
-      # ── Build & push main app ──
-      - name: Build and push app
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -72,15 +58,3 @@ jobs:
           labels: ${{ steps.meta-app.outputs.labels }}
           cache-from: type=gha,scope=app
           cache-to: type=gha,mode=max,scope=app
-
-      # ── Build & push guard ──
-      - name: Build and push guard
-        uses: docker/build-push-action@v5
-        with:
-          context: ./guard
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta-guard.outputs.tags }}
-          labels: ${{ steps.meta-guard.outputs.labels }}
-          cache-from: type=gha,scope=guard
-          cache-to: type=gha,mode=max,scope=guard

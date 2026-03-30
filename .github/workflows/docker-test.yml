@@ -1,0 +1,155 @@
+name: Docker Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "docker-compose.dev.yml"
+      - "e2e/docker-compose.e2e.yml"
+      - ".dockerignore"
+      - "prisma/schema.prisma"
+      - "prisma/migrations/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/docker-test.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "docker-compose.dev.yml"
+      - "e2e/docker-compose.e2e.yml"
+      - ".dockerignore"
+      - "prisma/schema.prisma"
+      - "prisma/migrations/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/docker-test.yml"
+
+concurrency:
+  group: docker-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXTAUTH_SECRET: ci-test-secret
+  DB_PASSWORD: ci-test-password
+
+jobs:
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          push: false
+          tags: heysummon:ci-test
+          cache-from: type=gha,scope=docker-test
+          cache-to: type=gha,mode=max,scope=docker-test
+
+  compose-smoke-test:
+    name: Compose Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: docker-build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start services
+        run: docker compose -f docker-compose.dev.yml up -d --build db db-migrate app
+
+      - name: Wait for healthy app
+        run: |
+          echo "Waiting for app health endpoint..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3445/api/v1/health > /dev/null 2>&1; then
+              echo "App is healthy (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i/30 - not ready, waiting 5s..."
+            sleep 5
+          done
+          echo "App failed to become healthy after 30 attempts"
+          exit 1
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.dev.yml logs --no-color > compose-smoke-logs.txt
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-smoke-test-logs
+          path: compose-smoke-logs.txt
+          retention-days: 7
+
+      - name: Teardown
+        if: always()
+        run: docker compose -f docker-compose.dev.yml down -v
+
+  e2e-compose-test:
+    name: E2E Compose Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: docker-build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start services
+        run: docker compose -f e2e/docker-compose.e2e.yml up -d --build
+
+      - name: Wait for healthy app
+        run: |
+          echo "Waiting for app health endpoint..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/v1/health > /dev/null 2>&1; then
+              echo "App is healthy (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i/30 - not ready, waiting 5s..."
+            sleep 5
+          done
+          echo "App failed to become healthy after 30 attempts"
+          exit 1
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f e2e/docker-compose.e2e.yml logs --no-color > e2e-compose-logs.txt
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-compose-test-logs
+          path: e2e-compose-logs.txt
+          retention-days: 7
+
+      - name: Teardown
+        if: always()
+        run: docker compose -f e2e/docker-compose.e2e.yml down -v

@@ -37,12 +37,12 @@ Every help request gets a human-readable reference code like `HS-AB12CD34`. Thes
 - Used to reply from a messaging app: `[HS-AB12CD34] Yes, proceed`
 - Included in audit logs for traceability
 
-## Guard Proxy
+## Content Safety
 
-All requests pass through the **Guard proxy** before reaching the platform:
+All API requests are automatically scanned by built-in content safety middleware:
 - Scans content for XSS, PII (credit cards, SSNs, BSNs, emails, phone numbers), and malicious URLs
-- Signs every validated request with Ed25519 — platform rejects anything that bypassed Guard
-- Blocks requests containing sensitive data (credit cards, SSNs/BSNs)
+- Blocks requests containing sensitive data (credit cards, SSNs/BSNs) with a 422 response
+- Defangs URLs and sanitizes HTML in content that passes through
 
 ## E2E Encryption
 

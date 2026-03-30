@@ -20,13 +20,6 @@ PostgreSQL format:
 DATABASE_URL=postgresql://user:password@host:5432/heysummon
 ```
 
-## Guard
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `GUARD_PUBLIC_KEY` | — | Ed25519 public key of the Guard — Platform uses this to verify receipts |
-| `REQUIRE_GUARD` | `false` | Set to `true` to require a valid Guard receipt on every content request. Auto-configured in Docker. |
-
 ## Auth / OAuth
 
 | Variable | Description |
@@ -39,7 +32,7 @@ DATABASE_URL=postgresql://user:password@host:5432/heysummon
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | `3000` | Port the Platform listens on (internal) |
+| `PORT` | `3000` | Port the app listens on (internal) |
 | `HEYSUMMON_REQUEST_TTL_MS` | `259200000` (72h) | Request lifetime in milliseconds before auto-expiry |
 | `HEYSUMMON_DEFAULT_RATE_LIMIT` | `150` | Default per-key rate limit (req/min) for new API keys |
 | `HEYSUMMON_EDITION` | `community` | Edition identifier (`community` or `cloud`) |

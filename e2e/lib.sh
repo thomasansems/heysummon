@@ -26,7 +26,8 @@ PROJECT_DIR="$(cd "$LIB_DIR/.." && pwd)"
 
 # ── Config (env vars with defaults) ──
 BASE_URL="${E2E_BASE_URL:-http://localhost:3000}"
-GUARD_URL="${GUARD_URL:-http://localhost:3457}"
+# Guard was merged into the app — GUARD_URL is now an alias for BASE_URL
+GUARD_URL="${GUARD_URL:-$BASE_URL}"
 E2E_RATE_LIMIT_BYPASS_SECRET="${E2E_RATE_LIMIT_BYPASS_SECRET:-}"
 
 # Bypass header args for direct curl calls (empty array if no secret set)

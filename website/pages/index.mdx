@@ -1,8 +1,15 @@
+---
+title: HeySummon
+description: Self-hosted, encrypted human-in-the-loop API for AI agents. Your agent asks a human for help and waits for the answer.
+---
+
 import { Callout } from 'nextra/components'
 
 # HeySummon
 
-**Your AI agent asks a human for help — and waits for the answer.**
+**The self-hosted, encrypted human-in-the-loop API for AI agents.**
+
+Your AI agent asks a human for help — and waits for the answer.
 
 ---
 
@@ -49,12 +56,12 @@ See [Best Practice Prompts](/best-practices) for copy-paste system prompt snippe
 
 ## What makes it different
 
-- **Conversational** — agents use natural language, not API calls
-- **End-to-end encrypted** — the platform stores ciphertext it cannot read
-- **Self-hostable** — one Docker command, your data stays on your infrastructure
-- **Multi-channel** — humans respond via dashboard, Telegram, Slack, WhatsApp, or phone
-- **Guard proxy** — every request is content-scanned and cryptographically signed
-- **No persistent connections** — simple HTTP polling under the hood
+- **Your data stays yours** — self-host on your infrastructure with one Docker command. Nothing phones home.
+- **Encrypted end-to-end** — messages are encrypted from agent to human with X25519 + AES-256-GCM. The server stores only ciphertext it cannot read.
+- **Works with any agent** — not tied to one framework. Claude Code, Codex, n8n, or any HTTP client.
+- **Humans respond where they are** — dashboard, Telegram, Slack, WhatsApp, or phone. No context-switching.
+- **Every request is signed and scanned** — the Guard proxy validates, rate-limits, and content-scans before anything reaches a human.
+- **No infrastructure overhead** — simple HTTP polling, no WebSockets, no persistent connections. `npx heysummon` and you're running.
 
 ---
 
@@ -81,5 +88,5 @@ See [Best Practice Prompts](/best-practices) for copy-paste system prompt snippe
 | [E2E Encryption](/security/encryption) | X25519 + AES-256-GCM under the hood |
 | [Self-Hosting](/self-hosting/docker) | Deploy with Docker Compose |
 | [Provider Guide](/provider/conversations) | Responding to requests as a human expert |
-| [Security Overview](/security/overview) | Guard proxy, content safety, IP binding |
+| [Security Overview](/security/overview) | Content safety, encryption, IP binding |
 | [Changelog](/reference/changelog) | What's new in each release |

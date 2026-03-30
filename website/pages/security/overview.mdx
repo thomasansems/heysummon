@@ -1,3 +1,8 @@
+---
+title: Security Overview
+description: HeySummon security architecture with Guard proxy, E2E encryption, Ed25519 receipts, HMAC key hashing, and IP binding.
+---
+
 import { Callout } from 'nextra/components'
 
 # Security Overview
@@ -10,8 +15,7 @@ HeySummon is built with a **security-first, content-blind relay** architecture. 
 
 | Layer | What it does |
 |-------|-------------|
-| **Guard proxy** | All traffic passes through Guard — validates keys, scans content, signs requests |
-| **Ed25519 receipts** | Every request is signed — Platform rejects anything that bypassed Guard |
+| **Content safety** | Built-in middleware scans all content for XSS, PII, and malicious URLs |
 | **E2E encryption** | Messages are encrypted before reaching the server — only consumer/provider can read them |
 | **HMAC-SHA256 key hashing** | API keys are hashed with a server secret — not reversible from the database |
 | **IP binding** | Keys can be restricted to specific IP addresses |
@@ -24,12 +28,12 @@ HeySummon is built with a **security-first, content-blind relay** architecture. 
 
 | Data | Accessible to platform? |
 |------|------------------------|
-| Reference codes | ✅ Yes — by design |
-| Request status | ✅ Yes — by design |
-| Timestamps | ✅ Yes — by design |
-| Message content (E2E mode) | ❌ No — stored as ciphertext |
-| Message content (simple mode) | ✅ Yes — stored as plaintext |
-| API key values | ❌ No — HMAC-SHA256 hashed |
+| Reference codes | Yes — by design |
+| Request status | Yes — by design |
+| Timestamps | Yes — by design |
+| Message content (E2E mode) | No — stored as ciphertext |
+| Message content (simple mode) | Yes — stored as plaintext |
+| API key values | No — HMAC-SHA256 hashed |
 
 ---
 
@@ -38,7 +42,7 @@ HeySummon is built with a **security-first, content-blind relay** architecture. 
 Every pull request runs:
 
 - **OWASP ZAP API scan** — tests for SQLi, XSS, path traversal, RCE, IDOR
-- **Malicious content Guard check** — CI fails if Guard lets CC/SSN/BSN/XSS through
+- **Malicious content check** — CI fails if content safety lets CC/SSN/BSN/XSS through
 - **CodeQL** — static analysis for insecure patterns
 - **E2E security tests** — auth bypass, rate limiting, IDOR, concurrent requests
 

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { generateUniqueRefCode } from "@/lib/refcode";
 import { generateKeyPair, encryptMessage } from "@/lib/crypto";
 import { helpCreateSchema, validateBody, requireJsonContentType } from "@/lib/validations";
-import { verifyGuardReceipt } from "@/lib/guard-crypto";
+import { checkContentSafety, applySanitizedContent } from "@/lib/content-safety-middleware";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
@@ -73,20 +73,16 @@ function getProviderAvailability(
   }
 }
 
-const REQUIRE_GUARD = process.env.REQUIRE_GUARD === "true";
 const REQUEST_TTL_MS = parseInt(process.env.HEYSUMMON_REQUEST_TTL_MS || String(72 * 60 * 60 * 1000), 10);
 const DEBUG = process.env.DEBUG === "true";
 
 /**
  * POST /api/v1/help — Submit a help request.
  *
- * Guard reverse proxy flow:
- *   1. SDK sends request to Guard (single entry point)
- *   2. Guard validates content, signs Ed25519 receipt, proxies to Platform
- *   3. Platform verifies X-Guard-Receipt header
- *
- * If REQUIRE_GUARD=true, a valid guard receipt is mandatory.
- * If not set, guard is optional (backward compatible for dev without Guard).
+ * Content safety runs as in-process middleware:
+ *   1. Validate and sanitize content (HTML, URLs, PII)
+ *   2. Block requests containing credit cards or SSN/BSN (422)
+ *   3. Process the request with sanitized content
  */
 export async function POST(request: Request) {
   try {
@@ -179,30 +175,13 @@ export async function POST(request: Request) {
       }
     }
 
-    // ─── Guard Receipt Verification (Ed25519) ───
-    const receiptB64 = request.headers.get("x-guard-receipt");
-    const signatureB64 = request.headers.get("x-guard-receipt-sig");
-    const hasReceipt = receiptB64 && signatureB64;
-
-    if (REQUIRE_GUARD && !hasReceipt) {
-      return NextResponse.json(
-        { error: "Guard receipt required. All requests must go through the Guard reverse proxy." },
-        { status: 403 }
-      );
+    // ─── Content Safety (in-process) ───
+    const safetyCheck = checkContentSafety(body as Record<string, unknown>);
+    if (!safetyCheck.passed) {
+      return safetyCheck.response;
     }
-
-    let guardVerified = false;
-
-    if (hasReceipt) {
-      const receipt = verifyGuardReceipt(receiptB64, signatureB64);
-      if (!receipt) {
-        return NextResponse.json(
-          { error: "Invalid guard receipt. Signature verification failed, receipt expired, or replay detected." },
-          { status: 403 }
-        );
-      }
-      guardVerified = true;
-    }
+    applySanitizedContent(body as Record<string, unknown>, safetyCheck.sanitizedText);
+    const guardVerified = true; // Content safety always runs in-process
 
     // ─── Provider availability check ───
     // Check BEFORE creating the request — reject if provider is unavailable
@@ -303,7 +282,7 @@ export async function POST(request: Request) {
         serverPrivateKey: serverKeyPair?.privateKey || null,
 
         requiresApproval: requiresApproval ?? false,
-        contentFlags: null,
+        contentFlags: safetyCheck.flags.length > 0 ? JSON.stringify(safetyCheck.flags) : null,
         guardVerified,
       },
     });

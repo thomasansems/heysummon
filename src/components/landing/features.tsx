@@ -14,39 +14,39 @@ import { Card, CardContent } from "@/components/ui/card";
 const features = [
   {
     icon: Server,
-    title: "Self-Hosted",
+    title: "Your Data Stays Yours",
     description:
-      "Runs on your infrastructure. Your data never leaves your servers. Full control over every byte.",
-  },
-  {
-    icon: MessageSquare,
-    title: "Multi-Channel",
-    description:
-      "Reach experts where they already are -- Slack, CLI, or build your own channel adapter.",
-  },
-  {
-    icon: Code2,
-    title: "Simple SDK",
-    description:
-      "One API call to summon an expert. Integrate in minutes with our lightweight TypeScript SDK.",
+      "Self-host on your infrastructure with one Docker command. Nothing phones home, nothing leaves your network.",
   },
   {
     icon: Lock,
-    title: "End-to-End Encrypted",
+    title: "Encrypted End-to-End",
     description:
-      "Messages encrypted from agent to expert using NaCl. Even the HeySummon server cannot read them.",
+      "Messages encrypted from agent to human with X25519 + AES-256-GCM. The server stores only ciphertext it cannot read.",
+  },
+  {
+    icon: Code2,
+    title: "Integrate in Minutes",
+    description:
+      "One API call to get human input. Works with any agent framework -- Claude Code, Codex, n8n, or any HTTP client.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Humans Respond Where They Are",
+    description:
+      "Dashboard, Telegram, Slack, or phone. No context-switching -- the right human gets notified on the right channel.",
   },
   {
     icon: Users,
-    title: "Smart Routing",
+    title: "Route to the Right Human",
     description:
-      "Route requests to the right expert based on availability, expertise, and channel preferences.",
+      "Smart routing based on availability and channel preferences. The right person sees the request, not everyone.",
   },
   {
     icon: ClipboardList,
-    title: "Full Audit Trail",
+    title: "Every Decision Logged",
     description:
-      "Every question, every answer, every decision -- logged and auditable for compliance and review.",
+      "Full audit trail of every question, answer, and approval. Built for compliance and post-incident review.",
   },
 ];
 
@@ -62,11 +62,11 @@ export function FeaturesSection() {
           className="mb-16 text-center"
         >
           <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl">
-            Everything you need for human-in-the-loop
+            What makes it different
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Purpose-built for AI agents that need expert approval. No
-            compromises on security or developer experience.
+            Purpose-built for AI agents that need human oversight. No
+            compromises on security, privacy, or developer experience.
           </p>
         </motion.div>
 

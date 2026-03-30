@@ -85,10 +85,6 @@ export function trackGithubClick(location: string): void {
   trackEvent('cta_github', { location });
 }
 
-export function trackHeroCtaClick(audience: 'provider' | 'client'): void {
-  trackEvent('hero_cta_click', { audience, location: 'hero' });
-}
-
 export function trackProviderCtaClick(location: string): void {
   trackEvent('provider_cta_click', { location });
 }

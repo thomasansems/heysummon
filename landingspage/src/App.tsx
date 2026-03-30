@@ -5,6 +5,7 @@
 
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
+import { VideoSection } from './components/VideoSection';
 import { ProvidersSection } from './components/ProvidersSection';
 import { ClientsSection } from './components/ClientsSection';
 import { FlowSection } from './components/FlowSection';
@@ -21,6 +22,7 @@ export default function App() {
         <Navbar />
         <main>
           <Hero />
+          <VideoSection />
           <ProvidersSection />
           <ClientsSection />
           <FlowSection />

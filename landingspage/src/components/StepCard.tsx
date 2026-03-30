@@ -27,7 +27,7 @@ export function StepCard({ step, icon: Icon, title, description, index = 0 }: St
         </div>
       </div>
       <h3 className="text-lg font-semibold text-text-heading mb-2">{title}</h3>
-      <p className="text-sm text-text-body leading-relaxed">{description}</p>
+      <p className="text-base text-text-body leading-relaxed">{description}</p>
     </motion.div>
   );
 }

@@ -9,19 +9,19 @@ const steps = [
     icon: Terminal,
     title: 'Install',
     description:
-      'Run npx heysummon or docker compose up. Self-hosted on your infrastructure. Use the built-in Cloudflare tunnel or Tailscale for remote access.',
+      'Run a single command to self-host HeySummon on your infrastructure. Use the built-in Cloudflare tunnel or Tailscale for secure remote access -- no port forwarding needed.',
   },
   {
     icon: Users,
     title: 'Onboard',
     description:
-      'Create your account, connect your preferred channels (Slack, Telegram, Dashboard, WhatsApp, Phone). Set up summoning context so AI knows when to reach you.',
+      'Create your account and connect the channels you already use -- Slack, Telegram, the Dashboard, WhatsApp, or Phone. Set up summoning context so AI agents know exactly when and how to reach you.',
   },
   {
     icon: Share2,
     title: 'Share',
     description:
-      "Generate a setup link for each client. They install the skill and their AI can summon you. That's it.",
+      'Generate a setup link for each client. The link includes your summoning context -- guidelines that tell the AI when to summon you. Clients install the skill and their AI can reach you instantly.',
   },
 ];
 
@@ -44,8 +44,8 @@ export function ProvidersSection() {
             You have the expertise. Make it available.
           </h2>
           <p className="text-lg text-text-body max-w-3xl">
-            You&apos;re the human expert that AI agents reach when they need help. Set up HeySummon
-            on your infrastructure and be available on your terms.
+            You are the human expert that AI agents reach when they need help. Set up HeySummon on
+            your infrastructure and be available on your terms.
           </p>
         </motion.div>
 
@@ -62,21 +62,58 @@ export function ProvidersSection() {
           ))}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-        >
-          <TerminalMockup title="install heysummon">
-            <div className="text-primary">$ npx heysummon</div>
-            <div className="text-text-muted mt-2">Setting up HeySummon...</div>
-            <div className="text-text-muted mt-1">Creating local database...</div>
-            <div className="text-text-muted mt-1">Starting Cloudflare tunnel...</div>
-            <div className="text-green-check mt-1">&#10003; HeySummon is running at https://your-tunnel.trycloudflare.com</div>
-            <div className="text-text-muted mt-2">Open the dashboard to create your account and connect channels.</div>
-          </TerminalMockup>
-        </motion.div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            <TerminalMockup title="install heysummon">
+              <div className="text-primary">$ npx heysummon</div>
+              <div className="text-text-muted mt-2">Setting up HeySummon...</div>
+              <div className="text-text-muted mt-1">Creating local database...</div>
+              <div className="text-text-muted mt-1">Starting Cloudflare tunnel...</div>
+              <div className="text-green-check mt-2">&#10003; HeySummon is running</div>
+              <div className="text-text-body mt-1">{"  "}Dashboard: <span className="text-primary">https://your-tunnel.trycloudflare.com</span></div>
+            </TerminalMockup>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            <TerminalMockup title="example setup link">
+              <div className="text-text-muted"># Your setup link includes context instructions:</div>
+              <div className="text-text-body mt-2">
+                <span className="text-primary">https://your-tunnel.trycloudflare.com</span>
+                <span className="text-text-muted">/setup/</span>
+                <span className="text-green-check">abc123</span>
+              </div>
+              <div className="text-text-muted mt-4"># Summoning context (embedded in the link):</div>
+              <div className="text-text-body mt-1">
+                <span className="text-purple-400">provider</span>: Senior DevOps Engineer
+              </div>
+              <div className="text-text-body">
+                <span className="text-purple-400">available</span>: Mon-Fri, 9am-6pm CET
+              </div>
+              <div className="text-text-body">
+                <span className="text-purple-400">summon_when</span>: Infrastructure decisions,
+              </div>
+              <div className="text-text-body">
+                {"  "}production deployments, security reviews
+              </div>
+              <div className="text-text-body">
+                <span className="text-purple-400">do_not_summon</span>: Routine CI failures,
+              </div>
+              <div className="text-text-body">
+                {"  "}formatting issues, dependency updates
+              </div>
+            </TerminalMockup>
+          </motion.div>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

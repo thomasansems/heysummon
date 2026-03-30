@@ -27,6 +27,7 @@ export async function GET(request: Request) {
           id: key.provider.id,
           name: key.provider.name,
           isActive: key.provider.isActive,
+          summonContext: key.provider.summonContext ?? null,
         },
       ],
     });

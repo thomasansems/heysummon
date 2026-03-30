@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   const apiKey = await prisma.apiKey.findFirst({
     where: { id: keyId, provider: { userId: user.id } },
-    select: { id: true, provider: { select: { name: true } } },
+    select: { id: true, provider: { select: { name: true, summonContext: true } } },
   });
 
   if (!apiKey) {
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
       channel,
       subChannel: subChannel ?? null,
       providerName: apiKey.provider?.name ?? null,
+      summonContext: apiKey.provider?.summonContext ?? null,
       timeout: timeout ?? 900,
       pollInterval: pollInterval ?? 3,
       globalInstall: globalInstall ?? true,

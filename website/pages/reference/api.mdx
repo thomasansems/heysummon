@@ -214,6 +214,29 @@ Availability is configured per provider profile in the dashboard:
 
 ---
 
+## Summoning context
+
+Providers can set optional advisory text (`summonContext`) that tells AI agents when
+to summon them. This is stored on the provider profile (max 500 characters) and flows
+through the system:
+
+1. Provider writes context via the dashboard or wizard
+2. Saved to `UserProfile.summonContext` via `PATCH /api/providers/:id`
+3. Copied to `SetupToken.summonContext` when a setup link is created
+4. Embedded as `HEYSUMMON_SUMMON_CONTEXT` in the consumer's `.env`
+5. Referenced by the skill's "When to summon" section at runtime
+
+| Field | Type | Max | Description |
+|-------|------|-----|-------------|
+| `summonContext` | string \| null | 500 | Advisory guidelines for AI on when to summon this provider |
+
+The field is available on:
+- `PATCH /api/providers/:id` (set/update)
+- `GET /api/providers/:id` (read)
+- `GET /api/v1/providers` (consumer-facing, read)
+
+---
+
 ## Webhooks
 
 HeySummon can send webhook notifications to external endpoints when events occur.

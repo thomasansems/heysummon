@@ -77,7 +77,6 @@ export const providerUpdateSchema = z.object({
   phoneFirst: z.boolean().optional(),
   phoneFirstIntegrationId: z.string().nullable().optional(),
   phoneFirstTimeout: z.number().int().min(10).max(120).optional(),
-  summonContext: z.string().max(500).nullable().optional(),
 });
 
 // ── Key schemas ──

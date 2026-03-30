@@ -81,7 +81,7 @@ model UserProfile {
   machineId        String?
   tagline          String?           // Optional upsell tagline appended to responses (max 160 chars)
   taglineEnabled   Boolean           @default(false)
-  summonContext    String?           // Advisory text for AI: when to summon this provider (max 500 chars)
+  recentSummonContexts String?       // JSON array of recently used summon contexts (max 10, most recent first)
   phoneFirst       Boolean           @default(false) // If true, attempt phone call before chat
   phoneFirstIntegrationId String?    // Which voice integration to use for phone-first
   phoneFirstTimeout       Int        @default(30)    // Seconds to wait for phone pickup before fallback

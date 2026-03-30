@@ -1,75 +1,122 @@
 import { describe, it, expect } from "vitest";
 
 /**
- * Tests for summonContext data transformation logic in the provider PATCH handler.
+ * Tests for the per-client summon context model.
  *
- * The PATCH /api/providers/:id handler applies this transformation:
- *   (body.summonContext as string)?.slice(0, 500) || null
- *
- * This test suite validates that transformation independently of the HTTP layer.
+ * In the per-client model:
+ * - summonContext is passed in the setup-link POST body (not stored on the provider)
+ * - The setup-link handler trims, caps at 500, and stores on SetupToken
+ * - Recently used contexts are saved to provider.recentSummonContexts (JSON array, max 10, deduped)
  */
 
-/** Mirrors the PATCH handler's summonContext transformation */
-function transformSummonContext(value: unknown): string | null {
-  return (value as string)?.slice(0, 500) || null;
+/** Mirrors the setup-link handler's summonContext trimming */
+function trimSummonContext(value: string | undefined): string | null {
+  return value?.trim().slice(0, 500) || null;
 }
 
-describe("Provider PATCH — summonContext transformation", () => {
-  it("passes through a normal string", () => {
-    const result = transformSummonContext("Only summon me for critical decisions.");
+/** Mirrors the recentSummonContexts update logic */
+function updateRecentContexts(existing: string[], newContext: string, max = 10): string[] {
+  const deduped = [newContext, ...existing.filter((c) => c !== newContext)];
+  return deduped.slice(0, max);
+}
+
+describe("Per-client summonContext — trimming", () => {
+  it("passes through a normal string after trimming", () => {
+    const result = trimSummonContext("Only summon me for critical decisions.");
     expect(result).toBe("Only summon me for critical decisions.");
+  });
+
+  it("trims whitespace", () => {
+    const result = trimSummonContext("  some context  ");
+    expect(result).toBe("some context");
   });
 
   it("truncates strings exceeding 500 characters", () => {
     const long = "x".repeat(600);
-    const result = transformSummonContext(long);
+    const result = trimSummonContext(long);
     expect(result).toHaveLength(500);
     expect(result).toBe("x".repeat(500));
   });
 
   it("preserves strings at exactly 500 characters", () => {
     const exact = "y".repeat(500);
-    const result = transformSummonContext(exact);
+    const result = trimSummonContext(exact);
     expect(result).toBe(exact);
     expect(result).toHaveLength(500);
   });
 
   it("converts empty string to null", () => {
-    const result = transformSummonContext("");
+    const result = trimSummonContext("");
     expect(result).toBeNull();
   });
 
-  it("converts null to null", () => {
-    const result = transformSummonContext(null);
+  it("converts whitespace-only string to null", () => {
+    const result = trimSummonContext("   ");
     expect(result).toBeNull();
   });
 
   it("converts undefined to null", () => {
-    const result = transformSummonContext(undefined);
+    const result = trimSummonContext(undefined);
     expect(result).toBeNull();
   });
 
   it("preserves special characters without escaping", () => {
     const context = `Before any $() action; use 'single' & "double" quotes <safely>.`;
-    const result = transformSummonContext(context);
+    const result = trimSummonContext(context);
     expect(result).toBe(context);
   });
 
   it("preserves newlines in context text", () => {
     const context = "Line 1: budget rules\nLine 2: safety rules";
-    const result = transformSummonContext(context);
+    const result = trimSummonContext(context);
     expect(result).toBe(context);
   });
 
   it("truncates via JS string slice (UTF-16 code units)", () => {
-    // Emoji like U+1F4B0 takes 2 UTF-16 code units (surrogate pair)
-    // 498 ASCII + 1 emoji (2 units) = 500 code units
     const context = "a".repeat(498) + "\u{1F4B0}\u{1F6A8}";
-    expect(context.length).toBe(502); // 498 + 2 + 2
-    const result = transformSummonContext(context);
-    // slice(0, 500) keeps first 500 code units: 498 'a's + first emoji
+    expect(context.length).toBe(502);
+    const result = trimSummonContext(context);
     expect(result).toHaveLength(500);
     expect(result).toBe("a".repeat(498) + "\u{1F4B0}");
+  });
+});
+
+describe("recentSummonContexts — update logic", () => {
+  it("prepends new context to empty list", () => {
+    const result = updateRecentContexts([], "new context");
+    expect(result).toEqual(["new context"]);
+  });
+
+  it("prepends new context to existing list", () => {
+    const result = updateRecentContexts(["old"], "new");
+    expect(result).toEqual(["new", "old"]);
+  });
+
+  it("deduplicates when same context is reused", () => {
+    const result = updateRecentContexts(["first", "reused", "third"], "reused");
+    expect(result).toEqual(["reused", "first", "third"]);
+  });
+
+  it("caps at 10 entries", () => {
+    const existing = Array.from({ length: 10 }, (_, i) => `ctx-${i}`);
+    const result = updateRecentContexts(existing, "new");
+    expect(result).toHaveLength(10);
+    expect(result[0]).toBe("new");
+    expect(result[9]).toBe("ctx-8"); // ctx-9 is dropped
+  });
+
+  it("handles dedup + cap together", () => {
+    const existing = Array.from({ length: 10 }, (_, i) => `ctx-${i}`);
+    const result = updateRecentContexts(existing, "ctx-5");
+    expect(result).toHaveLength(10);
+    expect(result[0]).toBe("ctx-5");
+    // ctx-5 was removed from position 5 and prepended, no items lost
+    expect(result).not.toContain(undefined);
+  });
+
+  it("preserves order of remaining items", () => {
+    const result = updateRecentContexts(["a", "b", "c", "d"], "c");
+    expect(result).toEqual(["c", "a", "b", "d"]);
   });
 });
 
@@ -94,7 +141,6 @@ describe("shellEscape — summonContext safety", () => {
     const malicious = "$(rm -rf /)";
     const escaped = shellEscape(malicious);
     expect(escaped).toBe("'$(rm -rf /)'");
-    // Inside single quotes, $() is literal, not expanded
     expect(escaped).not.toContain("\\$");
   });
 
@@ -109,14 +155,10 @@ describe("shellEscape — summonContext safety", () => {
   });
 
   it("handles string with only single quotes", () => {
-    // Input: '''  (3 single quotes)
-    // Each ' becomes '\'' in the replace, then wrapped in outer quotes
     const result = shellEscape("'''");
-    // Verify structure: starts and ends with quote, contains escaped sequences
     expect(result).toMatch(/^'/);
     expect(result).toMatch(/'$/);
     expect(result).toContain("\\");
-    // Verify the exact length: ' + ('\'' * 3) + ' = 1 + 12 + 1 = 14
     expect(result).toHaveLength(14);
   });
 });

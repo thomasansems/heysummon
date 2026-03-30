@@ -2,15 +2,16 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
-## Summoning Context -- 2026-03-30
+## Per-Client Summoning Context -- 2026-03-30
 
-### Added
-- **Summoning context**: Providers can now set advisory guidelines (up to 500 characters) that tell AI agents when to summon them. Choose from presets (Strict, Budget-conscious, Safety-first) or write custom instructions.
-- Summoning context is configurable in the onboarding wizard and the dashboard provider detail panel.
-- Context flows through to the consumer's skill configuration as `HEYSUMMON_SUMMON_CONTEXT` environment variable.
-- Both consumer and OpenClaw SKILL.md files include a new "When to summon" section that references the context.
-- `GET /api/v1/providers` now includes `summonContext` in the response.
-- Setup page shows summoning guidelines when configured.
+### Changed
+- **Summoning context is now per-client**: Each client connection can have its own summoning guidelines (up to 500 characters), set during the onboarding wizard. Previously, context was set on the provider profile.
+- Summoning context is passed directly in `POST /api/v1/setup-link` body and stored on the `SetupToken`.
+- Recently used contexts are saved to `recentSummonContexts` on the provider profile (JSON array, max 10, most recent first) for quick reuse.
+- Removed summoning context editor from the dashboard provider detail panel.
+- `GET /api/v1/providers` no longer includes `summonContext` in the response.
+- `PATCH /api/providers/:id` no longer accepts `summonContext`.
+- Presets (Strict, Budget-conscious, Safety-first) and recently used contexts appear in the wizard.
 
 ---
 

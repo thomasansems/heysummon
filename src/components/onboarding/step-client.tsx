@@ -12,6 +12,7 @@ import {
 
 const DEFAULT_TIMEOUT = 900;
 const DEFAULT_POLL_INTERVAL = 3;
+const MAX_RECENT_SHOWN = 5;
 
 const TIMEOUT_PRESETS = [
   { value: 300, label: "5 min", desc: "You're actively available" },
@@ -74,6 +75,7 @@ export function StepClient({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
   const [summonContext, setSummonContext] = useState("");
+  const [recentContexts, setRecentContexts] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Created client data
@@ -89,6 +91,25 @@ export function StepClient({
     keyId: keyId || "noop",
     timeoutMs: 120_000,
   });
+
+  // Fetch recently used contexts from provider
+  useEffect(() => {
+    const fetchRecent = async () => {
+      const res = await fetch(`/api/providers/${providerId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const raw = data.provider?.recentSummonContexts;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setRecentContexts(parsed);
+        } catch {
+          // ignore invalid JSON
+        }
+      }
+    };
+    fetchRecent();
+  }, [providerId]);
 
   // Auto-advance when connected
   useEffect(() => {
@@ -137,16 +158,7 @@ export function StepClient({
       setKeyId(createdKeyId);
       setApiKey(createdApiKey);
 
-      // Save summoning context to provider profile (if set)
-      if (summonContext.trim()) {
-        await fetch(`/api/providers/${providerId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ summonContext: summonContext.trim() }),
-        });
-      }
-
-      // Generate setup link
+      // Generate setup link (summonContext is passed directly in the body)
       const linkRes = await fetch("/api/v1/setup-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,6 +166,7 @@ export function StepClient({
           keyId: createdKeyId,
           channel,
           subChannel,
+          ...(summonContext.trim() && { summonContext: summonContext.trim() }),
           ...(timeout !== DEFAULT_TIMEOUT && { timeout }),
           ...(pollInterval !== DEFAULT_POLL_INTERVAL && { pollInterval }),
         }),
@@ -200,6 +213,12 @@ curl -sf "${baseUrl}/api/v1/whoami" \\
   -H "x-api-key: ${apiKey}" > /dev/null && \\
 echo "Connected and device bound successfully."`
       : "";
+
+  // Recently used contexts (truncated, max 5 shown) excluding presets
+  const presetTexts = SUMMON_CONTEXT_PRESETS.map((p) => p.text);
+  const recentNonPreset = recentContexts
+    .filter((c) => !presetTexts.includes(c))
+    .slice(0, MAX_RECENT_SHOWN);
 
   return (
     <div>
@@ -261,7 +280,7 @@ echo "Connected and device bound successfully."`
             </div>
           </div>
 
-          {/* Response time — preset selector */}
+          {/* Response time -- preset selector */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               How fast will you typically respond?
@@ -321,7 +340,7 @@ echo "Connected and device bound successfully."`
             )}
           </div>
 
-          {/* Good vs Bad example — educational */}
+          {/* Good vs Bad example -- educational */}
           <div>
             <button
               type="button"
@@ -350,7 +369,7 @@ Should I:
 A) Skip the discount field for now
 B) Create a /discounts endpoint myself`}</pre>
                   <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    Specific context, clear options — answerable in seconds.
+                    Specific context, clear options -- answerable in seconds.
                   </p>
                 </div>
                 <div className="rounded-md border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/10 p-3">
@@ -359,7 +378,7 @@ B) Create a /discounts endpoint myself`}</pre>
                   </p>
                   <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`What should I do next?`}</pre>
                   <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    No context, no options — takes minutes to understand.
+                    No context, no options -- takes minutes to understand.
                   </p>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
@@ -373,12 +392,39 @@ B) Create a /discounts endpoint myself`}</pre>
           {/* Summoning context */}
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Summoning guidelines (optional)
+              Summoning guidelines for this client (optional)
             </label>
             <p className="mb-2 text-[11px] text-muted-foreground">
               Tell the AI when it should and shouldn&apos;t summon you. This context
               is included in the consumer&apos;s environment.
             </p>
+
+            {/* Recently used contexts */}
+            {recentNonPreset.length > 0 && (
+              <div className="mb-2">
+                <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                  Recently used
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {recentNonPreset.map((ctx, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSummonContext(ctx)}
+                      className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors max-w-[200px] truncate ${
+                        summonContext === ctx
+                          ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
+                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                      }`}
+                      title={ctx}
+                    >
+                      {ctx.length > 40 ? ctx.slice(0, 40) + "..." : ctx}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mb-2 flex flex-wrap gap-1.5">
               {SUMMON_CONTEXT_PRESETS.map((preset) => (
                 <button
@@ -407,7 +453,7 @@ B) Create a /discounts endpoint myself`}</pre>
             </p>
           </div>
 
-          {/* Advanced settings — poll interval */}
+          {/* Advanced settings -- poll interval */}
           <div>
             <button
               type="button"

@@ -114,7 +114,6 @@ interface Provider {
   phoneFirst: boolean;
   phoneFirstIntegrationId: string | null;
   phoneFirstTimeout: number;
-  summonContext: string | null;
   ipEvents: IpEvent[];
   channelProviders: ChannelProvider[];
   _count: { apiKeys: number };
@@ -216,12 +215,6 @@ export function ProviderDetailPanel({
   const [phoneSaved, setPhoneSaved] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
-  // Summon context
-  const [summonContext, setSummonContext] = useState("");
-  const [summonContextEditing, setSummonContextEditing] = useState(false);
-  const [savingSummonContext, setSavingSummonContext] = useState(false);
-  const [summonContextSaved, setSummonContextSaved] = useState(false);
-
   // General
   const [copied, setCopied] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -249,7 +242,6 @@ export function ProviderDetailPanel({
       setPhoneFirst(found.phoneFirst || false);
       setPhoneIntegrationId(found.phoneFirstIntegrationId || null);
       setPhoneTimeout(found.phoneFirstTimeout || 30);
-      setSummonContext(found.summonContext || "");
     }
 
     // Load voice integrations
@@ -389,21 +381,6 @@ export function ProviderDetailPanel({
     setSavingPhone(false);
     setPhoneSaved(true);
     setTimeout(() => setPhoneSaved(false), 2000);
-    fetchProvider();
-    onUpdated();
-  };
-
-  const saveSummonContext = async () => {
-    setSavingSummonContext(true);
-    await fetch(`/api/providers/${providerId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ summonContext: summonContext.trim() || null }),
-    });
-    setSavingSummonContext(false);
-    setSummonContextSaved(true);
-    setSummonContextEditing(false);
-    setTimeout(() => setSummonContextSaved(false), 2000);
     fetchProvider();
     onUpdated();
   };
@@ -690,75 +667,6 @@ export function ProviderDetailPanel({
               )}
 
               {phoneError && <p className="text-sm text-red-500">{phoneError}</p>}
-            </div>
-          )}
-        </div>
-
-        {/* ── Summoning context ──────────────────────────────── */}
-        <div className="pt-8 mt-8 border-t border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="font-serif text-base font-semibold text-foreground">Summoning context</h3>
-            {savingSummonContext && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-            {summonContextSaved && <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />}
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Tell consumer AI agents when they should and shouldn&apos;t summon you. This text is included in the skill configuration.
-          </p>
-
-          {!summonContextEditing && !summonContext ? (
-            <Button variant="outline" size="sm" onClick={() => setSummonContextEditing(true)}>
-              Add guidelines
-            </Button>
-          ) : !summonContextEditing && summonContext ? (
-            <div>
-              <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/10 p-3 mb-3">
-                <p className="text-sm text-foreground whitespace-pre-wrap">{summonContext}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setSummonContextEditing(true)}>
-                Edit
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { label: "Strict", text: "Only summon when the AI is completely stuck and cannot proceed without human input. Do not summon for style preferences or minor decisions." },
-                  { label: "Budget-conscious", text: "Summon only for decisions that could cost money or affect billing. Proceed autonomously on all other tasks." },
-                  { label: "Safety-first", text: "Summon before any destructive action (deleting data, modifying production, changing permissions). Proceed autonomously for read-only and development tasks." },
-                ].map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => setSummonContext(preset.text)}
-                    className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                      summonContext === preset.text
-                        ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
-                        : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                value={summonContext}
-                onChange={(e) => setSummonContext(e.target.value.slice(0, 500))}
-                placeholder="e.g. Only summon me when you need architecture decisions or production access..."
-                rows={3}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring resize-none"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] text-muted-foreground">{summonContext.length}/500</p>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => { setSummonContextEditing(false); setSummonContext(provider?.summonContext || ""); }}>
-                    Cancel
-                  </Button>
-                  <Button size="sm" onClick={saveSummonContext} disabled={savingSummonContext}>
-                    {savingSummonContext ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-                    Save
-                  </Button>
-                </div>
-              </div>
             </div>
           )}
         </div>

@@ -5,8 +5,9 @@
 
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
-import { VideoSection } from './components/VideoSection';
-import { SkillSection } from './components/SkillSection';
+import { ProvidersSection } from './components/ProvidersSection';
+import { ClientsSection } from './components/ClientsSection';
+import { FlowSection } from './components/FlowSection';
 import { FrameworksSection } from './components/FrameworksSection';
 import { SecuritySection } from './components/SecuritySection';
 import { CTASection } from './components/CTASection';
@@ -20,8 +21,9 @@ export default function App() {
         <Navbar />
         <main>
           <Hero />
-          <VideoSection />
-          <SkillSection />
+          <ProvidersSection />
+          <ClientsSection />
+          <FlowSection />
           <FrameworksSection />
           <SecuritySection />
           <CTASection />

@@ -33,7 +33,7 @@ export function Navbar() {
           <img src="/logo.png" alt="HeySummon Logo" className="h-8 w-auto" />
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm text-text-body">
-          <a href="#skill" className="hover:text-text-heading transition-colors">Skill</a>
+          <a href="#providers" className="hover:text-text-heading transition-colors">Providers</a>
           <a href="#frameworks" className="hover:text-text-heading transition-colors">Integrations</a>
           <a href="#security" className="hover:text-text-heading transition-colors">Security</a>
           <a href="https://github.com/thomasansems/heysummon" target="_blank" rel="noopener noreferrer" onClick={() => trackGithubClick('navbar')} className="hover:text-text-heading transition-colors flex items-center gap-1.5">
@@ -71,7 +71,7 @@ export function Navbar() {
             transition={{ duration: 0.2 }}
             className="md:hidden absolute top-full left-0 right-0 mt-2 mx-4 bg-bg-deep/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col gap-4 text-sm text-text-body"
           >
-            <a href="#skill" onClick={() => setMobileOpen(false)} className="hover:text-text-heading transition-colors px-3 py-2">Skill</a>
+            <a href="#providers" onClick={() => setMobileOpen(false)} className="hover:text-text-heading transition-colors px-3 py-2">Providers</a>
             <a href="#frameworks" onClick={() => setMobileOpen(false)} className="hover:text-text-heading transition-colors px-3 py-2">Integrations</a>
             <a href="#security" onClick={() => setMobileOpen(false)} className="hover:text-text-heading transition-colors px-3 py-2">Security</a>
             <a href="https://github.com/thomasansems/heysummon" target="_blank" rel="noopener noreferrer" onClick={() => trackGithubClick('navbar_mobile')} className="hover:text-text-heading transition-colors px-3 py-2 flex items-center gap-1.5">

@@ -9,13 +9,13 @@ const steps = [
     icon: Terminal,
     title: 'Install',
     description:
-      'Run a single command to self-host HeySummon on your infrastructure. Use the built-in Cloudflare tunnel or Tailscale for secure remote access -- no port forwarding needed.',
+      'Run a single command to self-host HeySummon on your infrastructure. Or use the built-in Cloudflare tunnel or Tailscale for secure remote access',
   },
   {
     icon: Users,
     title: 'Onboard',
     description:
-      'Create your account and connect the channels you already use -- Slack, Telegram, the Dashboard, WhatsApp, or Phone. Set up summoning context so AI agents know exactly when and how to reach you.',
+      'Create your account and connect the channels you already use -- Slack, Telegram, the Dashboard, WhatsApp, or Phone. Set up summoning context so AI agents know exactly when to reach you.',
   },
   {
     icon: Share2,
@@ -70,12 +70,12 @@ export function ProvidersSection() {
             transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <TerminalMockup title="install heysummon">
-              <div className="text-primary">$ npx heysummon</div>
+              <div className="text-primary">$ npx @heysummon/app</div>
               <div className="text-text-muted mt-2">Setting up HeySummon...</div>
               <div className="text-text-muted mt-1">Creating local database...</div>
               <div className="text-text-muted mt-1">Starting Cloudflare tunnel...</div>
               <div className="text-green-check mt-2">&#10003; HeySummon is running</div>
-              <div className="text-text-body mt-1">{"  "}Dashboard: <span className="text-primary">https://your-tunnel.trycloudflare.com</span></div>
+              <div className="text-text-body mt-1">{"  "}Dashboard: <span className="text-primary">https://your-site.com</span></div>
             </TerminalMockup>
           </motion.div>
 
@@ -88,7 +88,7 @@ export function ProvidersSection() {
             <TerminalMockup title="example setup link">
               <div className="text-text-muted"># Your setup link includes context instructions:</div>
               <div className="text-text-body mt-2">
-                <span className="text-primary">https://your-tunnel.trycloudflare.com</span>
+                <span className="text-primary">https://your-site.com</span>
                 <span className="text-text-muted">/setup/</span>
                 <span className="text-green-check">abc123</span>
               </div>

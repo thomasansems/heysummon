@@ -60,23 +60,36 @@ export function ClientsSection() {
           ))}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-        >
-          <TerminalMockup title="install skill">
-            <div className="text-primary">$ npx skill.sh install heysummon</div>
-            <div className="text-text-muted mt-2">Installing HeySummon skill...</div>
-            <div className="text-green-check mt-1">&#10003; Skill installed successfully</div>
-            <div className="text-text-muted mt-3">Enter provider URL or setup link:</div>
-            <div className="text-text-body mt-1">{'>'} <span className="text-primary">https://your-provider.trycloudflare.com/setup/abc123</span></div>
-            <div className="text-text-muted mt-2">Verifying connection...</div>
-            <div className="text-green-check mt-1">&#10003; Connected to: Senior DevOps Engineer</div>
-            <div className="text-text-body mt-2">Your AI agent can now summon a human expert.</div>
-          </TerminalMockup>
-        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            <TerminalMockup title="install skill">
+              <div className="text-text-muted">Enter npx skill</div>
+              <div className="text-primary mt-1">$ npx skill.sh install heysummon</div>
+              <div className="text-text-muted mt-2">Installing HeySummon skill...</div>
+              <div className="text-green-check mt-1">&#10003; Skill installed successfully</div>
+              <div className="text-text-body mt-2">Your provider is now able to help.</div>
+            </TerminalMockup>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            <TerminalMockup title="install skill">
+              <div className="text-text-muted">Enter provider URL or setup link:</div>
+              <div className="text-text-body mt-1">{'>'} <span className="text-primary">https://your-site.com/setup/abc123</span></div>
+              <div className="text-text-muted mt-2">Verifying connection...</div>
+              <div className="text-green-check mt-1">&#10003; Connected to: Senior DevOps Engineer</div>
+              <div className="text-text-body mt-2">Your AI agent can now summon a human expert.</div>
+            </TerminalMockup>
+          </motion.div>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

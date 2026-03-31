@@ -4,26 +4,6 @@ export function VideoSection() {
   return (
     <section className="py-32 px-8 max-w-6xl mx-auto text-center">
       <div>
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
-          className="font-serif text-4xl md:text-5xl mb-8 text-text-heading"
-        >
-          Human judgment <br/>
-          <span className="italic">where it matters the most.</span>
-        </motion.h2>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 1.2, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-          className="text-xl text-text-body max-w-3xl mx-auto mb-16"
-        >
-          AI is fast, but humans provide the context, empathy, and final say that algorithms lack. We make it seamless to bring a human into the loop exactly when needed, so you can trust your automated workflows.
-        </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 40, scale: 0.96 }}

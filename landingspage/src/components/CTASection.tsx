@@ -22,7 +22,9 @@ export function CTASection() {
           We're self-hosted because we need you.
         </h2>
         <p className="text-lg text-text-body mb-8 max-w-2xl mx-auto">
-          HeySummon is an open-source project with big ambitions and a small team. We're building the infrastructure for human-in-the-loop AI, and we can't do it alone. Whether you write code, break things, or just have strong opinions -- we want you involved.
+          HeySummon is an open-source project with big ambitions and a small team. Whether you&apos;re
+          a provider who wants to be available to AI, or a client who needs expert judgment in your
+          workflows -- we want you involved.
         </p>
 
         <motion.div

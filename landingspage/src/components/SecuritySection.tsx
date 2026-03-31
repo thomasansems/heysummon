@@ -23,8 +23,12 @@ export function SecuritySection() {
           Security
         </div>
         <h2 className="font-serif text-4xl md:text-5xl mb-6">Your data never leaves your network.</h2>
-        <p className="text-lg text-text-body max-w-2xl mx-auto">
-          Enterprise-grade security that doesn't compromise on usability. Self-hosted and end-to-end encrypted.
+        <p className="text-lg text-text-body max-w-2xl mx-auto mb-4">
+          Enterprise-grade security that doesn&apos;t compromise on usability. Self-hosted and end-to-end encrypted.
+        </p>
+        <p className="text-base text-text-muted max-w-2xl mx-auto italic">
+          Without clear escalation rules, your AI either bothers you constantly or makes expensive
+          mistakes silently.
         </p>
       </motion.div>
 

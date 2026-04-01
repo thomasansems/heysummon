@@ -18,3 +18,8 @@ coverage/
 review-comment.json
 .tmp-*
 tmp-*
+**/next-env.d.ts
+skills/**/.seen-events.txt
+skills/**/.seen-*
+skills/**/providers.json
+skills/**/.requests/

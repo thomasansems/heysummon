@@ -14,3 +14,7 @@ tailscale-config/state/
 test-results/
 coverage/
 .agents
+*.tsbuildinfo
+review-comment.json
+.tmp-*
+tmp-*

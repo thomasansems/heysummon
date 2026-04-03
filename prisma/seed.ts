@@ -55,7 +55,7 @@ async function main() {
     demoProfile = await prisma.userProfile.create({
       data: {
         name: "My Workspace",
-        key: `hs_prov_${randomBytes(16).toString("hex")}`,
+        key: `hs_exp_${randomBytes(16).toString("hex")}`,
         userId: demoUser.id,
         isActive: true,
         timezone: "Europe/Amsterdam",
@@ -66,9 +66,9 @@ async function main() {
     console.log(`✅ UserProfile exists: ${demoProfile.name}`);
   }
 
-  const existingChannel = await prisma.channelProvider.findFirst({ where: { profileId: demoProfile.id } });
+  const existingChannel = await prisma.expertChannel.findFirst({ where: { profileId: demoProfile.id } });
   if (!existingChannel) {
-    await prisma.channelProvider.create({
+    await prisma.expertChannel.create({
       data: {
         profileId: demoProfile.id,
         type: "openclaw",
@@ -78,7 +78,7 @@ async function main() {
         status: "connected",
       },
     });
-    await prisma.channelProvider.create({
+    await prisma.expertChannel.create({
       data: {
         profileId: demoProfile.id,
         type: "telegram",
@@ -88,9 +88,9 @@ async function main() {
         status: "disconnected",
       },
     });
-    console.log("✅ ChannelProviders created for demo profile");
+    console.log("Expert channels created for demo profile");
   } else {
-    console.log("✅ ChannelProviders exist for demo profile");
+    console.log("Expert channels exist for demo profile");
   }
 
   // ─── Playwright test account ──────────────────────────────────────────────
@@ -112,19 +112,19 @@ async function main() {
   });
   console.log(`✅ Playwright user: ${pwUser.email}`);
 
-  // Provider profile (used as the expert who receives requests)
+  // Expert profile (used as the expert who receives requests)
   const pwProfile = await prisma.userProfile.upsert({
-    where: { key: "hs_prov_playwright00000000000000000001" },
+    where: { key: "hs_exp_playwright00000000000000000001" },
     update: {},
     create: {
-      name: "PW Test Provider",
-      key: "hs_prov_playwright00000000000000000001",
+      name: "PW Test Expert",
+      key: "hs_exp_playwright00000000000000000001",
       userId: pwUser.id,
       isActive: true,
       timezone: "Europe/Amsterdam",
     },
   });
-  console.log(`✅ Playwright provider profile: ${pwProfile.name}`);
+  console.log(`✅ Playwright expert profile: ${pwProfile.name}`);
 
   // Base lifecycle test client key
   const pwBaseKey = await prisma.apiKey.upsert({
@@ -134,7 +134,7 @@ async function main() {
       key: "hs_cli_playwright00000000000000000001",
       name: "PW Base Test",
       userId: pwUser.id,
-      providerId: pwProfile.id,
+      expertId: pwProfile.id,
       isActive: true,
       clientChannel: "openclaw",
       rateLimitPerMinute: 1000,
@@ -152,7 +152,7 @@ async function main() {
   });
   console.log(`✅ Playwright base client key`);
 
-  // Channel combo 1: OpenClaw consumer → Telegram provider notification
+  // Channel combo 1: OpenClaw consumer → Telegram expert notification
   const pwOcTelegramKey = await prisma.apiKey.upsert({
     where: { key: "hs_cli_pw_openclaw_telegram_00000001" },
     update: {},
@@ -160,7 +160,7 @@ async function main() {
       key: "hs_cli_pw_openclaw_telegram_00000001",
       name: "PW OpenClaw→Telegram",
       userId: pwUser.id,
-      providerId: pwProfile.id,
+      expertId: pwProfile.id,
       isActive: true,
       clientChannel: "openclaw",
       clientSubChannel: "telegram",
@@ -178,7 +178,7 @@ async function main() {
     create: { apiKeyId: pwOcTelegramKey.id, ip: "::1", status: "allowed" },
   });
 
-  // Channel combo 2: OpenClaw consumer → OpenClaw provider notification (pure polling)
+  // Channel combo 2: OpenClaw consumer → OpenClaw expert notification (pure polling)
   const pwOcOpenclawKey = await prisma.apiKey.upsert({
     where: { key: "hs_cli_pw_openclaw_openclaw_0000001" },
     update: {},
@@ -186,7 +186,7 @@ async function main() {
       key: "hs_cli_pw_openclaw_openclaw_0000001",
       name: "PW OpenClaw→OpenClaw",
       userId: pwUser.id,
-      providerId: pwProfile.id,
+      expertId: pwProfile.id,
       isActive: true,
       clientChannel: "openclaw",
       clientSubChannel: null,
@@ -204,7 +204,7 @@ async function main() {
     create: { apiKeyId: pwOcOpenclawKey.id, ip: "::1", status: "allowed" },
   });
 
-  // Channel combo 3: Claude Code consumer → OpenClaw provider notification
+  // Channel combo 3: Claude Code consumer → OpenClaw expert notification
   const pwCcOpenclawKey = await prisma.apiKey.upsert({
     where: { key: "hs_cli_pw_claudecode_openclaw_000001" },
     update: {},
@@ -212,7 +212,7 @@ async function main() {
       key: "hs_cli_pw_claudecode_openclaw_000001",
       name: "PW ClaudeCode→OpenClaw",
       userId: pwUser.id,
-      providerId: pwProfile.id,
+      expertId: pwProfile.id,
       isActive: true,
       clientChannel: "claudecode",
       clientSubChannel: null,
@@ -230,7 +230,7 @@ async function main() {
     create: { apiKeyId: pwCcOpenclawKey.id, ip: "::1", status: "allowed" },
   });
 
-  // Channel combo 4: Claude Code consumer → Telegram provider notification
+  // Channel combo 4: Claude Code consumer → Telegram expert notification
   const pwCcTelegramKey = await prisma.apiKey.upsert({
     where: { key: "hs_cli_pw_claudecode_telegram_00001" },
     update: {},
@@ -238,7 +238,7 @@ async function main() {
       key: "hs_cli_pw_claudecode_telegram_00001",
       name: "PW ClaudeCode→Telegram",
       userId: pwUser.id,
-      providerId: pwProfile.id,
+      expertId: pwProfile.id,
       isActive: true,
       clientChannel: "claudecode",
       clientSubChannel: "telegram",
@@ -256,7 +256,7 @@ async function main() {
     create: { apiKeyId: pwCcTelegramKey.id, ip: "::1", status: "allowed" },
   });
 
-  // Channel combo 5: OpenClaw consumer → Slack provider notification
+  // Channel combo 5: OpenClaw consumer → Slack expert notification
   const pwOcSlackKey = await prisma.apiKey.upsert({
     where: { key: "hs_cli_pw_openclaw_slack_000000001" },
     update: {},
@@ -264,7 +264,7 @@ async function main() {
       key: "hs_cli_pw_openclaw_slack_000000001",
       name: "PW OpenClaw→Slack",
       userId: pwUser.id,
-      providerId: pwProfile.id,
+      expertId: pwProfile.id,
       isActive: true,
       clientChannel: "openclaw",
       clientSubChannel: null,
@@ -282,7 +282,7 @@ async function main() {
     create: { apiKeyId: pwOcSlackKey.id, ip: "::1", status: "allowed" },
   });
 
-  // Channel combo 6: Claude Code consumer → Slack provider notification
+  // Channel combo 6: Claude Code consumer → Slack expert notification
   const pwCcSlackKey = await prisma.apiKey.upsert({
     where: { key: "hs_cli_pw_claudecode_slack_00000001" },
     update: {},
@@ -290,7 +290,7 @@ async function main() {
       key: "hs_cli_pw_claudecode_slack_00000001",
       name: "PW ClaudeCode→Slack",
       userId: pwUser.id,
-      providerId: pwProfile.id,
+      expertId: pwProfile.id,
       isActive: true,
       clientChannel: "claudecode",
       clientSubChannel: null,
@@ -311,11 +311,11 @@ async function main() {
   console.log(`✅ Playwright channel combination keys (6 total)`);
 
   // Mock Telegram channel for pw profile (used in Telegram notification tests)
-  const existingTelegramChannel = await prisma.channelProvider.findFirst({
+  const existingTelegramChannel = await prisma.expertChannel.findFirst({
     where: { profileId: pwProfile.id, type: "telegram" },
   });
   if (!existingTelegramChannel) {
-    await prisma.channelProvider.create({
+    await prisma.expertChannel.create({
       data: {
         profileId: pwProfile.id,
         type: "telegram",
@@ -324,7 +324,7 @@ async function main() {
         config: JSON.stringify({
           botToken: "999999999:PLAYWRIGHT_TEST_BOT_TOKEN_000000000",
           botUsername: "heysummon_pw_test_bot",
-          providerChatId: "123456789",
+          expertChatId: "123456789",
         }),
         status: "connected",
       },
@@ -335,11 +335,11 @@ async function main() {
   }
 
   // Mock Slack channel for pw profile (used in Slack notification tests)
-  const existingSlackChannel = await prisma.channelProvider.findFirst({
+  const existingSlackChannel = await prisma.expertChannel.findFirst({
     where: { profileId: pwProfile.id, type: "slack" },
   });
   if (!existingSlackChannel) {
-    await prisma.channelProvider.create({
+    await prisma.expertChannel.create({
       data: {
         profileId: pwProfile.id,
         type: "slack",
@@ -362,11 +362,11 @@ async function main() {
   }
 
   // OpenClaw channel for pw profile (used in OpenClaw polling tests)
-  const existingOcChannel = await prisma.channelProvider.findFirst({
+  const existingOcChannel = await prisma.expertChannel.findFirst({
     where: { profileId: pwProfile.id, type: "openclaw" },
   });
   if (!existingOcChannel) {
-    await prisma.channelProvider.create({
+    await prisma.expertChannel.create({
       data: {
         profileId: pwProfile.id,
         type: "openclaw",
@@ -383,7 +383,7 @@ async function main() {
 
   console.log("\n📋 Playwright test constants:");
   console.log(`   User:          playwright@heysummon.test / PlaywrightTest123!`);
-  console.log(`   Provider key:  hs_prov_playwright00000000000000000001`);
+  console.log(`   Expert key:    hs_exp_playwright00000000000000000001`);
   console.log(`   Base key:      hs_cli_playwright00000000000000000001`);
   console.log(`   OC→Telegram:   hs_cli_pw_openclaw_telegram_00000001`);
   console.log(`   OC→OpenClaw:   hs_cli_pw_openclaw_openclaw_0000001`);

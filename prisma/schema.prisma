@@ -15,13 +15,13 @@ model User {
   password           String?
   name               String?
   image              String?
-  role               String    @default("provider") // "admin" | "provider" | "readonly"
+  role               String    @default("expert") // "admin" | "expert" | "readonly"
   onboardingComplete Boolean   @default(false)
   expertise          String?
   notificationPref   String    @default("email")
   telegramChatId     String?
   apiKeys            ApiKey[]
-  providers          UserProfile[]
+  expertProfiles     UserProfile[]
   requests           HelpRequest[] @relation("ExpertRequests")
   accounts           Account[]
   sessions           Session[]
@@ -87,14 +87,14 @@ model UserProfile {
   phoneFirstTimeout       Int        @default(30)    // Seconds to wait for phone pickup before fallback
   user             User              @relation(fields: [userId], references: [id])
   apiKeys          ApiKey[]
-  channelProviders ChannelProvider[]
+  expertChannels   ExpertChannel[]
   ipEvents         IpEvent[]
-  integrationConfigs ProviderIntegrationConfig[]
+  integrationConfigs ExpertIntegrationConfig[]
   missedRequests   MissedRequest[]
   createdAt        DateTime          @default(now())
 }
 
-model ChannelProvider {
+model ExpertChannel {
   id              String       @id @default(cuid())
   profileId       String
   profile         UserProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -122,8 +122,8 @@ model ApiKey {
   name                 String?
   userId               String
   user                 User          @relation(fields: [userId], references: [id])
-  providerId           String?
-  provider             UserProfile?  @relation(fields: [providerId], references: [id])
+  expertId             String?
+  expert               UserProfile?  @relation(fields: [expertId], references: [id])
   isActive             Boolean       @default(true)
   deviceSecret         String?       // SHA-256 hash of device token (nullable for legacy keys)
   machineId            String?       // SHA-256 hash of machine fingerprint (auto-bound on first valid request)
@@ -152,8 +152,8 @@ model SetupToken {
   baseUrl       String
   channel       String                      // "openclaw" | "claudecode" | "codex" | "gemini" | "cursor"
   subChannel    String?                     // "telegram" | "whatsapp"
-  providerName  String?
-  summonContext String?              // Copied from provider profile at link-creation time
+  expertName    String?
+  summonContext String?              // Copied from expert profile at link-creation time
   timeout       Int      @default(900)
   pollInterval  Int      @default(3)
   globalInstall Boolean  @default(true)
@@ -203,9 +203,9 @@ model HelpRequest {
   // v4: E2E encryption keys (X25519 + Ed25519)
   consumerSignPubKey     String?   // Consumer's Ed25519 signing public key
   consumerEncryptPubKey  String?   // Consumer's X25519 encryption public key
-  providerSignPubKey     String?   // Provider's Ed25519 signing public key (after key exchange)
-  providerEncryptPubKey  String?   // Provider's X25519 encryption public key (after key exchange)
-  
+  expertSignPubKey       String?   // Expert's Ed25519 signing public key (after key exchange)
+  expertEncryptPubKey    String?   // Expert's X25519 encryption public key (after key exchange)
+
   // Optional plaintext preview for notifications (max 200 chars)
   questionPreview        String?
 
@@ -216,9 +216,9 @@ model HelpRequest {
   // Content safety (guard service)
   contentFlags           String?   // JSON array of safety flags from guard
   guardVerified          Boolean   @default(false) // true if content was validated by guard sidecar
-  
+
   status                 String    @default("pending") // pending | active | closed | expired
-  deliveredAt            DateTime? // When provider watcher acknowledged receipt
+  deliveredAt            DateTime? // When expert watcher acknowledged receipt
   consumerDeliveredAt    DateTime? // When consumer watcher last acknowledged messages
   expiresAt              DateTime  // createdAt + 72 hours
   closedAt               DateTime?
@@ -237,22 +237,22 @@ model HelpRequest {
 
   // HITL protocol: escalation tracking
   escalatedAt            DateTime? // Set when active-monitor escalates unacknowledged request
-  
+
   // Phone-first call tracking
   phoneCallSid           String?   // Twilio Call SID
   phoneCallStatus        String?   // "initiated" | "ringing" | "answered" | "completed" | "no-answer" | "busy" | "failed"
   phoneCallResponse      String?   // Plaintext response collected from phone call
   phoneCallAt            DateTime? // When the call was initiated
 
-  // Provider notification tracking
-  notifiedProviderAt     DateTime? // When provider was notified (null = deferred due to unavailability)
+  // Expert notification tracking
+  notifiedExpertAt       DateTime? // When expert was notified (null = deferred due to unavailability)
 
   // Client timeout tracking
   clientTimedOutAt       DateTime? // When the consumer's blocking poll timed out without a response
 
   // Channel adapter fields
-  channelProviderId      String?
-  channelProvider        ChannelProvider? @relation(fields: [channelProviderId], references: [id])
+  expertChannelId        String?
+  expertChannel          ExpertChannel? @relation(fields: [expertChannelId], references: [id])
   consumerChatId         String?   // External chat identifier (Telegram chat_id, etc.)
   consumerName           String?   // Display name from external channel
 
@@ -267,17 +267,17 @@ model Message {
   id          String      @id @default(cuid())
   requestId   String
   request     HelpRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  from        String      // "consumer" | "provider"
-  
+  from        String      // "consumer" | "expert"
+
   // E2E encrypted message payload
   ciphertext  String      // AES-256-GCM encrypted (base64)
   iv          String      // Initialization vector (base64)
   authTag     String      // GCM authentication tag (base64)
   signature   String      // Ed25519 signature of ciphertext (base64)
   messageId   String      @unique // For HKDF salt + deduplication
-  
+
   createdAt   DateTime    @default(now())
-  
+
   @@index([requestId])
   @@index([messageId])
 }
@@ -334,20 +334,20 @@ model Integration {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  providerConfigs ProviderIntegrationConfig[]
+  expertConfigs ExpertIntegrationConfig[]
 
   @@unique([type])
   @@index([category])
 }
 
-model ProviderIntegrationConfig {
+model ExpertIntegrationConfig {
   id              String       @id @default(cuid())
   profileId       String
   profile         UserProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   integrationId   String
   integration     Integration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
   isActive        Boolean      @default(true)
-  config          String       @default("{}") // JSON: provider-specific config (phone number, voice settings)
+  config          String       @default("{}") // JSON: expert-specific config (phone number, voice settings)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -356,9 +356,9 @@ model ProviderIntegrationConfig {
   @@index([integrationId])
 }
 
-model ProviderMetrics {
+model ExpertMetrics {
   id                String   @id @default(cuid())
-  providerId        String   @unique
+  expertId          String   @unique
   avgRating         Float?
   avgResponseTimeMs Float?
   totalResponded    Int      @default(0)
@@ -366,7 +366,7 @@ model ProviderMetrics {
   reliability       Float?   // responded / (responded + expired)
   updatedAt         DateTime @updatedAt
 
-  @@index([providerId])
+  @@index([expertId])
 }
 
 model GdprSettings {
@@ -417,13 +417,13 @@ model MissedRequest {
   id              String      @id @default(cuid())
   apiKeyId        String
   apiKey          ApiKey      @relation(fields: [apiKeyId], references: [id])
-  providerId      String
-  provider        UserProfile @relation(fields: [providerId], references: [id])
+  expertId        String
+  expert          UserProfile @relation(fields: [expertId], references: [id])
   nextAvailableAt DateTime?
   questionPreview String?     // First ~200 chars for dashboard context
   createdAt       DateTime    @default(now())
 
   @@index([apiKeyId])
-  @@index([providerId])
+  @@index([expertId])
   @@index([createdAt])
 }

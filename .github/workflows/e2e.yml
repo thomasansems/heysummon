@@ -19,21 +19,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: npx prisma generate
+        run: pnpm exec prisma generate
         env:
           DATABASE_URL: "file:./e2e-test.db"
 
       - name: Run migrations
-        run: npx prisma db push --force-reset
+        run: pnpm exec prisma db push --force-reset
         env:
           DATABASE_URL: "file:./e2e-test.db"
 
@@ -47,19 +51,19 @@ jobs:
           NEXTAUTH_SECRET: e2e-secret
 
       - name: Seed Playwright data
-        run: npx tsx prisma/seed.ts
+        run: pnpm exec tsx prisma/seed.ts
         env:
           DATABASE_URL: "file:./e2e-test.db"
           NEXTAUTH_SECRET: e2e-secret
 
       - name: Build
-        run: npm run build
+        run: pnpm run build
         env:
           NEXTAUTH_SECRET: e2e-secret
 
       - name: Start platform
         run: |
-          npm start &
+          pnpm start &
           for i in $(seq 1 30); do
             curl -s http://localhost:3000/api/v1/health && break || sleep 2
           done
@@ -86,10 +90,10 @@ jobs:
           bash e2e/e2e-test.sh
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Playwright E2E tests
-        run: npx playwright test tests/e2e/hitl-protocol.spec.ts tests/e2e/approval-flow.spec.ts tests/e2e/active-monitor.spec.ts tests/e2e/consumer-message.spec.ts tests/e2e/lifecycle.spec.ts
+        run: pnpm exec playwright test tests/e2e/hitl-protocol.spec.ts tests/e2e/approval-flow.spec.ts tests/e2e/active-monitor.spec.ts tests/e2e/consumer-message.spec.ts tests/e2e/lifecycle.spec.ts
         env:
           BASE_URL: http://localhost:3000
           HEYSUMMON_MONITOR_INTERVAL_MS: "2000"

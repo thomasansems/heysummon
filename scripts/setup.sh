@@ -57,12 +57,11 @@ choose_connectivity() {
   echo ""
   echo "  1) Cloudflare Tunnel  (recommended — free, custom domain, SSE-friendly)"
   echo "  2) Tailscale Funnel   (easy, uses your Tailscale network)"
-  echo "  3) Ngrok              (quick start, random URL on free tier)"
-  echo "  4) None / Manual      (you handle port forwarding yourself)"
+  echo "  3) None / Manual      (you handle port forwarding yourself)"
   echo ""
   echo -e "${DIM}  All tunnel options route traffic through Guard for content safety.${NC}"
   echo ""
-  read -rp "$(echo -e "${BLUE}?${NC}  Enter choice [1-4]: ")" choice
+  read -rp "$(echo -e "${BLUE}?${NC}  Enter choice [1-3]: ")" choice
 }
 
 # ── Ed25519 Key Generation ──────────────────────────
@@ -147,12 +146,6 @@ EOF
 TAILSCALE_AUTHKEY=${TS_KEY}
 EOF
       ;;
-    ngrok)
-      cat >> "$env_file" <<EOF
-NGROK_AUTHTOKEN=${NGROK_TOKEN}
-EOF
-      [[ -n "${NGROK_DOMAIN:-}" ]] && echo "NGROK_DOMAIN=${NGROK_DOMAIN}" >> "$env_file"
-      ;;
   esac
 
   ok "Generated .env"
@@ -216,27 +209,6 @@ setup_tailscale() {
   fi
   PUBLIC_URL="https://heysummon.<your-tailnet>.ts.net"
   warn "Your URL will be https://heysummon.<tailnet-name>.ts.net"
-}
-
-setup_ngrok() {
-  CONNECTIVITY_METHOD="ngrok"
-  echo ""
-  info "Ngrok Setup"
-  echo ""
-  info "Get your auth token at https://dashboard.ngrok.com/get-started/your-authtoken"
-  info "Ngrok will tunnel to Guard (heysummon-guard:3000) automatically."
-  echo ""
-  prompt_secret NGROK_TOKEN "Ngrok auth token"
-  if [[ -z "$NGROK_TOKEN" ]]; then
-    err "Auth token is required"; exit 1
-  fi
-  prompt NGROK_DOMAIN "Custom domain (leave empty for random URL)" ""
-  if [[ -n "$NGROK_DOMAIN" ]]; then
-    PUBLIC_URL="https://${NGROK_DOMAIN}"
-  else
-    PUBLIC_URL="(will be shown after starting ngrok — check http://localhost:4040)"
-    warn "Free ngrok URLs change on restart. Check http://localhost:4040/status for current URL."
-  fi
 }
 
 setup_direct() {
@@ -325,8 +297,7 @@ choose_connectivity
 case "$choice" in
   1) setup_cloudflare ;;
   2) setup_tailscale ;;
-  3) setup_ngrok ;;
-  4) setup_direct ;;
+  3) setup_direct ;;
   *) err "Invalid choice"; exit 1 ;;
 esac
 

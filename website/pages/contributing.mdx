@@ -9,10 +9,10 @@ Thanks for your interest in contributing to HeySummon!
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
 cd heysummon
-npm install
+pnpm install
 cp .env.example .env.local
-npx prisma migrate dev
-npm run dev
+pnpm exec prisma migrate dev
+pnpm run dev
 ```
 
 Open `http://localhost:3425`.
@@ -38,9 +38,9 @@ heysummon/
 ## Running tests
 
 ```bash
-npm run test            # unit tests (vitest)
-npm run lint            # ESLint
-npm run build           # production build
+pnpm run test           # unit tests (vitest)
+pnpm run lint           # ESLint
+pnpm run build          # production build
 
 # E2E tests (requires running instance)
 bash e2e/e2e-test.sh
@@ -61,8 +61,8 @@ The docs live in `website/pages/` in this repo. Edit the `.mdx` files directly â
 ```bash
 # Preview locally
 cd website
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Open `http://localhost:3000`.

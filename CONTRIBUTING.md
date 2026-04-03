@@ -2,16 +2,28 @@
 
 Thanks for your interest in contributing! This guide covers everything you need to get started.
 
+## Prerequisites
+
+This project uses **pnpm** as its package manager. Install it before proceeding:
+
+```bash
+# Option 1: Install via npm
+npm i -g pnpm@latest
+
+# Option 2: Enable via Node.js corepack
+corepack enable
+```
+
 ## Development Setup
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
 cd heysummon
 cp .env.example .env.local   # configure your environment
-npm install
-npx prisma generate
-npx prisma db push
-npm run dev
+pnpm install
+pnpm exec prisma generate
+pnpm exec prisma db push
+pnpm dev
 ```
 
 The app runs on [http://localhost:3425](http://localhost:3425) by default.
@@ -19,7 +31,7 @@ The app runs on [http://localhost:3425](http://localhost:3425) by default.
 ## Code Style
 
 - **TypeScript** throughout the codebase
-- **ESLint** for linting — run `npm run lint`
+- **ESLint** for linting — run `pnpm lint`
 - Uses `next/core-web-vitals` and `next/typescript` ESLint presets
 - Use `@/` path aliases for imports
 - Prefer functional components and server components where possible
@@ -44,9 +56,9 @@ Examples: `feat/webhook-retry`, `fix/auth-redirect`, `docs/contributing`
 4. Link related issues (e.g. `Closes #123`)
 5. Ensure all checks pass before requesting review:
    ```bash
-   npm run lint
-   npm run test
-   npm run build
+   pnpm lint
+   pnpm test
+   pnpm build
    ```
 6. Update documentation if your change affects user-facing behavior
 
@@ -55,14 +67,14 @@ Examples: `feat/webhook-retry`, `fix/auth-redirect`, `docs/contributing`
 ### Unit Tests (Vitest)
 
 ```bash
-npm run test          # single run
-npm run test:watch    # watch mode
+pnpm test             # single run
+pnpm test:watch       # watch mode
 ```
 
 ### End-to-End Tests (Playwright)
 
 ```bash
-npm run test:e2e      # requires the app to be running
+pnpm test:e2e         # requires the app to be running
 ```
 
 There is also a self-contained E2E script that seeds test data and runs the suite locally:
@@ -74,7 +86,7 @@ bash e2e/run-local.sh
 ### Run Everything
 
 ```bash
-npm run test:all      # unit + e2e
+pnpm test:all         # unit + e2e
 ```
 
 ## Security Vulnerabilities

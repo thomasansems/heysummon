@@ -334,7 +334,7 @@ Error responses always include a JSON body:
 The `@heysummon/consumer-sdk` package provides typed wrappers for all consumer endpoints:
 
 ```bash
-npm install @heysummon/consumer-sdk
+pnpm install @heysummon/consumer-sdk
 ```
 
 ```typescript

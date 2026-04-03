@@ -23,7 +23,7 @@ Manage afterwards with: `heysummon start -d` · `heysummon stop` · `heysummon s
 | Tool | Version | Required? |
 |------|---------|-----------|
 | **Node.js** | 18+ | ✅ Yes |
-| **npm** | 9+ (ships with Node) | ✅ Yes |
+| **pnpm** | 9+ (`npm i -g pnpm@latest` or `corepack enable`) | ✅ Yes |
 | **Docker** | Any recent version | ❌ Optional (for PostgreSQL) |
 
 > **No Docker?** No problem — HeySummon defaults to SQLite.
@@ -35,7 +35,7 @@ Manage afterwards with: `heysummon start -d` · `heysummon stop` · `heysummon s
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
 cd heysummon
-npm install
+pnpm install
 ```
 
 ---
@@ -69,7 +69,7 @@ The defaults handle everything else for local dev:
 ### 4. Database Setup
 
 ```bash
-npx prisma migrate dev
+pnpm exec prisma migrate dev
 ```
 
 This creates the SQLite database and runs all migrations.
@@ -79,7 +79,7 @@ This creates the SQLite database and runs all migrations.
 ### 5. Start the Dev Server
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Open **http://localhost:3425** — you should see the HeySummon login page. 🎉
@@ -151,7 +151,7 @@ You'll get back a response with a request ID and reference code:
 - 📖 Read the full [README](./README.md) for architecture details
 - 🔐 Learn about [E2E encryption](./README.md) (RSA-OAEP + AES-256-GCM)
 - Try `docker compose up` for a full PostgreSQL setup
-- 🧪 Run tests: `npm test`
+- Run tests: `pnpm test`
 
 ---
 

@@ -1,0 +1,20 @@
+packages:
+  - cli
+  - packages/*
+  - website
+  - landingspage
+  - vercel-waitlist
+
+onlyBuiltDependencies:
+  - prisma
+  - "@prisma/client"
+  - "@prisma/engines"
+  - esbuild
+  - "@swc/core"
+  - sharp
+  - playwright-chromium
+  - protobufjs
+  - unrs-resolver
+  - msw
+
+blockExoticSubdeps: true

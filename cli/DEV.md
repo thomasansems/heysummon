@@ -6,17 +6,17 @@ Bouwt de TypeScript en registreert het `heysummon` commando globaal op je machin
 
 ```bash
 cd cli
-npm run build
-npm link
+pnpm run build
+pnpm link --global
 ```
 
-Het binaire bestand (`heysummon`) wordt gesymlinkt naar de globale npm-bin. Je kunt daarna gewoon `heysummon` typen in elke terminal.
+Het binaire bestand (`heysummon`) wordt gesymlinkt naar de globale pnpm-bin. Je kunt daarna gewoon `heysummon` typen in elke terminal.
 
 ### Waar wordt het geïnstalleerd?
 
 ```bash
-npm root -g         # globale node_modules map
-npm bin -g          # map waar de symlink staat, bv. ~/.nvm/versions/node/v20.x.x/bin/
+pnpm root -g        # globale node_modules map
+pnpm bin -g         # map waar de symlink staat
 which heysummon     # bevestigt het pad van de symlink
 ```
 
@@ -27,7 +27,7 @@ which heysummon     # bevestigt het pad van de symlink
 Rebuild en de symlink pikt de nieuwe `dist/` automatisch op:
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 Geen re-link nodig — de symlink wijst al naar deze map.
@@ -39,14 +39,14 @@ Geen re-link nodig — de symlink wijst al naar deze map.
 Verwijdert de globale symlink:
 
 ```bash
-npm unlink -g heysummon
+pnpm remove -g heysummon
 ```
 
 Of vanuit de cli-map:
 
 ```bash
 cd cli
-npm unlink
+pnpm unlink
 ```
 
 Controleer of het weg is:
@@ -61,9 +61,9 @@ which heysummon     # mag niets teruggeven
 
 ```bash
 cd cli
-npm unlink -g heysummon   # verwijder oude symlink
-npm run build             # hercompileer
-npm link                  # link opnieuw
+pnpm remove -g heysummon  # verwijder oude symlink
+pnpm run build            # hercompileer
+pnpm link --global        # link opnieuw
 heysummon --help          # test
 ```
 
@@ -86,10 +86,10 @@ Het commando:
 6. Herinnert je de CLI-binary apart te verwijderen:
 
 ```bash
-npm uninstall -g heysummon
+pnpm remove -g heysummon
 ```
 
-> **Let op:** `npm uninstall` verwijdert alléén de CLI-binary, niet `~/.heysummon/`.
+> **Let op:** `pnpm remove` verwijdert alléén de CLI-binary, niet `~/.heysummon/`.
 > Gebruik `heysummon uninstall` voor een volledige schone verwijdering.
 
 ---
@@ -99,9 +99,9 @@ npm uninstall -g heysummon
 Zodra het pakket gepubliceerd is:
 
 ```bash
-npm install -g heysummon
+pnpm add -g heysummon
 # updaten
-npm update -g heysummon
+pnpm update -g heysummon
 # verwijderen
-npm uninstall -g heysummon
+pnpm remove -g heysummon
 ```

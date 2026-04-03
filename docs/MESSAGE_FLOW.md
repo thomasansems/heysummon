@@ -863,7 +863,7 @@ curl http://localhost:3425/api/v1/events/ack/req-123 \
 
 4. **Restart everything**:
    ```bash
-   npm run dev:all   # or
+   pnpm run dev:all   # or
    docker compose restart
    ```
 

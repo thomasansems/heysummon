@@ -57,14 +57,14 @@ skills/                 # Claude Code / AI tool skills
 ## Common Commands
 
 ```bash
-npm run dev           # Start dev server (port 3425)
-npm run build         # Production build
-npm run test          # Unit tests (Vitest)
-npm run test:e2e      # E2E tests (Playwright)
-npm run test:all      # All tests
-npm run lint          # ESLint
-npm run db:studio     # Prisma Studio
-npm run db:seed       # Seed sample data
+pnpm dev              # Start dev server (port 3425)
+pnpm build            # Production build
+pnpm test             # Unit tests (Vitest)
+pnpm test:e2e         # E2E tests (Playwright)
+pnpm test:all         # All tests
+pnpm lint             # ESLint
+pnpm db:studio        # Prisma Studio
+pnpm db:seed          # Seed sample data
 ```
 
 ## Documentation
@@ -104,14 +104,14 @@ Every meaningful change goes in `/website/pages/reference/changelog.mdx`, newest
 ### Database
 
 - Schema: `prisma/schema.prisma`
-- Migrations: `npx prisma migrate dev --name <description>`
+- Migrations: `pnpm exec prisma migrate dev --name <description>`
 - Never edit migration files after they have been applied
 
 ## Deployment Options
 
 | Method | Database | Port |
 |--------|----------|------|
-| `npm run dev` | SQLite | 3425 |
+| `pnpm dev` | SQLite | 3425 |
 | `npx @heysummon/app` | SQLite | 3435 |
 | Docker Compose | PostgreSQL | 3445 |
 

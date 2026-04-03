@@ -17,7 +17,7 @@ HeySummon is designed around security, reliable delivery, and zero-knowledge rel
 │  └─────────┘    └──────────────┘                        │
 │       ▲                                                 │
 │  ┌─────────┐                                            │
-│  │ Tunnel  │  (optional: Cloudflare / Tailscale / Ngrok)│
+│  │ Tunnel  │  (optional: Cloudflare / Tailscale)        │
 │  └─────────┘                                            │
 └──────────────────────────────────────────────────────────┘
 ```

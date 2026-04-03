@@ -40,7 +40,7 @@ HeySummon uses [Prisma Migrate](https://www.prisma.io/docs/concepts/components/p
 ### Apply pending migrations (production)
 
 ```bash
-npx prisma migrate deploy
+pnpm exec prisma migrate deploy
 ```
 
 Use this after every update. Docker's entrypoint runs this automatically.
@@ -48,7 +48,7 @@ Use this after every update. Docker's entrypoint runs this automatically.
 ### Create a new migration (development)
 
 ```bash
-npx prisma migrate dev --name "your-migration-name"
+pnpm exec prisma migrate dev --name "your-migration-name"
 ```
 
 ### Reset the database (development only)
@@ -58,7 +58,7 @@ npx prisma migrate dev --name "your-migration-name"
 </Callout>
 
 ```bash
-npx prisma migrate reset   # development only
+pnpm exec prisma migrate reset   # development only
 ```
 
 ---
@@ -81,6 +81,6 @@ A visual database browser for development:
 
 ```bash
 cd ~/Code/heysummon
-npx prisma studio
+pnpm exec prisma studio
 # Opens at http://localhost:5555
 ```

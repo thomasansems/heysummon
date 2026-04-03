@@ -74,4 +74,4 @@ Providers configure availability windows (quiet hours, available days, timezone)
 Scripts resolve the SDK CLI in this order:
 1. `HEYSUMMON_SDK_DIR` env var (explicit override)
 2. Git root monorepo path (`packages/consumer-sdk/src/cli.ts`)
-3. npm package (`npx @heysummon/consumer-sdk`)
+3. npm package (`pnpm dlx @heysummon/consumer-sdk`)

@@ -5,7 +5,6 @@
 #   docker compose -f docker-compose.dev.yml up -d
 #
 # Tunnel profiles:
-#   docker compose -f docker-compose.dev.yml --profile ngrok up -d
 #   docker compose -f docker-compose.dev.yml --profile cloudflare up -d
 #
 # For production self-hosting (no source code needed), use docker-compose.yml instead.
@@ -15,7 +14,7 @@ services:
     build:
       context: .
       target: deps
-    entrypoint: ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss"]
+    entrypoint: ["sh", "-c", "pnpm exec prisma db push --skip-generate --accept-data-loss"]
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
     networks:
@@ -90,28 +89,6 @@ services:
       retries: 3
       start_period: 15s
 
-  # Ngrok: docker compose -f docker-compose.dev.yml --profile ngrok up -d
-  ngrok:
-    image: ngrok/ngrok:latest
-    restart: unless-stopped
-    profiles: ["ngrok"]
-    command: http app:3000 --log stdout ${NGROK_DOMAIN:+--domain=${NGROK_DOMAIN}}
-    networks:
-      - frontend
-    depends_on:
-      app:
-        condition: service_healthy
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
-    ports:
-      - "3448:4040"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4040/api/tunnels"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
   # Prisma Studio: docker compose -f docker-compose.dev.yml --profile debug up -d
   prisma-studio:
     build:
@@ -119,7 +96,7 @@ services:
       target: deps
     restart: unless-stopped
     profiles: ["debug"]
-    entrypoint: ["sh", "-c", "npx prisma studio --port 3447 --browser none"]
+    entrypoint: ["sh", "-c", "pnpm exec prisma studio --port 3447 --browser none"]
     ports:
       - "${PRISMA_STUDIO_PORT:-3447}:3447"
     networks:

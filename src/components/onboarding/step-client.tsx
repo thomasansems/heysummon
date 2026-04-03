@@ -9,9 +9,11 @@ import {
   type ClientChannelType,
   type ClientSubChannelType,
 } from "@/components/shared/client-channel-selector";
+import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
 
 const DEFAULT_TIMEOUT = 900;
 const DEFAULT_POLL_INTERVAL = 3;
+const MAX_RECENT_SHOWN = 5;
 
 const TIMEOUT_PRESETS = [
   { value: 300, label: "5 min", desc: "You're actively available" },
@@ -58,6 +60,8 @@ export function StepClient({
   const [customTimeout, setCustomTimeout] = useState<number | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
+  const [summonContext, setSummonContext] = useState("");
+  const [recentContexts, setRecentContexts] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Created client data
@@ -73,6 +77,25 @@ export function StepClient({
     keyId: keyId || "noop",
     timeoutMs: 120_000,
   });
+
+  // Fetch recently used contexts from provider
+  useEffect(() => {
+    const fetchRecent = async () => {
+      const res = await fetch(`/api/providers/${providerId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const raw = data.provider?.recentSummonContexts;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setRecentContexts(parsed);
+        } catch {
+          // ignore invalid JSON
+        }
+      }
+    };
+    fetchRecent();
+  }, [providerId]);
 
   // Auto-advance when connected
   useEffect(() => {
@@ -121,7 +144,7 @@ export function StepClient({
       setKeyId(createdKeyId);
       setApiKey(createdApiKey);
 
-      // Generate setup link
+      // Generate setup link (summonContext is passed directly in the body)
       const linkRes = await fetch("/api/v1/setup-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -129,6 +152,7 @@ export function StepClient({
           keyId: createdKeyId,
           channel,
           subChannel,
+          ...(summonContext.trim() && { summonContext: summonContext.trim() }),
           ...(timeout !== DEFAULT_TIMEOUT && { timeout }),
           ...(pollInterval !== DEFAULT_POLL_INTERVAL && { pollInterval }),
         }),
@@ -168,13 +192,19 @@ cat > ${skillDir}/.env << 'EOF'
 HEYSUMMON_BASE_URL=${baseUrl}
 HEYSUMMON_API_KEY=${apiKey}
 HEYSUMMON_TIMEOUT=${timeout}
-HEYSUMMON_POLL_INTERVAL=${pollInterval}
+HEYSUMMON_POLL_INTERVAL=${pollInterval}${summonContext.trim() ? `\nHEYSUMMON_SUMMON_CONTEXT=${summonContext.trim()}` : ""}
 EOF
 echo "Verifying connection..." && \\
 curl -sf "${baseUrl}/api/v1/whoami" \\
   -H "x-api-key: ${apiKey}" > /dev/null && \\
 echo "Connected and device bound successfully."`
       : "";
+
+  // Recently used contexts (truncated, max 5 shown) excluding presets
+  const presetTexts = SUMMON_CONTEXT_PRESETS.map((p) => p.text);
+  const recentNonPreset = recentContexts
+    .filter((c) => !presetTexts.includes(c))
+    .slice(0, MAX_RECENT_SHOWN);
 
   return (
     <div>
@@ -236,7 +266,7 @@ echo "Connected and device bound successfully."`
             </div>
           </div>
 
-          {/* Response time — preset selector */}
+          {/* Response time -- preset selector */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               How fast will you typically respond?
@@ -296,7 +326,7 @@ echo "Connected and device bound successfully."`
             )}
           </div>
 
-          {/* Good vs Bad example — educational */}
+          {/* Good vs Bad example -- educational */}
           <div>
             <button
               type="button"
@@ -325,7 +355,7 @@ Should I:
 A) Skip the discount field for now
 B) Create a /discounts endpoint myself`}</pre>
                   <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    Specific context, clear options — answerable in seconds.
+                    Specific context, clear options -- answerable in seconds.
                   </p>
                 </div>
                 <div className="rounded-md border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/10 p-3">
@@ -334,7 +364,7 @@ B) Create a /discounts endpoint myself`}</pre>
                   </p>
                   <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`What should I do next?`}</pre>
                   <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    No context, no options — takes minutes to understand.
+                    No context, no options -- takes minutes to understand.
                   </p>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
@@ -345,7 +375,71 @@ B) Create a /discounts endpoint myself`}</pre>
             )}
           </div>
 
-          {/* Advanced settings — poll interval */}
+          {/* Summoning context */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              Summoning guidelines for this client (optional)
+            </label>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              Tell the AI when it should and shouldn&apos;t summon you. This context
+              is included in the consumer&apos;s environment.
+            </p>
+
+            {/* Recently used contexts */}
+            {recentNonPreset.length > 0 && (
+              <div className="mb-2">
+                <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                  Recently used
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {recentNonPreset.map((ctx, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSummonContext(ctx)}
+                      className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors max-w-[200px] truncate ${
+                        summonContext === ctx
+                          ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
+                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                      }`}
+                      title={ctx}
+                    >
+                      {ctx.length > 40 ? ctx.slice(0, 40) + "..." : ctx}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {SUMMON_CONTEXT_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => setSummonContext(preset.text)}
+                  className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    summonContext === preset.text
+                      ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
+                      : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={summonContext}
+              onChange={(e) => setSummonContext(e.target.value.slice(0, 500))}
+              placeholder="e.g. Only summon me when you need architecture decisions or production access..."
+              rows={3}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring resize-none"
+            />
+            <p className="mt-1 text-right text-[11px] text-muted-foreground">
+              {summonContext.length}/500
+            </p>
+          </div>
+
+          {/* Advanced settings -- poll interval */}
           <div>
             <button
               type="button"
@@ -417,6 +511,16 @@ B) Create a /discounts endpoint myself`}</pre>
       {/* Phase: Connecting */}
       {phase === "connecting" && (
         <div className="space-y-4 animate-in fade-in duration-200">
+          {summonContext.trim() && (
+            <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/10 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1">
+                Summoning guidelines
+              </p>
+              <p className="text-xs text-foreground whitespace-pre-wrap">
+                {summonContext.trim()}
+              </p>
+            </div>
+          )}
           {isSkillBased ? (
             <div className="rounded-lg border border-border bg-black p-4">
               <p className="mb-2 text-xs text-muted-foreground font-medium">

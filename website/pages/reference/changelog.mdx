@@ -2,6 +2,28 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## Dashboard Summoning Context -- 2026-04-03
+
+### Added
+- **Summoning context in the dashboard client wizard**: The "Create New Client" wizard (Step 2) now includes summoning context presets (Strict, Budget-conscious, Safety-first), recently used contexts, and a custom textarea (500-char limit) -- matching the onboarding wizard.
+- **Improved client-created dialog (Step 3)**: Shows full setup instructions with intro text, summoning guidelines (when set), and the setup link. The "Copy" button now copies the complete instructional text block instead of just the URL.
+- Shared `SUMMON_CONTEXT_PRESETS` constant extracted to `src/lib/summon-context-presets.ts` for DRY use across both wizards.
+
+---
+
+## Per-Client Summoning Context -- 2026-03-30
+
+### Changed
+- **Summoning context is now per-client**: Each client connection can have its own summoning guidelines (up to 500 characters), set during the onboarding wizard. Previously, context was set on the provider profile.
+- Summoning context is passed directly in `POST /api/v1/setup-link` body and stored on the `SetupToken`.
+- Recently used contexts are saved to `recentSummonContexts` on the provider profile (JSON array, max 10, most recent first) for quick reuse.
+- Removed summoning context editor from the dashboard provider detail panel.
+- `GET /api/v1/providers` no longer includes `summonContext` in the response.
+- `PATCH /api/providers/:id` no longer accepts `summonContext`.
+- Presets (Strict, Budget-conscious, Safety-first) and recently used contexts appear in the wizard.
+
+---
+
 ## Docker Refactor — 2026-03-27
 
 ### Changed

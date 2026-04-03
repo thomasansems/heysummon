@@ -1,6 +1,7 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
+import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -177,6 +178,10 @@ export default function ClientsContent() {
   const [wizardPollInterval, setWizardPollInterval] = useState(3);
   const [wizardGlobalInstall, setWizardGlobalInstall] = useState(true);
 
+  // Summoning context
+  const [wizardSummonContext, setWizardSummonContext] = useState("");
+  const [wizardRecentContexts, setWizardRecentContexts] = useState<string[]>([]);
+
   const loadKeys = () =>
     fetch("/api/v1/keys")
       .then((r) => {
@@ -208,6 +213,28 @@ export default function ClientsContent() {
     loadProviders();
   }, []);
 
+  // Fetch recently used summoning contexts when provider changes
+  useEffect(() => {
+    if (!wizardProviderId) {
+      setWizardRecentContexts([]);
+      return;
+    }
+    fetch(`/api/providers/${wizardProviderId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const raw = data?.provider?.recentSummonContexts;
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) setWizardRecentContexts(parsed);
+          } catch {
+            // ignore invalid JSON
+          }
+        }
+      })
+      .catch(() => {});
+  }, [wizardProviderId]);
+
   const openWizard = () => {
     setWizardStep(1);
     setWizardChannel(null);
@@ -220,11 +247,14 @@ export default function ClientsContent() {
     setWizardTimeout(900);
     setWizardPollInterval(3);
     setWizardGlobalInstall(true);
+    setWizardSummonContext("");
+    setWizardRecentContexts([]);
   };
 
   const closeWizard = () => {
     setWizardStep(0);
     setWizardResult(null);
+    setWizardSummonContext("");
   };
 
   const wizardNext = () => {
@@ -283,6 +313,7 @@ export default function ClientsContent() {
         keyId,
         channel: wizardChannel,
         subChannel: wizardSubChannel,
+        ...(wizardSummonContext.trim() && { summonContext: wizardSummonContext.trim() }),
         ...(wizardTimeout !== 900 && { timeout: wizardTimeout }),
         ...(wizardPollInterval !== 3 && { pollInterval: wizardPollInterval }),
         ...(wizardGlobalInstall === false && { globalInstall: false }),
@@ -311,6 +342,23 @@ export default function ClientsContent() {
   };
 
 
+
+  const buildSetupCopyText = () => {
+    const lines: string[] = [];
+    lines.push("HeySummon Setup Instructions");
+    lines.push("---");
+    lines.push("Install the HeySummon skill to connect with your human expert.");
+    lines.push("");
+    if (wizardSummonContext.trim()) {
+      lines.push("Summoning guidelines:");
+      lines.push(wizardSummonContext.trim());
+      lines.push("");
+    }
+    lines.push(`Setup link: ${wizardResult?.setupUrl ?? ""}`);
+    lines.push("");
+    lines.push("This link is valid for 24 hours and contains embedded credentials.");
+    return lines.join("\n");
+  };
 
   const copyKey = (key: string) => {
     copyToClipboard(key);
@@ -456,6 +504,76 @@ export default function ClientsContent() {
                   )}
                 </div>
 
+                {/* Summoning context */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Summoning guidelines for this client (optional)
+                  </label>
+                  <p className="mb-2 text-[11px] text-muted-foreground">
+                    Tell the AI when it should and shouldn&apos;t summon you. This context
+                    is included in the consumer&apos;s environment.
+                  </p>
+
+                  {/* Recently used contexts */}
+                  {(() => {
+                    const presetTexts = SUMMON_CONTEXT_PRESETS.map((p) => p.text);
+                    const recentNonPreset = wizardRecentContexts
+                      .filter((c) => !presetTexts.includes(c))
+                      .slice(0, 5);
+                    return recentNonPreset.length > 0 ? (
+                      <div className="mb-2">
+                        <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                          Recently used
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {recentNonPreset.map((ctx, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setWizardSummonContext(ctx)}
+                              className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors max-w-[200px] truncate ${
+                                wizardSummonContext === ctx
+                                  ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
+                                  : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                              }`}
+                              title={ctx}
+                            >
+                              {ctx.length > 40 ? ctx.slice(0, 40) + "..." : ctx}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {SUMMON_CONTEXT_PRESETS.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setWizardSummonContext(preset.text)}
+                        className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                          wizardSummonContext === preset.text
+                            ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
+                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={wizardSummonContext}
+                    onChange={(e) => setWizardSummonContext(e.target.value.slice(0, 500))}
+                    placeholder="e.g. Only summon me when you need architecture decisions or production access..."
+                    rows={3}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring resize-none"
+                  />
+                  <p className="mt-1 text-right text-[11px] text-muted-foreground">
+                    {wizardSummonContext.length}/500
+                  </p>
+                </div>
+
                 {/* Advanced settings */}
                 <div>
                   <button
@@ -547,38 +665,53 @@ export default function ClientsContent() {
           {wizardStep === 3 && wizardResult && (
             <div>
               <div className="mb-4 flex items-center gap-2">
-                <span className="text-2xl">✅</span>
+                <Check className="h-6 w-6 text-green-600" />
                 <h2 className="text-lg font-semibold text-foreground">Client created!</h2>
               </div>
 
               {/* Expiry warning */}
               <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                <span>⏱</span>
                 <span>
                   This setup link is valid for 24 hours and is automatically disabled when a device binds.
-                  Credentials are embedded — share it with your client.
+                  Credentials are embedded -- share it with your client.
                 </span>
               </div>
 
-              <p className="mb-3 text-sm text-muted-foreground">
-                Share this link with your client. It opens step-by-step setup instructions with their credentials pre-filled.
-              </p>
-
-              <div className="mb-3 rounded-md border border-border bg-black p-3">
-                <p className="mb-1 text-xs text-muted-foreground">
-                  Setup link ({wizardChannel === "openclaw"
-                    ? `OpenClaw · ${wizardSubChannel}`
-                    : `${CLIENT_CHANNELS.find((c) => c.id === wizardChannel)?.label ?? wizardChannel} · Skill`})
+              <div className="mb-3 rounded-md border border-border bg-black p-3 space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">
+                  HeySummon Setup Instructions
                 </p>
-                <code className="break-all text-xs text-green-400">{wizardResult.setupUrl}</code>
+                <p className="text-xs text-zinc-400">
+                  Install the HeySummon skill to connect with your human expert.
+                </p>
+
+                {wizardSummonContext.trim() && (
+                  <div className="rounded-md border border-amber-800/40 bg-amber-950/20 p-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400 mb-1">
+                      Summoning guidelines
+                    </p>
+                    <p className="text-xs text-zinc-300 whitespace-pre-wrap">
+                      {wizardSummonContext.trim()}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-0.5">
+                    Setup link ({wizardChannel === "openclaw"
+                      ? `OpenClaw \u00B7 ${wizardSubChannel}`
+                      : `${CLIENT_CHANNELS.find((c) => c.id === wizardChannel)?.label ?? wizardChannel} \u00B7 Skill`})
+                  </p>
+                  <code className="break-all text-xs text-green-400">{wizardResult.setupUrl}</code>
+                </div>
               </div>
 
               <div className="flex gap-2">
                 <button
-                  onClick={() => copyKey(wizardResult.setupUrl)}
+                  onClick={() => copyKey(buildSetupCopyText())}
                   className="rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white"
                 >
-                  {copied === wizardResult.setupUrl ? "Copied!" : "📋 Copy link"}
+                  {copied === buildSetupCopyText() ? "Copied!" : "Copy"}
                 </button>
                 <a
                   href={wizardResult.setupUrl}
@@ -586,12 +719,12 @@ export default function ClientsContent() {
                   rel="noopener noreferrer"
                   className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
                 >
-                  Preview →
+                  Preview
                 </a>
               </div>
 
               <p className="mt-3 text-xs text-muted-foreground">
-                💡 After the link expires, generate a new one via the{" "}
+                After the link expires, generate a new one via the{" "}
                 <strong>Setup</strong> option in the client&apos;s action menu.
               </p>
 

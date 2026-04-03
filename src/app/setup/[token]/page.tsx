@@ -25,15 +25,20 @@ function buildInstallCommand(opts: {
   pollInterval: number;
   globalInstall: boolean;
   providerName: string;
+  summonContext?: string | null;
 }): string {
-  const { channel, skillDir, baseUrl, apiKey, timeout, pollInterval, globalInstall, providerName } = opts;
+  const { channel, skillDir, baseUrl, apiKey, timeout, pollInterval, globalInstall, providerName, summonContext } = opts;
   const safeName = shellEscape(providerName);
 
   if (channel === "openclaw") {
-    return `cd ~/clawd && HEYSUMMON_BASE_URL="${baseUrl}" bash skills/heysummon/scripts/add-provider.sh ${apiKey} ${safeName}`;
+    const envPrefix = summonContext
+      ? `HEYSUMMON_BASE_URL="${baseUrl}" HEYSUMMON_SUMMON_CONTEXT=${shellEscape(summonContext)} `
+      : `HEYSUMMON_BASE_URL="${baseUrl}" `;
+    return `cd ~/clawd && ${envPrefix}bash skills/heysummon/scripts/add-provider.sh ${apiKey} ${safeName}`;
   }
 
   const npmFlag = globalInstall ? " -g" : "";
+  const contextLine = summonContext ? `\nHEYSUMMON_SUMMON_CONTEXT=${summonContext}` : "";
   return `npm install${npmFlag} @heysummon/consumer-sdk && \\
 mkdir -p ${skillDir}/scripts && \\
 for f in ask.sh sdk.sh setup.sh add-provider.sh list-providers.sh check-status.sh; do \\
@@ -46,7 +51,7 @@ cat > ${skillDir}/.env << 'EOF'
 HEYSUMMON_BASE_URL=${baseUrl}
 HEYSUMMON_API_KEY=${apiKey}
 HEYSUMMON_TIMEOUT=${timeout}
-HEYSUMMON_POLL_INTERVAL=${pollInterval}
+HEYSUMMON_POLL_INTERVAL=${pollInterval}${contextLine}
 EOF
 echo "HeySummon skill installed successfully."`;
 }
@@ -88,6 +93,7 @@ export default async function SetupPage({
     pollInterval: record.pollInterval,
     globalInstall: record.globalInstall,
     providerName,
+    summonContext: record.summonContext,
   });
 
   return (
@@ -167,6 +173,24 @@ export default async function SetupPage({
                 Credentials are pre-filled. The command downloads the skill scripts and configures the connection.
               </p>
             </section>
+
+            {/* Summoning guidelines (if set) */}
+            {record.summonContext && (
+              <section>
+                <h2 className="mb-3 text-lg font-semibold text-white">
+                  Summoning guidelines
+                </h2>
+                <div className="rounded-lg border border-amber-800/50 bg-amber-950/20 p-4">
+                  <p className="text-sm text-amber-200 whitespace-pre-wrap">
+                    {record.summonContext}
+                  </p>
+                </div>
+                <p className="mt-3 text-xs text-zinc-600">
+                  These guidelines are embedded in the skill configuration and will be available to
+                  the AI agent at runtime.
+                </p>
+              </section>
+            )}
 
             {/* Verify */}
             <section>

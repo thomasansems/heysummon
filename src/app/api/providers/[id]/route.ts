@@ -27,6 +27,7 @@ export async function GET(
       digestTime: true,
       tagline: true,
       taglineEnabled: true,
+      recentSummonContexts: true,
       userId: true,
     },
   });

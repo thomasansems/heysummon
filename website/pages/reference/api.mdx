@@ -214,6 +214,28 @@ Availability is configured per provider profile in the dashboard:
 
 ---
 
+## Summoning context
+
+Summoning context is **per-client** -- each client connection can have its own advisory
+text (max 500 characters) that tells AI agents when to summon the provider. The context
+is set during client setup and stored on the `SetupToken`:
+
+1. Provider enters context in the onboarding wizard when connecting a client
+2. Passed in the `POST /api/v1/setup-link` body as `summonContext`
+3. Stored on `SetupToken.summonContext` for that specific client
+4. Embedded as `HEYSUMMON_SUMMON_CONTEXT` in the consumer's `.env`
+5. Referenced by the skill's "When to summon" section at runtime
+
+Recently used contexts are saved to the provider's `recentSummonContexts` (JSON array,
+max 10 entries, most recent first) for quick reuse when setting up new clients.
+
+| Field | Location | Type | Max | Description |
+|-------|----------|------|-----|-------------|
+| `summonContext` | `POST /api/v1/setup-link` body | string \| null | 500 | Per-client advisory guidelines for AI |
+| `recentSummonContexts` | `GET /api/providers/:id` response | string (JSON) \| null | 10 entries | Recently used contexts for quick reuse |
+
+---
+
 ## Webhooks
 
 HeySummon can send webhook notifications to external endpoints when events occur.

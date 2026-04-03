@@ -20,7 +20,7 @@
 services:
   db-migrate:
     image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
-    entrypoint: ["sh", "-c", "pnpm exec prisma db push --skip-generate --accept-data-loss"]
+    entrypoint: ["sh", "-c", "prisma db push --skip-generate --accept-data-loss"]
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
     networks:

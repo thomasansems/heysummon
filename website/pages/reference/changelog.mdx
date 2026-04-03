@@ -2,6 +2,15 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## Dashboard Summoning Context -- 2026-04-03
+
+### Added
+- **Summoning context in the dashboard client wizard**: The "Create New Client" wizard (Step 2) now includes summoning context presets (Strict, Budget-conscious, Safety-first), recently used contexts, and a custom textarea (500-char limit) -- matching the onboarding wizard.
+- **Improved client-created dialog (Step 3)**: Shows full setup instructions with intro text, summoning guidelines (when set), and the setup link. The "Copy" button now copies the complete instructional text block instead of just the URL.
+- Shared `SUMMON_CONTEXT_PRESETS` constant extracted to `src/lib/summon-context-presets.ts` for DRY use across both wizards.
+
+---
+
 ## Per-Client Summoning Context -- 2026-03-30
 
 ### Changed

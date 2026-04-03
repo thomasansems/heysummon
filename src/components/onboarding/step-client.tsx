@@ -9,6 +9,7 @@ import {
   type ClientChannelType,
   type ClientSubChannelType,
 } from "@/components/shared/client-channel-selector";
+import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
 
 const DEFAULT_TIMEOUT = 900;
 const DEFAULT_POLL_INTERVAL = 3;
@@ -19,21 +20,6 @@ const TIMEOUT_PRESETS = [
   { value: 900, label: "15 min", desc: "Checking your phone regularly" },
   { value: 1800, label: "30 min", desc: "In meetings, checking between" },
   { value: -1, label: "Custom", desc: "" },
-];
-
-const SUMMON_CONTEXT_PRESETS = [
-  {
-    label: "Strict",
-    text: "Only summon when the AI is completely stuck and cannot proceed without human input. Do not summon for style preferences or minor decisions.",
-  },
-  {
-    label: "Budget-conscious",
-    text: "Summon only for decisions that could cost money or affect billing. Proceed autonomously on all other tasks.",
-  },
-  {
-    label: "Safety-first",
-    text: "Summon before any destructive action (deleting data, modifying production, changing permissions). Proceed autonomously for read-only and development tasks.",
-  },
 ];
 
 const PLATFORM_META: Record<string, { label: string; skillDir: string }> = {

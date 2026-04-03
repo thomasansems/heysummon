@@ -157,8 +157,6 @@ docker compose --profile cloudflare up -d
 # Tailscale Funnel (great for teams, zero config firewall)
 docker compose --profile tailscale up -d
 
-# Ngrok (quick testing)
-docker compose --profile ngrok up -d
 ```
 
 See the [Self-Hosting Guide](https://docs.heysummon.ai/self-hosting) for per-provider setup.
@@ -172,7 +170,7 @@ No self-hosting at all — [cloud.heysummon.ai](https://cloud.heysummon.ai) is t
 | Method | Database | Tunnel | Best for |
 |---|---|---|---|
 | `npx @heysummon/app` (this CLI) | SQLite | Manual / reverse proxy | Quick start, single machine |
-| Docker Compose | PostgreSQL | Cloudflare / Tailscale / Ngrok | Production, teams |
+| Docker Compose | PostgreSQL | Cloudflare / Tailscale | Production, teams |
 | Cloud | Managed | Built-in | Zero ops |
 
 ---

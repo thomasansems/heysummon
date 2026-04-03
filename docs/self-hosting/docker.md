@@ -82,12 +82,6 @@ CLOUDFLARE_TUNNEL_TOKEN=your-token docker compose --profile cloudflare up -d
 TAILSCALE_AUTHKEY=your-key docker compose --profile tailscale up -d
 ```
 
-### Ngrok
-
-```bash
-NGROK_AUTHTOKEN=your-token docker compose --profile ngrok up -d
-```
-
 ---
 
 ## Debug tools

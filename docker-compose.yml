@@ -12,7 +12,6 @@
 #   HEYSUMMON_VERSION=0.1.0 docker compose up -d
 #
 # Tunnel profiles:
-#   docker compose --profile ngrok up -d
 #   docker compose --profile cloudflare up -d
 #   docker compose --profile tailscale up -d
 #
@@ -120,28 +119,6 @@ services:
       - SYS_MODULE
     devices:
       - /dev/net/tun:/dev/net/tun
-
-  # Ngrok: docker compose --profile ngrok up -d
-  ngrok:
-    image: ngrok/ngrok:latest
-    restart: unless-stopped
-    profiles: ["ngrok"]
-    command: http app:3000 --log stdout ${NGROK_DOMAIN:+--domain=${NGROK_DOMAIN}}
-    networks:
-      - frontend
-    depends_on:
-      app:
-        condition: service_healthy
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
-    ports:
-      - "3448:4040"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4040/api/tunnels"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
 
 networks:
   frontend:

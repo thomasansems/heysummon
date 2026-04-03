@@ -88,10 +88,6 @@ HEYSUMMON_PUBLIC_URL=http://localhost:3445
 
 # Tailscale:
 # TAILSCALE_AUTHKEY=
-
-# Ngrok:
-# NGROK_AUTHTOKEN=
-# NGROK_DOMAIN=    # optional custom domain (paid plans)
 EOF
 
   ok ".env created with generated secrets"
@@ -111,8 +107,8 @@ echo -e "  .env:       ${BOLD}${INSTALL_DIR}/.env${NC}"
 echo ""
 echo -e "${BLUE}Tip:${NC} The first user to sign up becomes the admin."
 echo -e "${BLUE}Tip:${NC} To expose publicly, edit .env and run:"
-echo -e "     ${BOLD}docker compose --profile ngrok up -d${NC}     (quick testing)"
 echo -e "     ${BOLD}docker compose --profile cloudflare up -d${NC} (production)"
+echo -e "     ${BOLD}docker compose --profile tailscale up -d${NC}  (teams)"
 echo ""
 echo -e "To stop:   ${BOLD}docker compose down${NC}"
 echo -e "To update: ${BOLD}docker compose pull && docker compose up -d${NC}"

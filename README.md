@@ -102,12 +102,9 @@ docker compose --profile cloudflare up -d
 
 # Tailscale Funnel (great for teams)
 docker compose --profile tailscale up -d
-
-# Ngrok (quick testing)
-docker compose --profile ngrok up -d
 ```
 
-Set the relevant token in your `.env` first (`CLOUDFLARE_TUNNEL_TOKEN`, `TAILSCALE_AUTHKEY`, or `NGROK_AUTHTOKEN`) and update `NEXTAUTH_URL` / `HEYSUMMON_PUBLIC_URL` to your public URL.
+Set the relevant token in your `.env` first (`CLOUDFLARE_TUNNEL_TOKEN` or `TAILSCALE_AUTHKEY`) and update `NEXTAUTH_URL` / `HEYSUMMON_PUBLIC_URL` to your public URL.
 
 ### User Registration
 
@@ -158,11 +155,11 @@ docker compose -f docker-compose.dev.yml up -d
 
 ## Default Ports
 
-| Environment | Guard (app) | Prisma Studio | Ngrok dashboard |
-|-------------|-------------|---------------|-----------------|
-| **Docker** | `3445` | `3447` *(debug profile)* | `3448` *(ngrok profile)* |
-| **CLI** (`heysummon start`) | `3435` | `3437` *(optional)* | — |
-| **Local dev** (`pnpm dev`) | `3425` | `3427` *(optional)* | — |
+| Environment | Guard (app) | Prisma Studio |
+|-------------|-------------|---------------|
+| **Docker** | `3445` | `3447` *(debug profile)* |
+| **CLI** (`heysummon start`) | `3435` | `3437` *(optional)* |
+| **Local dev** (`pnpm dev`) | `3425` | `3427` *(optional)* |
 
 > Internal container-to-container traffic always uses port `3000` (app). These are never exposed directly.
 
@@ -182,7 +179,7 @@ docker compose -f docker-compose.dev.yml up -d
                    │       ▲                                               │
                    │       │                                               │
                    │  ┌─────────┐  (optional)                              │
-                   │  │ Tunnel  │  Cloudflare / Tailscale / Ngrok          │
+                   │  │ Tunnel  │  Cloudflare / Tailscale                  │
                    │  └─────────┘                                          │
                    └─────────────────────────────────────────────────────────┘
 ```
@@ -192,7 +189,7 @@ docker compose -f docker-compose.dev.yml up -d
 - **Platform** runs on an internal network with no exposed ports
 - Providers and consumers discover events via HTTP polling
 - E2E encryption means the platform stores ciphertext it cannot read
-- Tunnel profiles (Cloudflare/Tailscale/Ngrok) route through Guard, never directly to Platform
+- Tunnel profiles (Cloudflare/Tailscale) route through Guard, never directly to Platform
 
 ## API Overview
 
@@ -278,7 +275,6 @@ All `HEYSUMMON_*` variables are optional unless marked required.
 | `GOOGLE_ID` / `GOOGLE_SECRET` | — | Google OAuth credentials (optional) |
 | `CLOUDFLARE_TUNNEL_TOKEN` | — | Token for Cloudflare tunnel profile |
 | `TAILSCALE_AUTHKEY` | — | Auth key for Tailscale tunnel profile |
-| `NGROK_AUTHTOKEN` | — | Token for Ngrok tunnel profile |
 
 **Consumer-side variables** (in `~/.heysummon/.env`):
 

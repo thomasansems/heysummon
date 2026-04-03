@@ -504,69 +504,6 @@ export default function ClientsContent() {
                   )}
                 </div>
 
-                {/* Advanced settings */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setWizardShowAdvanced((v) => !v)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {wizardShowAdvanced ? (
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    ) : (
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    )}
-                    Advanced settings
-                  </button>
-
-                  {wizardShowAdvanced && (
-                    <div className="mt-3 space-y-3 rounded-md border border-border bg-muted/20 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                          Request timeout (seconds)
-                        </label>
-                        <input
-                          type="number"
-                          min={10}
-                          max={3600}
-                          value={wizardTimeout}
-                          onChange={(e) => setWizardTimeout(Number(e.target.value) || 900)}
-                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                        />
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">How long the client waits for a response before timing out (default: 900)</p>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                          Poll interval (seconds)
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={30}
-                          value={wizardPollInterval}
-                          onChange={(e) => setWizardPollInterval(Number(e.target.value) || 3)}
-                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                        />
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">How often the client checks for new messages (default: 3)</p>
-                      </div>
-                      {wizardChannel !== "openclaw" && (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="wizard-global-install"
-                            checked={wizardGlobalInstall}
-                            onChange={(e) => setWizardGlobalInstall(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-border accent-foreground"
-                          />
-                          <label htmlFor="wizard-global-install" className="text-xs text-muted-foreground">
-                            Install SDK globally (<code className="text-[11px]">npm install -g</code>)
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
                 {/* Summoning context */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -635,6 +572,69 @@ export default function ClientsContent() {
                   <p className="mt-1 text-right text-[11px] text-muted-foreground">
                     {wizardSummonContext.length}/500
                   </p>
+                </div>
+
+                {/* Advanced settings */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setWizardShowAdvanced((v) => !v)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {wizardShowAdvanced ? (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    )}
+                    Advanced settings
+                  </button>
+
+                  {wizardShowAdvanced && (
+                    <div className="mt-3 space-y-3 rounded-md border border-border bg-muted/20 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Request timeout (seconds)
+                        </label>
+                        <input
+                          type="number"
+                          min={10}
+                          max={3600}
+                          value={wizardTimeout}
+                          onChange={(e) => setWizardTimeout(Number(e.target.value) || 900)}
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                        />
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">How long the client waits for a response before timing out (default: 900)</p>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Poll interval (seconds)
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={wizardPollInterval}
+                          onChange={(e) => setWizardPollInterval(Number(e.target.value) || 3)}
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                        />
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">How often the client checks for new messages (default: 3)</p>
+                      </div>
+                      {wizardChannel !== "openclaw" && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="wizard-global-install"
+                            checked={wizardGlobalInstall}
+                            onChange={(e) => setWizardGlobalInstall(e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-border accent-foreground"
+                          />
+                          <label htmlFor="wizard-global-install" className="text-xs text-muted-foreground">
+                            Install SDK globally (<code className="text-[11px]">npm install -g</code>)
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

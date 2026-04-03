@@ -7,7 +7,7 @@
 docker compose up -d
 
 # Run database migrations
-docker compose exec app npx prisma migrate deploy
+docker compose exec app pnpm exec prisma migrate deploy
 
 # Open http://localhost:3425
 ```

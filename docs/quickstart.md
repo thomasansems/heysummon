@@ -40,10 +40,10 @@ Installs to `~/.heysummon-docker/`. HeySummon is available at `http://localhost:
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
 cd heysummon
-npm install
+pnpm install
 cp .env.example .env.local
-npx prisma migrate dev
-npm run dev
+pnpm exec prisma migrate dev
+pnpm run dev
 ```
 
 Open `http://localhost:3425`.

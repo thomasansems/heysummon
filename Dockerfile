@@ -1,21 +1,23 @@
 # Stage 1: Dependencies
 FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma/
-RUN npm ci --ignore-scripts --legacy-peer-deps
+RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
-RUN npx prisma generate
+RUN pnpm exec prisma generate
 
 # Stage 2: Build
 FROM node:22-alpine AS build
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN pnpm run build
 
 # Stage 3: Runner
 FROM node:22-alpine AS runner

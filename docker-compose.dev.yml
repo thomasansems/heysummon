@@ -15,7 +15,7 @@ services:
     build:
       context: .
       target: deps
-    entrypoint: ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss"]
+    entrypoint: ["sh", "-c", "pnpm exec prisma db push --skip-generate --accept-data-loss"]
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
     networks:
@@ -119,7 +119,7 @@ services:
       target: deps
     restart: unless-stopped
     profiles: ["debug"]
-    entrypoint: ["sh", "-c", "npx prisma studio --port 3447 --browser none"]
+    entrypoint: ["sh", "-c", "pnpm exec prisma studio --port 3447 --browser none"]
     ports:
       - "${PRISMA_STUDIO_PORT:-3447}:3447"
     networks:

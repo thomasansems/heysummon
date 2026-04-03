@@ -5,7 +5,7 @@ TypeScript SDK for [HeySummon](https://heysummon.ai) consumers (AI agents). Subm
 ## Install
 
 ```bash
-npm install @heysummon/consumer-sdk
+pnpm install @heysummon/consumer-sdk
 ```
 
 ## Quick Start
@@ -157,7 +157,7 @@ const defaultProvider = store.getDefault();
 The package includes a CLI for use in shell scripts and automation:
 
 ```bash
-npx @heysummon/consumer-sdk <command> [options]
+pnpm dlx @heysummon/consumer-sdk <command> [options]
 ```
 
 ### Commands
@@ -186,20 +186,20 @@ npx @heysummon/consumer-sdk <command> [options]
 # Submit and wait for a response
 HEYSUMMON_BASE_URL=https://cloud.heysummon.ai \
 HEYSUMMON_API_KEY=hs_cli_... \
-npx @heysummon/consumer-sdk submit-and-poll --question "Should I deploy?"
+pnpm dlx @heysummon/consumer-sdk submit-and-poll --question "Should I deploy?"
 
 # Register a provider
 HEYSUMMON_BASE_URL=https://cloud.heysummon.ai \
 HEYSUMMON_PROVIDERS_FILE=./providers.json \
-npx @heysummon/consumer-sdk add-provider --key hs_cli_... --alias "DevOps Lead"
+pnpm dlx @heysummon/consumer-sdk add-provider --key hs_cli_... --alias "DevOps Lead"
 
 # Check request status
 HEYSUMMON_BASE_URL=https://cloud.heysummon.ai \
 HEYSUMMON_API_KEY=hs_cli_... \
-npx @heysummon/consumer-sdk check-status --ref HS-1234
+pnpm dlx @heysummon/consumer-sdk check-status --ref HS-1234
 
 # Generate encryption keys
-npx @heysummon/consumer-sdk keygen --dir ./keys
+pnpm dlx @heysummon/consumer-sdk keygen --dir ./keys
 ```
 
 ## License

@@ -7,11 +7,11 @@
 Database migrations haven't been applied:
 
 ```bash
-# SQLite (npx / development)
-npx prisma db push
+# SQLite (development)
+pnpm exec prisma db push
 
 # PostgreSQL (Docker)
-docker compose exec app npx prisma db push
+docker compose exec app pnpm exec prisma db push
 ```
 
 ### Wrong database file

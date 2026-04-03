@@ -24,18 +24,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        working-directory: packages/consumer-sdk
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build
         working-directory: packages/consumer-sdk
-        run: npm run build
+        run: pnpm run build
 
       - name: Get package version
         id: pkg
@@ -53,14 +56,14 @@ jobs:
       - name: Publish to npm
         if: steps.check.outputs.exists == 'false' && inputs.dry_run != 'true'
         working-directory: packages/consumer-sdk
-        run: npm publish --provenance --access public
+        run: pnpm publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run publish
         if: inputs.dry_run == 'true'
         working-directory: packages/consumer-sdk
-        run: npm publish --dry-run
+        run: pnpm publish --dry-run --no-git-checks
 
       - name: Skip (already published)
         if: steps.check.outputs.exists == 'true'

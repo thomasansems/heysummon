@@ -72,9 +72,9 @@ When you make a **user-facing change**, add an entry to `CHANGELOG.md` in the fo
 Before pushing, always run:
 
 ```bash
-npm run lint          # 0 errors required
-npm run build         # must compile successfully
-npm run test          # unit tests
+pnpm lint             # 0 errors required
+pnpm build            # must compile successfully
+pnpm test             # unit tests
 ```
 
 For E2E tests, see `e2e/README.md`.

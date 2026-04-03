@@ -299,7 +299,7 @@ bash ~/Code/heysummon/skills/openclaw/heysummon-provider/scripts/setup.sh
 cat ~/.npm-global/lib/node_modules/openclaw/skills/heysummon/.requests/.watcher.pid
 ```
 
-> ⚠️ The HeySummon server itself (`npm run dev` on port 3425) runs via pm2 as `heysummon`.
+> The HeySummon server itself (`pnpm run dev` on port 3425) runs via pm2 as `heysummon`.
 
 ---
 

@@ -54,7 +54,7 @@ HeySummon offers three ways to get started, depending on your use case:
 | `npx @heysummon/app` | SQLite | Quick install, trying it out | ~2 min |
 | `curl … \| bash` (install.sh) | PostgreSQL | Self-hosting, production | ~2 min |
 | `docker compose -f docker-compose.dev.yml up` | PostgreSQL | Contributing, building from source | ~5 min |
-| `npm run dev` | SQLite | Local development | ~5 min |
+| `pnpm dev` | SQLite | Local development | ~5 min |
 
 ### Option 1: NPX Installer (Quickest)
 
@@ -140,11 +140,11 @@ For contributing or building from source:
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
 cd heysummon
-npm install
+pnpm install
 cp .env.example .env.local   # edit with your credentials
-npx prisma generate && npx prisma db push
-npx prisma db seed            # optional: sample data
-npm run dev
+pnpm exec prisma generate && pnpm exec prisma db push
+pnpm exec prisma db seed            # optional: sample data
+pnpm dev
 ```
 
 Or if you prefer Docker with local source builds:
@@ -162,7 +162,7 @@ docker compose -f docker-compose.dev.yml up -d
 |-------------|-------------|---------------|-----------------|
 | **Docker** | `3445` | `3447` *(debug profile)* | `3448` *(ngrok profile)* |
 | **CLI** (`heysummon start`) | `3435` | `3437` *(optional)* | — |
-| **Local dev** (`npm run dev`) | `3425` | `3427` *(optional)* | — |
+| **Local dev** (`pnpm dev`) | `3425` | `3427` *(optional)* | — |
 
 > Internal container-to-container traffic always uses port `3000` (app). These are never exposed directly.
 

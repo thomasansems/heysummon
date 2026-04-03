@@ -116,10 +116,10 @@ heysummon uninstall
 Stops the server, offers a database backup, asks for explicit confirmation, and removes `~/.heysummon/`. Then remove the CLI binary:
 
 ```bash
-npm uninstall -g heysummon
+pnpm remove -g heysummon
 ```
 
-> **Note:** `npm uninstall` alone only removes the CLI binary — it does **not** touch `~/.heysummon/`. Always run `heysummon uninstall` first for a clean removal.
+> **Note:** `pnpm remove` alone only removes the CLI binary — it does **not** touch `~/.heysummon/`. Always run `heysummon uninstall` first for a clean removal.
 
 ---
 
@@ -182,7 +182,7 @@ No self-hosting at all — [cloud.heysummon.ai](https://cloud.heysummon.ai) is t
 Once your server is running, install the SDK in your agent's project:
 
 ```bash
-npm install @heysummon/sdk
+pnpm install @heysummon/sdk
 ```
 
 ```ts

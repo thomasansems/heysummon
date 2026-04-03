@@ -32,23 +32,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
       # ── Install dependencies ──────────────────────────────────────────────
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       # ── Setup database ────────────────────────────────────────────────────
       - name: Generate Prisma client
-        run: npx prisma generate
+        run: pnpm exec prisma generate
         env:
           DATABASE_URL: "file:./zap-test.db"
 
       - name: Run migrations
-        run: npx prisma db push --force-reset
+        run: pnpm exec prisma db push --force-reset
         env:
           DATABASE_URL: "file:./zap-test.db"
 
@@ -63,14 +67,14 @@ jobs:
 
       # ── Build ─────────────────────────────────────────────────────────────
       - name: Build
-        run: npm run build
+        run: pnpm run build
         env:
           NEXTAUTH_SECRET: e2e-secret
 
       # ── Start platform ────────────────────────────────────────────────────
       - name: Start platform
         run: |
-          npm start &
+          pnpm start &
           for i in $(seq 1 30); do
             curl -sf http://localhost:${{ env.APP_PORT }}/api/v1/health && break || sleep 2
           done

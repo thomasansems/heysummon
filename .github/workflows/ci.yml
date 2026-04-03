@@ -19,18 +19,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - run: npx prisma generate
+      - run: pnpm exec prisma generate
 
-      - run: npm run lint
+      - run: pnpm run lint
 
-      - run: npm run build
+      - run: pnpm run build
 
       - name: Run unit tests
-        run: npx vitest run src/__tests__/ packages/consumer-sdk/
+        run: pnpm exec vitest run src/__tests__/ packages/consumer-sdk/

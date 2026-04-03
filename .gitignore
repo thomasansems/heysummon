@@ -23,3 +23,4 @@ skills/**/.seen-events.txt
 skills/**/.seen-*
 skills/**/providers.json
 skills/**/.requests/
+package-lock.json

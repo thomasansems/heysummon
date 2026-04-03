@@ -8,8 +8,8 @@ const VALID_PLATFORMS = ["claudecode", "codex", "gemini", "cursor", "openclaw"] 
  * GET /api/v1/skill-scripts/:platform?file=ask.sh
  *
  * Serves skill files for any supported HeySummon platform skill.
- * Supported files: ask.sh, sdk.sh, setup.sh, add-provider.sh,
- *                  list-providers.sh, check-status.sh, SKILL.md
+ * Supported files: ask.sh, sdk.sh, setup.sh, add-expert.sh,
+ *                  list-experts.sh, check-status.sh, SKILL.md
  * Used by the setup flow to let users download skill files directly.
  */
 export async function GET(
@@ -45,15 +45,15 @@ export async function GET(
       contentType: "text/plain; charset=utf-8",
       filename: "setup.sh",
     },
-    "add-provider.sh": {
-      path: path.join(unifiedScriptsDir, "add-provider.sh"),
+    "add-expert.sh": {
+      path: path.join(unifiedScriptsDir, "add-expert.sh"),
       contentType: "text/plain; charset=utf-8",
-      filename: "add-provider.sh",
+      filename: "add-expert.sh",
     },
-    "list-providers.sh": {
-      path: path.join(unifiedScriptsDir, "list-providers.sh"),
+    "list-experts.sh": {
+      path: path.join(unifiedScriptsDir, "list-experts.sh"),
       contentType: "text/plain; charset=utf-8",
-      filename: "list-providers.sh",
+      filename: "list-experts.sh",
     },
     "check-status.sh": {
       path: path.join(unifiedScriptsDir, "check-status.sh"),

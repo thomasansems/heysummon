@@ -14,7 +14,7 @@ const adapters: Record<string, ChannelAdapter> = {
 };
 
 async function getOwnedChannel(userId: string, channelId: string) {
-  const channel = await prisma.channelProvider.findUnique({
+  const channel = await prisma.expertChannel.findUnique({
     where: { id: channelId },
     include: { profile: { select: { userId: true } } },
   });
@@ -79,7 +79,7 @@ export async function PATCH(
     }
   }
 
-  const updated = await prisma.channelProvider.update({
+  const updated = await prisma.expertChannel.update({
     where: { id },
     data,
   });
@@ -113,7 +113,7 @@ export async function DELETE(
     }
   }
 
-  await prisma.channelProvider.delete({ where: { id } });
+  await prisma.expertChannel.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }

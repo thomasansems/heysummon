@@ -72,7 +72,7 @@ export function StepNetwork({ onNext }: StepNetworkProps) {
         </h2>
       </div>
       <p className="mb-5 text-sm text-muted-foreground">
-        HeySummon needs to be accessible from the internet so providers can receive
+        HeySummon needs to be accessible from the internet so experts can receive
         webhook notifications (e.g., Telegram bots). Choose a tunnel method to enable
         public access.
       </p>

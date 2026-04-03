@@ -2,29 +2,29 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { validateProviderKey } from "@/lib/provider-key-auth";
+import { validateExpertKey } from "@/lib/expert-key-auth";
 
 const DEBUG = process.env.DEBUG === "true";
 
 /**
  * POST /api/v1/approve/[requestId] — Approve or deny a request
  *
- * Auth: provider key (x-api-key: hs_prov_*)
+ * Auth: expert key (x-api-key: hs_exp_*)
  * Body: { decision: "approved" | "denied" }
  */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ requestId: string }> }
 ) {
-  const result = await validateProviderKey(request);
+  const result = await validateExpertKey(request);
   if (!result.ok) return result.response;
 
   const { requestId } = await params;
 
   if (DEBUG) {
-    console.log(`[POST /api/v1/approve/${requestId}] Request received from provider:`, {
-      provider: result.provider.name,
-      userId: result.provider.userId,
+    console.log(`[POST /api/v1/approve/${requestId}] Request received from expert:`, {
+      expert: result.expert.name,
+      userId: result.expert.userId,
     });
   }
 
@@ -51,7 +51,7 @@ export async function POST(
     where: { id: requestId },
   });
 
-  if (!helpRequest || helpRequest.expertId !== result.provider.userId) {
+  if (!helpRequest || helpRequest.expertId !== result.expert.userId) {
     return NextResponse.json({ error: "Request not found" }, { status: 404 });
   }
 
@@ -92,7 +92,7 @@ export async function POST(
   await prisma.message.create({
     data: {
       requestId,
-      from: "provider",
+      from: "expert",
       ciphertext: decision,
       iv: "",
       authTag: "",

@@ -11,7 +11,7 @@ interface StepFirstRequestProps {
 
 const PROMPT_TIP = `When you're unsure about a requirement, architecture decision,
 or need human judgment — use the HeySummon skill to ask your
-provider instead of guessing.
+expert instead of guessing.
 
 Example: "I need to implement auth but the spec is ambiguous.
 Let me ask the human expert via HeySummon."`;
@@ -110,7 +110,7 @@ export function StepFirstRequest({
               <li>
                 The agent will use HeySummon to ask you for clarification
               </li>
-              <li>Answer via your provider channel and watch it continue</li>
+              <li>Answer via your expert channel and watch it continue</li>
             </ol>
           </div>
 

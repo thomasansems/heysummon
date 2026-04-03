@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { sendMessage, verifySlackSignature } from "@/lib/adapters/slack";
 import type { SlackConfig } from "@/lib/adapters/types";
 
-/** Max length for a provider reply via Slack */
+/** Max length for an expert reply via Slack */
 const MAX_REPLY_LENGTH = 10_000;
 
 const slackEventSchema = z.object({
@@ -35,8 +35,8 @@ export async function POST(
   // Read the raw body for signature verification
   const rawBody = await request.text();
 
-  // Find the channel provider
-  const channel = await prisma.channelProvider.findUnique({
+  // Find the expert channel
+  const channel = await prisma.expertChannel.findUnique({
     where: { id },
     include: {
       profile: {
@@ -120,14 +120,14 @@ export async function POST(
   const text = event.text.trim();
 
   // Update heartbeat
-  await prisma.channelProvider.update({
+  await prisma.expertChannel.update({
     where: { id },
     data: { lastHeartbeat: new Date() },
   });
 
   console.log("[slack-webhook] Processing message text:", JSON.stringify(text));
 
-  // -- reply HS-XXXX answer -- Provider replying (no slash — Slack intercepts / as commands)
+  // -- reply HS-XXXX answer -- Expert replying (no slash — Slack intercepts / as commands)
   // Strip surrounding backticks/code formatting that Slack adds when users copy from code blocks
   const cleanText = text.replace(/^`+|`+$/g, "").trim();
   const replyMatch = cleanText.match(/^reply\s+(HS-[A-Za-z0-9]+)\s+([\s\S]+)/i);
@@ -182,7 +182,7 @@ export async function POST(
     await prisma.message.create({
       data: {
         requestId: helpRequest.id,
-        from: "provider",
+        from: "expert",
         ciphertext: `plaintext:${plainB64}`,
         iv: "plaintext",
         authTag: "plaintext",

@@ -45,12 +45,12 @@ interface UserRecord {
 
 const ROLE_META: Record<string, { label: string; icon: React.ElementType; variant: string }> = {
   admin: { label: "Admin", icon: Shield, variant: "destructive" },
-  provider: { label: "Provider", icon: User, variant: "default" },
+  expert: { label: "Expert", icon: User, variant: "default" },
   readonly: { label: "Read-only", icon: Eye, variant: "secondary" },
 };
 
 function RoleBadge({ role }: { role: string }) {
-  const meta = ROLE_META[role] ?? ROLE_META.provider;
+  const meta = ROLE_META[role] ?? ROLE_META.expert;
   return (
     <Badge variant={meta.variant as "default" | "secondary" | "destructive" | "outline"} className="gap-1">
       <meta.icon className="h-3 w-3" />
@@ -75,7 +75,7 @@ function UserDialog({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("provider");
+  const [role, setRole] = useState("expert");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,7 +84,7 @@ function UserDialog({
       setName(editing?.name ?? "");
       setEmail(editing?.email ?? "");
       setPassword("");
-      setRole(editing?.role ?? "provider");
+      setRole(editing?.role ?? "expert");
       setError(null);
     }
   }, [open, editing]);
@@ -166,7 +166,7 @@ function UserDialog({
               </SelectTrigger>
               <SelectContent className="w-auto">
                 <SelectItem value="admin">Admin — full access + user management</SelectItem>
-                <SelectItem value="provider">Provider — manage providers, clients &amp; requests</SelectItem>
+                <SelectItem value="expert">Expert — manage experts, clients &amp; requests</SelectItem>
                 <SelectItem value="readonly">Read-only — view data only</SelectItem>
               </SelectContent>
             </Select>
@@ -385,7 +385,7 @@ export default function UsersContent() {
                 <p className="text-sm font-medium">{meta.label}</p>
                 <p className="text-xs text-muted-foreground">
                   {key === "admin" && "Full access — manage users, settings, all data"}
-                  {key === "provider" && "Manage providers, clients, API keys & requests"}
+                  {key === "expert" && "Manage experts, clients, API keys & requests"}
                   {key === "readonly" && "View-only access to all dashboard data"}
                 </p>
               </div>

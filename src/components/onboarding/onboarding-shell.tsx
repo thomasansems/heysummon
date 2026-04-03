@@ -10,23 +10,23 @@ const TYPE_CHAR_MS = 55;
 const ERASE_CHAR_MS = 35;
 const LOCK_DELAY_MS = 60_000;
 
-function useTypingAnimation(providerName: string | null) {
+function useTypingAnimation(expertName: string | null) {
   const [text, setText] = useState(BASE + ROTATING_NAMES[0]);
   const [locked, setLocked] = useState(false);
 
   useEffect(() => {
-    // Once a provider name exists, type it out and lock
-    if (providerName) {
+    // Once an expert name exists, type it out and lock
+    if (expertName) {
       setLocked(true);
       let i = 0;
-      const typeProvider = () => {
-        if (i <= providerName.length) {
-          setText(BASE + providerName.slice(0, i));
+      const typeExpert = () => {
+        if (i <= expertName.length) {
+          setText(BASE + expertName.slice(0, i));
           i++;
-          return setTimeout(typeProvider, TYPE_CHAR_MS);
+          return setTimeout(typeExpert, TYPE_CHAR_MS);
         }
       };
-      // First erase current name, then type provider name
+      // First erase current name, then type expert name
       const currentName = text.slice(BASE.length);
       let eraseIdx = currentName.length;
       const erase = (): ReturnType<typeof setTimeout> => {
@@ -35,12 +35,12 @@ function useTypingAnimation(providerName: string | null) {
           setText(BASE + currentName.slice(0, eraseIdx));
           return setTimeout(erase, ERASE_CHAR_MS);
         }
-        return setTimeout(typeProvider, 150);
+        return setTimeout(typeExpert, 150);
       };
       const timer = setTimeout(erase, 200);
       return () => clearTimeout(timer);
     }
-  }, [providerName]);
+  }, [expertName]);
 
   useEffect(() => {
     if (locked) return;
@@ -52,7 +52,7 @@ function useTypingAnimation(providerName: string | null) {
     let elapsed = 0;
 
     const tick = () => {
-      // After LOCK_DELAY_MS without a provider name, just stop cycling
+      // After LOCK_DELAY_MS without an expert name, just stop cycling
       if (elapsed > LOCK_DELAY_MS) {
         setLocked(true);
         return;
@@ -106,7 +106,7 @@ interface OnboardingShellProps {
   children: React.ReactNode;
   currentStep: number;
   totalSteps: number;
-  providerName: string | null;
+  expertName: string | null;
   onSkip: () => void;
   showSkip?: boolean;
   sideContent?: React.ReactNode;
@@ -116,12 +116,12 @@ export function OnboardingShell({
   children,
   currentStep,
   totalSteps,
-  providerName,
+  expertName,
   onSkip,
   showSkip = true,
   sideContent,
 }: OnboardingShellProps) {
-  const { text: typingText, locked } = useTypingAnimation(providerName);
+  const { text: typingText, locked } = useTypingAnimation(expertName);
   const progress = totalSteps > 1 ? currentStep / (totalSteps - 1) : 0;
 
   return (

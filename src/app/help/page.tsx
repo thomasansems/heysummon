@@ -59,7 +59,7 @@ export default function HelpPage() {
             <li><a href="#openclaw" className="text-primary hover:underline">OpenClaw setup</a></li>
             <li><a href="#openclaw-json" className="text-primary hover:underline">Configuring openclaw.json</a></li>
             <li><a href="#troubleshooting" className="text-primary hover:underline">Troubleshooting FAQ</a></li>
-            <li><a href="#contact" className="text-primary hover:underline">Contact your provider</a></li>
+            <li><a href="#contact" className="text-primary hover:underline">Contact your expert</a></li>
           </ul>
         </nav>
 
@@ -71,8 +71,8 @@ export default function HelpPage() {
               session. Setup takes about 5 minutes.
             </p>
             <p className="text-sm text-muted-foreground">
-              You received a setup link from your provider. Open that link to start the guided
-              installation. If the link has expired (links are valid for 24 hours or until a device binds), ask your provider
+              You received a setup link from your expert. Open that link to start the guided
+              installation. If the link has expired (links are valid for 24 hours or until a device binds), ask your expert
               to generate a new one from their dashboard.
             </p>
           </Section>
@@ -87,9 +87,9 @@ export default function HelpPage() {
                 skill into your OpenClaw skills directory.
               </li>
               <li>
-                <strong className="text-foreground">Register your provider</strong> — Runs{" "}
-                <Code>add-provider.sh</Code> with your API key, saving it to{" "}
-                <Code>~/.heysummon/providers.json</Code>.
+                <strong className="text-foreground">Register your expert</strong> — Runs{" "}
+                <Code>add-expert.sh</Code> with your API key, saving it to{" "}
+                <Code>~/.heysummon/experts.json</Code>.
               </li>
               <li>
                 <strong className="text-foreground">Start the watcher</strong> — Launches{" "}
@@ -106,7 +106,7 @@ export default function HelpPage() {
 
           <Section id="openclaw-json" title="Configuring openclaw.json (OpenClaw hook)">
             <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-              When your provider responds, HeySummon needs to wake your agent. It does this by
+              When your expert responds, HeySummon needs to wake your agent. It does this by
               calling the OpenClaw gateway hook. You tell HeySummon which agent to wake via{" "}
               <Code>~/.openclaw/openclaw.json</Code>.
             </p>
@@ -162,7 +162,7 @@ export default function HelpPage() {
           <Section id="troubleshooting" title="Troubleshooting FAQ">
             <div className="space-y-6">
               <Qa q="My setup link expired.">
-                Links are valid for 24 hours or until a device binds. Ask your provider to generate a new one: Dashboard →
+                Links are valid for 24 hours or until a device binds. Ask your expert to generate a new one: Dashboard →
                 Clients → [your key] → Generate Setup Link.
               </Qa>
 
@@ -173,7 +173,7 @@ export default function HelpPage() {
               </Qa>
 
               <Qa q="I see 'IP not allowed' errors.">
-                Your IP address needs to be approved. Contact your provider and ask them to approve
+                Your IP address needs to be approved. Contact your expert and ask them to approve
                 your IP in Dashboard → Clients → [your key] → IP Events. This happens the first time
                 you use a key from a new location.
               </Qa>
@@ -185,12 +185,12 @@ export default function HelpPage() {
 
               <Qa q="The watcher crashes immediately.">
                 Check <Code>~/.heysummon/.env</Code> has <Code>HEYSUMMON_BASE_URL</Code> set and
-                that you have at least one provider registered. Run{" "}
+                that you have at least one expert registered. Run{" "}
                 <Code>bash scripts/platform-watcher.sh</Code> manually to see the error output.
               </Qa>
 
-              <Qa q="I added a new provider but the watcher doesn't pick them up.">
-                The watcher reloads <Code>~/.heysummon/providers.json</Code> each polling cycle — no
+              <Qa q="I added a new expert but the watcher doesn't pick them up.">
+                The watcher reloads <Code>~/.heysummon/experts.json</Code> each polling cycle — no
                 restart needed. Wait up to 10 seconds for the next poll.
               </Qa>
 
@@ -202,21 +202,21 @@ export default function HelpPage() {
               </Qa>
 
               <Qa q="I'm not sure which API key to use.">
-                Each provider you work with has their own client API key. The setup link from your
-                provider already contains the correct key — you don&apos;t need to find or copy it
+                Each expert you work with has their own client API key. The setup link from your
+                expert already contains the correct key — you don&apos;t need to find or copy it
                 manually. Just follow the setup link.
               </Qa>
             </div>
           </Section>
 
-          <Section id="contact" title="Contact your provider">
+          <Section id="contact" title="Contact your expert">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              If you&apos;re still stuck after checking this guide, reach out to your provider directly.
+              If you&apos;re still stuck after checking this guide, reach out to your expert directly.
               They can see your connection status, IP events, and request history from their dashboard,
               which makes it much easier to diagnose issues.
             </p>
             <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
-              When contacting your provider, mention:
+              When contacting your expert, mention:
             </p>
             <ul className="mt-2 text-sm text-muted-foreground space-y-1 list-disc list-inside">
               <li>Your client name or the last 4 characters of your API key</li>

@@ -20,7 +20,7 @@ export const slackAdapter: ChannelAdapter = {
       `*New help request*`,
       ``,
       `*Ref:* \`${event.refCode}\``,
-      `*Provider:* ${escapeSlack(event.providerName)}`,
+      `*Expert:* ${escapeSlack(event.expertName)}`,
     ];
 
     if (event.consumerLabel) {

@@ -20,12 +20,12 @@ Keys are validated using timing-safe comparison (resistant to timing attacks).
 | Submit help request | Client key (`hs_live_*`) |
 | Poll request status | Client key — only the submitting key |
 | Send consumer message | Client key — only the submitting key |
-| Poll pending events | Client or provider key |
-| Send provider response | Provider key (`hs_prov_*`) |
-| Close a request | Provider key — only assigned provider |
+| Poll pending events | Client or expert key |
+| Send expert response | Expert key (`hs_exp_*`) |
+| Close a request | Expert key — only assigned expert |
 | Key management | Dashboard session only |
 
-**IDOR protection** — Clients can only access their own requests. Providers can only respond to requests assigned to their profile.
+**IDOR protection** — Clients can only access their own requests. Experts can only respond to requests assigned to their profile.
 
 ## Rate limiting
 

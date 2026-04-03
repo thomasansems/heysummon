@@ -19,7 +19,7 @@ export const telegramAdapter: ChannelAdapter = {
       `<b>New help request</b>`,
       ``,
       `<b>Ref:</b> <code>${escapeHtml(event.refCode)}</code>`,
-      `<b>Provider:</b> ${escapeHtml(event.providerName)}`,
+      `<b>Expert:</b> ${escapeHtml(event.expertName)}`,
     ];
 
     if (event.consumerLabel) {

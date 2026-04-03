@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
   }
 
   const apiKey = await prisma.apiKey.findFirst({
-    where: { id: keyId, provider: { userId: user.id } },
-    select: { id: true, providerId: true, provider: { select: { name: true } } },
+    where: { id: keyId, expert: { userId: user.id } },
+    select: { id: true, expertId: true, expert: { select: { name: true } } },
   });
 
   if (!apiKey) {
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       baseUrl,
       channel,
       subChannel: subChannel ?? null,
-      providerName: apiKey.provider?.name ?? null,
+      expertName: apiKey.expert?.name ?? null,
       summonContext: trimmedContext,
       timeout: timeout ?? 900,
       pollInterval: pollInterval ?? 3,
@@ -68,21 +68,21 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  // Save context to provider's recentSummonContexts (prepend, dedup, cap at 10)
-  if (trimmedContext && apiKey.providerId) {
-    const provider = await prisma.userProfile.findUnique({
-      where: { id: apiKey.providerId },
+  // Save context to expert's recentSummonContexts (prepend, dedup, cap at 10)
+  if (trimmedContext && apiKey.expertId) {
+    const expert = await prisma.userProfile.findUnique({
+      where: { id: apiKey.expertId },
       select: { recentSummonContexts: true },
     });
 
-    const existing: string[] = provider?.recentSummonContexts
-      ? JSON.parse(provider.recentSummonContexts)
+    const existing: string[] = expert?.recentSummonContexts
+      ? JSON.parse(expert.recentSummonContexts)
       : [];
     const deduped = [trimmedContext, ...existing.filter((c: string) => c !== trimmedContext)];
     const capped = deduped.slice(0, MAX_RECENT_CONTEXTS);
 
     await prisma.userProfile.update({
-      where: { id: apiKey.providerId },
+      where: { id: apiKey.expertId },
       data: { recentSummonContexts: JSON.stringify(capped) },
     });
   }

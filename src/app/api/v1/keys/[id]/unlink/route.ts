@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * POST /api/v1/keys/[id]/unlink
- * Removes the providerId link from an ApiKey (client key).
- * The key remains active but is no longer linked to a provider.
+ * Removes the expertId link from an ApiKey (client key).
+ * The key remains active but is no longer linked to an expert.
  */
 export async function POST(
   _request: Request,
@@ -29,7 +29,7 @@ export async function POST(
 
   await prisma.apiKey.update({
     where: { id },
-    data: { providerId: null },
+    data: { expertId: null },
   });
 
   return NextResponse.json({ success: true });

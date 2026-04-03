@@ -15,7 +15,7 @@ export async function POST(
 
   const { id } = await params;
 
-  const channel = await prisma.channelProvider.findUnique({
+  const channel = await prisma.expertChannel.findUnique({
     where: { id },
     include: { profile: { select: { userId: true } } },
   });
@@ -34,10 +34,10 @@ export async function POST(
   const newConfig: TelegramConfig = {
     ...config,
     setupToken,
-    providerChatId: undefined, // Clear existing binding so re-pair is required
+    expertChatId: undefined, // Clear existing binding so re-pair is required
   };
 
-  await prisma.channelProvider.update({
+  await prisma.expertChannel.update({
     where: { id },
     data: { config: JSON.stringify(newConfig) },
   });

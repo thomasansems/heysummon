@@ -1,5 +1,5 @@
 export { HeySummonClient, HeySummonHttpError } from "./client.js";
-export { ProviderStore } from "./provider-store.js";
+export { ExpertStore } from "./expert-store.js";
 export {
   generateEphemeralKeys,
   generatePersistentKeys,
@@ -8,7 +8,7 @@ export {
   decrypt,
 } from "./crypto.js";
 export type {
-  Provider,
+  Expert,
   SubmitRequestOptions,
   SubmitRequestResult,
   PendingEvent,

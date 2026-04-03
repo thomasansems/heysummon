@@ -1,9 +1,9 @@
 /**
- * POST /api/v1/webhooks — Register a webhook endpoint for provider notifications
+ * POST /api/v1/webhooks — Register a webhook endpoint for expert notifications
  * DELETE /api/v1/webhooks?id=... — Remove a webhook
  * GET /api/v1/webhooks — List configured webhooks
  *
- * Authentication: x-api-key (provider key)
+ * Authentication: x-api-key (expert key)
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -86,12 +86,12 @@ export async function POST(req: NextRequest) {
 
   const profile = await prisma.userProfile.findFirst({ where: { userId } });
   if (!profile) {
-    return NextResponse.json({ error: 'Provider profile not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Expert profile not found' }, { status: 404 });
   }
 
   const webhookSecret = secret ?? crypto.randomBytes(32).toString('hex');
 
-  const channel = await prisma.channelProvider.create({
+  const channel = await prisma.expertChannel.create({
     data: {
       profileId: profile.id,
       type: 'webhook',
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
   }, { status: 201 });
 }
 
-// GET /api/v1/webhooks — List webhooks for this provider
+// GET /api/v1/webhooks — List webhooks for this expert
 export async function GET(req: NextRequest) {
   const auth = await validateApiKeyRequest(req);
   if (!auth.ok) return auth.response;
@@ -120,14 +120,14 @@ export async function GET(req: NextRequest) {
   const profile = await prisma.userProfile.findFirst({
     where: { userId },
     include: {
-      channelProviders: {
+      expertChannels: {
         where: { type: 'webhook' },
         select: { id: true, name: true, isActive: true, paired: true, createdAt: true, config: true },
       },
     },
   });
 
-  const webhooks = (profile?.channelProviders ?? []).map((ch: { id: string; name: string; isActive: boolean; createdAt: Date; config: string }) => {
+  const webhooks = (profile?.expertChannels ?? []).map((ch: { id: string; name: string; isActive: boolean; createdAt: Date; config: string }) => {
     let cfg: Record<string, unknown> = {};
     try { cfg = JSON.parse(ch.config); } catch { /* ignore */ }
     return { id: ch.id, name: ch.name, url: cfg.url, isActive: ch.isActive, createdAt: ch.createdAt };
@@ -149,7 +149,7 @@ export async function DELETE(req: NextRequest) {
   const profile = await prisma.userProfile.findFirst({ where: { userId } });
   if (!profile) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const deleted = await prisma.channelProvider.deleteMany({
+  const deleted = await prisma.expertChannel.deleteMany({
     where: { id, profileId: profile.id, type: 'webhook' },
   });
 

@@ -15,9 +15,9 @@ async function login(page: Page) {
   ]);
 }
 
-// ── 1. Dashboard overview — open requests cancel/resend buttons ───────────────
+// -- 1. Dashboard overview -- open requests cancel/resend buttons ---------------
 
-test.describe("Dashboard overview — open request action buttons", () => {
+test.describe("Dashboard overview -- open request action buttons", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
     await page.goto(`${BASE}/dashboard`);
@@ -37,7 +37,7 @@ test.describe("Dashboard overview — open request action buttons", () => {
     const hasNoRequests = await noRequests.isVisible().catch(() => false);
 
     if (!hasNoRequests) {
-      // There are open requests — check that icon buttons exist (X and RotateCcw)
+      // There are open requests -- check that icon buttons exist (X and RotateCcw)
       // Cancel button (X icon) - title="Cancel"
       const cancelBtns = page.locator('button[title="Cancel"]');
       const resendBtns = page.locator('button[title="Resend"]');
@@ -82,27 +82,27 @@ test.describe("Dashboard overview — open request action buttons", () => {
   });
 });
 
-// ── 2. Provider dropdown overflow fix ────────────────────────────────────────
+// -- 2. Expert dropdown overflow fix ------------------------------------------
 
-test.describe("Provider dropdown overflow", () => {
+test.describe("Expert dropdown overflow", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.goto(`${BASE}/dashboard/providers`);
+    await page.goto(`${BASE}/dashboard/experts`);
     await page.waitForLoadState("networkidle");
   });
 
   test("three-dot menu opens and shows options without being clipped", async ({ page }) => {
-    // Wait for providers to load
-    const noProviders = await page.locator("text=No providers yet").isVisible().catch(() => false);
-    if (noProviders) {
+    // Wait for experts to load
+    const noExperts = await page.locator("text=No experts yet").isVisible().catch(() => false);
+    if (noExperts) {
       test.skip();
       return;
     }
 
     // Click the first three-dot menu button
-    const menuBtn = page.locator('button[aria-label="Open menu"], button:has-text("⋯"), button:has([data-lucide="more-horizontal"]), button:has(svg)').first();
+    const menuBtn = page.locator('button[aria-label="Open menu"], button:has-text("\u22ef"), button:has([data-lucide="more-horizontal"]), button:has(svg)').first();
 
-    // Find specifically the "..." / ellipsis button in the provider table
+    // Find specifically the "..." / ellipsis button in the expert table
     // It's a button containing an SVG with three dots
     const ellipsisBtn = page.locator('td button').filter({ has: page.locator('svg') }).first();
 
@@ -119,7 +119,7 @@ test.describe("Provider dropdown overflow", () => {
 
       expect(settingsVisible || deleteVisible).toBe(true);
 
-      // Verify the dropdown is NOT hidden/clipped — check bounding box is in viewport
+      // Verify the dropdown is NOT hidden/clipped -- check bounding box is in viewport
       const dropdown = page.locator('.absolute.right-0.top-full').first();
       if (await dropdown.isVisible()) {
         const box = await dropdown.boundingBox();
@@ -134,34 +134,34 @@ test.describe("Provider dropdown overflow", () => {
   });
 });
 
-// ── 3. Provider settings — timezone select (no filter input) ─────────────────
+// -- 3. Expert settings -- timezone select (no filter input) ------------------
 
-test.describe("Provider settings — timezone", () => {
-  let providerId: string;
+test.describe("Expert settings -- timezone", () => {
+  let expertId: string;
 
   test.beforeEach(async ({ page }) => {
     await login(page);
-    // Get first provider id from providers list
-    const res = await page.request.get(`${BASE}/api/providers`);
+    // Get first expert id from experts list
+    const res = await page.request.get(`${BASE}/api/experts`);
     if (res.ok()) {
       const data = await res.json();
-      providerId = data.providers?.[0]?.id;
+      expertId = data.experts?.[0]?.id;
     }
 
-    if (!providerId) {
-      // Create a provider first via wizard
-      await page.goto(`${BASE}/dashboard/providers`);
+    if (!expertId) {
+      // Create an expert first via wizard
+      await page.goto(`${BASE}/dashboard/experts`);
       await page.waitForLoadState("networkidle");
     }
   });
 
-  test("timezone section has only a select — no filter input", async ({ page }) => {
-    if (!providerId) {
+  test("timezone section has only a select -- no filter input", async ({ page }) => {
+    if (!expertId) {
       test.skip();
       return;
     }
 
-    await page.goto(`${BASE}/dashboard/providers/${providerId}/settings`);
+    await page.goto(`${BASE}/dashboard/experts/${expertId}/settings`);
     await page.waitForLoadState("networkidle");
 
     // Should have a select element for timezone
@@ -178,12 +178,12 @@ test.describe("Provider settings — timezone", () => {
   });
 
   test("can select a different timezone and save", async ({ page }) => {
-    if (!providerId) {
+    if (!expertId) {
       test.skip();
       return;
     }
 
-    await page.goto(`${BASE}/dashboard/providers/${providerId}/settings`);
+    await page.goto(`${BASE}/dashboard/experts/${expertId}/settings`);
     await page.waitForLoadState("networkidle");
 
     const tzSelect = page.locator('select').first();
@@ -193,32 +193,32 @@ test.describe("Provider settings — timezone", () => {
     await tzSelect.selectOption("America/New_York");
 
     await page.locator('button:has-text("Save")').click();
-    await expect(page.locator("text=Settings saved ✓").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Settings saved \u2713").first()).toBeVisible({ timeout: 5000 });
   });
 });
 
-// ── 4. Provider settings — availability ───────────────────────────────────────
+// -- 4. Expert settings -- availability ----------------------------------------
 
-test.describe("Provider settings — availability", () => {
+test.describe("Expert settings -- availability", () => {
   test.describe.configure({ mode: "serial" });
-  let providerId: string;
+  let expertId: string;
 
   test.beforeEach(async ({ page }) => {
     await login(page);
-    const res = await page.request.get(`${BASE}/api/providers`);
+    const res = await page.request.get(`${BASE}/api/experts`);
     if (res.ok()) {
       const data = await res.json();
-      providerId = data.providers?.[0]?.id;
+      expertId = data.experts?.[0]?.id;
     }
   });
 
   test("availability toggle and time pickers are present", async ({ page }) => {
-    if (!providerId) {
+    if (!expertId) {
       test.skip();
       return;
     }
 
-    await page.goto(`${BASE}/dashboard/providers/${providerId}/settings`);
+    await page.goto(`${BASE}/dashboard/experts/${expertId}/settings`);
     await page.waitForLoadState("networkidle");
 
     // "Availability" heading should be visible
@@ -230,12 +230,12 @@ test.describe("Provider settings — availability", () => {
   });
 
   test("enabling availability shows time pickers and weekdays", async ({ page }) => {
-    if (!providerId) {
+    if (!expertId) {
       test.skip();
       return;
     }
 
-    await page.goto(`${BASE}/dashboard/providers/${providerId}/settings`);
+    await page.goto(`${BASE}/dashboard/experts/${expertId}/settings`);
     await page.waitForLoadState("networkidle");
 
     // Time inputs should NOT be visible before toggle
@@ -257,18 +257,18 @@ test.describe("Provider settings — availability", () => {
       const chipCount = await dayChips.count();
       expect(chipCount).toBeGreaterThanOrEqual(5);
     } else {
-      // Was already enabled — now disabled, inputs gone
+      // Was already enabled -- now disabled, inputs gone
       expect(afterCount).toBe(0);
     }
   });
 
   test("can enable availability, set times, and save", async ({ page }) => {
-    if (!providerId) {
+    if (!expertId) {
       test.skip();
       return;
     }
 
-    await page.goto(`${BASE}/dashboard/providers/${providerId}/settings`);
+    await page.goto(`${BASE}/dashboard/experts/${expertId}/settings`);
     await page.waitForLoadState("networkidle");
 
     // Check current state of quiet hours
@@ -282,7 +282,7 @@ test.describe("Provider settings — availability", () => {
       await expect(page.locator('input[type="time"]').first()).toBeVisible({ timeout: 3000 });
     }
 
-    // Set quiet hours: 23:00 → 07:00
+    // Set quiet hours: 23:00 -> 07:00
     const fromInput = page.locator('input[type="time"]').first();
     const untilInput = page.locator('input[type="time"]').nth(1);
 
@@ -291,7 +291,7 @@ test.describe("Provider settings — availability", () => {
 
     // Save
     await page.locator('button:has-text("Save")').click();
-    await expect(page.locator("text=Settings saved ✓").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Settings saved \u2713").first()).toBeVisible({ timeout: 5000 });
 
     // Reload and verify settings persisted
     await page.reload();
@@ -304,12 +304,12 @@ test.describe("Provider settings — availability", () => {
   });
 
   test("can disable availability and save", async ({ page }) => {
-    if (!providerId) {
+    if (!expertId) {
       test.skip();
       return;
     }
 
-    await page.goto(`${BASE}/dashboard/providers/${providerId}/settings`);
+    await page.goto(`${BASE}/dashboard/experts/${expertId}/settings`);
     await page.waitForLoadState("networkidle");
 
     // Enable if not already enabled
@@ -326,16 +326,16 @@ test.describe("Provider settings — availability", () => {
 
     // Save
     await page.locator('button:has-text("Save")').click();
-    await expect(page.locator("text=Settings saved ✓").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Settings saved \u2713").first()).toBeVisible({ timeout: 5000 });
   });
 
   test("availability preview text updates with selected times", async ({ page }) => {
-    if (!providerId) {
+    if (!expertId) {
       test.skip();
       return;
     }
 
-    await page.goto(`${BASE}/dashboard/providers/${providerId}/settings`);
+    await page.goto(`${BASE}/dashboard/experts/${expertId}/settings`);
     await page.waitForLoadState("networkidle");
 
     // Enable if not already
@@ -354,21 +354,21 @@ test.describe("Provider settings — availability", () => {
   });
 });
 
-// ── 5. Settings page — IP Security section removed ───────────────────────────
+// -- 5. Settings page -- IP Security section removed ---------------------------
 
-test.describe("Settings page — no duplicate IP Security", () => {
+test.describe("Settings page -- no duplicate IP Security", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
     await page.goto(`${BASE}/dashboard/settings`);
     await page.waitForLoadState("networkidle");
   });
 
-  test("settings page does NOT show Provider IP Security section", async ({ page }) => {
+  test("settings page does NOT show Expert IP Security section", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
 
-    // The "Provider IP Security" heading should not be present
-    const ipSection = page.locator("text=Provider IP Security");
+    // The "Expert IP Security" heading should not be present
+    const ipSection = page.locator("text=Expert IP Security");
     await expect(ipSection).not.toBeVisible();
 
     expect(errors.filter((e) => !e.includes("favicon"))).toEqual([]);

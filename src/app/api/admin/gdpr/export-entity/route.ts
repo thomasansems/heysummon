@@ -4,12 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getGdprSettings, anonymizeIp } from "@/lib/gdpr";
 
 /**
- * POST /api/admin/gdpr/export-entity — export data for a specific client or provider
+ * POST /api/admin/gdpr/export-entity — export data for a specific client or expert
  *
- * Body: { type: "client" | "provider", id: string }
+ * Body: { type: "client" | "expert", id: string }
  *
  * Admin only. Exports all data associated with a specific API key (client) or
- * provider profile, scoped to that entity rather than the entire user account.
+ * expert profile, scoped to that entity rather than the entire user account.
  */
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -41,11 +41,11 @@ export async function POST(request: Request) {
     return exportClientData(id, processIp);
   }
 
-  if (type === "provider") {
-    return exportProviderData(id, processIp);
+  if (type === "expert") {
+    return exportExpertData(id, processIp);
   }
 
-  return NextResponse.json({ error: "type must be \"client\" or \"provider\"" }, { status: 400 });
+  return NextResponse.json({ error: "type must be \"client\" or \"expert\"" }, { status: 400 });
 }
 
 async function exportClientData(
@@ -124,14 +124,14 @@ async function exportClientData(
   });
 }
 
-async function exportProviderData(
+async function exportExpertData(
   profileId: string,
   processIp: (ip: string | null) => string | null,
 ) {
   const profile = await prisma.userProfile.findUnique({
     where: { id: profileId },
     include: {
-      channelProviders: true,
+      expertChannels: true,
       ipEvents: true,
       integrationConfigs: {
         include: { integration: { select: { id: true, type: true, name: true, category: true } } },
@@ -143,10 +143,10 @@ async function exportProviderData(
   });
 
   if (!profile) {
-    return NextResponse.json({ error: "Provider not found" }, { status: 404 });
+    return NextResponse.json({ error: "Expert not found" }, { status: 404 });
   }
 
-  // Get all requests handled by this provider (via API keys linked to this profile)
+  // Get all requests handled by this expert (via API keys linked to this profile)
   const apiKeyIds = profile.apiKeys.map((k) => k.id);
   const requests = await prisma.helpRequest.findMany({
     where: { apiKeyId: { in: apiKeyIds } },
@@ -157,8 +157,8 @@ async function exportProviderData(
   return NextResponse.json({
     exportDate: new Date().toISOString(),
     gdprArticle: "Art. 15 GDPR — Right of Access",
-    entityType: "provider",
-    provider: {
+    entityType: "expert",
+    expert: {
       id: profile.id,
       name: profile.name,
       isActive: profile.isActive,
@@ -166,7 +166,7 @@ async function exportProviderData(
       phoneFirst: profile.phoneFirst,
       phoneFirstTimeout: profile.phoneFirstTimeout,
       createdAt: profile.createdAt,
-      channelProviders: profile.channelProviders.map((cp) => ({
+      expertChannels: profile.expertChannels.map((cp) => ({
         id: cp.id,
         type: cp.type,
         name: cp.name,

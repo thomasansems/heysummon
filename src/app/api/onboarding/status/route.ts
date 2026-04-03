@@ -6,7 +6,7 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [providerCount, clientCount] = await Promise.all([
+  const [expertCount, clientCount] = await Promise.all([
     prisma.userProfile.count({ where: { userId: user.id } }),
     prisma.apiKey.count({ where: { userId: user.id } }),
   ]);
@@ -24,10 +24,10 @@ export async function GET() {
 
   return NextResponse.json({
     onboardingComplete: user.onboardingComplete,
-    hasProvider: providerCount > 0,
+    hasExpert: expertCount > 0,
     hasClient: clientCount > 0,
     tunnelActive,
-    providerCount,
+    expertCount,
     clientCount,
   });
 }

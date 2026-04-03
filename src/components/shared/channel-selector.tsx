@@ -2,11 +2,11 @@
 
 import { AlertTriangle } from "lucide-react";
 
-export type ProviderChannelType = "openclaw" | "telegram" | "slack";
+export type ExpertChannelType = "openclaw" | "telegram" | "slack";
 
 interface ChannelSelectorProps {
-  selected: ProviderChannelType | null;
-  onSelect: (channel: ProviderChannelType) => void;
+  selected: ExpertChannelType | null;
+  onSelect: (channel: ExpertChannelType) => void;
   botToken?: string;
   onBotTokenChange?: (token: string) => void;
   slackBotToken?: string;
@@ -234,11 +234,11 @@ export function ChannelSelector({
         <div className="rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20 p-3 text-xs text-orange-700 dark:text-orange-300">
           <p className="mb-1 font-medium">How OpenClaw works:</p>
           <ol className="list-decimal list-inside space-y-1 text-orange-700 dark:text-orange-400">
-            <li>A provider key will be generated after creation</li>
+            <li>A expert key will be generated after creation</li>
             <li>
-              Install the HeySummon provider skill from{" "}
+              Install the HeySummon expert skill from{" "}
               <a
-                href="https://clawhub.ai/thomasansems/heysummon-provider"
+                href="https://clawhub.ai/thomasansems/heysummon-expert"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"
@@ -246,7 +246,7 @@ export function ChannelSelector({
                 clawhub.ai
               </a>
             </li>
-            <li>Configure it with your provider key — done!</li>
+            <li>Configure it with your expert key — done!</li>
           </ol>
         </div>
       )}

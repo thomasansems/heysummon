@@ -4,7 +4,7 @@ export type ChannelType = (typeof CHANNEL_TYPES)[number];
 export interface HelpRequestEvent {
   refCode: string;
   question?: string;
-  providerName: string;
+  expertName: string;
   consumerLabel?: string;
   createdAt: string;
 }
@@ -22,9 +22,9 @@ export interface ChannelAdapter {
   /** Format a new help-request notification for delivery on this channel */
   formatNotification(event: HelpRequestEvent): FormattedMessage;
 
-  /** Format a provider reply for delivery on this channel */
+  /** Format an expert reply for delivery on this channel */
   formatReply(response: string, refCode: string): FormattedMessage;
 
-  /** Parse an inbound reply from a provider on this channel */
+  /** Parse an inbound reply from an expert on this channel */
   parseInboundReply(raw: unknown): { refCode: string; text: string } | null;
 }

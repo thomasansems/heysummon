@@ -20,7 +20,7 @@ export async function GET() {
   const integrations = await prisma.integration.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      _count: { select: { providerConfigs: true } },
+      _count: { select: { expertConfigs: true } },
     },
   });
 

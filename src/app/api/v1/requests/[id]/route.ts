@@ -35,7 +35,7 @@ export async function GET(
     helpRequest.status = "reviewing";
   }
 
-  // Decrypt messages and question for provider view using server private key
+  // Decrypt messages and question for expert view using server private key
   let decryptedMessages: unknown;
   let decryptedQuestion: string | null = null;
 
@@ -127,7 +127,7 @@ export async function PATCH(
   });
 
   logAuditEvent({
-    eventType: AuditEventTypes.PROVIDER_RESPONSE,
+    eventType: AuditEventTypes.EXPERT_RESPONSE,
     userId: user.id,
     success: true,
     metadata: { requestId: id, refCode: updated.refCode },

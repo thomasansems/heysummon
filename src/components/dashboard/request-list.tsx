@@ -47,7 +47,7 @@ const filterOptions = [
   { value: "flagged", label: "Flagged" },
 ];
 
-export function RequestList({ providerId }: { providerId?: string }) {
+export function RequestList({ expertId }: { expertId?: string }) {
   const [requests, setRequests] = useState<HelpRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");

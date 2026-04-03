@@ -24,12 +24,12 @@ export async function GET() {
       previousKeyExpiresAt: true,
       createdAt: true,
       machineId: true,
-      provider: {
+      expert: {
         select: {
           id: true,
           name: true,
           isActive: true,
-          channelProviders: {
+          expertChannels: {
             where: { isActive: true },
             select: { id: true, type: true, status: true },
           },
@@ -65,14 +65,14 @@ export async function POST(request: Request) {
   if (!parsed.success) return parsed.response;
 
   const DEFAULT_RATE_LIMIT = parseInt(process.env.HEYSUMMON_DEFAULT_RATE_LIMIT ?? "150");
-  const { name, providerId, scope, rateLimitPerMinute, clientChannel, clientSubChannel } = parsed.data;
+  const { name, expertId, scope, rateLimitPerMinute, clientChannel, clientSubChannel } = parsed.data;
 
-  if (providerId) {
-    const provider = await prisma.userProfile.findFirst({
-      where: { id: providerId, userId: user.id },
+  if (expertId) {
+    const expert = await prisma.userProfile.findFirst({
+      where: { id: expertId, userId: user.id },
     });
-    if (!provider) {
-      return NextResponse.json({ error: "Provider not found" }, { status: 400 });
+    if (!expert) {
+      return NextResponse.json({ error: "Expert not found" }, { status: 400 });
     }
   }
 
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       rateLimitPerMinute: rateLimitPerMinute ?? DEFAULT_RATE_LIMIT,
       ...(clientChannel && { clientChannel }),
       ...(clientSubChannel && { clientSubChannel }),
-      ...(providerId && { provider: { connect: { id: providerId } } }),
+      ...(expertId && { expert: { connect: { id: expertId } } }),
     },
   });
 
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     userId: user.id,
     apiKeyId: key.id,
     success: true,
-    metadata: { name: name || null, providerId: providerId || null, keyHint: redactApiKey(key.key) },
+    metadata: { name: name || null, expertId: expertId || null, keyHint: redactApiKey(key.key) },
     request,
   });
 

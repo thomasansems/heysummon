@@ -556,7 +556,7 @@ export default function DashboardPage() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span className="inline-flex items-center gap-0.5" title="Inbound (consumer)"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>
-                            <span className="inline-flex items-center gap-0.5" title="Outbound (provider)"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>
+                            <span className="inline-flex items-center gap-0.5" title="Outbound (expert)"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
@@ -582,7 +582,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Unhandled Requests — client timed out, provider never responded */}
+      {/* Unhandled Requests — client timed out, expert never responded */}
       {unhandledRequests.length > 0 && (
         <div>
           <h2 className="mb-3 text-sm font-semibold text-foreground">

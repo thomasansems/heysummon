@@ -13,7 +13,7 @@ import { prisma } from "./prisma";
 import { transitionRequest, StaleStateError, type RequestStatus } from "./request-lifecycle";
 import { buildRetryUpdate } from "./delivery-retry";
 import { logAuditEvent, AuditEventTypes } from "./audit";
-import { recalculateMetrics } from "./provider-metrics";
+import { recalculateMetrics } from "./expert-metrics";
 
 const INTERVAL_MS = parseInt(
   process.env.HEYSUMMON_MONITOR_INTERVAL_MS ?? "300000",
@@ -49,7 +49,7 @@ async function expireStaleRequests(): Promise<number> {
       });
       expired++;
 
-      // Fire-and-forget: update provider metrics
+      // Fire-and-forget: update expert metrics
       if (req.expertId) {
         recalculateMetrics(req.expertId);
       }

@@ -8,7 +8,7 @@ export interface SlackSendMessagePayload {
 }
 
 /**
- * Simulates a Slack Events API webhook callback (e.g. /reply HS-XXXX answer from provider).
+ * Simulates a Slack Events API webhook callback (e.g. /reply HS-XXXX answer from expert).
  * Calls the local /api/adapters/slack/[id]/webhook endpoint directly.
  */
 export async function simulateSlackReply({

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 const codeLines = [
   { prefix: "// AI agent needs human approval", color: "text-muted-foreground" },
   { prefix: 'const answer = await heysummon.ask({', color: "text-foreground" },
-  { prefix: '  provider: "senior-engineer",', color: "text-primary" },
+  { prefix: '  expert: "senior-engineer",', color: "text-primary" },
   { prefix: '  question: "Deploy v2.4 to production?",', color: "text-primary" },
   { prefix: '  context: { diff: "+1,847 -203 lines",', color: "text-muted-foreground" },
   { prefix: '             tests: "147/147 passing" }', color: "text-muted-foreground" },

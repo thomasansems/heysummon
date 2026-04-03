@@ -16,7 +16,7 @@ import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 /**
  * POST /api/integrations/twilio/voice/:requestId/gather
  *
- * Twilio calls this URL after gathering speech/DTMF input from the provider.
+ * Twilio calls this URL after gathering speech/DTMF input from the expert.
  * Processes the response, stores it, and returns a thank-you TwiML.
  */
 export async function POST(
@@ -71,7 +71,7 @@ export async function POST(
     });
   }
 
-  // Parse the provider's response
+  // Parse the expert's response
   const result = parseGatherResult(speechResult, digits);
 
   if (DEBUG) {
@@ -106,7 +106,7 @@ export async function POST(
 
   // Audit log
   logAuditEvent({
-    eventType: AuditEventTypes.PROVIDER_RESPONSE,
+    eventType: AuditEventTypes.EXPERT_RESPONSE,
     userId: null,
     success: true,
     metadata: {

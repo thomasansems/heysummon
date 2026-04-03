@@ -1,8 +1,8 @@
 # Environment variables (API keys, secrets)
 .env
 
-# Provider configuration (contains API keys)
-providers.json
+# Expert configuration (contains API keys)
+experts.json
 
 # Event logs
 *.jsonl

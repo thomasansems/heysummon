@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKeyRequest } from '@/lib/api-key-auth';
-import { dispatchWebhookToProvider } from '@/lib/webhook';
+import { dispatchWebhookToExpert } from '@/lib/webhook';
 
 export async function POST(req: NextRequest) {
   const auth = await validateApiKeyRequest(req);
   if (!auth.ok) return auth.response;
 
-  await dispatchWebhookToProvider(auth.apiKey.userId, {
+  await dispatchWebhookToExpert(auth.apiKey.userId, {
     type: 'new_request',
     requestId: 'test-' + Date.now(),
     refCode: 'HS-TEST',

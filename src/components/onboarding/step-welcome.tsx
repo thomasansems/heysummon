@@ -20,7 +20,7 @@ const SCENARIOS = [
 ];
 
 const STEPS = [
-  { num: 1, text: "Set up your provider channel" },
+  { num: 1, text: "Set up your expert channel" },
   { num: 2, text: "Connect an AI assistant" },
   { num: 3, text: "Test the full round-trip" },
 ];

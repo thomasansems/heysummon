@@ -55,10 +55,10 @@ export default function NewChannelPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/providers")
+    fetch("/api/experts")
       .then((r) => r.json())
       .then((data) => {
-        const list = data.providers || [];
+        const list = data.experts || [];
         setProfiles(list);
         if (list.length === 1) setSelectedProfileId(list[0].id);
       });
@@ -200,7 +200,7 @@ export default function NewChannelPage() {
             {profiles.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No user profiles yet.{" "}
-                <a href="/dashboard/providers" className="text-orange-600 hover:text-orange-800">
+                <a href="/dashboard/experts" className="text-orange-600 hover:text-orange-800">
                   Create one
                 </a>{" "}
                 first.

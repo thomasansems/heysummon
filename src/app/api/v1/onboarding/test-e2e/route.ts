@@ -18,16 +18,16 @@ export async function POST(request: NextRequest) {
 
   const apiKey = await prisma.apiKey.findFirst({
     where: { id: apiKeyId, userId: user.id },
-    include: { provider: true },
+    include: { expert: true },
   });
 
   if (!apiKey) {
     return NextResponse.json({ error: "API key not found" }, { status: 404 });
   }
 
-  if (!apiKey.provider) {
+  if (!apiKey.expert) {
     return NextResponse.json(
-      { error: "API key has no provider linked" },
+      { error: "API key has no expert linked" },
       { status: 400 }
     );
   }
@@ -49,22 +49,22 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  // Notify the provider through their channel
-  const provider = await prisma.userProfile.findUnique({
-    where: { id: apiKey.providerId! },
-    include: { channelProviders: true },
+  // Notify the expert through their channel
+  const expert = await prisma.userProfile.findUnique({
+    where: { id: apiKey.expertId! },
+    include: { expertChannels: true },
   });
 
-  if (provider) {
-    const telegramCh = provider.channelProviders.find((c) => c.type === "telegram");
+  if (expert) {
+    const telegramCh = expert.expertChannels.find((c) => c.type === "telegram");
     if (telegramCh) {
       try {
         const config = JSON.parse(telegramCh.config || "{}");
-        if (config.botToken && config.providerChatId) {
+        if (config.botToken && config.expertChatId) {
           const { sendMessage } = await import("@/lib/adapters/telegram");
           await sendMessage(
             config.botToken,
-            config.providerChatId,
+            config.expertChatId,
             `*Onboarding E2E Test*\n\nRef: \`${refCode}\`\n\nA test question was sent from your client. Reply with:\n\`/reply ${refCode} Test successful!\`\n\nto complete the end-to-end test.`
           );
         }

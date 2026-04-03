@@ -99,8 +99,8 @@ export async function isKeyRateLimited(keyId: string, maxPerMinute: number): Pro
  */
 export function sanitizeError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
-  // Replace any hs_cli_... or hs_prov_... or hs_dev_... patterns
-  return msg.replace(/hs_(cli|prov|dev)_[a-f0-9]+/gi, (match) => redactKey(match));
+  // Replace any hs_cli_... or hs_exp_... or hs_dev_... patterns
+  return msg.replace(/hs_(cli|exp|dev)_[a-f0-9]+/gi, (match) => redactKey(match));
 }
 
 /**

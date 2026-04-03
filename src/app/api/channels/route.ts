@@ -19,7 +19,7 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const channels = await prisma.channelProvider.findMany({
+  const channels = await prisma.expertChannel.findMany({
     where: { profile: { userId: user.id } },
     include: { profile: { select: { id: true, name: true } } },
     orderBy: { createdAt: "desc" },
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: validation.error }, { status: 400 });
   }
 
-  const channel = await prisma.channelProvider.create({
+  const channel = await prisma.expertChannel.create({
     data: {
       profileId,
       type,
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       await adapter.onActivate(channel.id, validation.config);
     } catch (err) {
       // Update status to error but don't fail the create
-      await prisma.channelProvider.update({
+      await prisma.expertChannel.update({
         where: { id: channel.id },
         data: {
           status: "error",
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
   }
 
   // Reload to get latest status
-  const updated = await prisma.channelProvider.findUnique({ where: { id: channel.id } });
+  const updated = await prisma.expertChannel.findUnique({ where: { id: channel.id } });
 
   return NextResponse.json({ channel: updated });
 }

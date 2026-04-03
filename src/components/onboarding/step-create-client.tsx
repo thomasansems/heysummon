@@ -12,8 +12,8 @@ const DEFAULT_TIMEOUT = 900;
 const DEFAULT_POLL_INTERVAL = 3;
 
 interface StepCreateClientProps {
-  providerId: string;
-  providerName: string;
+  expertId: string;
+  expertName: string;
   onCreated: (data: {
     keyId: string;
     apiKey: string;
@@ -27,8 +27,8 @@ interface StepCreateClientProps {
 }
 
 export function StepCreateClient({
-  providerId,
-  providerName,
+  expertId,
+  expertName,
   onCreated,
 }: StepCreateClientProps) {
   const [channel, setChannel] = useState<ClientChannelType | null>(null);
@@ -53,7 +53,7 @@ export function StepCreateClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name || undefined,
-          providerId,
+          expertId,
           scope: "full",
           rateLimitPerMinute: 150,
           clientChannel: channel,
@@ -100,7 +100,7 @@ export function StepCreateClient({
         Create a Client
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        A client is the AI assistant that sends questions to your provider. Choose which
+        A client is the AI assistant that sends questions to your expert. Choose which
         platform to connect.
       </p>
 
@@ -144,10 +144,10 @@ export function StepCreateClient({
 
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Provider
+              Expert
             </label>
             <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
-              <span className="text-sm text-foreground">{providerName}</span>
+              <span className="text-sm text-foreground">{expertName}</span>
               <span className="rounded-full bg-green-100 dark:bg-green-950/40 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
                 Connected
               </span>
@@ -184,7 +184,7 @@ export function StepCreateClient({
                     className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    How long the client waits for a provider response before timing out.
+                    How long the client waits for an expert response before timing out.
                   </p>
                 </div>
                 <div>

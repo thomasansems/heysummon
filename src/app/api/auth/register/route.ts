@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // First user becomes admin, subsequent users are regular experts
+    // First user becomes admin, subsequent users are experts
     const userCount = await prisma.user.count();
     const isFirstUser = userCount === 0;
 
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         email: emailNorm,
         password: hashedPassword,
         name: name?.trim() || null,
-        role: isFirstUser ? "admin" : "provider",
+        role: isFirstUser ? "admin" : "expert",
         emailVerified: new Date(), // Auto-verified for self-hosted simplicity
         onboardingComplete: false, // All users go through onboarding
       },

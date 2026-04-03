@@ -11,12 +11,12 @@ import { checkContentSafety } from "@/lib/content-safety-middleware";
  * POST /api/v1/message/:requestId — Send a message (encrypted or plaintext)
  *
  * Authentication: x-api-key header required.
- *   - Provider key (hs_prov_*) → can send as "provider"
- *   - Client key (hs_cli_*)    → can send as "consumer"
+ *   - Expert key (hs_exp_*) → can send as "expert"
+ *   - Client key (hs_cli_*)  → can send as "consumer"
  *
  * The API validates that the key has access to this specific request.
  *
- * Required: from ("consumer"|"provider"), + either plaintext or encrypted fields
+ * Required: from ("consumer"|"expert"), + either plaintext or encrypted fields
  * Returns: { success: true, messageId }
  */
 export async function POST(
@@ -39,26 +39,26 @@ export async function POST(
     }
 
     // Determine caller role from key type
-    let callerRole: "provider" | "consumer" | null = null;
+    let callerRole: "expert" | "consumer" | null = null;
 
-    // Check provider key
-    const provider = await prisma.userProfile.findFirst({
+    // Check expert key
+    const expert = await prisma.userProfile.findFirst({
       where: { key: apiKey, isActive: true },
       select: { id: true, userId: true },
     });
 
-    if (provider) {
-      // Verify this provider owns the request
+    if (expert) {
+      // Verify this expert owns the request
       const helpRequest = await prisma.helpRequest.findFirst({
-        where: { id: requestId, expertId: provider.userId },
+        where: { id: requestId, expertId: expert.userId },
       });
       if (!helpRequest) {
         return NextResponse.json(
-          { error: "Request not found or not assigned to this provider" },
+          { error: "Request not found or not assigned to this expert" },
           { status: 403 }
         );
       }
-      callerRole = "provider";
+      callerRole = "expert";
     }
 
     if (!callerRole) {
@@ -152,9 +152,9 @@ export async function POST(
     // Check that key exchange has happened (for v4 encrypted messages)
     const isPlaintext = iv === "plaintext";
     if (!isPlaintext) {
-      if (from === "provider" && (!helpRequest.providerSignPubKey || !helpRequest.providerEncryptPubKey)) {
+      if (from === "expert" && (!helpRequest.expertSignPubKey || !helpRequest.expertEncryptPubKey)) {
         return NextResponse.json(
-          { error: "Provider must exchange keys first (POST /key-exchange)" },
+          { error: "Expert must exchange keys first (POST /key-exchange)" },
           { status: 400 }
         );
       }
@@ -183,11 +183,11 @@ export async function POST(
     // Handle approvalDecision if present (approve/deny flow)
     const approvalDecision = (raw as Record<string, unknown>).approvalDecision;
     const isApprovalResponse =
-      from === "provider" &&
+      from === "expert" &&
       (approvalDecision === "approved" || approvalDecision === "denied");
 
-    // Update status to responded when provider sends a message
-    if (from === "provider" && helpRequest.status !== "responded") {
+    // Update status to responded when expert sends a message
+    if (from === "expert" && helpRequest.status !== "responded") {
       await prisma.helpRequest.update({
         where: { id: requestId },
         data: {
@@ -217,10 +217,10 @@ export async function POST(
       },
     });
 
-    // Log audit event for provider responses
-    if (from === "provider") {
+    // Log audit event for expert responses
+    if (from === "expert") {
       logAuditEvent({
-        eventType: AuditEventTypes.PROVIDER_RESPONSE,
+        eventType: AuditEventTypes.EXPERT_RESPONSE,
         success: true,
         metadata: { requestId, refCode: helpRequest.refCode, via: "api" },
         request,

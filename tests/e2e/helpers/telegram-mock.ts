@@ -62,7 +62,7 @@ export async function withTelegramMock(
 }
 
 /**
- * Simulates a Telegram webhook callback (e.g. /reply HS-XXXX answer from provider).
+ * Simulates a Telegram webhook callback (e.g. /reply HS-XXXX answer from expert).
  * Calls the local /api/adapters/telegram/[id]/webhook endpoint directly.
  */
 export async function simulateTelegramReply({
@@ -82,7 +82,7 @@ export async function simulateTelegramReply({
     update_id: Math.floor(Math.random() * 1_000_000),
     message: {
       message_id: Math.floor(Math.random() * 10000),
-      from: { id: parseInt(fromChatId), is_bot: false, first_name: "Test", username: "testprovider" },
+      from: { id: parseInt(fromChatId), is_bot: false, first_name: "Test", username: "testexpert" },
       chat: { id: parseInt(fromChatId), type: "private" },
       date: Math.floor(Date.now() / 1000),
       text,

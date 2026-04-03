@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { sendMessage } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
 
-/** Max length for a provider reply via Telegram */
+/** Max length for an expert reply via Telegram */
 const MAX_REPLY_LENGTH = 10_000;
 
 const telegramUpdateSchema = z.object({
@@ -33,8 +33,8 @@ export async function POST(
 ) {
   const { id } = await params;
 
-  // Find the channel provider
-  const channel = await prisma.channelProvider.findUnique({
+  // Find the expert channel
+  const channel = await prisma.expertChannel.findUnique({
     where: { id },
     include: {
       profile: {
@@ -77,12 +77,12 @@ export async function POST(
   const text = message.text.trim();
 
   // Update heartbeat
-  await prisma.channelProvider.update({
+  await prisma.expertChannel.update({
     where: { id },
     data: { lastHeartbeat: new Date() },
   });
 
-  // ── /start <token> ── Provider registering themselves with the bot
+  // ── /start <token> ── Expert registering themselves with the bot
   if (text === "/start" || text.startsWith("/start ")) {
     // Require setup token to prevent unauthorized chat binding
     const token = text.split(/\s+/)[1]?.trim();
@@ -95,13 +95,13 @@ export async function POST(
       return NextResponse.json({ ok: true });
     }
 
-    // Store providerChatId and clear the one-time setup token
+    // Store expertChatId and clear the one-time setup token
     const newConfig: TelegramConfig = {
       ...config,
-      providerChatId: chatId,
+      expertChatId: chatId,
       setupToken: undefined,
     };
-    await prisma.channelProvider.update({
+    await prisma.expertChannel.update({
       where: { id },
       data: {
         config: JSON.stringify(newConfig),
@@ -118,7 +118,7 @@ export async function POST(
     return NextResponse.json({ ok: true });
   }
 
-  // ── /reply HS-XXXX answer ── Provider replying to a help request
+  // ── /reply HS-XXXX answer ── Expert replying to a help request
   const replyMatch = text.match(/^\/reply\s+(HS-[A-Za-z0-9]+)\s+([\s\S]+)/i);
   if (replyMatch) {
     const refCode = replyMatch[1].toUpperCase();
@@ -133,12 +133,12 @@ export async function POST(
       return NextResponse.json({ ok: true });
     }
 
-    // Validate: must come from the registered providerChatId
-    if (!config.providerChatId) {
+    // Validate: must come from the registered expertChatId
+    if (!config.expertChatId) {
       await sendMessage(config.botToken, chatId, `❌ Bot not set up yet. Send /start first.`);
       return NextResponse.json({ ok: true });
     }
-    if (chatId !== config.providerChatId) {
+    if (chatId !== config.expertChatId) {
       // Someone else — reject silently (don't leak info)
       return NextResponse.json({ ok: true });
     }
@@ -180,7 +180,7 @@ export async function POST(
     await prisma.message.create({
       data: {
         requestId: helpRequest.id,
-        from: "provider",
+        from: "expert",
         ciphertext: `plaintext:${plainB64}`,
         iv: "plaintext",
         authTag: "plaintext",
@@ -198,8 +198,8 @@ export async function POST(
     return NextResponse.json({ ok: true });
   }
 
-  // ── Any other message from the provider ── Show help
-  if (config.providerChatId && chatId === config.providerChatId) {
+  // ── Any other message from the expert ── Show help
+  if (config.expertChatId && chatId === config.expertChatId) {
     await sendMessage(
       config.botToken,
       chatId,

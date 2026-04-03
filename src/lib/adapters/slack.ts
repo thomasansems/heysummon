@@ -150,22 +150,22 @@ export async function sendResponseToSlack(
 ): Promise<boolean> {
   const request = await prisma.helpRequest.findUnique({
     where: { id: requestId },
-    include: { channelProvider: true },
+    include: { expertChannel: true },
   });
 
   if (
-    !request?.channelProviderId ||
+    !request?.expertChannelId ||
     !request.consumerChatId ||
-    !request.channelProvider
+    !request.expertChannel
   ) {
     return false;
   }
 
-  if (request.channelProvider.type !== "slack") {
+  if (request.expertChannel.type !== "slack") {
     return false;
   }
 
-  const config = JSON.parse(request.channelProvider.config) as SlackConfig;
+  const config = JSON.parse(request.expertChannel.config) as SlackConfig;
   await sendMessage(config.botToken, request.consumerChatId, responseText);
   return true;
 }
@@ -238,7 +238,7 @@ export const slackAdapter: ChannelAdapter = {
     const webhookUrl = `${baseUrl}/api/adapters/slack/${channelId}/webhook`;
 
     // Update channel with team info
-    await prisma.channelProvider.update({
+    await prisma.expertChannel.update({
       where: { id: channelId },
       data: {
         config: JSON.stringify({

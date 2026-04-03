@@ -2,6 +2,16 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.2.0 -- 2026-04-03
+
+### Changed
+- Renamed "Provider" to "Expert" throughout the platform -- all API endpoints, database schema, SDK methods, and documentation now use "expert" terminology
+- API key prefix changed from `hs_prov_` to `hs_exp_`
+- Dashboard route changed from `/dashboard/providers` to `/dashboard/experts`
+- Consumer SDK: `ProviderStore` -> `ExpertStore`, `add-provider` -> `add-expert`, `list-providers` -> `list-experts`
+
+---
+
 ## v0.1.1 -- 2026-04-03
 
 ### Changed
@@ -25,12 +35,12 @@ import { Callout } from 'nextra/components'
 ## Per-Client Summoning Context -- 2026-03-30
 
 ### Changed
-- **Summoning context is now per-client**: Each client connection can have its own summoning guidelines (up to 500 characters), set during the onboarding wizard. Previously, context was set on the provider profile.
+- **Summoning context is now per-client**: Each client connection can have its own summoning guidelines (up to 500 characters), set during the onboarding wizard. Previously, context was set on the expert profile.
 - Summoning context is passed directly in `POST /api/v1/setup-link` body and stored on the `SetupToken`.
-- Recently used contexts are saved to `recentSummonContexts` on the provider profile (JSON array, max 10, most recent first) for quick reuse.
-- Removed summoning context editor from the dashboard provider detail panel.
-- `GET /api/v1/providers` no longer includes `summonContext` in the response.
-- `PATCH /api/providers/:id` no longer accepts `summonContext`.
+- Recently used contexts are saved to `recentSummonContexts` on the expert profile (JSON array, max 10, most recent first) for quick reuse.
+- Removed summoning context editor from the dashboard expert detail panel.
+- `GET /api/v1/experts` no longer includes `summonContext` in the response.
+- `PATCH /api/experts/:id` no longer accepts `summonContext`.
 - Presets (Strict, Budget-conscious, Safety-first) and recently used contexts appear in the wizard.
 
 ---
@@ -79,10 +89,10 @@ If upgrading from a previous version:
 - Env vars: Replaced `REQUEST_TTL_HOURS` with actual var name `HEYSUMMON_REQUEST_TTL_MS`
 - Env vars: Added `HEYSUMMON_DEFAULT_RATE_LIMIT`, `HEYSUMMON_EDITION`, `DEBUG`
 - Env vars: Fixed Google OAuth var names to match code (`GOOGLE_ID`/`GOOGLE_SECRET`)
-- Database: Added missing models (ChannelProvider, SetupToken, ProviderMetrics, MissedRequest, RateLimit, GdprSettings)
+- Database: Added missing models (ChannelExpert, SetupToken, ExpertMetrics, MissedRequest, RateLimit, GdprSettings)
 - NPX/Quickstart: Fixed default port from 3000 to 3435
 - Contributing: Updated project structure (packages dir, docs marked legacy)
-- Encryption storage example: Updated to show v4 fields (provider keys instead of `serverPublicKey`)
+- Encryption storage example: Updated to show v4 fields (expert keys instead of `serverPublicKey`)
 
 ---
 
@@ -102,7 +112,7 @@ If upgrading from a previous version:
 - Added CLAUDE.md at repo root — docs must be updated when features change
 
 ### Added
-- API Reference: rating endpoint, timeout reporting, provider availability, webhooks, request lifecycle states
+- API Reference: rating endpoint, timeout reporting, expert availability, webhooks, request lifecycle states
 - Consumer overview: conversational `hey summon` usage as the primary pattern
 - Best practices: sections for budget approval, zero-spend constraint, judgment calls, design review, irreversible actions
 
@@ -128,10 +138,10 @@ Initial public beta release.
 - OWASP ZAP automated scanning in CI (runs on every PR + nightly)
 - Malicious content CI gate — build fails if content safety lets dangerous content through
 - HMAC-SHA256 API key hashing (replaces plain SHA256)
-- IP binding per key and per provider profile
+- IP binding per key and per expert profile
 
 **Auth & Keys**
-- Client keys (`hs_live_*`) and provider keys (`hs_prov_*`)
+- Client keys (`hs_live_*`) and expert keys (`hs_exp_*`)
 - Key rotation with 24-hour grace period
 - Device token binding
 - IP Security inline on Clients and Users dashboard pages

@@ -3,17 +3,17 @@
  * HeySummon Consumer SDK CLI
  *
  * Shared CLI entry point used by both Claude Code and OpenClaw skill scripts.
- * Subcommands: submit-and-poll, add-provider, list-providers,
+ * Subcommands: submit-and-poll, add-expert, list-experts,
  *              check-status, keygen
  *
  * All config comes from environment variables (set by the calling bash wrapper):
- *   HEYSUMMON_BASE_URL, HEYSUMMON_API_KEY, HEYSUMMON_PROVIDERS_FILE,
+ *   HEYSUMMON_BASE_URL, HEYSUMMON_API_KEY, HEYSUMMON_EXPERTS_FILE,
  *   HEYSUMMON_TIMEOUT,
  *   HEYSUMMON_POLL_INTERVAL
  */
 
 import { HeySummonClient, HeySummonHttpError } from "./client.js";
-import { ProviderStore } from "./provider-store.js";
+import { ExpertStore } from "./expert-store.js";
 import { generateEphemeralKeys, generatePersistentKeys } from "./crypto.js";
 import type { Message } from "./types.js";
 import { existsSync } from "node:fs";
@@ -48,28 +48,28 @@ function optEnv(name: string, fallback: string): string {
 async function cmdSubmitAndPoll(args: string[]): Promise<void> {
   const question = getArg(args, "--question");
   if (!question) {
-    process.stderr.write("Usage: cli submit-and-poll --question <q> [--provider <name>] [--context <json>]\n");
+    process.stderr.write("Usage: cli submit-and-poll --question <q> [--expert <name>] [--context <json>]\n");
     process.exit(1);
   }
 
-  const providerArg = getArg(args, "--provider");
+  const expertArg = getArg(args, "--expert");
   const contextArg = getArg(args, "--context");
   const baseUrl = requireEnv("HEYSUMMON_BASE_URL");
   const timeout = parseInt(optEnv("HEYSUMMON_TIMEOUT", "900"), 10);
   const pollInterval = parseInt(optEnv("HEYSUMMON_POLL_INTERVAL", "3"), 10);
-  const providersFile = optEnv("HEYSUMMON_PROVIDERS_FILE", "");
+  const expertsFile = optEnv("HEYSUMMON_EXPERTS_FILE", "");
 
   // Resolve API key
   let apiKey = process.env.HEYSUMMON_API_KEY || "";
 
-  if (providersFile && existsSync(providersFile)) {
-    const store = new ProviderStore(providersFile);
-    if (providerArg) {
-      const match = store.findByName(providerArg);
+  if (expertsFile && existsSync(expertsFile)) {
+    const store = new ExpertStore(expertsFile);
+    if (expertArg) {
+      const match = store.findByName(expertArg);
       if (match) {
         apiKey = match.apiKey;
       } else {
-        process.stderr.write(`Provider '${providerArg}' not found.\n`);
+        process.stderr.write(`Expert '${expertArg}' not found.\n`);
         process.exit(1);
       }
     } else if (!apiKey) {
@@ -81,11 +81,11 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
   }
 
   if (!apiKey) {
-    process.stderr.write("No API key. Set HEYSUMMON_API_KEY or register a provider.\n");
+    process.stderr.write("No API key. Set HEYSUMMON_API_KEY or register an expert.\n");
     process.exit(1);
   }
 
-  // Generate ephemeral keys (Claude Code style — no persistence needed)
+  // Generate ephemeral keys (Claude Code style -- no persistence needed)
   const keys = generateEphemeralKeys();
   const client = new HeySummonClient({ baseUrl, apiKey });
 
@@ -108,7 +108,7 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
       messages: messages.length > 0 ? messages : undefined,
       signPublicKey: keys.signPublicKey,
       encryptPublicKey: keys.encryptPublicKey,
-      providerName: providerArg || undefined,
+      expertName: expertArg || undefined,
     });
   } catch (err) {
     if (err instanceof HeySummonHttpError && err.status === 403) {
@@ -120,10 +120,10 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
       process.stderr.write(
         `IP address ${ip} is not authorized for this API key.\n` +
         `${hint ? hint + "\n" : ""}` +
-        `Your provider needs to allow this IP address in the HeySummon dashboard under Clients > IP Security.\n` +
+        `Your expert needs to allow this IP address in the HeySummon dashboard under Clients > IP Security.\n` +
         `Once allowed, re-run this command.\n`
       );
-      process.stdout.write(`IP_NOT_ALLOWED: IP address ${ip} is not authorized. Ask your provider to allow it in their HeySummon dashboard.\n`);
+      process.stdout.write(`IP_NOT_ALLOWED: IP address ${ip} is not authorized. Ask your expert to allow it in their HeySummon dashboard.\n`);
       return;
     }
     throw err;
@@ -136,18 +136,18 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
 
   const ref = result.refCode || result.requestId;
 
-  // When provider is unavailable, the platform rejects the request
+  // When expert is unavailable, the platform rejects the request
   if (result.rejected) {
-    const msg = result.message || "Provider is not available right now.";
+    const msg = result.message || "Expert is not available right now.";
     process.stderr.write(`${msg}\n`);
     process.stdout.write(
-      `PROVIDER_UNAVAILABLE: ${msg}${result.nextAvailableAt ? ` Next available: ${result.nextAvailableAt}` : ""}\n`
+      `EXPERT_UNAVAILABLE: ${msg}${result.nextAvailableAt ? ` Next available: ${result.nextAvailableAt}` : ""}\n`
     );
     return;
   }
 
   process.stderr.write(
-    `Request submitted [${ref}] — waiting for human response...\n`
+    `Request submitted [${ref}] -- waiting for human response...\n`
   );
   process.stderr.write(
     `   (timeout: ${timeout}s, polling every ${pollInterval}s)\n`
@@ -173,15 +173,15 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
 
       // Fallback: check messages for plaintext replies
       const { messages: msgs } = await client.getMessages(result.requestId);
-      const providerMsg = msgs.filter((m: Message) => m.from === "provider").pop();
-      if (providerMsg) {
-        if (providerMsg.plaintext) {
+      const expertMsg = msgs.filter((m: Message) => m.from === "expert").pop();
+      if (expertMsg) {
+        if (expertMsg.plaintext) {
           process.stderr.write(`\nHuman responded [${ref}]\n`);
-          process.stdout.write(providerMsg.plaintext + "\n");
+          process.stdout.write(expertMsg.plaintext + "\n");
           await client.ackEvent(result.requestId).catch(() => {});
           return;
         }
-        if (providerMsg.ciphertext) {
+        if (expertMsg.ciphertext) {
           process.stderr.write(`\nHuman responded [${ref}]\n`);
           process.stdout.write("(encrypted response received)\n");
           await client.ackEvent(result.requestId).catch(() => {});
@@ -198,28 +198,28 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
     }
   }
 
-  // Report timeout to server (notifies provider, records timestamp)
+  // Report timeout to server (notifies expert, records timestamp)
   await client.reportTimeout(result.requestId).catch(() => {});
 
-  process.stderr.write(`\nTimeout after ${timeout}s — no response received.\n`);
+  process.stderr.write(`\nTimeout after ${timeout}s -- no response received.\n`);
   process.stderr.write(`   Request ref: ${ref}\n`);
   process.stdout.write(
-    `TIMEOUT: No answer came back from the provider within the ${timeout}s timeout window. Request ref: ${ref}\n`
+    `TIMEOUT: No answer came back from the expert within the ${timeout}s timeout window. Request ref: ${ref}\n`
   );
 }
 
-async function cmdAddProvider(args: string[]): Promise<void> {
+async function cmdAddExpert(args: string[]): Promise<void> {
   const key = getArg(args, "--key");
   const alias = getArg(args, "--alias");
 
   if (!key) {
-    process.stderr.write("Usage: cli add-provider --key <api-key> [--alias <name>]\n");
+    process.stderr.write("Usage: cli add-expert --key <api-key> [--alias <name>]\n");
     process.exit(1);
   }
 
   // Validate key prefix
-  if (key.startsWith("hs_prov_") || key.startsWith("htl_prov_")) {
-    process.stderr.write("This is a provider key. Use a CLIENT key (hs_cli_... or htl_...).\n");
+  if (key.startsWith("hs_exp_") || key.startsWith("htl_exp_")) {
+    process.stderr.write("This is an expert key. Use a CLIENT key (hs_cli_... or htl_...).\n");
     process.exit(1);
   }
   if (!key.startsWith("hs_cli_") && !key.startsWith("htl_")) {
@@ -228,56 +228,56 @@ async function cmdAddProvider(args: string[]): Promise<void> {
   }
 
   const baseUrl = requireEnv("HEYSUMMON_BASE_URL");
-  const providersFile = requireEnv("HEYSUMMON_PROVIDERS_FILE");
+  const expertsFile = requireEnv("HEYSUMMON_EXPERTS_FILE");
 
   const client = new HeySummonClient({ baseUrl, apiKey: key });
   const whoami = await client.whoami();
 
-  const providerName = whoami.provider?.name || "";
-  const providerId = whoami.provider?.id || "";
+  const expertName = whoami.expert?.name || "";
+  const expertId = whoami.expert?.id || "";
 
-  if (!providerName) {
-    process.stderr.write("Could not fetch provider info. Is the key valid?\n");
+  if (!expertName) {
+    process.stderr.write("Could not fetch expert info. Is the key valid?\n");
     process.exit(1);
   }
 
-  const name = alias || providerName;
-  const store = new ProviderStore(providersFile);
+  const name = alias || expertName;
+  const store = new ExpertStore(expertsFile);
   store.add({
     name,
     apiKey: key,
-    providerId,
-    providerName,
+    expertId,
+    expertName,
   });
 
   const count = store.load().length;
-  process.stdout.write(`Provider added: ${name} (${providerName})\n`);
-  process.stdout.write(`Providers registered: ${count}\n`);
+  process.stdout.write(`Expert added: ${name} (${expertName})\n`);
+  process.stdout.write(`Experts registered: ${count}\n`);
 }
 
-async function cmdListProviders(): Promise<void> {
-  const providersFile = optEnv("HEYSUMMON_PROVIDERS_FILE", "");
+async function cmdListExperts(): Promise<void> {
+  const expertsFile = optEnv("HEYSUMMON_EXPERTS_FILE", "");
 
-  if (!providersFile || !existsSync(providersFile)) {
-    process.stdout.write("No providers registered yet.\n");
+  if (!expertsFile || !existsSync(expertsFile)) {
+    process.stdout.write("No experts registered yet.\n");
     return;
   }
 
-  const store = new ProviderStore(providersFile);
-  const providers = store.load();
+  const store = new ExpertStore(expertsFile);
+  const experts = store.load();
 
-  if (providers.length === 0) {
-    process.stdout.write("No providers registered yet.\n");
+  if (experts.length === 0) {
+    process.stdout.write("No experts registered yet.\n");
     return;
   }
 
-  process.stdout.write(`Registered providers (${providers.length}):\n`);
-  for (let i = 0; i < providers.length; i++) {
-    const p = providers[i];
+  process.stdout.write(`Registered experts (${experts.length}):\n`);
+  for (let i = 0; i < experts.length; i++) {
+    const p = experts[i];
     const nameExtra =
-      p.providerName !== p.name ? ` (provider: ${p.providerName})` : "";
+      p.expertName !== p.name ? ` (expert: ${p.expertName})` : "";
     process.stdout.write(
-      `  ${i + 1}. ${p.name}${nameExtra} — key: ${p.apiKey.slice(0, 12)}...\n`
+      `  ${i + 1}. ${p.name}${nameExtra} -- key: ${p.apiKey.slice(0, 12)}...\n`
     );
   }
 }
@@ -297,14 +297,14 @@ async function cmdCheckStatus(args: string[]): Promise<void> {
   try {
     const data = await client.getRequestStatus(ref);
     const icons: Record<string, string> = {
-      pending: "⏳",
-      responded: "✅",
-      resolved: "✅",
-      expired: "⏰",
-      cancelled: "❌",
+      pending: "...",
+      responded: "[ok]",
+      resolved: "[ok]",
+      expired: "[expired]",
+      cancelled: "[cancelled]",
     };
     const status = data.status || "unknown";
-    process.stdout.write(`${icons[status] || "•"} Status: ${status}\n`);
+    process.stdout.write(`${icons[status] || "-"} Status: ${status}\n`);
     if (data.refCode) process.stdout.write(`  Ref: ${data.refCode}\n`);
     if (data.response || data.lastMessage) {
       process.stdout.write(`  Response: ${data.response || data.lastMessage}\n`);
@@ -344,8 +344,8 @@ const [command, ...rest] = process.argv.slice(2);
 
 const commands: Record<string, (args: string[]) => Promise<void>> = {
   "submit-and-poll": cmdSubmitAndPoll,
-  "add-provider": cmdAddProvider,
-  "list-providers": cmdListProviders,
+  "add-expert": cmdAddExpert,
+  "list-experts": cmdListExperts,
   "check-status": cmdCheckStatus,
   keygen: cmdKeygen,
 };

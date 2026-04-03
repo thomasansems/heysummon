@@ -59,7 +59,7 @@ export async function POST() {
   process.env.HEYSUMMON_PUBLIC_URL = publicUrl;
 
   // Re-register all active Telegram channel webhooks
-  const channels = await prisma.channelProvider.findMany({
+  const channels = await prisma.expertChannel.findMany({
     where: { type: "telegram", isActive: true },
   });
 
@@ -72,7 +72,7 @@ export async function POST() {
       const webhookSecret = cfg.webhookSecret ?? crypto.randomBytes(32).toString("hex");
       const webhookUrl = `${publicUrl}/api/adapters/telegram/${ch.id}/webhook`;
       await setWebhook(cfg.botToken, webhookUrl, webhookSecret);
-      await prisma.channelProvider.update({
+      await prisma.expertChannel.update({
         where: { id: ch.id },
         data: {
           config: JSON.stringify({ ...cfg, webhookSecret }),

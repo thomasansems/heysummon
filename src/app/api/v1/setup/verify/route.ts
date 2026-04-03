@@ -12,7 +12,7 @@ const ACTIVE_THRESHOLD_MS = 30_000;
  * POST /api/v1/setup/verify
  *
  * Checks whether a consumer API key is currently actively polling.
- * Auth: Dashboard session (provider must be logged in — ensures only the key
+ * Auth: Dashboard session (expert must be logged in — ensures only the key
  * owner can check connection status, not the consumer machine itself).
  *
  * Body: { keyId: string }

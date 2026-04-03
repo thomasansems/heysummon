@@ -2,20 +2,20 @@
 
 ## Overview
 
-HeySummon connects AI agents to human experts via a platform API. When an agent needs help, it submits a request to the platform, which notifies the registered provider (human). The provider responds, and the agent receives the answer.
+HeySummon connects AI agents to human experts via a platform API. When an agent needs help, it submits a request to the platform, which notifies the registered expert (human). The expert responds, and the agent receives the answer.
 
 ## Flow
 
 ```
 AI Agent (any supported platform)
     |
-    +- scripts/ask.sh "question" "context" "ProviderName"
+    +- scripts/ask.sh "question" "context" "ExpertName"
             |
             +- SDK CLI submit-and-poll -> POST /api/v1/help
             |       |
-            |   Provider available?
+            |   Expert available?
             |       |
-            |   YES: Platform creates request, notifies provider (Telegram/phone)
+            |   YES: Platform creates request, notifies expert (Telegram/phone)
             |   NO:  Platform rejects request, returns nextAvailableAt
             |       (tracked as MissedRequest for dashboard visibility)
             |
@@ -34,17 +34,17 @@ AI Agent (any supported platform)
 
 TypeScript SDK providing:
 - **HeySummonClient** -- HTTP client for the platform API
-- **ProviderStore** -- JSON file manager for registered providers
+- **ExpertStore** -- JSON file manager for registered experts
 - **Crypto** -- Ed25519 + X25519 + AES-256-GCM encryption
-- **CLI** -- 5 subcommands used by bash wrappers: `submit-and-poll`, `add-provider`, `list-providers`, `check-status`, `keygen`
+- **CLI** -- 5 subcommands used by bash wrappers: `submit-and-poll`, `add-expert`, `list-experts`, `check-status`, `keygen`
 
 ### Skill Scripts (`skills/heysummon/scripts/`)
 
 Thin bash wrappers calling the SDK CLI:
 - `ask.sh` -- Blocking poll (submit + wait for response or timeout)
-- `setup.sh` -- Interactive setup (URL, API key, provider registration)
-- `add-provider.sh` -- Register a provider
-- `list-providers.sh` -- List registered providers
+- `setup.sh` -- Interactive setup (URL, API key, expert registration)
+- `add-expert.sh` -- Register an expert
+- `list-experts.sh` -- List registered experts
 - `check-status.sh` -- Check request status
 - `sdk.sh` -- SDK CLI resolver
 
@@ -52,17 +52,17 @@ Thin bash wrappers calling the SDK CLI:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/v1/help` | POST | Submit a help request (rejects if provider unavailable) |
+| `/api/v1/help` | POST | Submit a help request (rejects if expert unavailable) |
 | `/api/v1/help/:id` | GET | Get request status |
 | `/api/v1/events/pending` | GET | Poll for events |
 | `/api/v1/events/ack/:id` | POST | Acknowledge event |
 | `/api/v1/messages/:id` | GET | Get messages for request |
-| `/api/v1/whoami` | GET | Identify provider from API key |
+| `/api/v1/whoami` | GET | Identify expert from API key |
 | `/api/v1/requests/by-ref/:ref` | GET | Look up request by ref code |
 
-## Provider Availability
+## Expert Availability
 
-Providers configure availability windows (quiet hours, available days, timezone) in the dashboard. When a request arrives outside the availability window:
+Experts configure availability windows (quiet hours, available days, timezone) in the dashboard. When a request arrives outside the availability window:
 
 1. The platform **rejects** the request (no HelpRequest created)
 2. A `MissedRequest` record tracks the rejection with client info and next available time

@@ -5,14 +5,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 type E2eStatus =
   | "ready"
   | "sending"
-  | "waiting_provider"
+  | "waiting_expert"
   | "waiting_response"
   | "complete"
   | "timeout";
 
 interface E2eLiveViewProps {
   status: E2eStatus;
-  providerChannel: string | null;
+  expertChannel: string | null;
 }
 
 interface AnimLine {
@@ -68,7 +68,7 @@ const TERMINAL_RESPONSE: AnimLine[] = [
 ];
 
 interface ChatMsg {
-  from: "system" | "provider";
+  from: "system" | "expert";
   text: string;
   delay: number;
 }
@@ -87,7 +87,7 @@ const CHAT_MESSAGES: ChatMsg[] = [
 ];
 
 const CHAT_RESPONSE: ChatMsg = {
-  from: "provider",
+  from: "expert",
   text: "JWT for API and mobile. Sessions for web.",
   delay: 7500,
 };
@@ -119,7 +119,7 @@ function useTypedLines(
   return visible;
 }
 
-export function E2eLiveView({ status, providerChannel }: E2eLiveViewProps) {
+export function E2eLiveView({ status, expertChannel }: E2eLiveViewProps) {
   const isActive = status !== "ready";
   const isComplete = status === "complete";
 
@@ -127,7 +127,7 @@ export function E2eLiveView({ status, providerChannel }: E2eLiveViewProps) {
   const respLines = useTypedLines(TERMINAL_RESPONSE, isComplete, 0);
 
   const [chatVisible, setChatVisible] = useState<ChatMsg[]>([]);
-  const [showProviderResp, setShowProviderResp] = useState(false);
+  const [showExpertResp, setShowExpertResp] = useState(false);
   const [showDelivered, setShowDelivered] = useState(false);
   const chatTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -137,7 +137,7 @@ export function E2eLiveView({ status, providerChannel }: E2eLiveViewProps) {
     chatTimersRef.current.forEach(clearTimeout);
     chatTimersRef.current = [];
     setChatVisible([]);
-    setShowProviderResp(false);
+    setShowExpertResp(false);
     setShowDelivered(false);
 
     CHAT_MESSAGES.forEach((msg) => {
@@ -150,10 +150,10 @@ export function E2eLiveView({ status, providerChannel }: E2eLiveViewProps) {
     return () => chatTimersRef.current.forEach(clearTimeout);
   }, [isActive]);
 
-  // Provider response appears when real test completes
+  // Expert response appears when real test completes
   useEffect(() => {
     if (!isComplete) return;
-    const t1 = setTimeout(() => setShowProviderResp(true), 300);
+    const t1 = setTimeout(() => setShowExpertResp(true), 300);
     const t2 = setTimeout(() => setShowDelivered(true), 1200);
     return () => {
       clearTimeout(t1);
@@ -162,7 +162,7 @@ export function E2eLiveView({ status, providerChannel }: E2eLiveViewProps) {
   }, [isComplete]);
 
   const channelLabel =
-    providerChannel === "openclaw" ? "OpenClaw" : "Telegram";
+    expertChannel === "openclaw" ? "OpenClaw" : "Telegram";
 
   // Combine terminal lines
   const allTermLines = [...termLines, ...respLines];
@@ -210,7 +210,7 @@ export function E2eLiveView({ status, providerChannel }: E2eLiveViewProps) {
         </div>
       </div>
 
-      {/* Chat side — provider perspective */}
+      {/* Chat side — expert perspective */}
       <div className="flex-1 rounded-lg border border-border bg-background p-4 overflow-hidden">
         <div className="mb-3 flex items-center gap-2">
           <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center">
@@ -238,7 +238,7 @@ export function E2eLiveView({ status, providerChannel }: E2eLiveViewProps) {
               {msg.text}
             </div>
           ))}
-          {showProviderResp && (
+          {showExpertResp && (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-lg bg-primary/10 px-3 py-2 text-xs text-foreground ml-8">
               <span className="block text-[10px] font-medium text-muted-foreground mb-0.5">
                 You

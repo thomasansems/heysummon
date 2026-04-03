@@ -23,7 +23,7 @@ export const whatsappAdapter: ChannelAdapter = {
       `*New help request*`,
       ``,
       `*Ref:* \`${event.refCode}\``,
-      `*Provider:* ${event.providerName}`,
+      `*Expert:* ${event.expertName}`,
     ];
 
     if (event.consumerLabel) {

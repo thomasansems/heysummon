@@ -1,6 +1,6 @@
 #!/bin/bash
 # HeySummon — Skill Setup
-# Creates .env with API key and base URL, registers provider.
+# Creates .env with API key and base URL, registers expert.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -62,12 +62,12 @@ EOF
 echo ""
 echo "Saved to: $ENV_FILE"
 
-# Register provider
+# Register expert
 echo ""
-echo "Registering provider..."
+echo "Registering expert..."
 export HEYSUMMON_BASE_URL="$BASE_URL"
-export HEYSUMMON_PROVIDERS_FILE="${HEYSUMMON_PROVIDERS_FILE:-$HOME/.heysummon/providers.json}"
-$SDK_CLI add-provider --key "$API_KEY" 2>/dev/null && echo "" || echo "Provider registration skipped (non-fatal)."
+export HEYSUMMON_EXPERTS_FILE="${HEYSUMMON_EXPERTS_FILE:-$HOME/.heysummon/experts.json}"
+$SDK_CLI add-expert --key "$API_KEY" 2>/dev/null && echo "" || echo "Expert registration skipped (non-fatal)."
 
 echo ""
 echo "Setup complete. Use HeySummon:"

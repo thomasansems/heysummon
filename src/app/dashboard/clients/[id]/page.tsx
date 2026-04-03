@@ -22,17 +22,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface ProviderChannel {
+interface ExpertChannel {
   id: string;
   type: string;
   status: string;
 }
 
-interface Provider {
+interface ExpertProfile {
   id: string;
   name: string;
   isActive: boolean;
-  channelProviders: ProviderChannel[];
+  expertChannels: ExpertChannel[];
 }
 
 interface IpEvent {
@@ -56,7 +56,7 @@ interface ApiKey {
   previousKeyExpiresAt: string | null;
   createdAt: string;
   machineId: string | null;
-  provider: Provider | null;
+  expert: ExpertProfile | null;
   ipEvents: IpEvent[];
   _count: { requests: number };
 }
@@ -340,23 +340,23 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* ─── API key & provider info ─────────────────────────────── */}
+      {/* ─── API key & expert info ──────────────────────────────── */}
       <div className="py-6 border-t border-border">
         <h2 className="text-sm font-medium text-muted-foreground mb-4">API key</h2>
         <div className="space-y-4">
           <div>
-            <Label className="text-xs text-muted-foreground">Provider</Label>
+            <Label className="text-xs text-muted-foreground">Expert</Label>
             <p className="text-sm mt-0.5">
-              {client.provider ? (
-                <span className={!client.provider.isActive || client.provider.channelProviders.length === 0 ? "text-orange-600" : "text-foreground"}>
-                  {client.provider.name}
-                  {!client.provider.isActive && " (inactive)"}
-                  {client.provider.isActive && client.provider.channelProviders.length === 0 && " — no channel configured"}
+              {client.expert ? (
+                <span className={!client.expert.isActive || client.expert.expertChannels.length === 0 ? "text-orange-600" : "text-foreground"}>
+                  {client.expert.name}
+                  {!client.expert.isActive && " (inactive)"}
+                  {client.expert.isActive && client.expert.expertChannels.length === 0 && " — no channel configured"}
                 </span>
               ) : (
                 <span className="text-orange-600 inline-flex items-center gap-1">
                   <AlertTriangle className="h-3.5 w-3.5" />
-                  No provider linked
+                  No expert linked
                 </span>
               )}
             </p>

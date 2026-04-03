@@ -26,11 +26,11 @@ export async function GET(
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Find the key — must belong to a provider owned by this user
+  // Find the key — must belong to an expert owned by this user
   const apiKey = await prisma.apiKey.findFirst({
     where: {
       id: keyId,
-      provider: { userId: user.id },
+      expert: { userId: user.id },
     },
     select: { id: true, key: true, name: true },
   });

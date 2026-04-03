@@ -24,7 +24,7 @@ export async function GET(
   const integration = await prisma.integration.findUnique({
     where: { id },
     include: {
-      providerConfigs: {
+      expertConfigs: {
         include: { profile: { select: { id: true, name: true } } },
       },
     },

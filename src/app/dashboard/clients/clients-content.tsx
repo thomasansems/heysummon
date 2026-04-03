@@ -15,17 +15,17 @@ import {
 } from "@/components/ui/sheet";
 import { ClientDetailPanel } from "@/components/dashboard/client-detail-panel";
 
-interface ProviderChannel {
+interface ExpertChannel {
   id: string;
   type: string;
   status: string;
 }
 
-interface Provider {
+interface ExpertProfile {
   id: string;
   name: string;
   isActive: boolean;
-  channelProviders: ProviderChannel[];
+  expertChannels: ExpertChannel[];
 }
 
 interface IpEvent {
@@ -49,7 +49,7 @@ interface ApiKey {
   previousKeyExpiresAt: string | null;
   createdAt: string;
   machineId: string | null;
-  provider: Provider | null;
+  expert: ExpertProfile | null;
   ipEvents: IpEvent[];
   _count: { requests: number };
 }
@@ -64,11 +64,11 @@ const channelLabel = (channel: string | null, sub: string | null) => {
   return null;
 };
 
-function providerStatus(provider: Provider | null): { label: string; warning: string | null } {
-  if (!provider) return { label: "—", warning: "No provider linked — requests cannot be delivered." };
-  if (!provider.isActive) return { label: provider.name, warning: "Provider is inactive." };
-  if (provider.channelProviders.length === 0) return { label: provider.name, warning: "Provider has no channel configured — requests will be blocked." };
-  return { label: provider.name, warning: null };
+function expertStatus(expert: ExpertProfile | null): { label: string; warning: string | null } {
+  if (!expert) return { label: "—", warning: "No expert linked — requests cannot be delivered." };
+  if (!expert.isActive) return { label: expert.name, warning: "Expert is inactive." };
+  if (expert.expertChannels.length === 0) return { label: expert.name, warning: "Expert has no channel configured — requests will be blocked." };
+  return { label: expert.name, warning: null };
 }
 
 type WizardChannel = "openclaw" | "claudecode" | "codex" | "gemini" | null;
@@ -146,7 +146,7 @@ export default function ClientsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [experts, setExperts] = useState<ExpertProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -167,7 +167,7 @@ export default function ClientsContent() {
   const [wizardChannel, setWizardChannel] = useState<WizardChannel>(null);
   const [wizardSubChannel, setWizardSubChannel] = useState<WizardSubChannel>(null);
   const [wizardName, setWizardName] = useState("");
-  const [wizardProviderId, setWizardProviderId] = useState("");
+  const [wizardExpertId, setWizardProviderId] = useState("");
   const [wizardCreating, setWizardCreating] = useState(false);
   const [wizardError, setWizardError] = useState<string | null>(null);
   const [wizardResult, setWizardResult] = useState<{ keyId: string; key: string; setupUrl: string; expiresAt: string } | null>(null);
@@ -197,32 +197,32 @@ export default function ClientsContent() {
         setLoading(false);
       });
 
-  const loadProviders = () =>
-    fetch("/api/providers")
+  const loadExperts = () =>
+    fetch("/api/experts")
       .then((r) => {
-        if (!r.ok) return { providers: [] };
+        if (!r.ok) return { experts: [] };
         return r.json();
       })
       .then((data) => {
-        setProviders(data.providers || []);
+        setExperts(data.experts || []);
       })
-      .catch(() => setProviders([]));
+      .catch(() => setExperts([]));
 
   useEffect(() => {
     loadKeys();
-    loadProviders();
+    loadExperts();
   }, []);
 
-  // Fetch recently used summoning contexts when provider changes
+  // Fetch recently used summoning contexts when expert changes
   useEffect(() => {
-    if (!wizardProviderId) {
+    if (!wizardExpertId) {
       setWizardRecentContexts([]);
       return;
     }
-    fetch(`/api/providers/${wizardProviderId}`)
+    fetch(`/api/experts/${wizardExpertId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        const raw = data?.provider?.recentSummonContexts;
+        const raw = data?.expert?.recentSummonContexts;
         if (raw) {
           try {
             const parsed = JSON.parse(raw);
@@ -233,7 +233,7 @@ export default function ClientsContent() {
         }
       })
       .catch(() => {});
-  }, [wizardProviderId]);
+  }, [wizardExpertId]);
 
   const openWizard = () => {
     setWizardStep(1);
@@ -271,7 +271,7 @@ export default function ClientsContent() {
   const DEFAULT_RATE_LIMIT = parseInt(process.env.NEXT_PUBLIC_DEFAULT_RATE_LIMIT ?? "150");
 
   const createWizardKey = async () => {
-    if (!wizardProviderId) return;
+    if (!wizardExpertId) return;
     setWizardCreating(true);
 
     // Create the key (rate limit defaults to env var or 150)
@@ -280,7 +280,7 @@ export default function ClientsContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: wizardName || undefined,
-        providerId: wizardProviderId,
+        expertId: wizardExpertId,
         scope: "full",
         rateLimitPerMinute: DEFAULT_RATE_LIMIT,
         clientChannel: wizardChannel,
@@ -482,22 +482,22 @@ export default function ClientsContent() {
                   />
                 </div>
 
-                {/* Provider */}
+                {/* Expert */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Provider <span className="text-red-400">*</span></label>
-                  {providers.length === 0 ? (
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Expert <span className="text-red-400">*</span></label>
+                  {experts.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No providers yet.{" "}
-                      <a href="/dashboard/providers" className="text-orange-600 hover:text-orange-800">Create one first</a>.
+                      No experts yet.{" "}
+                      <a href="/dashboard/experts" className="text-orange-600 hover:text-orange-800">Create one first</a>.
                     </p>
                   ) : (
                     <select
-                      value={wizardProviderId}
+                      value={wizardExpertId}
                       onChange={(e) => setWizardProviderId(e.target.value)}
                       className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                     >
-                      <option value="">Select provider...</option>
-                      {providers.map((p) => (
+                      <option value="">Select expert...</option>
+                      {experts.map((p) => (
                         <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
                     </select>
@@ -648,7 +648,7 @@ export default function ClientsContent() {
                   </button>
                   <button
                     onClick={wizardNext}
-                    disabled={wizardCreating || !wizardProviderId}
+                    disabled={wizardCreating || !wizardExpertId}
                     className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
                   >
                     {wizardCreating ? "Creating..." : "Create Client"}
@@ -791,7 +791,7 @@ export default function ClientsContent() {
                 <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Name</th>
                   <th className="px-4 py-2.5 font-medium">Channel</th>
-                  <th className="px-4 py-2.5 font-medium">Provider</th>
+                  <th className="px-4 py-2.5 font-medium">Expert</th>
                   <th className="px-4 py-2.5 font-medium">Requests</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
                   <th className="px-4 py-2.5 font-medium">Created</th>
@@ -833,7 +833,7 @@ export default function ClientsContent() {
                     </span>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    {(() => { const ps = providerStatus(k.provider); return <span className={ps.warning ? "text-orange-600" : ""}>{ps.label}</span>; })()}
+                    {(() => { const ps = expertStatus(k.expert); return <span className={ps.warning ? "text-orange-600" : ""}>{ps.label}</span>; })()}
                     <span>{k._count.requests} requests</span>
                     <span>{new Date(k.createdAt).toLocaleDateString()}</span>
                   </div>
@@ -847,7 +847,7 @@ export default function ClientsContent() {
                 <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Name</th>
                   <th className="px-4 py-2.5 font-medium">Channel</th>
-                  <th className="px-4 py-2.5 font-medium">Provider</th>
+                  <th className="px-4 py-2.5 font-medium">Expert</th>
                   <th className="px-4 py-2.5 font-medium">Requests</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
                   <th className="px-4 py-2.5 font-medium">Created</th>
@@ -866,7 +866,7 @@ export default function ClientsContent() {
                     </td>
                     <td className="px-4 py-2.5">
                       {(() => {
-                        const ps = providerStatus(k.provider);
+                        const ps = expertStatus(k.expert);
                         return (
                           <div>
                             <span className={`text-sm ${ps.warning ? "text-foreground" : "text-muted-foreground"}`}>{ps.label}</span>

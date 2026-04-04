@@ -2,6 +2,17 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## Approval Buttons -- 2026-04-04
+
+### Added
+- **Approval buttons in Telegram**: Requests with `requiresApproval: true` send inline Approve/Deny buttons via Telegram `InlineKeyboardMarkup`. Callback queries update the request and confirm the decision in-chat.
+- **Approval buttons in Slack**: Requests with `requiresApproval: true` send Block Kit action buttons (green Approve, red Deny). Clicking a button updates the original message to show the decision and removes the buttons.
+- **OpenClaw approval webhook**: New `POST /api/adapters/openclaw/:channelId/webhook` endpoint receives `approve`, `deny`, and `reply` actions from OpenClaw. Supports HMAC-SHA256 signature verification via `X-OpenClaw-Signature` header.
+- **Consumer SDK `requiresApproval` option**: `submitRequest({ requiresApproval: true })` triggers approval buttons instead of free-text responses. Decisions are delivered as message events, polled via `getPendingEvents()`.
+- **Database fields**: `requiresApproval` (boolean) and `approvalDecision` (string, `"approved"` or `"denied"`) on the HelpRequest model.
+
+---
+
 ## v0.1.1 -- 2026-04-03
 
 ### Changed

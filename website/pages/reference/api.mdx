@@ -236,6 +236,82 @@ max 10 entries, most recent first) for quick reuse when setting up new clients.
 
 ---
 
+## Approval Buttons
+
+When `requiresApproval: true` is set on a help request, the provider receives Approve/Deny buttons instead of a free-text reply prompt. Buttons are delivered via Telegram inline keyboard, Slack Block Kit actions, or OpenClaw webhook actions, depending on the provider's active channel.
+
+After the provider clicks a button, the request transitions to `responded` with `approvalDecision` set to `"approved"` or `"denied"`. The decision is also stored as a Message record so consumers can detect it via `GET /api/v1/events/pending`.
+
+Each request can only receive one decision. Double-clicks and subsequent presses return the existing decision without changing state.
+
+---
+
+### OpenClaw callback webhook
+
+`POST /api/adapters/openclaw/:channelId/webhook`
+
+Receives approval decisions (and replies) from OpenClaw. The channel ID is provided during OpenClaw channel activation.
+
+**Headers:**
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `X-OpenClaw-Signature` | Yes | HMAC-SHA256 hex digest of the request body, using the channel's webhook secret |
+| `Content-Type` | Yes | `application/json` |
+
+**Body:**
+
+```json
+{
+  "action": "approve",
+  "requestId": "cm...",
+  "message": "optional reply text (for action=reply only)"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `action` | string | Yes | `"approve"`, `"deny"`, or `"reply"` |
+| `requestId` | string | Yes | The help request ID |
+| `message` | string | No | Reply text (max 10,000 chars, required when `action` is `"reply"`) |
+
+**Signature verification:**
+
+```
+HMAC-SHA256(webhookSecret, rawRequestBody) === X-OpenClaw-Signature header
+```
+
+The webhook secret is generated when the OpenClaw channel is activated and displayed in the channel setup instructions.
+
+**Response `200` (approve/deny):**
+
+```json
+{
+  "ok": true,
+  "message": "Request HS-A1B2C3D4 -- Decision: Approved",
+  "decision": "approved"
+}
+```
+
+**Response `200` (reply):**
+
+```json
+{
+  "ok": true,
+  "message": "Reply sent for HS-A1B2C3D4"
+}
+```
+
+**Error responses:**
+
+| Code | Meaning |
+|------|---------|
+| `400` | Invalid payload or missing required fields |
+| `403` | Invalid or missing signature |
+| `404` | Channel or request not found |
+
+---
+
 ## Webhooks
 
 HeySummon can send webhook notifications to external endpoints when events occur.

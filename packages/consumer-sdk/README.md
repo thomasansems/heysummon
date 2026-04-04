@@ -62,6 +62,24 @@ interface SubmitRequestOptions {
 }
 ```
 
+### Approval Requests
+
+Set `requiresApproval: true` to show Approve/Deny buttons to the provider instead of a free-text reply prompt. The decision is delivered as a message event:
+
+```typescript
+const result = await client.submitRequest({
+  question: "Should I proceed with the $5,000 purchase?",
+  requiresApproval: true,
+});
+
+// Poll until the provider decides
+const status = await client.getRequestStatus(result.requestId!);
+if (status.status === "responded") {
+  const messages = await client.getMessages(result.requestId!);
+  // Provider message contains "approved" or "denied"
+}
+```
+
 ### Error Handling
 
 The client throws `HeySummonHttpError` for non-2xx responses:

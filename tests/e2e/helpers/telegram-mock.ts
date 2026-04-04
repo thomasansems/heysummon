@@ -62,6 +62,48 @@ export async function withTelegramMock(
 }
 
 /**
+ * Simulates a Telegram approval button press (callback_query) via webhook.
+ * Used to test approve/deny inline keyboard button flows.
+ */
+export async function simulateTelegramApproval({
+  baseUrl,
+  channelId,
+  secretToken,
+  fromChatId,
+  action,
+  requestId,
+}: {
+  baseUrl: string;
+  channelId: string;
+  secretToken: string;
+  fromChatId: string;
+  action: "approve" | "deny";
+  requestId: string;
+}): Promise<Response> {
+  const update = {
+    update_id: Math.floor(Math.random() * 1_000_000),
+    callback_query: {
+      id: `cbq-${Date.now()}`,
+      from: { id: parseInt(fromChatId), is_bot: false, first_name: "Test", username: "testprovider" },
+      message: {
+        message_id: Math.floor(Math.random() * 10000),
+        chat: { id: parseInt(fromChatId), type: "private" },
+      },
+      data: `${action}:${requestId}`,
+    },
+  };
+
+  return fetch(`${baseUrl}/api/adapters/telegram/${channelId}/webhook`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-telegram-bot-api-secret-token": secretToken,
+    },
+    body: JSON.stringify(update),
+  });
+}
+
+/**
  * Simulates a Telegram webhook callback (e.g. /reply HS-XXXX answer from provider).
  * Calls the local /api/adapters/telegram/[id]/webhook endpoint directly.
  */

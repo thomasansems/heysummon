@@ -325,6 +325,7 @@ async function main() {
           botToken: "999999999:PLAYWRIGHT_TEST_BOT_TOKEN_000000000",
           botUsername: "heysummon_pw_test_bot",
           providerChatId: "123456789",
+          webhookSecret: "pw_telegram_webhook_secret_00000000",
         }),
         status: "connected",
       },
@@ -372,7 +373,11 @@ async function main() {
         type: "openclaw",
         name: "PW Test OpenClaw",
         isActive: true,
-        config: JSON.stringify({ apiKey: "oc_pw_test_key" }),
+        config: JSON.stringify({
+          apiKey: "oc_pw_test_key",
+          webhookUrl: "http://localhost:9999/oc-mock",
+          webhookSecret: "pw_openclaw_webhook_secret_0000000",
+        }),
         status: "connected",
       },
     });

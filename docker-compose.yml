@@ -20,7 +20,19 @@
 services:
   db-migrate:
     image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
-    entrypoint: ["sh", "-c", "prisma db push --skip-generate --accept-data-loss"]
+    entrypoint:
+      - sh
+      - -c
+      - |
+        echo 'Waiting for database...'
+        tries=0
+        while [ $$tries -lt 30 ]; do
+          nc -z db 5432 2>/dev/null && break
+          tries=$$((tries + 1))
+          sleep 1
+        done
+        echo 'Database ready - running migration'
+        prisma db push --skip-generate --accept-data-loss
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
     networks:
@@ -42,9 +54,10 @@ services:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U heysummon"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 10s
 
   app:
     image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
@@ -61,7 +74,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3445}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET}
       AUTH_TRUST_HOST: "true"
       AUTH_GITHUB_ID: ${AUTH_GITHUB_ID:-}

@@ -6,6 +6,10 @@ export {
   loadPublicKeys,
   encrypt,
   decrypt,
+  generateKeyMaterial,
+  publicKeyFromHex,
+  encryptWithKeys,
+  decryptWithKeys,
 } from "./crypto.js";
 export type {
   Provider,
@@ -17,4 +21,4 @@ export type {
   WhoamiResult,
   HeySummonClientOptions,
 } from "./types.js";
-export type { KeyPair } from "./crypto.js";
+export type { KeyPair, KeyMaterial, EncryptedPayload } from "./crypto.js";

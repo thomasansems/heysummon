@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { sendMessage } from "@/lib/adapters/telegram";
+import { sendMessage, answerCallbackQuery, editMessageText } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
 
 /** Max length for a provider reply via Telegram */
@@ -24,6 +24,23 @@ const telegramUpdateSchema = z.object({
     }),
     date: z.number(),
     text: z.string().max(10_000).optional(),
+  }).optional(),
+  callback_query: z.object({
+    id: z.string(),
+    from: z.object({
+      id: z.number(),
+      first_name: z.string().optional(),
+      last_name: z.string().optional(),
+      username: z.string().optional(),
+    }),
+    message: z.object({
+      message_id: z.number(),
+      chat: z.object({
+        id: z.number(),
+        type: z.string(),
+      }),
+    }).optional(),
+    data: z.string().max(256).optional(),
   }).optional(),
 });
 
@@ -67,6 +84,110 @@ export async function POST(
     return NextResponse.json({ ok: true }); // Silently reject malformed payloads
   }
   const update = parsed.data;
+
+  // ── callback_query ── Provider pressed an Approve/Deny inline button
+  if (update.callback_query) {
+    const cbq = update.callback_query;
+    const cbChatId = cbq.message?.chat?.id ? String(cbq.message.chat.id) : null;
+    const cbData = cbq.data;
+
+    // Validate sender is the registered provider
+    if (!config.providerChatId || !cbChatId || cbChatId !== config.providerChatId) {
+      await answerCallbackQuery(config.botToken, cbq.id, "Not authorized").catch(() => {});
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!cbData) {
+      await answerCallbackQuery(config.botToken, cbq.id).catch(() => {});
+      return NextResponse.json({ ok: true });
+    }
+
+    // Parse callback_data: "approve:{requestId}" or "deny:{requestId}"
+    const match = cbData.match(/^(approve|deny):(.+)$/);
+    if (!match) {
+      await answerCallbackQuery(config.botToken, cbq.id, "Unknown action").catch(() => {});
+      return NextResponse.json({ ok: true });
+    }
+
+    const [, action, requestId] = match;
+    const decision = action === "approve" ? "approved" : "denied";
+
+    // Find the help request — must belong to this provider
+    const helpRequest = await prisma.helpRequest.findFirst({
+      where: {
+        id: requestId,
+        expertId: channel.profile.userId,
+        requiresApproval: true,
+      },
+    });
+
+    if (!helpRequest) {
+      await answerCallbackQuery(config.botToken, cbq.id, "Request not found");
+      return NextResponse.json({ ok: true });
+    }
+
+    // Prevent double-decision
+    if (helpRequest.approvalDecision) {
+      await answerCallbackQuery(
+        config.botToken,
+        cbq.id,
+        `Already ${helpRequest.approvalDecision}`
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // Reject if expired/cancelled
+    if (helpRequest.status === "expired" || helpRequest.status === "cancelled") {
+      await answerCallbackQuery(config.botToken, cbq.id, `Request is ${helpRequest.status}`);
+      return NextResponse.json({ ok: true });
+    }
+
+    const now = new Date();
+
+    // Apply the decision
+    await prisma.helpRequest.update({
+      where: { id: helpRequest.id },
+      data: {
+        approvalDecision: decision,
+        status: "responded",
+        respondedAt: now,
+      },
+    });
+
+    // Create a Message record so consumer polling detects it
+    await prisma.message.create({
+      data: {
+        requestId: helpRequest.id,
+        from: "provider",
+        ciphertext: decision,
+        iv: "",
+        authTag: "",
+        signature: "",
+        messageId: `approval-${helpRequest.id}-${Date.now()}`,
+      },
+    });
+
+    // Acknowledge the button press
+    const label = decision === "approved" ? "Approved" : "Denied";
+    await answerCallbackQuery(config.botToken, cbq.id, label);
+
+    // Edit the original message to show the decision and remove buttons
+    if (cbq.message) {
+      const statusLine = decision === "approved"
+        ? `\n\n*Decision:* Approved`
+        : `\n\n*Decision:* Denied`;
+      const originalText = `Request \`${helpRequest.refCode}\`${statusLine}`;
+      await editMessageText(
+        config.botToken,
+        cbChatId,
+        cbq.message.message_id,
+        originalText
+      ).catch(() => {});
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
   const message = update.message;
 
   if (!message?.text || !message.chat) {

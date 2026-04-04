@@ -9,7 +9,7 @@ import { checkContentSafety, applySanitizedContent } from "@/lib/content-safety-
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
-import { sendMessage } from "@/lib/adapters/telegram";
+import { sendMessage, sendMessageWithButtons } from "@/lib/adapters/telegram";
 import { sendMessage as sendSlackMessage } from "@/lib/adapters/slack";
 import { escapeSlack } from "@/lib/channels/slack";
 import type { TelegramConfig, SlackConfig } from "@/lib/adapters/types";
@@ -348,9 +348,19 @@ export async function POST(request: Request) {
         if (!cfg.providerChatId || !cfg.botToken) return;
 
         const questionPreview = question ? `\n\n*Question:* ${question.slice(0, 500)}${question.length > 500 ? "…" : ""}` : "";
-        const msg = `🦞 *New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
 
-        await sendMessage(cfg.botToken, cfg.providerChatId, msg);
+        if (helpRequest.requiresApproval) {
+          const msg = `*Approval required* \`${helpRequest.refCode}\`${questionPreview}`;
+          await sendMessageWithButtons(cfg.botToken, cfg.providerChatId, msg, [
+            [
+              { text: "Approve", callback_data: `approve:${helpRequest.id}` },
+              { text: "Deny", callback_data: `deny:${helpRequest.id}` },
+            ],
+          ]);
+        } else {
+          const msg = `*New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
+          await sendMessage(cfg.botToken, cfg.providerChatId, msg);
+        }
         // Mark as notified
         await prisma.helpRequest.update({
           where: { id: helpRequest.id },

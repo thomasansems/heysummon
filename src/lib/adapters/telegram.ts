@@ -34,7 +34,7 @@ export async function setWebhook(token: string, webhookUrl: string, secret: stri
     body: JSON.stringify({
       url: webhookUrl,
       secret_token: secret,
-      allowed_updates: ["message"],
+      allowed_updates: ["message", "callback_query"],
     }),
   });
   const data = await res.json();
@@ -70,6 +70,74 @@ export async function sendMessage(token: string, chatId: string, text: string): 
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Failed to send Telegram message: ${body}`);
+  }
+}
+
+/** Send a message with InlineKeyboardMarkup buttons */
+export async function sendMessageWithButtons(
+  token: string,
+  chatId: string,
+  text: string,
+  buttons: Array<Array<{ text: string; callback_data: string }>>
+): Promise<void> {
+  const res = await fetch(botUrl(token, "sendMessage"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: buttons,
+      },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Failed to send Telegram message with buttons: ${body}`);
+  }
+}
+
+/** Answer a callback query (acknowledges a button press) */
+export async function answerCallbackQuery(
+  token: string,
+  callbackQueryId: string,
+  text?: string
+): Promise<void> {
+  const res = await fetch(botUrl(token, "answerCallbackQuery"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      callback_query_id: callbackQueryId,
+      text,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Failed to answer callback query: ${body}`);
+  }
+}
+
+/** Edit a message's text (also removes inline keyboard when no reply_markup is provided) */
+export async function editMessageText(
+  token: string,
+  chatId: string,
+  messageId: number,
+  text: string
+): Promise<void> {
+  const res = await fetch(botUrl(token, "editMessageText"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      parse_mode: "Markdown",
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Failed to edit Telegram message: ${body}`);
   }
 }
 

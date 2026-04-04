@@ -36,19 +36,19 @@ else
   finish
 fi
 
-# ── Provider responds (transitions pending → responded) ──
-section "Provider responds"
+# -- Expert responds (transitions pending -> responded) --
+section "Expert responds"
 
 RESPOND=$(curl -s -X POST "${BASE_URL}/api/v1/message/${REQUEST_ID}" \
   "${E2E_BYPASS_ARGS[@]}" \
   -H "Content-Type: application/json" \
-  -H "x-api-key: ${PROVIDER_KEY}" \
-  -d '{"from": "provider", "plaintext": "State transition test response"}')
+  -H "x-api-key: ${EXPERT_KEY}" \
+  -d '{"from": "expert", "plaintext": "State transition test response"}')
 
 if echo "$RESPOND" | jq -e '.success == true' >/dev/null 2>&1; then
-  pass "Provider responded"
+  pass "Expert responded"
 else
-  fail "Provider response failed: $RESPOND"
+  fail "Expert response failed: $RESPOND"
 fi
 
 # ── Close the request (transitions responded → closed) ──

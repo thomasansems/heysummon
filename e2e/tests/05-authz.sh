@@ -17,43 +17,43 @@ if [ "$HTTP_CODE" != "200" ]; then
   info "Guard not available, using direct platform URL"
 fi
 
-# ── Test: Provider cannot send message without consumer request first ──
-section "Provider Cannot Initiate"
+# -- Test: Expert cannot send message without consumer request first --
+section "Expert Cannot Initiate"
 # Try to send a message to a non-existent request ID
 RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/message/nonexistent-request-id" \
-  -H "x-api-key: ${PROVIDER_KEY}" \
+  -H "x-api-key: ${EXPERT_KEY}" \
   -H "Content-Type: application/json" \
-  -d '{"from": "provider", "plaintext": "unsolicited reply"}')
+  -d '{"from": "expert", "plaintext": "unsolicited reply"}')
 CODE=$(parse_code "$RESULT")
 
 if [ "$CODE" = "403" ] || [ "$CODE" = "404" ]; then
-  pass "Provider cannot message without consumer request ($CODE)"
+  pass "Expert cannot message without consumer request ($CODE)"
 else
-  fail "Expected 403/404 for unsolicited provider message, got HTTP $CODE"
+  fail "Expected 403/404 for unsolicited expert message, got HTTP $CODE"
 fi
 
-# ── Test: Wrong provider cannot respond to another provider's request ──
-section "Wrong Provider Cannot Respond"
-if [ -z "$PROVIDER2_KEY" ]; then
-  skip "E2E_PROVIDER2_KEY not set — skipping wrong-provider test"
+# -- Test: Wrong expert cannot respond to another expert's request --
+section "Wrong Expert Cannot Respond"
+if [ -z "$EXPERT2_KEY" ]; then
+  skip "E2E_EXPERT2_KEY not set -- skipping wrong-expert test"
 else
-  # First, create a request owned by provider A
-  RESULT=$(submit_help "$TEST_URL" "$CLIENT_KEY" "authz-wrong-provider-test")
+  # First, create a request owned by expert A
+  RESULT=$(submit_help "$TEST_URL" "$CLIENT_KEY" "authz-wrong-expert-test")
   CODE=$(parse_code "$RESULT")
   BODY=$(parse_body "$RESULT")
   REQUEST_ID=$(echo "$BODY" | jq -r '.requestId // empty')
 
   if [ "$CODE" = "200" ] && [ -n "$REQUEST_ID" ]; then
-    # Provider B tries to respond
+    # Expert B tries to respond
     RESULT2=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/message/${REQUEST_ID}" \
-      -H "x-api-key: ${PROVIDER2_KEY}" \
+      -H "x-api-key: ${EXPERT2_KEY}" \
       -H "Content-Type: application/json" \
-      -d '{"from": "provider", "plaintext": "wrong provider reply"}')
+      -d '{"from": "expert", "plaintext": "wrong expert reply"}')
     CODE2=$(parse_code "$RESULT2")
 
-    [ "$CODE2" = "403" ] && pass "Wrong provider rejected (403)" || fail "Expected 403 for wrong provider, got HTTP $CODE2"
+    [ "$CODE2" = "403" ] && pass "Wrong expert rejected (403)" || fail "Expected 403 for wrong expert, got HTTP $CODE2"
   else
-    fail "Could not create request for wrong-provider test (HTTP $CODE)"
+    fail "Could not create request for wrong-expert test (HTTP $CODE)"
   fi
 fi
 

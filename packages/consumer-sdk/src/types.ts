@@ -88,7 +88,7 @@ export interface WhoamiResult {
     name: string;
     isActive: boolean;
   };
-  user: {
+  owner: {
     id: string;
     name: string | null;
   };

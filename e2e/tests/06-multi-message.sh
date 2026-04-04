@@ -31,32 +31,32 @@ if [ "$CODE" != "200" ] || [ -z "$REQUEST_ID" ]; then
 fi
 pass "Request created: $REF_CODE ($REQUEST_ID)"
 
-# ── Test: Provider sends multiple responses ──
-section "Provider Multiple Responses"
+# -- Test: Expert sends multiple responses --
+section "Expert Multiple Responses"
 
 # Send first reply
 REPLY1=$(curl -s -X POST "${BASE_URL}/api/v1/message/${REQUEST_ID}" \
-  -H "x-api-key: ${PROVIDER_KEY}" \
+  -H "x-api-key: ${EXPERT_KEY}" \
   -H "Content-Type: application/json" \
-  -d '{"from": "provider", "plaintext": "First reply from provider"}')
+  -d '{"from": "expert", "plaintext": "First reply from expert"}')
 REPLY1_OK=$(echo "$REPLY1" | jq -r '.success // empty')
-[ "$REPLY1_OK" = "true" ] && pass "Provider sent first reply" || fail "First reply failed: $REPLY1"
+[ "$REPLY1_OK" = "true" ] && pass "Expert sent first reply" || fail "First reply failed: $REPLY1"
 
 # Send second reply
 REPLY2=$(curl -s -X POST "${BASE_URL}/api/v1/message/${REQUEST_ID}" \
-  -H "x-api-key: ${PROVIDER_KEY}" \
+  -H "x-api-key: ${EXPERT_KEY}" \
   -H "Content-Type: application/json" \
-  -d '{"from": "provider", "plaintext": "Second reply from provider"}')
+  -d '{"from": "expert", "plaintext": "Second reply from expert"}')
 REPLY2_OK=$(echo "$REPLY2" | jq -r '.success // empty')
-[ "$REPLY2_OK" = "true" ] && pass "Provider sent second reply" || fail "Second reply failed: $REPLY2"
+[ "$REPLY2_OK" = "true" ] && pass "Expert sent second reply" || fail "Second reply failed: $REPLY2"
 
 # Send third reply
 REPLY3=$(curl -s -X POST "${BASE_URL}/api/v1/message/${REQUEST_ID}" \
-  -H "x-api-key: ${PROVIDER_KEY}" \
+  -H "x-api-key: ${EXPERT_KEY}" \
   -H "Content-Type: application/json" \
-  -d '{"from": "provider", "plaintext": "Third reply from provider"}')
+  -d '{"from": "expert", "plaintext": "Third reply from expert"}')
 REPLY3_OK=$(echo "$REPLY3" | jq -r '.success // empty')
-[ "$REPLY3_OK" = "true" ] && pass "Provider sent third reply" || fail "Third reply failed: $REPLY3"
+[ "$REPLY3_OK" = "true" ] && pass "Expert sent third reply" || fail "Third reply failed: $REPLY3"
 
 # ── Test: Consumer sends follow-up ──
 section "Consumer Follow-up"
@@ -75,15 +75,15 @@ MSG_COUNT=$(echo "$MESSAGES" | jq '.messages | length' 2>/dev/null || echo "0")
 if [ "$MSG_COUNT" -ge 4 ]; then
   pass "All $MSG_COUNT messages stored"
 
-  # Verify order: first 3 from provider, last from consumer
+  # Verify order: first 3 from expert, last from consumer
   FROM_1=$(echo "$MESSAGES" | jq -r '.messages[0].from')
   FROM_2=$(echo "$MESSAGES" | jq -r '.messages[1].from')
   FROM_3=$(echo "$MESSAGES" | jq -r '.messages[2].from')
   FROM_4=$(echo "$MESSAGES" | jq -r '.messages[3].from')
 
-  if [ "$FROM_1" = "provider" ] && [ "$FROM_2" = "provider" ] && \
-     [ "$FROM_3" = "provider" ] && [ "$FROM_4" = "consumer" ]; then
-    pass "Messages in correct order (3 provider, 1 consumer)"
+  if [ "$FROM_1" = "expert" ] && [ "$FROM_2" = "expert" ] && \
+     [ "$FROM_3" = "expert" ] && [ "$FROM_4" = "consumer" ]; then
+    pass "Messages in correct order (3 expert, 1 consumer)"
   else
     fail "Unexpected message order: $FROM_1, $FROM_2, $FROM_3, $FROM_4"
   fi

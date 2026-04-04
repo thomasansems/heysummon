@@ -4,9 +4,9 @@
 # Runs all test files in e2e/tests/ in order and reports aggregate results.
 # Each test file is independently runnable: bash e2e/tests/01-health.sh
 #
-# Required env vars: E2E_PROVIDER_ID, E2E_PROVIDER_KEY, E2E_CLIENT_KEY
+# Required env vars: E2E_EXPERT_ID, E2E_EXPERT_KEY, E2E_CLIENT_KEY
 # Optional: E2E_BASE_URL, GUARD_URL, E2E_TIMEOUT, GUARD_SIGNING_KEY,
-#           E2E_PROVIDER2_KEY, E2E_INACTIVE_KEY, E2E_DEVICE_KEY, E2E_DEVICE_TOKEN,
+#           E2E_EXPERT2_KEY, E2E_INACTIVE_KEY, E2E_DEVICE_KEY, E2E_DEVICE_TOKEN,
 #           DATABASE_URL (for expiry tests)
 
 set -uo pipefail
@@ -27,7 +27,7 @@ echo "════════════════════════�
 echo ""
 echo -e "${CYAN}Platform:${NC}  ${E2E_BASE_URL:-http://localhost:3000}"
 echo -e "${CYAN}Guard:${NC}     ${GUARD_URL:-http://localhost:3457}"
-echo -e "${CYAN}Provider:${NC}  ${E2E_PROVIDER_ID:?Set E2E_PROVIDER_ID}"
+echo -e "${CYAN}Expert:${NC}    ${E2E_EXPERT_ID:?Set E2E_EXPERT_ID}"
 echo ""
 
 TOTAL_FILES=0

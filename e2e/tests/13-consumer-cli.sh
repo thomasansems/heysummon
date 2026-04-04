@@ -15,24 +15,24 @@ if [ ! -f "$PROJECT_DIR/packages/consumer-sdk/dist/cli.js" ]; then
   exit 0
 fi
 
-# ── Test 1: submit-and-poll receives provider response ──
+# -- Test 1: submit-and-poll receives expert response --
 section "Consumer CLI: submit-and-poll"
 
 QUESTION="CLI E2E test $(date +%s): Confirm receipt"
 ANSWER="CLI E2E: Confirmed"
 
-# Start a background process that waits 3s then replies as provider
+# Start a background process that waits 3s then replies as expert
 (
   sleep 3
   # Poll for the new request
-  EVENTS=$(curl -s -H "x-api-key: ${PROVIDER_KEY}" "${E2E_BYPASS_ARGS[@]}" "${PENDING_URL}")
+  EVENTS=$(curl -s -H "x-api-key: ${EXPERT_KEY}" "${E2E_BYPASS_ARGS[@]}" "${PENDING_URL}")
   REQ_ID=$(echo "$EVENTS" | jq -r '.events[-1].requestId // empty')
   if [ -n "$REQ_ID" ]; then
     curl -s -X POST "${BASE_URL}/api/v1/message/${REQ_ID}" \
-      -H "x-api-key: ${PROVIDER_KEY}" \
+      -H "x-api-key: ${EXPERT_KEY}" \
       -H "Content-Type: application/json" \
       "${E2E_BYPASS_ARGS[@]}" \
-      -d "$(jq -n --arg p "$ANSWER" '{from: "provider", plaintext: $p}')" >/dev/null
+      -d "$(jq -n --arg p "$ANSWER" '{from: "expert", plaintext: $p}')" >/dev/null
   fi
 ) &
 PIDS+=($!)
@@ -48,7 +48,7 @@ EXIT_CODE=$?
 
 # Verify response received
 if echo "$OUTPUT" | grep -q "Confirmed"; then
-  pass "submit-and-poll received provider response"
+  pass "submit-and-poll received expert response"
 else
   fail "submit-and-poll did not receive response: $OUTPUT"
 fi

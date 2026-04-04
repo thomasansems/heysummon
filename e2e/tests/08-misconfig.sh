@@ -1,6 +1,6 @@
 #!/bin/bash
 # HeySummon E2E — 08: Misconfiguration tests
-# Missing fields, invalid keys, wrong provider ID
+# Missing fields, invalid keys, wrong expert ID
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib.sh"
@@ -64,41 +64,41 @@ else
   fail "Unexpected response for invalid PEM keys (HTTP $CODE): $BODY"
 fi
 
-# ── Test: Wrong provider ID (key belongs to different provider) ──
-section "Wrong Provider ID"
-if [ -z "$PROVIDER2_KEY" ]; then
-  skip "E2E_PROVIDER2_KEY not set — skipping wrong provider test"
+# -- Test: Wrong expert ID (key belongs to different expert) --
+section "Wrong Expert ID"
+if [ -z "$EXPERT2_KEY" ]; then
+  skip "E2E_EXPERT2_KEY not set -- skipping wrong expert test"
 else
-  # Create a request owned by provider A (via CLIENT_KEY)
-  RESULT=$(submit_help "$TEST_URL" "$CLIENT_KEY" "misconfig-wrong-provider $(date +%s)")
+  # Create a request owned by expert A (via CLIENT_KEY)
+  RESULT=$(submit_help "$TEST_URL" "$CLIENT_KEY" "misconfig-wrong-expert $(date +%s)")
   CODE=$(parse_code "$RESULT")
   BODY=$(parse_body "$RESULT")
   REQUEST_ID=$(echo "$BODY" | jq -r '.requestId // empty')
   REF_CODE=$(echo "$BODY" | jq -r '.refCode // empty')
 
   if [ "$CODE" = "200" ] && [ -n "$REQUEST_ID" ]; then
-    # Try to look up refCode with provider B's key — should fail
+    # Try to look up refCode with expert B's key -- should fail
     LOOKUP_RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' "${BASE_URL}/api/v1/requests/by-ref/${REF_CODE}" \
-      -H "x-api-key: ${PROVIDER2_KEY}")
+      -H "x-api-key: ${EXPERT2_KEY}")
     LOOKUP_CODE=$(parse_code "$LOOKUP_RESULT")
 
-    [ "$LOOKUP_CODE" = "404" ] && pass "Wrong provider cannot look up request (404)" || fail "Expected 404, got HTTP $LOOKUP_CODE"
+    [ "$LOOKUP_CODE" = "404" ] && pass "Wrong expert cannot look up request (404)" || fail "Expected 404, got HTTP $LOOKUP_CODE"
   else
-    fail "Could not create request for wrong-provider test (HTTP $CODE)"
+    fail "Could not create request for wrong-expert test (HTTP $CODE)"
   fi
 fi
 
-# ── Test: Provider with no valid key ──
-section "No Valid Provider Key"
+# -- Test: Expert with no valid key --
+section "No Valid Expert Key"
 RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' "${BASE_URL}/api/v1/requests/by-ref/HS-ZZZZ" \
-  -H "x-api-key: hs_prov_completely_fake_key_1234567890")
+  -H "x-api-key: hs_exp_completely_fake_key_1234567890")
 CODE=$(parse_code "$RESULT")
 
-# Should return 401 (invalid key) or 404 (ref not found) — either is acceptable
+# Should return 401 (invalid key) or 404 (ref not found) -- either is acceptable
 if [ "$CODE" = "401" ] || [ "$CODE" = "404" ]; then
-  pass "Invalid provider key handled ($CODE)"
+  pass "Invalid expert key handled ($CODE)"
 else
-  fail "Expected 401/404 for invalid provider key, got HTTP $CODE"
+  fail "Expected 401/404 for invalid expert key, got HTTP $CODE"
 fi
 
 # ── Test: Empty request body ──
@@ -114,11 +114,11 @@ else
   fail "Expected 400/422 for empty body, got HTTP $CODE"
 fi
 
-# ── Test: Missing x-api-key on message endpoint ──
+# -- Test: Missing x-api-key on message endpoint --
 section "Missing x-api-key on Message Endpoint"
 RESULT=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/message/some-request-id" \
   -H "Content-Type: application/json" \
-  -d '{"from": "provider", "plaintext": "no auth"}')
+  -d '{"from": "expert", "plaintext": "no auth"}')
 CODE=$(parse_code "$RESULT")
 
 [ "$CODE" = "401" ] && pass "Missing x-api-key rejected (401)" || fail "Expected 401 for missing x-api-key, got HTTP $CODE"

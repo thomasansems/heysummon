@@ -78,6 +78,33 @@ export interface RequestStatusResponse {
 export interface HeySummonClientOptions {
   baseUrl: string;
   apiKey: string;
+  /** Enable E2E encryption (default: true). Set to false for plaintext mode. */
+  e2e?: boolean;
+}
+
+export interface DecryptedMessage {
+  id: string;
+  from: "provider" | "consumer";
+  ciphertext?: string;
+  iv?: string;
+  authTag?: string;
+  signature?: string;
+  messageId: string;
+  createdAt: string;
+  plaintext?: string;
+  decryptError?: boolean;
+}
+
+export interface MessagesResponse {
+  requestId: string;
+  refCode: string | null;
+  status: string;
+  consumerSignPubKey: string | null;
+  consumerEncryptPubKey: string | null;
+  providerSignPubKey: string | null;
+  providerEncryptPubKey: string | null;
+  messages: Message[];
+  expiresAt: string;
 }
 
 export interface WhoamiResult {

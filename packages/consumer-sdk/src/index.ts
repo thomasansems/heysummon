@@ -17,6 +17,8 @@ export type {
   SubmitRequestResult,
   PendingEvent,
   Message,
+  DecryptedMessage,
+  MessagesResponse,
   RequestStatusResponse,
   WhoamiResult,
   HeySummonClientOptions,

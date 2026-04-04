@@ -167,7 +167,7 @@ export default function ClientsContent() {
   const [wizardChannel, setWizardChannel] = useState<WizardChannel>(null);
   const [wizardSubChannel, setWizardSubChannel] = useState<WizardSubChannel>(null);
   const [wizardName, setWizardName] = useState("");
-  const [wizardExpertId, setWizardProviderId] = useState("");
+  const [wizardExpertId, setWizardExpertId] = useState("");
   const [wizardCreating, setWizardCreating] = useState(false);
   const [wizardError, setWizardError] = useState<string | null>(null);
   const [wizardResult, setWizardResult] = useState<{ keyId: string; key: string; setupUrl: string; expiresAt: string } | null>(null);
@@ -240,7 +240,7 @@ export default function ClientsContent() {
     setWizardChannel(null);
     setWizardSubChannel(null);
     setWizardName("");
-    setWizardProviderId("");
+    setWizardExpertId("");
     setWizardError(null);
     setWizardResult(null);
     setWizardShowAdvanced(false);
@@ -493,7 +493,7 @@ export default function ClientsContent() {
                   ) : (
                     <select
                       value={wizardExpertId}
-                      onChange={(e) => setWizardProviderId(e.target.value)}
+                      onChange={(e) => setWizardExpertId(e.target.value)}
                       className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                     >
                       <option value="">Select expert...</option>

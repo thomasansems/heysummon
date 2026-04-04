@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-interface ChannelProvider {
+interface ExpertChannel {
   id: string;
   type: string;
   name: string;
@@ -43,7 +43,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ChannelsPage() {
-  const [channels, setChannels] = useState<ChannelProvider[]>([]);
+  const [channels, setChannels] = useState<ExpertChannel[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadChannels = () =>

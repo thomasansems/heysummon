@@ -104,7 +104,7 @@ export async function deliverWebhook(
 }
 
 /**
- * Find all webhook ChannelProviders for a user and dispatch the payload to each.
+ * Find all webhook ExpertChannels for a user and dispatch the payload to each.
  * Non-blocking: errors are logged but don't throw.
  */
 export async function dispatchWebhookToExpert(

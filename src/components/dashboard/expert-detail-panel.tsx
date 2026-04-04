@@ -78,7 +78,7 @@ interface LinkedClient {
   clientSubChannel: string | null;
 }
 
-interface ChannelProvider {
+interface ExpertChannel {
   id: string;
   type: string;
   name: string;
@@ -115,7 +115,7 @@ interface ExpertProfile {
   phoneFirstIntegrationId: string | null;
   phoneFirstTimeout: number;
   ipEvents: IpEvent[];
-  expertChannels: ChannelProvider[];
+  expertChannels: ExpertChannel[];
   _count: { apiKeys: number };
   apiKeys: LinkedClient[];
 }
@@ -149,7 +149,7 @@ function getExpertStatus(
   return { label: "\u2014", colorClass: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400" };
 }
 
-function channelBadge(channel: ChannelProvider): { label: string; color: string } {
+function channelBadge(channel: ExpertChannel): { label: string; color: string } {
   if (channel.type === "telegram")
     return { label: "Telegram Bot", color: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300" };
   if (channel.type === "slack")
@@ -222,7 +222,7 @@ export function ExpertDetailPanel({
 
   const timezones = getTimezones();
 
-  const fetchProvider = useCallback(async () => {
+  const fetchExpert = useCallback(async () => {
     setLoading(true);
     const res = await fetch("/api/experts");
     if (!res.ok) { setLoading(false); return; }
@@ -276,7 +276,7 @@ export function ExpertDetailPanel({
     setLoading(false);
   }, [expertId]);
 
-  useEffect(() => { fetchProvider(); }, [fetchProvider]);
+  useEffect(() => { fetchExpert(); }, [fetchExpert]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
@@ -299,7 +299,7 @@ export function ExpertDetailPanel({
     setSavingName(false);
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 2000);
-    fetchProvider();
+    fetchExpert();
     onUpdated();
   };
 
@@ -314,7 +314,7 @@ export function ExpertDetailPanel({
     setSavingTimezone(false);
     setTimezoneSaved(true);
     setTimeout(() => setTimezoneSaved(false), 2000);
-    fetchProvider();
+    fetchExpert();
     onUpdated();
   };
 
@@ -334,7 +334,7 @@ export function ExpertDetailPanel({
     setSavingAvail(false);
     setAvailSaved(true);
     setTimeout(() => setAvailSaved(false), 2000);
-    fetchProvider();
+    fetchExpert();
     onUpdated();
   };
 
@@ -381,7 +381,7 @@ export function ExpertDetailPanel({
     setSavingPhone(false);
     setPhoneSaved(true);
     setTimeout(() => setPhoneSaved(false), 2000);
-    fetchProvider();
+    fetchExpert();
     onUpdated();
   };
 
@@ -393,18 +393,18 @@ export function ExpertDetailPanel({
       body: JSON.stringify({ isActive: !expert?.isActive }),
     });
     setToggling(false);
-    fetchProvider();
+    fetchExpert();
     onUpdated();
   };
 
-  const deleteProvider = async () => {
+  const deleteExpert = async () => {
     const res = await fetch(`/api/experts/${expertId}`, { method: "DELETE" });
     if (res.ok) onDeleted();
   };
 
   const unlinkClient = async (keyId: string) => {
     await fetch(`/api/v1/keys/${keyId}/unlink`, { method: "POST" });
-    fetchProvider();
+    fetchExpert();
     onUpdated();
   };
 
@@ -414,12 +414,12 @@ export function ExpertDetailPanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
-    fetchProvider();
+    fetchExpert();
   };
 
   const removeIpEvent = async (eventId: string) => {
     await fetch(`/api/experts/ip-events/${eventId}`, { method: "DELETE" });
-    fetchProvider();
+    fetchExpert();
   };
 
   const toggleDay = (d: number) => {
@@ -707,7 +707,7 @@ export function ExpertDetailPanel({
               <Button variant="outline" size="sm" onClick={async () => {
                 if (!window.confirm("Reset all IP bindings for this expert?")) return;
                 await Promise.all(expert.ipEvents.map((evt) => fetch(`/api/experts/ip-events/${evt.id}`, { method: "DELETE" })));
-                fetchProvider();
+                fetchExpert();
               }}>
                 Reset all
               </Button>
@@ -754,7 +754,7 @@ export function ExpertDetailPanel({
             <AlertDialogAction
               onClick={async (e) => {
                 e.preventDefault();
-                await deleteProvider();
+                await deleteExpert();
               }}
               className="bg-red-600 text-white hover:bg-red-700"
             >

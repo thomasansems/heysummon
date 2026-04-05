@@ -71,6 +71,7 @@ export interface RequestStatusResponse {
   question?: string;
   expertName?: string;
   expert?: { id: string; name: string };
+  approvalDecision?: string;
   createdAt?: string;
   expiresAt?: string;
 }

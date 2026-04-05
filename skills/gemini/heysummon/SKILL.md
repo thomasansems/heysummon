@@ -22,4 +22,10 @@ Prompts for your HeySummon base URL and API key, validates the key, and register
 ```bash
 # Ask a specific expert
 bash $SKILL_DIR/scripts/ask.sh "Your question here" "" "ExpertName"
+
+# Ask for approval (expert gets Approve/Deny buttons)
+bash $SKILL_DIR/scripts/ask.sh "I want to proceed. Please approve." "" "ExpertName"
 ```
+
+**Approval requests**: Questions containing "approve", "permission", "go ahead", or
+"proceed" automatically send Approve/Deny buttons to the expert.

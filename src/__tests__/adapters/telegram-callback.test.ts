@@ -51,7 +51,7 @@ function makeRequest(body: unknown, secret: string) {
 const channelConfig = {
   botToken: "123:TOKEN",
   webhookSecret: "secret123",
-  providerChatId: "42",
+  expertChatId: "42",
 };
 
 const mockChannel = {

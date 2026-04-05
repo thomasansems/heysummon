@@ -25,7 +25,7 @@ export function getPublicBaseUrl(request?: Request): string {
     const host =
       req.headers?.get("x-forwarded-host") ||
       req.headers?.get("host");
-    if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) {
+    if (host && !host.includes("localhost") && !host.includes("127.0.0.1") && !host.includes("0.0.0.0")) {
       return `${proto}://${host}`;
     }
   }

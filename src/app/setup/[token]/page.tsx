@@ -1,60 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CopyButton } from "./copy-button";
-
-type ClientChannel = "openclaw" | "claudecode" | "codex" | "gemini";
-
-const PLATFORM_META: Record<ClientChannel, { label: string; skillDir: string }> = {
-  openclaw: { label: "OpenClaw", skillDir: "skills/heysummon" },
-  claudecode: { label: "Claude Code", skillDir: ".claude/skills/heysummon" },
-  codex: { label: "Codex CLI", skillDir: ".codex/skills/heysummon" },
-  gemini: { label: "Gemini CLI", skillDir: ".gemini/skills/heysummon" },
-};
-
-/** Wrap a string in single quotes for safe shell interpolation (prevents $() and backtick expansion) */
-function shellEscape(s: string): string {
-  return "'" + s.replace(/'/g, "'\\''") + "'";
-}
-
-function buildInstallCommand(opts: {
-  channel: ClientChannel;
-  skillDir: string;
-  baseUrl: string;
-  apiKey: string;
-  timeout: number;
-  pollInterval: number;
-  globalInstall: boolean;
-  expertName: string;
-  summonContext?: string | null;
-}): string {
-  const { channel, skillDir, baseUrl, apiKey, timeout, pollInterval, globalInstall, expertName, summonContext } = opts;
-  const safeName = shellEscape(expertName);
-
-  if (channel === "openclaw") {
-    const envPrefix = summonContext
-      ? `HEYSUMMON_BASE_URL="${baseUrl}" HEYSUMMON_SUMMON_CONTEXT=${shellEscape(summonContext)} `
-      : `HEYSUMMON_BASE_URL="${baseUrl}" `;
-    return `cd ~/clawd && ${envPrefix}bash skills/heysummon/scripts/add-expert.sh ${apiKey} ${safeName}`;
-  }
-
-  const npmFlag = globalInstall ? " -g" : "";
-  const contextLine = summonContext ? `\nHEYSUMMON_SUMMON_CONTEXT=${summonContext}` : "";
-  return `npm install${npmFlag} @heysummon/consumer-sdk && \\
-mkdir -p ${skillDir}/scripts && \\
-for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
-  curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=$f" \\
-    -o ${skillDir}/scripts/$f && chmod +x ${skillDir}/scripts/$f; \\
-done && \\
-curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=SKILL.md" \\
-  -o ${skillDir}/SKILL.md && \\
-cat > ${skillDir}/.env << 'EOF'
-HEYSUMMON_BASE_URL=${baseUrl}
-HEYSUMMON_API_KEY=${apiKey}
-HEYSUMMON_TIMEOUT=${timeout}
-HEYSUMMON_POLL_INTERVAL=${pollInterval}${contextLine}
-EOF
-echo "HeySummon skill installed successfully."`;
-}
+import { buildInstallCommand, PLATFORM_META, type ClientChannel } from "@/lib/setup-command";
 
 export default async function SetupPage({
   params,
@@ -170,7 +117,10 @@ export default async function SetupPage({
                 <CopyButton text={installCmd} />
               </div>
               <p className="mt-3 text-xs text-zinc-600">
-                Credentials are pre-filled. The command downloads the skill scripts and configures the connection.
+                Credentials are pre-filled. The command downloads the skill scripts, configures
+                the connection, and verifies it by calling the API. This verification step binds
+                your device IP to the API key for security -- only verified devices can send
+                requests. Make sure the full command runs to completion.
               </p>
             </section>
 

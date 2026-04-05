@@ -1,14 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-
-type E2eStatus =
-  | "ready"
-  | "sending"
-  | "waiting_expert"
-  | "waiting_response"
-  | "complete"
-  | "timeout";
+import { useState, useEffect, useRef } from "react";
+import type { E2eStatus } from "./step-test-e2e";
 
 interface E2eLiveViewProps {
   status: E2eStatus;
@@ -24,47 +17,27 @@ interface AnimLine {
 const TERMINAL_LINES: AnimLine[] = [
   { text: "$ claude", style: "dim", delay: 0 },
   { text: "> Working on auth module...", style: "normal", delay: 600 },
-  { text: "> Need clarification from human expert.", style: "normal", delay: 1200 },
+  { text: "> Need approval from expert.", style: "normal", delay: 1200 },
   { text: "", style: "dim", delay: 1600 },
   {
-    text: '"The API spec mentions both JWT and session',
+    text: '"I would like to proceed with the current',
     style: "accent",
     delay: 2000,
   },
   {
-    text: " auth. The mobile app needs stateless auth",
+    text: ' implementation. Please approve."',
     style: "accent",
     delay: 2400,
   },
-  {
-    text: " but the web frontend uses cookies.",
-    style: "accent",
-    delay: 2800,
-  },
-  { text: "", style: "dim", delay: 3000 },
-  { text: " Should I:", style: "accent", delay: 3200 },
-  { text: " A) Use JWT for everything", style: "accent", delay: 3500 },
-  { text: ' B) JWT for API, sessions for web"', style: "accent", delay: 3800 },
-  { text: "", style: "dim", delay: 4000 },
-  { text: "> Sending to HeySummon...", style: "dim", delay: 4200 },
-  { text: "> Waiting for response...", style: "dim", delay: 5000 },
+  { text: "", style: "dim", delay: 2800 },
+  { text: "> Sending approval request to HeySummon...", style: "dim", delay: 3000 },
+  { text: "> Waiting for decision...", style: "dim", delay: 3800 },
 ];
 
 const TERMINAL_RESPONSE: AnimLine[] = [
   { text: "", style: "dim", delay: 0 },
-  { text: "> Response received!", style: "success", delay: 0 },
-  {
-    text: '> "Use JWT for the API and mobile. Keep',
-    style: "success",
-    delay: 400,
-  },
-  {
-    text: '  sessions for the web frontend."',
-    style: "success",
-    delay: 600,
-  },
-  { text: "", style: "dim", delay: 800 },
-  { text: "> Got it. Implementing JWT + sessions...", style: "normal", delay: 1200 },
+  { text: "> Decision received: APPROVED", style: "success", delay: 0 },
+  { text: "> Continuing with implementation...", style: "normal", delay: 600 },
 ];
 
 interface ChatMsg {
@@ -76,21 +49,15 @@ interface ChatMsg {
 const CHAT_MESSAGES: ChatMsg[] = [
   {
     from: "system",
-    text: "Your agent needs help:",
-    delay: 4500,
+    text: "Approval required HS-TEST-A1B2C3",
+    delay: 3200,
   },
   {
     from: "system",
-    text: '"JWT for everything, or JWT for API + sessions for web?"',
-    delay: 5200,
+    text: "Your AI agent would like to proceed with the current implementation.",
+    delay: 4000,
   },
 ];
-
-const CHAT_RESPONSE: ChatMsg = {
-  from: "expert",
-  text: "JWT for API and mobile. Sessions for web.",
-  delay: 7500,
-};
 
 function useTypedLines(
   lines: AnimLine[],
@@ -127,7 +94,8 @@ export function E2eLiveView({ status, expertChannel }: E2eLiveViewProps) {
   const respLines = useTypedLines(TERMINAL_RESPONSE, isComplete, 0);
 
   const [chatVisible, setChatVisible] = useState<ChatMsg[]>([]);
-  const [showExpertResp, setShowExpertResp] = useState(false);
+  const [showButtons, setShowButtons] = useState(false);
+  const [showApproved, setShowApproved] = useState(false);
   const [showDelivered, setShowDelivered] = useState(false);
   const chatTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -137,7 +105,8 @@ export function E2eLiveView({ status, expertChannel }: E2eLiveViewProps) {
     chatTimersRef.current.forEach(clearTimeout);
     chatTimersRef.current = [];
     setChatVisible([]);
-    setShowExpertResp(false);
+    setShowButtons(false);
+    setShowApproved(false);
     setShowDelivered(false);
 
     CHAT_MESSAGES.forEach((msg) => {
@@ -147,13 +116,20 @@ export function E2eLiveView({ status, expertChannel }: E2eLiveViewProps) {
       chatTimersRef.current.push(t);
     });
 
+    // Show buttons after messages
+    const btnTimer = setTimeout(() => setShowButtons(true), 4800);
+    chatTimersRef.current.push(btnTimer);
+
     return () => chatTimersRef.current.forEach(clearTimeout);
   }, [isActive]);
 
-  // Expert response appears when real test completes
+  // Expert approval appears when real test completes
   useEffect(() => {
     if (!isComplete) return;
-    const t1 = setTimeout(() => setShowExpertResp(true), 300);
+    const t1 = setTimeout(() => {
+      setShowButtons(false);
+      setShowApproved(true);
+    }, 300);
     const t2 = setTimeout(() => setShowDelivered(true), 1200);
     return () => {
       clearTimeout(t1);
@@ -162,14 +138,17 @@ export function E2eLiveView({ status, expertChannel }: E2eLiveViewProps) {
   }, [isComplete]);
 
   const channelLabel =
-    expertChannel === "openclaw" ? "OpenClaw" : "Telegram";
+    expertChannel === "slack"
+      ? "Slack"
+      : expertChannel === "openclaw"
+        ? "OpenClaw"
+        : "Telegram";
 
-  // Combine terminal lines
   const allTermLines = [...termLines, ...respLines];
 
   return (
     <div className="flex h-full flex-col gap-3 p-6">
-      {/* Terminal side — agent perspective */}
+      {/* Terminal side -- agent perspective */}
       <div className="flex-1 rounded-lg border border-border bg-[#0d1117] p-4 overflow-hidden">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex gap-1.5">
@@ -183,9 +162,10 @@ export function E2eLiveView({ status, expertChannel }: E2eLiveViewProps) {
         </div>
         <div className="space-y-0.5 font-mono text-xs leading-relaxed">
           {allTermLines.map((line, i) => {
-            const orig = i < TERMINAL_LINES.length
-              ? TERMINAL_LINES[i]
-              : TERMINAL_RESPONSE[i - TERMINAL_LINES.length];
+            const orig =
+              i < TERMINAL_LINES.length
+                ? TERMINAL_LINES[i]
+                : TERMINAL_RESPONSE[i - TERMINAL_LINES.length];
             if (!orig) return null;
             return (
               <div
@@ -210,7 +190,7 @@ export function E2eLiveView({ status, expertChannel }: E2eLiveViewProps) {
         </div>
       </div>
 
-      {/* Chat side — expert perspective */}
+      {/* Chat side -- expert perspective */}
       <div className="flex-1 rounded-lg border border-border bg-background p-4 overflow-hidden">
         <div className="mb-3 flex items-center gap-2">
           <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center">
@@ -224,31 +204,32 @@ export function E2eLiveView({ status, expertChannel }: E2eLiveViewProps) {
           {chatVisible.map((msg, i) => (
             <div
               key={i}
-              className={`animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-lg px-3 py-2 text-xs ${
-                msg.from === "system"
-                  ? "bg-muted/50 text-foreground"
-                  : "bg-primary/10 text-foreground ml-8"
-              }`}
+              className="animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-lg bg-muted/50 px-3 py-2 text-xs text-foreground"
             >
-              {msg.from === "system" && (
-                <span className="block text-[10px] font-medium text-primary mb-0.5">
-                  HeySummon
-                </span>
-              )}
+              <span className="block text-[10px] font-medium text-primary mb-0.5">
+                HeySummon
+              </span>
               {msg.text}
             </div>
           ))}
-          {showExpertResp && (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-lg bg-primary/10 px-3 py-2 text-xs text-foreground ml-8">
-              <span className="block text-[10px] font-medium text-muted-foreground mb-0.5">
-                You
+          {showButtons && !showApproved && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex gap-2 pl-2">
+              <span className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white">
+                Approve
               </span>
-              {CHAT_RESPONSE.text}
+              <span className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white">
+                Deny
+              </span>
+            </div>
+          )}
+          {showApproved && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 px-3 py-2 text-xs text-green-700 dark:text-green-400">
+              You clicked Approve
             </div>
           )}
           {showDelivered && (
             <p className="animate-in fade-in duration-200 text-[10px] text-green-600 dark:text-green-400 text-right">
-              Response delivered to agent
+              Decision delivered to agent
             </p>
           )}
           {!isActive && (

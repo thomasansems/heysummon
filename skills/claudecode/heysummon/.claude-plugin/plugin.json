@@ -1,0 +1,11 @@
+{
+  "name": "heysummon",
+  "description": "Human-in-the-loop for AI agents. Ask a human expert for help when stuck, need approval, or lack context.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Thomas Ansems"
+  },
+  "homepage": "https://heysummon.ai",
+  "repository": "https://github.com/thomasansems/heysummon",
+  "license": "MIT"
+}

@@ -58,7 +58,9 @@ export async function POST(request: NextRequest) {
   const now = Date.now();
   const lastPollMs = apiKey.lastPollAt ? new Date(apiKey.lastPollAt).getTime() : null;
   const lastPollAgoMs = lastPollMs !== null ? now - lastPollMs : null;
-  const connected = lastPollAgoMs !== null && lastPollAgoMs < ACTIVE_THRESHOLD_MS;
+  const hasActivePolling = lastPollAgoMs !== null && lastPollAgoMs < ACTIVE_THRESHOLD_MS;
+  const hasBoundDevice = apiKey.ipEvents.length > 0;
+  const connected = hasActivePolling || hasBoundDevice;
 
   if (connected) {
     // Log that setup was successfully verified (fire-and-forget)

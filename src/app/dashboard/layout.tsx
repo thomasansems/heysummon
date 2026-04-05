@@ -17,7 +17,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const shouldOnboard =
     !SKIP_ONBOARDING &&
     status === "authenticated" &&
-    (FORCE_ONBOARDING || session?.user?.onboardingComplete === false);
+    (FORCE_ONBOARDING || session?.user?.onboardingComplete !== true);
 
   useEffect(() => {
     if (shouldOnboard) {

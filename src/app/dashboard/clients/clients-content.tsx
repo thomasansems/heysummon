@@ -2,6 +2,7 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
+import { buildSetupCopyText } from "@/lib/setup-copy-text";
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -343,22 +344,7 @@ export default function ClientsContent() {
 
 
 
-  const buildSetupCopyText = () => {
-    const lines: string[] = [];
-    lines.push("HeySummon Setup Instructions");
-    lines.push("---");
-    lines.push("Install the HeySummon skill to connect with your human expert.");
-    lines.push("");
-    if (wizardSummonContext.trim()) {
-      lines.push("Summoning guidelines:");
-      lines.push(wizardSummonContext.trim());
-      lines.push("");
-    }
-    lines.push(`Setup link: ${wizardResult?.setupUrl ?? ""}`);
-    lines.push("");
-    lines.push("This link is valid for 24 hours and contains embedded credentials.");
-    return lines.join("\n");
-  };
+  const wizardCopyText = buildSetupCopyText(wizardResult?.setupUrl ?? "", wizardSummonContext);
 
   const copyKey = (key: string) => {
     copyToClipboard(key);
@@ -669,49 +655,23 @@ export default function ClientsContent() {
                 <h2 className="text-lg font-semibold text-foreground">Client created!</h2>
               </div>
 
-              {/* Expiry warning */}
-              <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                <span>
-                  This setup link is valid for 24 hours and is automatically disabled when a device binds.
-                  Credentials are embedded -- share it with your client.
-                </span>
-              </div>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Copy these instructions and paste them into your AI client, or send
+                them to your customer.
+              </p>
 
-              <div className="mb-3 rounded-md border border-border bg-black p-3 space-y-2">
-                <p className="text-xs text-muted-foreground font-medium">
-                  HeySummon Setup Instructions
-                </p>
-                <p className="text-xs text-zinc-400">
-                  Install the HeySummon skill to connect with your human expert.
-                </p>
-
-                {wizardSummonContext.trim() && (
-                  <div className="rounded-md border border-amber-800/40 bg-amber-950/20 p-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400 mb-1">
-                      Summoning guidelines
-                    </p>
-                    <p className="text-xs text-zinc-300 whitespace-pre-wrap">
-                      {wizardSummonContext.trim()}
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-[11px] text-muted-foreground mb-0.5">
-                    Setup link ({wizardChannel === "openclaw"
-                      ? `OpenClaw \u00B7 ${wizardSubChannel}`
-                      : `${CLIENT_CHANNELS.find((c) => c.id === wizardChannel)?.label ?? wizardChannel} \u00B7 Skill`})
-                  </p>
-                  <code className="break-all text-xs text-green-400">{wizardResult.setupUrl}</code>
-                </div>
+              <div className="mb-3 rounded-md border border-border bg-black p-4">
+                <pre className="text-xs text-zinc-300 whitespace-pre-wrap break-words font-mono leading-relaxed">
+                  {wizardCopyText}
+                </pre>
               </div>
 
               <div className="flex gap-2">
                 <button
-                  onClick={() => copyKey(buildSetupCopyText())}
-                  className="rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white"
+                  onClick={() => copyKey(wizardCopyText)}
+                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
                 >
-                  {copied === buildSetupCopyText() ? "Copied!" : "Copy"}
+                  {copied === wizardCopyText ? "Copied!" : "Copy instructions"}
                 </button>
                 <a
                   href={wizardResult.setupUrl}
@@ -719,7 +679,7 @@ export default function ClientsContent() {
                   rel="noopener noreferrer"
                   className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
                 >
-                  Preview
+                  Preview setup page
                 </a>
               </div>
 

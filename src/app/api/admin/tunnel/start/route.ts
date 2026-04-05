@@ -56,7 +56,9 @@ export async function POST() {
 
   // Persist to .env.local
   updateEnvVar("HEYSUMMON_PUBLIC_URL", publicUrl);
+  updateEnvVar("NEXTAUTH_URL", publicUrl);
   process.env.HEYSUMMON_PUBLIC_URL = publicUrl;
+  process.env.NEXTAUTH_URL = publicUrl;
 
   // Re-register all active Telegram channel webhooks
   const channels = await prisma.expertChannel.findMany({

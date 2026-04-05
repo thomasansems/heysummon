@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import crypto from "crypto";
 
 /**
- * POST — Create a test HelpRequest for end-to-end verification
- * GET  — Poll the test request status
+ * POST — Start monitoring for an incoming E2E test request from the client.
+ *        Returns a timestamp to filter requests created after this point.
+ * GET  — Poll for the latest HelpRequest from this apiKey, returning its stage.
  */
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -18,65 +18,14 @@ export async function POST(request: NextRequest) {
 
   const apiKey = await prisma.apiKey.findFirst({
     where: { id: apiKeyId, userId: user.id },
-    include: { expert: true },
   });
 
   if (!apiKey) {
     return NextResponse.json({ error: "API key not found" }, { status: 404 });
   }
 
-  if (!apiKey.expert) {
-    return NextResponse.json(
-      { error: "API key has no expert linked" },
-      { status: 400 }
-    );
-  }
-
-  // Generate ref code
-  const refCode = `HS-TEST-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
-
-  // Create a test HelpRequest with a 5-minute TTL
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-  const helpRequest = await prisma.helpRequest.create({
-    data: {
-      refCode,
-      apiKeyId: apiKey.id,
-      expertId: user.id,
-      expiresAt,
-      question: "This is a test question from the HeySummon onboarding wizard. Please respond to confirm your setup works.",
-      messages: JSON.stringify([]),
-    },
-  });
-
-  // Notify the expert through their channel
-  const expert = await prisma.userProfile.findUnique({
-    where: { id: apiKey.expertId! },
-    include: { expertChannels: true },
-  });
-
-  if (expert) {
-    const telegramCh = expert.expertChannels.find((c) => c.type === "telegram");
-    if (telegramCh) {
-      try {
-        const config = JSON.parse(telegramCh.config || "{}");
-        if (config.botToken && config.expertChatId) {
-          const { sendMessage } = await import("@/lib/adapters/telegram");
-          await sendMessage(
-            config.botToken,
-            config.expertChatId,
-            `*Onboarding E2E Test*\n\nRef: \`${refCode}\`\n\nA test question was sent from your client. Reply with:\n\`/reply ${refCode} Test successful!\`\n\nto complete the end-to-end test.`
-          );
-        }
-      } catch {
-        // Non-fatal — the request is created regardless
-      }
-    }
-  }
-
   return NextResponse.json({
-    requestId: helpRequest.id,
-    refCode,
+    monitoringSince: new Date().toISOString(),
   });
 }
 
@@ -85,32 +34,62 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
-  const requestId = searchParams.get("requestId");
+  const apiKeyId = searchParams.get("apiKeyId");
+  const since = searchParams.get("since");
 
-  if (!requestId) {
-    return NextResponse.json({ error: "requestId is required" }, { status: 400 });
+  if (!apiKeyId || !since) {
+    return NextResponse.json(
+      { error: "apiKeyId and since are required" },
+      { status: 400 }
+    );
   }
 
+  // Find the most recent HelpRequest from this client key created after monitoring started
   const helpRequest = await prisma.helpRequest.findFirst({
-    where: { id: requestId, expertId: user.id },
+    where: {
+      apiKeyId,
+      expertId: user.id,
+      createdAt: { gte: new Date(since) },
+    },
+    orderBy: { createdAt: "desc" },
     select: {
+      id: true,
+      refCode: true,
       status: true,
+      requiresApproval: true,
+      approvalDecision: true,
+      notifiedExpertAt: true,
       respondedAt: true,
-      response: true,
+      consumerDeliveredAt: true,
       createdAt: true,
     },
   });
 
   if (!helpRequest) {
-    return NextResponse.json({ error: "Request not found" }, { status: 404 });
+    return NextResponse.json({ stage: "waiting" });
+  }
+
+  // Determine the current stage of the E2E flow
+  let stage: string;
+  if (helpRequest.consumerDeliveredAt) {
+    stage = "delivered";
+  } else if (helpRequest.respondedAt || helpRequest.approvalDecision) {
+    stage = "responded";
+  } else if (helpRequest.notifiedExpertAt) {
+    stage = "notified";
+  } else {
+    stage = "received";
   }
 
   return NextResponse.json({
+    stage,
+    requestId: helpRequest.id,
+    refCode: helpRequest.refCode,
     status: helpRequest.status,
-    responded: !!helpRequest.respondedAt,
-    respondedAt: helpRequest.respondedAt,
-    responsePreview: helpRequest.response
-      ? helpRequest.response.slice(0, 100)
-      : null,
+    requiresApproval: helpRequest.requiresApproval,
+    approvalDecision: helpRequest.approvalDecision,
+    notifiedAt: helpRequest.notifiedExpertAt?.toISOString() ?? null,
+    respondedAt: helpRequest.respondedAt?.toISOString() ?? null,
+    deliveredAt: helpRequest.consumerDeliveredAt?.toISOString() ?? null,
   });
 }

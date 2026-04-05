@@ -8,8 +8,7 @@ import { StepNetwork } from "@/components/onboarding/step-network";
 import { StepExpert } from "@/components/onboarding/step-expert";
 import { StepTestExpert } from "@/components/onboarding/step-test-expert";
 import { StepClient } from "@/components/onboarding/step-client";
-import { StepTestE2e } from "@/components/onboarding/step-test-e2e";
-import { StepFirstRequest } from "@/components/onboarding/step-first-request";
+import { StepTestE2e, type E2eStatus } from "@/components/onboarding/step-test-e2e";
 import { StepComplete } from "@/components/onboarding/step-complete";
 import { E2eLiveView } from "@/components/onboarding/e2e-live-view";
 import type { ExpertChannelType } from "@/components/shared/channel-selector";
@@ -25,7 +24,6 @@ const STEPS = [
   { label: "Test" },
   { label: "Client" },
   { label: "E2E" },
-  { label: "Try it" },
   { label: "Done" },
 ];
 
@@ -84,14 +82,6 @@ function clearState() {
   }
 }
 
-type E2eStatus =
-  | "ready"
-  | "sending"
-  | "waiting_expert"
-  | "waiting_response"
-  | "complete"
-  | "timeout";
-
 export function OnboardingFlow() {
   const router = useRouter();
   const [state, setState] = useState<OnboardingState>(loadState);
@@ -114,10 +104,10 @@ export function OnboardingFlow() {
     }
   }, [router]);
 
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_BASE_URL ?? "";
+  const handleRestart = useCallback(() => {
+    clearState();
+    setState(DEFAULT_STATE);
+  }, []);
 
   const renderStep = () => {
     switch (state.step) {
@@ -170,7 +160,6 @@ export function OnboardingFlow() {
           <StepClient
             expertId={state.expertId}
             expertName={state.expertName ?? "Your Expert"}
-            baseUrl={baseUrl}
             onComplete={({ keyId, apiKey, channel, subChannel, clientName }) => {
               setState((s) => ({
                 ...s,
@@ -193,20 +182,14 @@ export function OnboardingFlow() {
         return (
           <StepTestE2e
             apiKeyId={state.clientKeyId}
+            expertName={state.expertName ?? "Expert"}
+            expertChannel={state.expertChannel}
             onSuccess={() => setStep(6)}
             onStatusChange={setE2eStatus}
           />
         );
 
       case 6:
-        return (
-          <StepFirstRequest
-            clientChannel={state.clientChannel}
-            onNext={() => setStep(7)}
-          />
-        );
-
-      case 7:
         clearState();
         return (
           <StepComplete
@@ -235,7 +218,8 @@ export function OnboardingFlow() {
       totalSteps={STEPS.length}
       expertName={state.expertName}
       onSkip={handleSkip}
-      showSkip={state.step > 0 && state.step < 7}
+      onRestart={handleRestart}
+      showSkip={state.step > 0 && state.step < 6}
       sideContent={sideContent}
     >
       {renderStep()}

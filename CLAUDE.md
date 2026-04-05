@@ -33,7 +33,7 @@ The product is currently **self-hosted only** — there is no managed cloud offe
 src/
 ├── app/
 │   ├── api/v1/         # Consumer-facing API (help, messages, events, keys)
-│   ├── api/adapters/   # Webhook adapters (Telegram, Slack)
+│   ├── api/adapters/   # Webhook adapters (Telegram, Slack, OpenClaw)
 │   ├── api/admin/      # Admin operations
 │   ├── dashboard/      # Expert dashboard (requests, clients, channels)
 │   ├── auth/           # Login, signup, verify
@@ -44,6 +44,7 @@ src/
 │   └── landing/        # Marketing/landing page components
 ├── lib/                # Shared utilities, adapters, encryption
 └── services/           # Business logic
+.claude-plugin/         # Claude Code marketplace plugin config
 cli/                    # NPX installer (`npx @heysummon/app`)
 guard/                  # Ed25519 signing reverse proxy
 packages/consumer-sdk/  # Consumer SDK
@@ -51,7 +52,7 @@ prisma/                 # Schema and migrations
 website/                # Documentation site (docs.heysummon.ai)
 landingspage/           # Marketing website (heysummon.ai)
 vercel-waitlist/        # Cloud waitlist site (cloud.heysummon.ai) — placeholder until cloud product exists
-skills/                 # Claude Code / AI tool skills
+skills/                 # AI tool skills (Claude Code, Codex, Gemini, OpenClaw, etc.)
 ```
 
 ## Common Commands
@@ -82,6 +83,7 @@ contains legacy markdown files kept for reference — do not treat it as the liv
 - CLI, Docker, or NPX installer changed -> update `/website/pages/self-hosting/`
 - Auth, keys, or encryption changed -> update `/website/pages/security/`
 - Dashboard, Telegram, or events changed -> update `/website/pages/expert/`
+- Client integrations changed -> update `/website/pages/clients/`
 - New top-level feature -> create page in appropriate section, add to `_meta.js`
 
 ### Changelog
@@ -119,5 +121,5 @@ Every meaningful change goes in `/website/pages/reference/changelog.mdx`, newest
 
 - Never log or expose API keys, secrets, or private keys
 - Content safety middleware runs in-process on API routes — do not remove or skip it
-- E2E encryption is opt-in for consumers — the platform must never store plaintext for encrypted requests
+- E2E encryption is always on by default — the platform must never store plaintext for encrypted requests
 - Guard proxy validates and signs all inbound consumer requests

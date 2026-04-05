@@ -1,0 +1,18 @@
+{
+  "name": "client",
+  "owner": {
+    "name": "Thomas Ansems"
+  },
+  "metadata": {
+    "description": "Human-in-the-loop plugins for AI agents"
+  },
+  "plugins": [
+    {
+      "name": "heysummon",
+      "source": "./skills/claudecode/heysummon",
+      "description": "Ask a human expert for help when stuck, need approval, or lack context.",
+      "category": "productivity",
+      "tags": ["human-in-the-loop", "hitl", "expert", "approval"]
+    }
+  ]
+}

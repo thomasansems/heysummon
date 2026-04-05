@@ -213,7 +213,7 @@ export const telegramAdapter: ChannelAdapter = {
           webhookSecret,
           setupToken,
         }),
-        status: "connected",
+        status: "awaiting_start",
       },
     });
   },

@@ -232,7 +232,7 @@ else
 NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 
 # ─── URLs ───────────────────────────────────────────
-NEXTAUTH_URL=http://localhost:${CONFIGURED_PORT}
+NEXTAUTH_URL=${CONFIGURED_URL}
 ${PUBLIC_URL_LINE}
 
 # ─── Port ───────────────────────────────────────────

@@ -91,8 +91,8 @@ export async function POST(
     const cbChatId = cbq.message?.chat?.id ? String(cbq.message.chat.id) : null;
     const cbData = cbq.data;
 
-    // Validate sender is the registered provider
-    if (!config.providerChatId || !cbChatId || cbChatId !== config.providerChatId) {
+    // Validate sender is the registered expert
+    if (!config.expertChatId || !cbChatId || cbChatId !== config.expertChatId) {
       await answerCallbackQuery(config.botToken, cbq.id, "Not authorized").catch(() => {});
       return NextResponse.json({ ok: true });
     }

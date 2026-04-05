@@ -4,6 +4,7 @@
 # Usage:
 #   ask.sh "<question>"                              — Blocking poll (default)
 #   ask.sh "<question>" "<context>" "<expert>"       — Blocking with context
+#   ask.sh "<question>" "" "" --requires-approval    — Explicit approval request
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -17,7 +18,7 @@ CONTEXT="${2:-}"
 EXPERT_NAME="${3:-}"
 
 if [ -z "$QUESTION" ]; then
-  echo "Usage: ask.sh \"<question>\" [context] [expert-name]" >&2
+  echo "Usage: ask.sh \"<question>\" [context] [expert-name] [--requires-approval]" >&2
   exit 1
 fi
 
@@ -30,6 +31,26 @@ fi
 CLI_ARGS=(submit-and-poll --question "$QUESTION")
 [ -n "$CONTEXT" ] && CLI_ARGS+=(--context "$CONTEXT")
 [ -n "$EXPERT_NAME" ] && CLI_ARGS+=(--expert "$EXPERT_NAME")
+
+# Check for explicit --requires-approval flag (positional or anywhere in args)
+REQUIRES_APPROVAL=false
+for arg in "$@"; do
+  if [ "$arg" = "--requires-approval" ]; then
+    REQUIRES_APPROVAL=true
+    break
+  fi
+done
+
+# Auto-detect approval intent from the question text
+if [ "$REQUIRES_APPROVAL" = "false" ]; then
+  if echo "$QUESTION" | grep -qiE '\b(approve|approval|permission|authorize|go[- ]?ahead|green[- ]?light|sign[- ]?off|proceed)\b'; then
+    REQUIRES_APPROVAL=true
+  fi
+fi
+
+if [ "$REQUIRES_APPROVAL" = "true" ]; then
+  CLI_ARGS+=(--requires-approval)
+fi
 
 # Export env vars for the CLI
 export HEYSUMMON_BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3425}"

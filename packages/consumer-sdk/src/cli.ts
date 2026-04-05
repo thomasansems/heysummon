@@ -45,15 +45,20 @@ function optEnv(name: string, fallback: string): string {
 // Commands
 // ---------------------------------------------------------------------------
 
+function hasFlag(args: string[], flag: string): boolean {
+  return args.includes(flag);
+}
+
 async function cmdSubmitAndPoll(args: string[]): Promise<void> {
   const question = getArg(args, "--question");
   if (!question) {
-    process.stderr.write("Usage: cli submit-and-poll --question <q> [--expert <name>] [--context <json>]\n");
+    process.stderr.write("Usage: cli submit-and-poll --question <q> [--expert <name>] [--context <json>] [--requires-approval]\n");
     process.exit(1);
   }
 
   const expertArg = getArg(args, "--expert");
   const contextArg = getArg(args, "--context");
+  const requiresApproval = hasFlag(args, "--requires-approval");
   const baseUrl = requireEnv("HEYSUMMON_BASE_URL");
   const timeout = parseInt(optEnv("HEYSUMMON_TIMEOUT", "900"), 10);
   const pollInterval = parseInt(optEnv("HEYSUMMON_POLL_INTERVAL", "3"), 10);
@@ -109,6 +114,7 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
       signPublicKey: keys.signPublicKey,
       encryptPublicKey: keys.encryptPublicKey,
       expertName: expertArg || undefined,
+      requiresApproval: requiresApproval || undefined,
     });
   } catch (err) {
     if (err instanceof HeySummonHttpError && err.status === 403) {
@@ -162,6 +168,18 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
     try {
       // Check status endpoint
       const status = await client.getRequestStatus(result.requestId);
+
+      // Approval decision (Approve/Deny buttons)
+      if (
+        (status.status === "responded" || status.status === "closed") &&
+        status.approvalDecision
+      ) {
+        process.stderr.write(`\nHuman responded [${ref}] -- decision: ${status.approvalDecision}\n`);
+        process.stdout.write(`${status.approvalDecision.toUpperCase()}\n`);
+        await client.ackEvent(result.requestId).catch(() => {});
+        return;
+      }
+
       if (
         (status.status === "responded" || status.status === "closed") &&
         status.response

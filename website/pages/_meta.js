@@ -1,6 +1,7 @@
 export default {
   "index": "Introduction",
   "getting-started": "Getting Started",
+  "clients": "Client Integrations",
   "consumer": "For AI Agents (Consumer)",
   "expert": "For Human Experts",
   "best-practices": "Best Practice Prompts",

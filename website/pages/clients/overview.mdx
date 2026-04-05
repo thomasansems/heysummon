@@ -1,0 +1,43 @@
+# Client Integrations
+
+HeySummon connects AI coding agents to human experts. When an agent gets stuck, needs approval, or lacks context, it sends a help request to the expert and waits for a response.
+
+HeySummon supports multiple AI platforms. Each platform has its own installation method, but the underlying API and scripts are the same.
+
+## Supported Platforms
+
+| Platform | Install Method | Skill Location |
+|----------|---------------|----------------|
+| [Claude Code](/clients/claude-code) | Plugin marketplace | `.claude/plugins/` |
+| [Codex CLI](/clients/codex) | Setup link + bash | `.codex/skills/heysummon/` |
+| [Gemini CLI](/clients/gemini) | Setup link + bash | `.gemini/skills/heysummon/` |
+| [OpenClaw](/clients/openclaw) | ClaWhub marketplace | `~/clawd/skills/heysummon/` |
+
+## How It Works
+
+1. **Expert creates a setup link** from the HeySummon dashboard
+2. **Client installs the skill** using the platform-specific method
+3. **Agent uses the skill** when it needs human input -- it sends a question and blocks until the expert responds
+4. **Expert responds** via Telegram, the dashboard, or their preferred channel
+
+## What Gets Installed
+
+Every platform gets the same core components:
+
+- **SKILL.md** -- instructions the AI agent reads to understand how to use HeySummon
+- **Scripts** -- bash wrappers around the `@heysummon/consumer-sdk` CLI:
+  - `ask.sh` -- send a question and wait for the response (blocking)
+  - `setup.sh` -- configure API key and base URL
+  - `add-expert.sh` -- register an expert by API key
+  - `list-experts.sh` -- list registered experts
+  - `check-status.sh` -- check status of a request
+- **.env** -- configuration file with API key, base URL, timeout, and summoning guidelines
+
+## Summoning Guidelines
+
+When creating a setup link, experts can define **summoning guidelines** -- rules that tell the AI when it should and shouldn't ask for help. These guidelines are stored in the `.env` file as `HEYSUMMON_SUMMON_CONTEXT` and the agent follows them automatically.
+
+Examples:
+- "Only summon when stuck and cannot proceed without human input"
+- "Summon for decisions that could cost money or affect billing"
+- "Summon before any destructive action like deleting data or dropping tables"

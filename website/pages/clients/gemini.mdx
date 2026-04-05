@@ -1,0 +1,92 @@
+# Gemini CLI
+
+HeySummon integrates with Google's Gemini CLI through skill files installed in your project directory. Gemini CLI supports the `@./` include syntax for referencing additional files from the skill.
+
+## Installation
+
+### Via Setup Link (Recommended)
+
+Your expert provides a setup link from the HeySummon dashboard. Visit the link in your browser and copy the install command, or run it directly:
+
+```bash
+curl -sf "https://your-instance.com/api/v1/setup/st_your_token_here/command" \
+  | jq -r '.installCommand' | bash
+```
+
+This downloads the skill scripts, creates the `.env` file with your credentials, and verifies the connection.
+
+### Interactive Setup
+
+If you have the skill files already, run the interactive setup:
+
+```bash
+bash .gemini/skills/heysummon/scripts/setup.sh
+```
+
+This prompts for your HeySummon base URL and API key.
+
+## Usage
+
+Once installed, Gemini CLI detects the skill from the SKILL.md file. You can ask for help:
+
+```
+hey summon Thomas should I use PostgreSQL or SQLite for this project?
+```
+
+Or request approval:
+
+```
+hey summon Thomas I want to refactor the auth module. Please approve.
+```
+
+Approval requests show **Approve / Deny** buttons to the expert. The response will be `APPROVED` or `DENIED`.
+
+## Gemini-Specific Features
+
+Gemini CLI supports `@./` includes in GEMINI.md, which allows the skill to reference additional files like architecture documentation. The skill includes both a standard `SKILL.md` and a `GEMINI.md` with native Gemini includes.
+
+## Skill Location
+
+```
+.gemini/skills/heysummon/
+  SKILL.md           # Standard skill instructions
+  GEMINI.md          # Gemini-native version with @./ includes
+  scripts/           # ask.sh, setup.sh, etc.
+  .env               # API key and configuration
+```
+
+## Configuration
+
+The `.env` file in the skill directory contains:
+
+```env
+HEYSUMMON_BASE_URL=https://your-instance.com
+HEYSUMMON_API_KEY=hs_cli_your_key_here
+HEYSUMMON_TIMEOUT=900
+HEYSUMMON_POLL_INTERVAL=3
+HEYSUMMON_SUMMON_CONTEXT=Only summon when stuck or need approval
+```
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `HEYSUMMON_BASE_URL` | Your HeySummon instance URL | `http://localhost:3425` |
+| `HEYSUMMON_API_KEY` | Client API key (starts with `hs_cli_`) | Required |
+| `HEYSUMMON_TIMEOUT` | Request timeout in seconds | `900` (15 min) |
+| `HEYSUMMON_POLL_INTERVAL` | How often to check for a response (seconds) | `3` |
+| `HEYSUMMON_SUMMON_CONTEXT` | When to summon the expert (set by expert) | Optional |
+
+## Commands
+
+```bash
+# Ask a question
+bash $SKILL_DIR/scripts/ask.sh "Your question" "" "ExpertName"
+
+# Add an expert
+bash $SKILL_DIR/scripts/add-expert.sh "hs_cli_key" "ExpertName"
+
+# List experts
+bash $SKILL_DIR/scripts/list-experts.sh
+
+# Check request status
+bash $SKILL_DIR/scripts/check-status.sh HS-ABCD
+```

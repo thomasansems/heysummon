@@ -353,7 +353,7 @@ export async function POST(request: Request) {
 
         if (helpRequest.requiresApproval) {
           const msg = `*Approval required* \`${helpRequest.refCode}\`${questionPreview}`;
-          await sendMessageWithButtons(cfg.botToken, cfg.providerChatId, msg, [
+          await sendMessageWithButtons(cfg.botToken, cfg.expertChatId, msg, [
             [
               { text: "Approve", callback_data: `approve:${helpRequest.id}` },
               { text: "Deny", callback_data: `deny:${helpRequest.id}` },
@@ -407,9 +407,9 @@ export async function POST(request: Request) {
       });
 
       // Also try OpenClaw notification (fire-and-forget, non-blocking)
-      prisma.channelProvider.findFirst({
+      prisma.expertChannel.findFirst({
         where: {
-          profileId: { in: providerProfiles.map(p => p.id) },
+          profileId: { in: expertProfiles.map(p => p.id) },
           type: "openclaw",
           isActive: true,
           status: "connected",
@@ -452,7 +452,7 @@ export async function POST(request: Request) {
         // Mark as notified (if not already set by Telegram/Slack)
         await prisma.helpRequest.update({
           where: { id: helpRequest.id },
-          data: { notifiedProviderAt: new Date() },
+          data: { notifiedExpertAt: new Date() },
         }).catch(() => {});
       }).catch((err) => {
         console.error("[help/route] OpenClaw notify failed:", err);

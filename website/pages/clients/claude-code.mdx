@@ -1,0 +1,111 @@
+# Claude Code
+
+HeySummon integrates with Claude Code as a **plugin** distributed through a marketplace. This is the recommended approach -- it handles installation, updates, and skill registration automatically.
+
+## Installation
+
+### Option A: Plugin Marketplace (Recommended)
+
+**Step 1.** Add the HeySummon marketplace (one-time):
+
+```
+/plugin marketplace add thomasansems/heysummon
+```
+
+**Step 2.** Install the plugin (one-time):
+
+```
+/plugin install heysummon@client
+```
+
+**Step 3.** Configure with your setup link (from your expert's dashboard):
+
+```
+/heysummon:setup https://your-instance.com/setup/st_your_token_here
+```
+
+The setup link is provided by the expert and is valid for 24 hours.
+
+### Option B: Manual Install via Setup Link
+
+If you prefer not to use the marketplace, you can install directly from a terminal:
+
+```bash
+curl -sf "https://your-instance.com/api/v1/setup/st_your_token_here/command" \
+  | jq -r '.installCommand' | bash
+```
+
+Or visit the setup link in your browser and copy the install command.
+
+### Option C: Interactive Setup
+
+If you already have the skill files installed, run the interactive setup:
+
+```bash
+bash .claude/skills/heysummon/scripts/setup.sh
+```
+
+This prompts for your HeySummon base URL and API key.
+
+## Usage
+
+Once installed, Claude Code automatically detects when to summon an expert based on the summoning guidelines. You can also invoke it directly:
+
+```
+hey summon Thomas should I use PostgreSQL or SQLite for this project?
+```
+
+Or ask for approval:
+
+```
+hey summon Thomas I want to drop the users table and recreate it. Please approve.
+```
+
+Approval requests automatically show **Approve / Deny** buttons to the expert.
+
+## Skill Location
+
+When installed via the marketplace, the plugin lives in Claude Code's plugin cache. When installed manually, the skill files are at:
+
+```
+.claude/skills/heysummon/
+  SKILL.md           # Instructions for Claude
+  scripts/           # ask.sh, setup.sh, etc.
+  .env               # API key and configuration
+```
+
+## Configuration
+
+The `.env` file in the skill directory contains:
+
+```env
+HEYSUMMON_BASE_URL=https://your-instance.com
+HEYSUMMON_API_KEY=hs_cli_your_key_here
+HEYSUMMON_TIMEOUT=900
+HEYSUMMON_POLL_INTERVAL=3
+HEYSUMMON_SUMMON_CONTEXT=Only summon when stuck or need approval
+```
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `HEYSUMMON_BASE_URL` | Your HeySummon instance URL | `http://localhost:3425` |
+| `HEYSUMMON_API_KEY` | Client API key (starts with `hs_cli_`) | Required |
+| `HEYSUMMON_TIMEOUT` | Request timeout in seconds | `900` (15 min) |
+| `HEYSUMMON_POLL_INTERVAL` | How often to check for a response (seconds) | `3` |
+| `HEYSUMMON_SUMMON_CONTEXT` | When to summon the expert (set by expert) | Optional |
+
+## Commands
+
+```bash
+# Ask a question
+bash $SKILL_DIR/scripts/ask.sh "Your question" "" "ExpertName"
+
+# Add an expert
+bash $SKILL_DIR/scripts/add-expert.sh "hs_cli_key" "ExpertName"
+
+# List experts
+bash $SKILL_DIR/scripts/list-experts.sh
+
+# Check request status
+bash $SKILL_DIR/scripts/check-status.sh HS-ABCD
+```

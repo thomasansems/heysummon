@@ -7,5 +7,9 @@ export default function OnboardingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <div className="dark" style={{ colorScheme: "dark" }}>
+      <SessionProvider>{children}</SessionProvider>
+    </div>
+  );
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
+import { buildSetupCopyText } from "@/lib/setup-copy-text";
 
 /**
  * Tests for the dashboard wizard summoning context feature.
@@ -12,27 +13,6 @@ import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
 /** Mirrors the 500-char cap enforced by the textarea onChange */
 function capContextInput(value: string): string {
   return value.slice(0, 500);
-}
-
-/** Mirrors the buildSetupCopyText helper in clients-content.tsx */
-function buildSetupCopyText(
-  setupUrl: string,
-  summonContext: string,
-): string {
-  const lines: string[] = [];
-  lines.push("HeySummon Setup Instructions");
-  lines.push("---");
-  lines.push("Install the HeySummon skill to connect with your human expert.");
-  lines.push("");
-  if (summonContext.trim()) {
-    lines.push("Summoning guidelines:");
-    lines.push(summonContext.trim());
-    lines.push("");
-  }
-  lines.push(`Setup link: ${setupUrl}`);
-  lines.push("");
-  lines.push("This link is valid for 24 hours and contains embedded credentials.");
-  return lines.join("\n");
 }
 
 /** Mirrors the recentNonPreset filter in the wizard */
@@ -86,19 +66,32 @@ describe("Dashboard wizard context — copy text building", () => {
 
   it("builds text block without context when empty", () => {
     const text = buildSetupCopyText(testUrl, "");
-    expect(text).toContain("HeySummon Setup Instructions");
-    expect(text).toContain(`Setup link: ${testUrl}`);
-    expect(text).toContain("valid for 24 hours");
+    expect(text).toContain("HeySummon Setup");
+    expect(text).toContain(testUrl);
+    expect(text).toContain("valid 24 hours");
     expect(text).not.toContain("Summoning guidelines");
   });
 
   it("builds text block with context when set", () => {
     const context = "Only summon for architecture decisions.";
     const text = buildSetupCopyText(testUrl, context);
-    expect(text).toContain("HeySummon Setup Instructions");
+    expect(text).toContain("HeySummon Setup");
     expect(text).toContain("Summoning guidelines:");
     expect(text).toContain(context);
-    expect(text).toContain(`Setup link: ${testUrl}`);
+    expect(text).toContain(testUrl);
+  });
+
+  it("includes marketplace install instructions", () => {
+    const text = buildSetupCopyText(testUrl, "");
+    expect(text).toContain("/plugin marketplace add");
+    expect(text).toContain("/plugin install heysummon@client");
+    expect(text).toContain(`/heysummon:setup ${testUrl}`);
+  });
+
+  it("includes curl fallback with command endpoint", () => {
+    const text = buildSetupCopyText(testUrl, "");
+    expect(text).toContain("api/v1/setup/abc123/command");
+    expect(text).toContain("jq -r '.installCommand'");
   });
 
   it("trims whitespace from context in copy text", () => {

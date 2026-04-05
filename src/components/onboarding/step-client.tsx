@@ -10,6 +10,7 @@ import {
   type ClientSubChannelType,
 } from "@/components/shared/client-channel-selector";
 import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
+import { buildSetupCopyText } from "@/lib/setup-copy-text";
 
 const DEFAULT_TIMEOUT = 900;
 const DEFAULT_POLL_INTERVAL = 3;
@@ -22,20 +23,11 @@ const TIMEOUT_PRESETS = [
   { value: -1, label: "Custom", desc: "" },
 ];
 
-const PLATFORM_META: Record<string, { label: string; skillDir: string }> = {
-  openclaw: { label: "OpenClaw", skillDir: "skills/heysummon" },
-  claudecode: { label: "Claude Code", skillDir: ".claude/skills/heysummon" },
-  codex: { label: "Codex CLI", skillDir: ".codex/skills/heysummon" },
-  gemini: { label: "Gemini CLI", skillDir: ".gemini/skills/heysummon" },
-  cursor: { label: "Cursor", skillDir: ".cursor/skills/heysummon" },
-};
-
 type Phase = "channel" | "details" | "creating" | "connecting";
 
 interface StepClientProps {
   expertId: string;
   expertName: string;
-  baseUrl: string;
   onComplete: (data: {
     keyId: string;
     apiKey: string;
@@ -48,7 +40,6 @@ interface StepClientProps {
 export function StepClient({
   expertId,
   expertName,
-  baseUrl,
   onComplete,
 }: StepClientProps) {
   const [phase, setPhase] = useState<Phase>("channel");
@@ -69,9 +60,6 @@ export function StepClient({
   const [apiKey, setApiKey] = useState("");
   const [setupUrl, setSetupUrl] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
-
-  const meta = channel ? PLATFORM_META[channel] ?? PLATFORM_META.claudecode : null;
-  const isSkillBased = channel !== "openclaw";
 
   const { status: verifyStatus, elapsed, start, retry } = useConnectionVerify({
     keyId: keyId || "noop",
@@ -96,6 +84,13 @@ export function StepClient({
     };
     fetchRecent();
   }, [expertId]);
+
+  // Start verification when connecting phase begins and keyId is ready
+  useEffect(() => {
+    if (phase === "connecting" && keyId) {
+      start();
+    }
+  }, [phase, keyId, start]);
 
   // Auto-advance when connected
   useEffect(() => {
@@ -163,8 +158,6 @@ export function StepClient({
       }
 
       setPhase("connecting");
-      // Start polling — use setTimeout so the keyId state is flushed
-      setTimeout(() => start(), 100);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setPhase("details");
@@ -177,28 +170,7 @@ export function StepClient({
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const skillDir = meta?.skillDir ?? "";
-  const installCmd =
-    isSkillBased && apiKey
-      ? `npm install -g @heysummon/consumer-sdk && \\
-mkdir -p ${skillDir}/scripts && \\
-for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
-  curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=$f" \\
-    -o ${skillDir}/scripts/$f && chmod +x ${skillDir}/scripts/$f; \\
-done && \\
-curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=SKILL.md" \\
-  -o ${skillDir}/SKILL.md && \\
-cat > ${skillDir}/.env << 'EOF'
-HEYSUMMON_BASE_URL=${baseUrl}
-HEYSUMMON_API_KEY=${apiKey}
-HEYSUMMON_TIMEOUT=${timeout}
-HEYSUMMON_POLL_INTERVAL=${pollInterval}${summonContext.trim() ? `\nHEYSUMMON_SUMMON_CONTEXT=${summonContext.trim()}` : ""}
-EOF
-echo "Verifying connection..." && \\
-curl -sf "${baseUrl}/api/v1/whoami" \\
-  -H "x-api-key: ${apiKey}" > /dev/null && \\
-echo "Connected and device bound successfully."`
-      : "";
+  const copyText = buildSetupCopyText(setupUrl, summonContext);
 
   // Recently used contexts (truncated, max 5 shown) excluding presets
   const presetTexts = SUMMON_CONTEXT_PRESETS.map((p) => p.text);
@@ -511,51 +483,34 @@ B) Create a /discounts endpoint myself`}</pre>
       {/* Phase: Connecting */}
       {phase === "connecting" && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          {summonContext.trim() && (
-            <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/10 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1">
-                Summoning guidelines
-              </p>
-              <p className="text-xs text-foreground whitespace-pre-wrap">
-                {summonContext.trim()}
-              </p>
-            </div>
-          )}
-          {isSkillBased ? (
-            <div className="rounded-lg border border-border bg-black p-4">
-              <p className="mb-2 text-xs text-muted-foreground font-medium">
-                Run this in your project directory:
-              </p>
-              <div className="relative">
-                <pre className="text-xs text-green-400 whitespace-pre-wrap break-all overflow-x-auto">
-                  {installCmd}
-                </pre>
-                <button
-                  onClick={() => handleCopy(installCmd)}
-                  className="absolute right-2 top-1 text-xs text-primary hover:text-primary/80"
-                >
-                  {copied === installCmd ? "Copied!" : "Copy"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-border bg-black p-4">
-              <p className="mb-2 text-xs text-muted-foreground font-medium">
-                Setup link:
-              </p>
-              <div className="flex items-start gap-2">
-                <code className="text-xs text-green-400 break-all flex-1">
-                  {setupUrl}
-                </code>
-                <button
-                  onClick={() => handleCopy(setupUrl)}
-                  className="shrink-0 text-xs text-primary hover:text-primary/80"
-                >
-                  {copied === setupUrl ? "Copied!" : "Copy"}
-                </button>
-              </div>
-            </div>
-          )}
+          <p className="text-sm text-muted-foreground">
+            Copy these instructions and paste them into your AI client, or send
+            them to your customer.
+          </p>
+
+          {/* Setup instructions as copyable text */}
+          <div className="rounded-md border border-border bg-black p-4">
+            <pre className="text-xs text-zinc-300 whitespace-pre-wrap break-words font-mono leading-relaxed">
+              {copyText}
+            </pre>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleCopy(copyText)}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
+            >
+              {copied === copyText ? "Copied!" : "Copy instructions"}
+            </button>
+            <a
+              href={setupUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Preview setup page
+            </a>
+          </div>
 
           {/* Connection status */}
           <div className="flex items-center gap-3 rounded-lg border border-border p-4">
@@ -567,7 +522,7 @@ B) Create a /discounts endpoint myself`}</pre>
                     Waiting for connection... ({elapsed}s)
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Run the command above to connect
+                    The client will connect automatically when the setup is complete
                   </p>
                 </div>
               </>
@@ -602,7 +557,18 @@ B) Create a /discounts endpoint myself`}</pre>
                 onClick={retry}
                 className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
               >
-                Retry
+                Retry connection
+              </button>
+              <button
+                onClick={() => {
+                  setPhase("channel");
+                  setKeyId("");
+                  setApiKey("");
+                  setSetupUrl("");
+                }}
+                className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+              >
+                Start over
               </button>
               <button
                 onClick={() =>
@@ -616,7 +582,7 @@ B) Create a /discounts endpoint myself`}</pre>
                 }
                 className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
-                Skip verification
+                Skip
               </button>
             </div>
           )}

@@ -108,6 +108,7 @@ interface OnboardingShellProps {
   totalSteps: number;
   expertName: string | null;
   onSkip: () => void;
+  onRestart?: () => void;
   showSkip?: boolean;
   sideContent?: React.ReactNode;
 }
@@ -118,6 +119,7 @@ export function OnboardingShell({
   totalSteps,
   expertName,
   onSkip,
+  onRestart,
   showSkip = true,
   sideContent,
 }: OnboardingShellProps) {
@@ -143,12 +145,22 @@ export function OnboardingShell({
               </span>
             </div>
             {showSkip && currentStep < totalSteps - 1 && (
-              <button
-                onClick={onSkip}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Skip setup
-              </button>
+              <div className="flex items-center gap-3">
+                {onRestart && currentStep > 0 && (
+                  <button
+                    onClick={onRestart}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Restart
+                  </button>
+                )}
+                <button
+                  onClick={onSkip}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Skip setup
+                </button>
+              </div>
             )}
           </div>
 

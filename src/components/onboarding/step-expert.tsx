@@ -32,6 +32,7 @@ export function StepExpert({ onComplete }: StepExpertProps) {
   const [expertId, setExpertId] = useState("");
   const [expertKey, setExpertKey] = useState("");
   const [expertChannel, setExpertChannel] = useState<ExpertChannelType | null>(null);
+  const [telegramDeepLink, setTelegramDeepLink] = useState("");
 
   // Verify polling
   const [elapsed, setElapsed] = useState(0);
@@ -164,6 +165,19 @@ export function StepExpert({ onComplete }: StepExpertProps) {
           const err = await channelRes.json().catch(() => ({}));
           throw new Error(err.error || "Failed to connect Telegram bot");
         }
+
+        // Extract bot username and setup token for the deep link
+        try {
+          const chData = await channelRes.json();
+          const chConfig = JSON.parse(chData.channel?.config || "{}");
+          if (chConfig.botUsername && chConfig.setupToken) {
+            setTelegramDeepLink(
+              `https://t.me/${chConfig.botUsername}?start=${chConfig.setupToken}`
+            );
+          }
+        } catch {
+          // Non-fatal — verification can still proceed
+        }
       }
 
       setExpertId(pid);
@@ -248,15 +262,36 @@ export function StepExpert({ onComplete }: StepExpertProps) {
           {/* Show instructions based on channel */}
           {expertChannel === "telegram" ? (
             <div className="rounded-lg border border-border bg-muted/30 p-4">
-              <p className="text-sm text-foreground mb-2">
-                Open your Telegram bot and send{" "}
-                <code className="rounded bg-muted px-1.5 py-0.5 text-foreground font-mono text-xs">
-                  /start
-                </code>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                This activates the bot so it can receive help requests.
-              </p>
+              {telegramDeepLink ? (
+                <>
+                  <p className="text-sm text-foreground mb-2">
+                    Click the link below to connect your Telegram bot:
+                  </p>
+                  <a
+                    href={telegramDeepLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
+                  >
+                    Open in Telegram
+                  </a>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This sends a secure /start command to link your chat.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-foreground mb-2">
+                    Open your Telegram bot and send{" "}
+                    <code className="rounded bg-muted px-1.5 py-0.5 text-foreground font-mono text-xs">
+                      /start
+                    </code>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    This activates the bot so it can receive help requests.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="rounded-lg border border-border bg-black p-4 space-y-3">

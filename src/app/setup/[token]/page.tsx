@@ -44,18 +44,18 @@ export default async function SetupPage({
   });
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-zinc-300">
+    <div className="min-h-screen bg-background text-muted-foreground">
       <div className="mx-auto max-w-2xl px-6 py-16">
 
         {/* Header */}
         <div className="mb-10">
           <div className="mb-3 flex items-center gap-3">
             <img src="/hey-summon.png" alt="HeySummon" className="h-8 w-8" />
-            <h1 className="text-2xl font-bold text-white">HeySummon Setup</h1>
+            <h1 className="text-2xl font-bold text-foreground">HeySummon Setup</h1>
           </div>
           <p className="text-sm text-zinc-500">
             Connect {meta.label} to expert{" "}
-            <span className="text-white font-medium">&quot;{expertName}&quot;</span>
+            <span className="text-foreground font-medium">&quot;{expertName}&quot;</span>
           </p>
         </div>
 
@@ -87,7 +87,7 @@ export default async function SetupPage({
             {/* OpenClaw: pre-install step */}
             {channel === "openclaw" && (
               <section>
-                <h2 className="mb-3 text-lg font-semibold text-white">1. Install skill</h2>
+                <h2 className="mb-3 text-lg font-semibold text-foreground">1. Install skill</h2>
                 <p className="mb-3 text-sm text-zinc-400">
                   Install the HeySummon skill if you haven&apos;t already:
                 </p>
@@ -102,7 +102,7 @@ export default async function SetupPage({
 
             {/* Main install/register command */}
             <section>
-              <h2 className="mb-3 text-lg font-semibold text-white">
+              <h2 className="mb-3 text-lg font-semibold text-foreground">
                 {channel === "openclaw" ? "2. Register expert" : "1. Install the skill"}
               </h2>
               <p className="mb-3 text-sm text-zinc-400">
@@ -127,7 +127,7 @@ export default async function SetupPage({
             {/* Summoning guidelines (if set) */}
             {record.summonContext && (
               <section>
-                <h2 className="mb-3 text-lg font-semibold text-white">
+                <h2 className="mb-3 text-lg font-semibold text-foreground">
                   Summoning guidelines
                 </h2>
                 <div className="rounded-lg border border-amber-800/50 bg-amber-950/20 p-4">
@@ -144,7 +144,7 @@ export default async function SetupPage({
 
             {/* Verify */}
             <section>
-              <h2 className="mb-3 text-lg font-semibold text-white">
+              <h2 className="mb-3 text-lg font-semibold text-foreground">
                 {channel === "openclaw" ? "3. Verify" : "2. Verify"}
               </h2>
               <p className="text-sm text-zinc-400">
@@ -170,7 +170,7 @@ export default async function SetupPage({
         )}
 
         {/* Footer */}
-        <div className="mt-12 border-t border-zinc-800/50 pt-6 text-center text-xs text-zinc-600">
+        <div className="mt-12 border-t border-border pt-6 text-center text-xs text-muted-foreground">
           HeySummon -- Human-in-the-loop for AI agents
         </div>
       </div>

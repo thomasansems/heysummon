@@ -10,9 +10,11 @@ import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
 import { sendMessage, sendMessageWithButtons } from "@/lib/adapters/telegram";
-import { sendMessage as sendSlackMessage } from "@/lib/adapters/slack";
+import { sendMessage as sendSlackMessage, sendMessageWithBlocks as sendSlackBlocks } from "@/lib/adapters/slack";
+import { sendNotification, sendNotificationWithActions } from "@/lib/adapters/openclaw";
+import { getPublicBaseUrl } from "@/lib/public-url";
 import { escapeSlack } from "@/lib/channels/slack";
-import type { TelegramConfig, SlackConfig } from "@/lib/adapters/types";
+import type { TelegramConfig, SlackConfig, OpenClawConfig } from "@/lib/adapters/types";
 import { getPhoneFirstConfig, initiateProviderCall } from "@/lib/adapters/twilio-voice";
 
 /**
@@ -384,9 +386,17 @@ export async function POST(request: Request) {
         if (!cfg.channelId || !cfg.botToken) return;
 
         const questionPreview = question ? `\n\n*Question:* ${escapeSlack(question.slice(0, 500))}${question.length > 500 ? "..." : ""}` : "";
-        const msg = `*New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`reply ${helpRequest.refCode} your answer\``;
 
-        await sendSlackMessage(cfg.botToken, cfg.channelId, msg);
+        if (helpRequest.requiresApproval) {
+          const msg = `*Approval required* \`${helpRequest.refCode}\`${questionPreview}`;
+          await sendSlackBlocks(cfg.botToken, cfg.channelId, msg, [
+            { text: "Approve", action_id: "approve_request", value: helpRequest.id, style: "primary" },
+            { text: "Deny", action_id: "deny_request", value: helpRequest.id, style: "danger" },
+          ]);
+        } else {
+          const msg = `*New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`reply ${helpRequest.refCode} your answer\``;
+          await sendSlackMessage(cfg.botToken, cfg.channelId, msg);
+        }
         // Mark as notified (if not already set by Telegram)
         await prisma.helpRequest.update({
           where: { id: helpRequest.id },
@@ -394,6 +404,58 @@ export async function POST(request: Request) {
         }).catch(() => {});
       }).catch((err) => {
         console.error("[help/route] Slack notify failed:", err);
+      });
+
+      // Also try OpenClaw notification (fire-and-forget, non-blocking)
+      prisma.channelProvider.findFirst({
+        where: {
+          profileId: { in: providerProfiles.map(p => p.id) },
+          type: "openclaw",
+          isActive: true,
+          status: "connected",
+        },
+      }).then(async (openclawChannel) => {
+        if (!openclawChannel) return;
+        const cfg = JSON.parse(openclawChannel.config) as OpenClawConfig & { webhookSecret?: string };
+        if (!cfg.webhookUrl || !cfg.apiKey) return;
+
+        const questionPreview = question ? `\n\nQuestion: ${question.slice(0, 500)}${question.length > 500 ? "..." : ""}` : "";
+        const baseUrl = getPublicBaseUrl();
+        const callbackUrl = `${baseUrl}/api/adapters/openclaw/${openclawChannel.id}/webhook`;
+
+        if (helpRequest.requiresApproval) {
+          await sendNotificationWithActions(
+            cfg.webhookUrl,
+            cfg.apiKey,
+            cfg.webhookSecret ?? "",
+            callbackUrl,
+            {
+              requestId: helpRequest.id,
+              refCode: helpRequest.refCode ?? "",
+              message: `Approval required ${helpRequest.refCode}${questionPreview}`,
+            },
+          );
+        } else {
+          await sendNotification(
+            cfg.webhookUrl,
+            cfg.apiKey,
+            cfg.webhookSecret ?? "",
+            {
+              type: "help_request",
+              requestId: helpRequest.id,
+              refCode: helpRequest.refCode,
+              message: `New help request ${helpRequest.refCode}${questionPreview}`,
+              callbackUrl,
+            },
+          );
+        }
+        // Mark as notified (if not already set by Telegram/Slack)
+        await prisma.helpRequest.update({
+          where: { id: helpRequest.id },
+          data: { notifiedProviderAt: new Date() },
+        }).catch(() => {});
+      }).catch((err) => {
+        console.error("[help/route] OpenClaw notify failed:", err);
       });
     }
 

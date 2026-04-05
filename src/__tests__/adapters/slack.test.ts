@@ -1,6 +1,10 @@
-import { describe, it, expect } from "vitest";
-import { slackAdapter } from "@/lib/adapters/slack";
-import { verifySlackSignature } from "@/lib/adapters/slack";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import {
+  slackAdapter,
+  verifySlackSignature,
+  sendMessageWithBlocks,
+  updateMessage,
+} from "@/lib/adapters/slack";
 import crypto from "node:crypto";
 
 describe("Slack Adapter", () => {
@@ -155,6 +159,116 @@ describe("Slack Adapter", () => {
     it("rejects wrong signing secret", () => {
       const sig = computeSignature("wrong_secret", timestamp, body);
       expect(verifySlackSignature(signingSecret, timestamp, body, sig)).toBe(false);
+    });
+  });
+
+  describe("sendMessageWithBlocks", () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it("sends Block Kit message with approval buttons", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+      });
+
+      await sendMessageWithBlocks("xoxb-token", "C123", "Approval required `HS-ABC1`", [
+        { text: "Approve", action_id: "approve_request", value: "req-1", style: "primary" },
+        { text: "Deny", action_id: "deny_request", value: "req-1", style: "danger" },
+      ]);
+
+      expect(global.fetch).toHaveBeenCalledOnce();
+      const [url, opts] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(url).toBe("https://slack.com/api/chat.postMessage");
+      const body = JSON.parse(opts.body);
+      expect(body.channel).toBe("C123");
+      expect(body.text).toBe("Approval required `HS-ABC1`");
+      expect(body.blocks).toHaveLength(2);
+      expect(body.blocks[0].type).toBe("section");
+      expect(body.blocks[0].text.text).toBe("Approval required `HS-ABC1`");
+      expect(body.blocks[1].type).toBe("actions");
+      expect(body.blocks[1].elements).toHaveLength(2);
+      expect(body.blocks[1].elements[0]).toEqual({
+        type: "button",
+        text: { type: "plain_text", text: "Approve" },
+        action_id: "approve_request",
+        value: "req-1",
+        style: "primary",
+      });
+      expect(body.blocks[1].elements[1]).toEqual({
+        type: "button",
+        text: { type: "plain_text", text: "Deny" },
+        action_id: "deny_request",
+        value: "req-1",
+        style: "danger",
+      });
+    });
+
+    it("omits style when not provided", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+      });
+
+      await sendMessageWithBlocks("xoxb-token", "C123", "Test", [
+        { text: "OK", action_id: "test_action", value: "val-1" },
+      ]);
+
+      const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+      expect(body.blocks[1].elements[0]).not.toHaveProperty("style");
+    });
+
+    it("throws on API failure", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: false, error: "channel_not_found" }),
+      });
+
+      await expect(
+        sendMessageWithBlocks("xoxb-token", "C999", "test", [
+          { text: "OK", action_id: "test", value: "v" },
+        ]),
+      ).rejects.toThrow("Failed to send Slack Block Kit message");
+    });
+  });
+
+  describe("updateMessage", () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it("updates message text and clears blocks", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+      });
+
+      await updateMessage("xoxb-token", "C123", "1234567890.123456", "Decision: Approved");
+
+      expect(global.fetch).toHaveBeenCalledOnce();
+      const [url, opts] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(url).toBe("https://slack.com/api/chat.update");
+      const body = JSON.parse(opts.body);
+      expect(body.channel).toBe("C123");
+      expect(body.ts).toBe("1234567890.123456");
+      expect(body.text).toBe("Decision: Approved");
+      expect(body.blocks).toEqual([]);
+    });
+
+    it("throws on API failure", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: false, error: "message_not_found" }),
+      });
+
+      await expect(
+        updateMessage("xoxb-token", "C123", "123.456", "text"),
+      ).rejects.toThrow("Failed to update Slack message");
     });
   });
 });

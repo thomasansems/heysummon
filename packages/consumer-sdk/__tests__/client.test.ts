@@ -480,6 +480,78 @@ describe("HeySummonClient — E2E encryption", () => {
       expect(result.messages[1].plaintext).toBe("Open message");
     });
 
+    it("decrypts mixed thread with both consumer and provider encrypted messages", async () => {
+      const c = client({ e2e: false });
+      // Inject known consumer keys into the private keyStore for deterministic test
+      (c as Record<string, unknown>)["keyStore"] = new Map([["req-e2e", consumer]]);
+
+      const { publicKeyFromHex: pubFromHex } = await import("../src/crypto.js");
+      const consumerEncPub = pubFromHex(consumer.encryptPublicKey, "x25519");
+      const providerEncPub = pubFromHex(provider.encryptPublicKey, "x25519");
+
+      // Provider encrypts targeting consumer: DH(providerEncPriv, consumerEncPub)
+      const providerMsg = encryptWithKeys(
+        "Message from provider",
+        consumerEncPub,
+        provider.signKeyPair.privateKey,
+        provider.encryptKeyPair.privateKey,
+        "msgid-prov-1"
+      );
+
+      // Consumer encrypts targeting provider: DH(consumerEncPriv, providerEncPub)
+      const consumerMsg = encryptWithKeys(
+        "Message from consumer",
+        providerEncPub,
+        consumer.signKeyPair.privateKey,
+        consumer.encryptKeyPair.privateKey,
+        "msgid-cons-1"
+      );
+
+      server.use(
+        http.get(`${BASE}/api/v1/messages/req-e2e`, () =>
+          HttpResponse.json({
+            requestId: "req-e2e",
+            refCode: "HS-E2E",
+            status: "active",
+            consumerSignPubKey: consumer.signPublicKey,
+            consumerEncryptPubKey: consumer.encryptPublicKey,
+            providerSignPubKey: provider.signPublicKey,
+            providerEncryptPubKey: provider.encryptPublicKey,
+            messages: [
+              {
+                id: "m-from-provider",
+                from: "provider",
+                ciphertext: providerMsg.ciphertext,
+                iv: providerMsg.iv,
+                authTag: providerMsg.authTag,
+                signature: providerMsg.signature,
+                messageId: providerMsg.messageId,
+                createdAt: "2026-04-04T12:00:00Z",
+              },
+              {
+                id: "m-from-consumer",
+                from: "consumer",
+                ciphertext: consumerMsg.ciphertext,
+                iv: consumerMsg.iv,
+                authTag: consumerMsg.authTag,
+                signature: consumerMsg.signature,
+                messageId: consumerMsg.messageId,
+                createdAt: "2026-04-04T12:01:00Z",
+              },
+            ],
+            expiresAt: new Date().toISOString(),
+          })
+        )
+      );
+
+      const result = await c.getMessages("req-e2e");
+      expect(result.messages).toHaveLength(2);
+      expect(result.messages[0].plaintext).toBe("Message from provider");
+      expect(result.messages[0].ciphertext).toBeUndefined();
+      expect(result.messages[1].plaintext).toBe("Message from consumer");
+      expect(result.messages[1].ciphertext).toBeUndefined();
+    });
+
     it("decrypt failure sets decryptError: true", async () => {
       // Submit to populate keyStore
       mockSubmit();

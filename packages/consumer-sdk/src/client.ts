@@ -159,9 +159,10 @@ export class HeySummonClient {
 
       // Auto-decrypt with stored keys
       try {
-        const senderEncPub = msg.from === "provider"
-          ? publicKeyFromHex(res.providerEncryptPubKey!, "x25519")
-          : publicKeyFromHex(res.consumerEncryptPubKey!, "x25519");
+        // Always use provider's key for DH shared secret — DH is symmetric:
+        // DH(consumer_priv, provider_pub) = DH(provider_priv, consumer_pub)
+        const senderEncPub = publicKeyFromHex(res.providerEncryptPubKey!, "x25519");
+        // Only vary the signing key for signature verification
         const senderSignPub = msg.from === "provider"
           ? publicKeyFromHex(res.providerSignPubKey!, "ed25519")
           : publicKeyFromHex(res.consumerSignPubKey!, "ed25519");

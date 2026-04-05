@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 
-const VALID_ROLES = ["admin", "provider", "readonly"];
+const VALID_ROLES = ["admin", "expert", "readonly"];
 
 export async function PUT(
   request: NextRequest,

@@ -32,10 +32,10 @@ pass "Request submitted: $REQUEST_ID"
 curl -s -X POST "${BASE_URL}/api/v1/message/${REQUEST_ID}" \
   "${E2E_BYPASS_ARGS[@]}" \
   -H "Content-Type: application/json" \
-  -H "x-api-key: ${PROVIDER_KEY}" \
-  -d '{"from": "provider", "plaintext": "Rating test response"}' > /dev/null
+  -H "x-api-key: ${EXPERT_KEY}" \
+  -d '{"from": "expert", "plaintext": "Rating test response"}' > /dev/null
 
-pass "Provider responded"
+pass "Expert responded"
 
 # ── Rate the response (valid: 1-5) ──
 section "Rate response (valid)"
@@ -110,8 +110,8 @@ INVALID_ID=$(echo "$INVALID_SUBMIT" | jq -r '.requestId // empty')
 curl -s -X POST "${BASE_URL}/api/v1/message/${INVALID_ID}" \
   "${E2E_BYPASS_ARGS[@]}" \
   -H "Content-Type: application/json" \
-  -H "x-api-key: ${PROVIDER_KEY}" \
-  -d '{"from": "provider", "plaintext": "For invalid rating test"}' > /dev/null
+  -H "x-api-key: ${EXPERT_KEY}" \
+  -d '{"from": "expert", "plaintext": "For invalid rating test"}' > /dev/null
 
 # Rating 0 (below minimum)
 RATE_ZERO_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${BASE_URL}/api/v1/rate/${INVALID_ID}" \

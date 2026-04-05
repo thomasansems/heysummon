@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: NextRequest) {
   const statusFilter = request.nextUrl.searchParams.get("status") ?? undefined;
 
-  // Support API key auth for provider polling
+  // Support API key auth for expert polling
   const apiKey = request.headers.get("x-api-key");
   let userId: string | null = null;
 
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       clientTimedOutAt: true,
       contentFlags: true,
       guardVerified: true,
-      apiKey: { select: { name: true, provider: { select: { name: true } } } },
+      apiKey: { select: { name: true, expert: { select: { name: true } } } },
       _count: { select: { messageHistory: true } },
       messageHistory: {
         select: { from: true },
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     approvalDecision: r.approvalDecision || null,
     messageCount: r._count.messageHistory,
     inbound: r.messageHistory.filter((m) => m.from === "consumer").length,
-    outbound: r.messageHistory.filter((m) => m.from === "provider").length,
+    outbound: r.messageHistory.filter((m) => m.from === "expert").length,
     createdAt: r.createdAt,
     deliveredAt: r.deliveredAt,
     deliveryStatus: r.deliveryStatus,

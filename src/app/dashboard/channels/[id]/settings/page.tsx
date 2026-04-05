@@ -184,9 +184,9 @@ export default function ChannelSettingsPage() {
               </div>
               <div>
                 <span className="text-xs text-muted-foreground">Chat Binding</span>
-                {config.providerChatId ? (
+                {config.expertChatId ? (
                   <p className="text-sm text-green-600">
-                    Connected (chat {String(config.providerChatId).slice(0, 6)}...)
+                    Connected (chat {String(config.expertChatId).slice(0, 6)}...)
                   </p>
                 ) : (
                   <p className="text-sm text-amber-600">Not connected yet</p>
@@ -215,7 +215,7 @@ export default function ChannelSettingsPage() {
                 ) : (
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      {config.providerChatId
+                      {config.expertChatId
                         ? "Chat is already bound. Regenerate to re-pair with a different Telegram account."
                         : "Generate a setup link to bind your Telegram account."}
                     </p>
@@ -224,7 +224,7 @@ export default function ChannelSettingsPage() {
                       disabled={regenerating}
                       className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                     >
-                      {regenerating ? "Generating..." : config.providerChatId ? "Regenerate Setup Link" : "Generate Setup Link"}
+                      {regenerating ? "Generating..." : config.expertChatId ? "Regenerate Setup Link" : "Generate Setup Link"}
                     </button>
                   </div>
                 )}

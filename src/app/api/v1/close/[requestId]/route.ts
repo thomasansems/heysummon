@@ -8,7 +8,7 @@ import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
  * POST /api/v1/close/:requestId — Close a conversation
  *
  * Authentication: x-api-key header required.
- * Either party (consumer or provider) can close the conversation.
+ * Either party (consumer or expert) can close the conversation.
  *
  * Returns: { success: true, closedAt }
  */

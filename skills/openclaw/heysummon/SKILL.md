@@ -8,19 +8,19 @@ When you need human input, approval, or are stuck on something that requires hum
 bash {baseDir}/scripts/setup.sh
 ```
 
-Prompts for your HeySummon base URL and API key, validates the key, and registers the provider.
+Prompts for your HeySummon base URL and API key, validates the key, and registers the expert.
 
 ## How to ask
 
 ```bash
-# Ask a specific provider (recommended)
-bash {baseDir}/scripts/ask.sh "Your question here" "" "ProviderName"
+# Ask a specific expert (recommended)
+bash {baseDir}/scripts/ask.sh "Your question here" "" "ExpertName"
 
-# Ask without specifying a provider (uses default)
+# Ask without specifying an expert (uses default)
 bash {baseDir}/scripts/ask.sh "Your question here"
 
 # Ask with context messages
-bash {baseDir}/scripts/ask.sh "Is this the right approach?" '[{"role":"user","content":"context"}]' "ProviderName"
+bash {baseDir}/scripts/ask.sh "Is this the right approach?" '[{"role":"user","content":"context"}]' "ExpertName"
 ```
 
 The script **blocks and returns the human's answer** on stdout.
@@ -28,11 +28,11 @@ The script **blocks and returns the human's answer** on stdout.
 ## Other commands
 
 ```bash
-# Add a provider
-bash {baseDir}/scripts/add-provider.sh "hs_cli_key" "FriendlyName"
+# Add an expert
+bash {baseDir}/scripts/add-expert.sh "hs_cli_key" "FriendlyName"
 
-# List registered providers
-bash {baseDir}/scripts/list-providers.sh
+# List registered experts
+bash {baseDir}/scripts/list-experts.sh
 
 # Check request status
 bash {baseDir}/scripts/check-status.sh <refCode|requestId>
@@ -40,13 +40,13 @@ bash {baseDir}/scripts/check-status.sh <refCode|requestId>
 
 ## Handling responses
 
-- **Normal response**: The provider's answer is returned on stdout. Use it to continue your work.
-- **Provider unavailable**: The request is rejected and you are told when the provider will be available again. You can ask again at that time.
+- **Normal response**: The expert's answer is returned on stdout. Use it to continue your work.
+- **Expert unavailable**: The request is rejected and you are told when the expert will be available again. You can ask again at that time.
 - **`TIMEOUT`**: No response within 15 minutes. The request remains visible on the HeySummon dashboard. You can ask again if needed.
 
 ## When to summon
 
-If `HEYSUMMON_SUMMON_CONTEXT` is set in your environment, follow those guidelines to decide when to summon the provider. The provider wrote these instructions specifically for you.
+If `HEYSUMMON_SUMMON_CONTEXT` is set in your environment, follow those guidelines to decide when to summon the expert. The expert wrote these instructions specifically for you.
 
 If no summoning context is configured, use these defaults:
 - Summon when you are **stuck** and cannot proceed without human input

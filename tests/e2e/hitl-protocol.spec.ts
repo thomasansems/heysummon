@@ -11,7 +11,7 @@ import { test, expect } from "@playwright/test";
 import { apiGet, apiPost, apiRaw } from "./helpers/api";
 import { PW } from "./helpers/constants";
 
-const PROVIDER_HEADERS = { "x-api-key": PW.PROVIDER_KEY };
+const EXPERT_HEADERS = { "x-api-key": PW.EXPERT_KEY };
 
 const CHANNEL_COMBOS = [
   { name: "OC→OC", consumerKey: PW.OC_OPENCLAW_KEY },
@@ -42,10 +42,10 @@ for (const { name, consumerKey } of CHANNEL_COMBOS) {
       requestId = data.requestId;
     });
 
-    test("2. Provider sees request in events/pending", async () => {
+    test("2. Expert sees request in events/pending", async () => {
       const data = await apiGet<{
         events: Array<{ type: string; requestId: string; escalated?: boolean }>;
-      }>("/api/v1/events/pending", PROVIDER_HEADERS);
+      }>("/api/v1/events/pending", EXPERT_HEADERS);
 
       const match = data.events.find((e) => e.requestId === requestId);
       expect(match).toBeTruthy();
@@ -54,11 +54,11 @@ for (const { name, consumerKey } of CHANNEL_COMBOS) {
       expect(match?.escalated).toBe(false);
     });
 
-    test("3. Provider responds → status becomes responded", async () => {
+    test("3. Expert responds -> status becomes responded", async () => {
       const data = await apiPost<{ success: boolean }>(
         `/api/v1/message/${requestId}`,
-        { from: "provider", plaintext: `HITL response (${name})` },
-        PROVIDER_HEADERS
+        { from: "expert", plaintext: `HITL response (${name})` },
+        EXPERT_HEADERS
       );
       expect(data.success).toBe(true);
 

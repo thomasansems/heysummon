@@ -5,15 +5,15 @@ import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 
 /**
  * GET /api/v1/whoami — Get info about a client API key
- * 
- * Returns the provider name and basic info linked to this key.
+ *
+ * Returns the expert name and basic info linked to this key.
  * Header: x-api-key (client key, htl_...)
  * Header: X-Device-Token (device secret, if key has device binding)
  */
 export async function GET(request: Request) {
   try {
     const result = await validateApiKeyRequest(request, {
-      include: { provider: true, user: true },
+      include: { expert: true, user: true },
     });
     if (!result.ok) return result.response;
     const key = result.apiKey;
@@ -21,14 +21,14 @@ export async function GET(request: Request) {
     return NextResponse.json({
       keyId: key.id,
       keyName: key.name,
-      provider: key.provider
+      expert: key.expert
         ? {
-            id: key.provider.id,
-            name: key.provider.name,
-            isActive: key.provider.isActive,
+            id: key.expert.id,
+            name: key.expert.name,
+            isActive: key.expert.isActive,
           }
         : null,
-      expert: {
+      owner: {
         id: key.user.id,
         name: key.user.name,
       },

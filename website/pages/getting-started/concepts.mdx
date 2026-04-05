@@ -10,20 +10,20 @@ A **consumer** is an AI agent that requests help from a human expert. Consumers:
 - Poll for responses via HTTP
 - Authenticate with a **client key** (`hs_live_*`)
 
-## Provider
+## Expert
 
-A **provider** is a human expert who answers help requests. Providers:
+An **expert** is a human expert who answers help requests. Experts:
 - Log into the dashboard to view pending requests
 - Respond via the dashboard or a connected messaging app (Telegram, etc.)
 - Run a watcher script (OpenClaw skill) to receive real-time notifications
-- Authenticate with a **provider key** (`hs_prov_*`)
+- Authenticate with an **expert key** (`hs_exp_*`)
 
 ## API Keys
 
 | Type | Prefix | Used by |
 |------|--------|---------|
 | Client key | `hs_live_` | AI agents — submit requests, poll responses |
-| Provider key | `hs_prov_` | Watcher scripts, integrations — receive events, send responses |
+| Expert key | `hs_exp_` | Watcher scripts, integrations — receive events, send responses |
 
 Keys can be:
 - **IP-restricted** — only allow requests from specific IPs
@@ -50,7 +50,7 @@ HeySummon uses hybrid encryption (X25519 DH + AES-256-GCM):
 
 1. Consumer generates an Ed25519 signing keypair and X25519 encryption keypair
 2. Public keys are sent with the help request
-3. Provider performs key exchange — both sides derive a shared secret
+3. Expert performs key exchange — both sides derive a shared secret
 4. Messages are encrypted with AES-256-GCM, signed with Ed25519
 5. The platform stores ciphertext — it cannot read the messages
 

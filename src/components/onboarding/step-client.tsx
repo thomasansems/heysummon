@@ -33,8 +33,8 @@ const PLATFORM_META: Record<string, { label: string; skillDir: string }> = {
 type Phase = "channel" | "details" | "creating" | "connecting";
 
 interface StepClientProps {
-  providerId: string;
-  providerName: string;
+  expertId: string;
+  expertName: string;
   baseUrl: string;
   onComplete: (data: {
     keyId: string;
@@ -46,8 +46,8 @@ interface StepClientProps {
 }
 
 export function StepClient({
-  providerId,
-  providerName,
+  expertId,
+  expertName,
   baseUrl,
   onComplete,
 }: StepClientProps) {
@@ -78,13 +78,13 @@ export function StepClient({
     timeoutMs: 120_000,
   });
 
-  // Fetch recently used contexts from provider
+  // Fetch recently used contexts from expert
   useEffect(() => {
     const fetchRecent = async () => {
-      const res = await fetch(`/api/providers/${providerId}`);
+      const res = await fetch(`/api/experts/${expertId}`);
       if (!res.ok) return;
       const data = await res.json();
-      const raw = data.provider?.recentSummonContexts;
+      const raw = data.expert?.recentSummonContexts;
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
@@ -95,7 +95,7 @@ export function StepClient({
       }
     };
     fetchRecent();
-  }, [providerId]);
+  }, [expertId]);
 
   // Auto-advance when connected
   useEffect(() => {
@@ -124,7 +124,7 @@ export function StepClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name || undefined,
-          providerId,
+          expertId,
           scope: "full",
           rateLimitPerMinute: 150,
           clientChannel: channel,
@@ -182,7 +182,7 @@ export function StepClient({
     isSkillBased && apiKey
       ? `npm install -g @heysummon/consumer-sdk && \\
 mkdir -p ${skillDir}/scripts && \\
-for f in ask.sh sdk.sh setup.sh add-provider.sh list-providers.sh check-status.sh; do \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
   curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=$f" \\
     -o ${skillDir}/scripts/$f && chmod +x ${skillDir}/scripts/$f; \\
 done && \\
@@ -212,7 +212,7 @@ echo "Connected and device bound successfully."`
         Connect a Client
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        Choose an AI assistant platform and connect it to your provider.
+        Choose an AI assistant platform and connect it to your expert.
       </p>
 
       {/* Phase: Channel selection */}
@@ -256,10 +256,10 @@ echo "Connected and device bound successfully."`
 
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Provider
+              Expert
             </label>
             <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
-              <span className="text-sm text-foreground">{providerName}</span>
+              <span className="text-sm text-foreground">{expertName}</span>
               <span className="rounded-full bg-green-100 dark:bg-green-950/40 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
                 Connected
               </span>

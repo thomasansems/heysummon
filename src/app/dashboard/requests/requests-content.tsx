@@ -43,7 +43,7 @@ interface HelpRequest {
   phoneCallStatus: string | null;
   phoneCallAt: string | null;
   clientTimedOutAt: string | null;
-  apiKey: { name: string | null; provider: { name: string } | null };
+  apiKey: { name: string | null; expert: { name: string } | null };
 }
 
 const FILTERS = [
@@ -176,7 +176,7 @@ interface MissedRequest {
   createdAt: string;
   clientName: string;
   clientChannel: string | null;
-  providerName: string;
+  expertName: string;
 }
 
 export default function RequestsContent() {
@@ -187,7 +187,7 @@ export default function RequestsContent() {
   const [missedLoading, setMissedLoading] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string | null>(searchParams.get("client"));
-  const [providerFilter, setProviderFilter] = useState<string | null>(null);
+  const [expertFilter, setExpertFilter] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<string>("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -243,15 +243,15 @@ export default function RequestsContent() {
     return Array.from(set).sort();
   }, [requests]);
 
-  const uniqueProviders = useMemo(() => {
-    const set = new Set(requests.map((r) => r.apiKey.provider?.name).filter(Boolean) as string[]);
+  const uniqueExperts = useMemo(() => {
+    const set = new Set(requests.map((r) => r.apiKey.expert?.name).filter(Boolean) as string[]);
     return Array.from(set).sort();
   }, [requests]);
 
   const filtered = requests.filter((r) => {
     if (filter !== "all" && r.status !== filter) return false;
     if (clientFilter && (r.apiKey.name || "Unnamed") !== clientFilter && r.apiKey.name !== clientFilter) return false;
-    if (providerFilter && r.apiKey.provider?.name !== providerFilter) return false;
+    if (expertFilter && r.apiKey.expert?.name !== expertFilter) return false;
     if (timeFilter !== "all") {
       const now = Date.now();
       const created = new Date(r.createdAt).getTime();
@@ -297,14 +297,14 @@ export default function RequestsContent() {
           ))}
         </select>
 
-        {uniqueProviders.length > 0 && (
+        {uniqueExperts.length > 0 && (
           <select
-            value={providerFilter || ""}
-            onChange={(e) => setProviderFilter(e.target.value || null)}
+            value={expertFilter || ""}
+            onChange={(e) => setExpertFilter(e.target.value || null)}
             className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
           >
-            <option value="">All providers</option>
-            {uniqueProviders.map((p) => (
+            <option value="">All experts</option>
+            {uniqueExperts.map((p) => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
@@ -599,7 +599,7 @@ export default function RequestsContent() {
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="inline-flex items-center gap-0.5" title="Inbound (consumer)"><ArrowDownLeft className="h-3 w-3 text-blue-500" />{req.inbound}</span>
-                          <span className="inline-flex items-center gap-0.5" title="Outbound (provider)"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>
+                          <span className="inline-flex items-center gap-0.5" title="Outbound (expert)"><ArrowUpRight className="h-3 w-3 text-green-500" />{req.outbound}</span>
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">

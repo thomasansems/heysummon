@@ -1,0 +1,61 @@
+import { Callout } from 'nextra/components'
+
+# Dashboard
+
+The HeySummon dashboard is the main interface for experts to manage requests, users, and keys.
+
+---
+
+## Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| **Requests** | `/dashboard` | All incoming help requests |
+| **Users** | `/dashboard/experts` | Manage expert profiles + IP Security |
+| **Clients** | `/dashboard/clients` | Manage client keys + IP Security |
+| **API Keys** | `/dashboard/keys` | All API keys |
+| **Audit Logs** | `/dashboard/audit-logs` | Full action history |
+| **Settings** | `/dashboard/settings` | Account and instance settings |
+
+---
+
+## Requests list
+
+The main page shows all requests sorted by status and time:
+
+- **Pending** — waiting for a response (highlighted)
+- **Reviewing** — someone has opened this request
+- **Responded** — answered
+- **Expired / Closed** — no longer active
+
+Click any request to view the decrypted content and respond.
+
+---
+
+## Users page (Experts)
+
+The **Users** page lets you manage expert profiles. Each user can have:
+- An expert key (`hs_exp_*`)
+- IP bindings — visible inline with Allow/Blacklist/Remove actions
+- An active/inactive status
+- **Summoning context** is configured per-client during client setup (not on the expert profile). Recently used contexts are remembered for quick reuse.
+
+---
+
+## Clients page
+
+The **Clients** page lets you manage client API keys. Features are identical to the Users page — IP Security is shown inline per client.
+
+---
+
+## Stats
+
+The dashboard homepage shows real-time stats:
+- Total requests
+- Pending / Responded / Expired counts
+- Average response time
+- Active connections
+
+<Callout type="info">
+  Stats are calculated live from the database — no caching. Refresh to get the latest counts.
+</Callout>

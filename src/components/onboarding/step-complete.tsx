@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 interface StepCompleteProps {
-  providerName: string;
+  expertName: string;
   clientName: string;
 }
 
-export function StepComplete({ providerName, clientName }: StepCompleteProps) {
+export function StepComplete({ expertName, clientName }: StepCompleteProps) {
   const router = useRouter();
   const [completing, setCompleting] = useState(true);
 
@@ -41,7 +41,7 @@ export function StepComplete({ providerName, clientName }: StepCompleteProps) {
           </span>
           <div>
             <p className="text-sm font-medium text-foreground">
-              Provider: {providerName}
+              Expert: {expertName}
             </p>
             <p className="text-xs text-muted-foreground">Connected and verified</p>
           </div>
@@ -68,8 +68,8 @@ export function StepComplete({ providerName, clientName }: StepCompleteProps) {
       </button>
 
       <div className="mt-4 flex justify-center gap-4 text-xs text-muted-foreground">
-        <Link href="/dashboard/providers" className="hover:text-foreground">
-          Manage Providers
+        <Link href="/dashboard/experts" className="hover:text-foreground">
+          Manage Experts
         </Link>
         <span>·</span>
         <Link href="/dashboard/clients" className="hover:text-foreground">

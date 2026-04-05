@@ -11,9 +11,9 @@ The product is currently **self-hosted only** — there is no managed cloud offe
 **Key concepts:**
 
 - **Consumer** — AI agent or app requesting help (authenticates via API key)
-- **Provider** — Human expert who reviews and responds to requests
+- **Expert** — Human expert who reviews and responds to requests
 - **HelpRequest** — Encrypted request with lifecycle: pending -> active -> closed/expired
-- **Channel** — Notification channel (Telegram, Slack) for alerting providers
+- **Channel** — Notification channel (Telegram, Slack) for alerting experts
 - **Guard** — Ed25519 request-signing reverse proxy (entry point)
 
 ## Tech Stack
@@ -35,9 +35,9 @@ src/
 │   ├── api/v1/         # Consumer-facing API (help, messages, events, keys)
 │   ├── api/adapters/   # Webhook adapters (Telegram, Slack)
 │   ├── api/admin/      # Admin operations
-│   ├── dashboard/      # Provider dashboard (requests, clients, channels)
+│   ├── dashboard/      # Expert dashboard (requests, clients, channels)
 │   ├── auth/           # Login, signup, verify
-│   └── onboarding/     # First-time provider setup
+│   └── onboarding/     # First-time expert setup
 ├── components/
 │   ├── ui/             # shadcn/ui components
 │   ├── dashboard/      # Dashboard-specific components
@@ -81,7 +81,7 @@ contains legacy markdown files kept for reference — do not treat it as the liv
 - API endpoints changed -> update `/website/pages/reference/api.mdx`
 - CLI, Docker, or NPX installer changed -> update `/website/pages/self-hosting/`
 - Auth, keys, or encryption changed -> update `/website/pages/security/`
-- Dashboard, Telegram, or events changed -> update `/website/pages/provider/`
+- Dashboard, Telegram, or events changed -> update `/website/pages/expert/`
 - New top-level feature -> create page in appropriate section, add to `_meta.js`
 
 ### Changelog

@@ -18,7 +18,7 @@ export async function GET(
     where: {
       refCode,
       expert: {
-        providers: {
+        expertProfiles: {
           some: { key: apiKey },
         },
       },

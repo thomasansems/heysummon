@@ -24,24 +24,24 @@ function buildInstallCommand(opts: {
   timeout: number;
   pollInterval: number;
   globalInstall: boolean;
-  providerName: string;
+  expertName: string;
   summonContext?: string | null;
 }): string {
-  const { channel, skillDir, baseUrl, apiKey, timeout, pollInterval, globalInstall, providerName, summonContext } = opts;
-  const safeName = shellEscape(providerName);
+  const { channel, skillDir, baseUrl, apiKey, timeout, pollInterval, globalInstall, expertName, summonContext } = opts;
+  const safeName = shellEscape(expertName);
 
   if (channel === "openclaw") {
     const envPrefix = summonContext
       ? `HEYSUMMON_BASE_URL="${baseUrl}" HEYSUMMON_SUMMON_CONTEXT=${shellEscape(summonContext)} `
       : `HEYSUMMON_BASE_URL="${baseUrl}" `;
-    return `cd ~/clawd && ${envPrefix}bash skills/heysummon/scripts/add-provider.sh ${apiKey} ${safeName}`;
+    return `cd ~/clawd && ${envPrefix}bash skills/heysummon/scripts/add-expert.sh ${apiKey} ${safeName}`;
   }
 
   const npmFlag = globalInstall ? " -g" : "";
   const contextLine = summonContext ? `\nHEYSUMMON_SUMMON_CONTEXT=${summonContext}` : "";
   return `npm install${npmFlag} @heysummon/consumer-sdk && \\
 mkdir -p ${skillDir}/scripts && \\
-for f in ask.sh sdk.sh setup.sh add-provider.sh list-providers.sh check-status.sh; do \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
   curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=$f" \\
     -o ${skillDir}/scripts/$f && chmod +x ${skillDir}/scripts/$f; \\
 done && \\
@@ -77,7 +77,7 @@ export default async function SetupPage({
   const expired = new Date() > record.expiresAt;
   const channel = record.channel as ClientChannel;
   const meta = PLATFORM_META[channel] ?? PLATFORM_META.claudecode;
-  const providerName = record.providerName ?? "your provider";
+  const expertName = record.expertName ?? "your expert";
 
   const bound = !expired && !!(await prisma.ipEvent.findFirst({
     where: { apiKeyId: record.apiKeyId, status: "allowed" },
@@ -92,7 +92,7 @@ export default async function SetupPage({
     timeout: record.timeout,
     pollInterval: record.pollInterval,
     globalInstall: record.globalInstall,
-    providerName,
+    expertName,
     summonContext: record.summonContext,
   });
 
@@ -107,8 +107,8 @@ export default async function SetupPage({
             <h1 className="text-2xl font-bold text-white">HeySummon Setup</h1>
           </div>
           <p className="text-sm text-zinc-500">
-            Connect {meta.label} to provider{" "}
-            <span className="text-white font-medium">&quot;{providerName}&quot;</span>
+            Connect {meta.label} to expert{" "}
+            <span className="text-white font-medium">&quot;{expertName}&quot;</span>
           </p>
         </div>
 
@@ -117,7 +117,7 @@ export default async function SetupPage({
           <div className="rounded-lg border border-red-800/50 bg-red-950/20 p-6">
             <p className="text-red-400 font-semibold">This setup link has expired.</p>
             <p className="mt-2 text-sm text-zinc-500">
-              Setup links are valid for 24 hours. Ask your provider to generate a new one from the dashboard.
+              Setup links are valid for 24 hours. Ask your expert to generate a new one from the dashboard.
             </p>
           </div>
         )}
@@ -127,7 +127,7 @@ export default async function SetupPage({
           <div className="rounded-lg border border-green-800/50 bg-green-950/20 p-6">
             <p className="text-green-400 font-semibold">This client is already configured.</p>
             <p className="mt-2 text-sm text-zinc-500">
-              A device has been bound to this API key. If you need to reconfigure, ask your provider
+              A device has been bound to this API key. If you need to reconfigure, ask your expert
               to reset the IP bindings and generate a new setup link.
             </p>
           </div>
@@ -156,7 +156,7 @@ export default async function SetupPage({
             {/* Main install/register command */}
             <section>
               <h2 className="mb-3 text-lg font-semibold text-white">
-                {channel === "openclaw" ? "2. Register provider" : "1. Install the skill"}
+                {channel === "openclaw" ? "2. Register expert" : "1. Install the skill"}
               </h2>
               <p className="mb-3 text-sm text-zinc-400">
                 {channel === "openclaw"
@@ -198,15 +198,15 @@ export default async function SetupPage({
                 {channel === "openclaw" ? "3. Verify" : "2. Verify"}
               </h2>
               <p className="text-sm text-zinc-400">
-                After running the command, try asking your agent to summon {providerName}:
+                After running the command, try asking your agent to summon {expertName}:
               </p>
               <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
                 <p className="font-mono text-sm text-zinc-300 italic">
-                  &quot;Hey summon {providerName} to confirm this connection works&quot;
+                  &quot;Hey summon {expertName} to confirm this connection works&quot;
                 </p>
               </div>
               <p className="mt-3 text-xs text-zinc-600">
-                The first request automatically binds your device IP. Your provider will see the
+                The first request automatically binds your device IP. Your expert will see the
                 request on their dashboard.
               </p>
             </section>

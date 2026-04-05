@@ -1,12 +1,12 @@
 /**
- * Twilio Voice adapter for phone-first provider notifications.
+ * Twilio Voice adapter for phone-first expert notifications.
  *
  * Flow:
  *  1. Client submits a help request
- *  2. If provider has phoneFirst enabled, initiate a Twilio voice call
- *  3. Twilio calls the provider's phone number
+ *  2. If expert has phoneFirst enabled, initiate a Twilio voice call
+ *  3. Twilio calls the expert's phone number
  *  4. TwiML reads the question text via text-to-speech
- *  5. Provider responds verbally or presses keys to approve/deny
+ *  5. Expert responds verbally or presses keys to approve/deny
  *  6. Twilio sends the response back via status callback webhook
  *  7. If no answer / timeout → fall back to chat channel
  */
@@ -20,8 +20,8 @@ export interface TwilioVoiceSystemConfig {
   authToken: string;
 }
 
-export interface TwilioVoiceProviderConfig {
-  phoneNumber: string; // Provider's phone number to call (E.164 format)
+export interface TwilioVoiceExpertConfig {
+  phoneNumber: string; // Expert's phone number to call (E.164 format)
   twilioPhoneNumber: string; // Twilio phone number to call FROM (E.164 format)
   voiceLanguage?: string; // e.g. "en-US", "nl-NL"
 }
@@ -52,17 +52,17 @@ export function validateSystemConfig(
 }
 
 /**
- * Validate provider-level Twilio config (phone numbers).
+ * Validate expert-level Twilio config (phone numbers).
  */
-export function validateProviderConfig(
+export function validateExpertConfig(
   config: unknown
-): { valid: true; config: TwilioVoiceProviderConfig } | { valid: false; error: string } {
+): { valid: true; config: TwilioVoiceExpertConfig } | { valid: false; error: string } {
   if (!config || typeof config !== "object") {
     return { valid: false, error: "Config is required" };
   }
   const c = config as Record<string, unknown>;
   if (!c.phoneNumber || typeof c.phoneNumber !== "string") {
-    return { valid: false, error: "Provider phone number is required" };
+    return { valid: false, error: "Expert phone number is required" };
   }
   if (!c.twilioPhoneNumber || typeof c.twilioPhoneNumber !== "string") {
     return { valid: false, error: "Twilio phone number (FROM) is required" };
@@ -70,7 +70,7 @@ export function validateProviderConfig(
   // Basic E.164 validation
   const phoneRegex = /^\+[1-9]\d{6,14}$/;
   if (!phoneRegex.test(c.phoneNumber.trim())) {
-    return { valid: false, error: "Provider phone number must be in E.164 format (e.g. +31612345678)" };
+    return { valid: false, error: "Expert phone number must be in E.164 format (e.g. +31612345678)" };
   }
   if (!phoneRegex.test(c.twilioPhoneNumber.trim())) {
     return { valid: false, error: "Twilio phone number must be in E.164 format (e.g. +15551234567)" };
@@ -105,17 +105,17 @@ export async function verifyTwilioCredentials(
 }
 
 /**
- * Initiate a phone call to the provider for a help request.
+ * Initiate a phone call to the expert for a help request.
  *
  * Returns the Twilio Call SID or null if the call could not be placed.
  */
 const DEBUG = process.env.DEBUG === "true";
 
-export async function initiateProviderCall(
+export async function initiateExpertCall(
   requestId: string,
   questionText: string,
   systemConfig: TwilioVoiceSystemConfig,
-  providerConfig: TwilioVoiceProviderConfig,
+  expertConfig: TwilioVoiceExpertConfig,
   timeoutSeconds: number = 30
 ): Promise<{ callSid: string } | { error: string }> {
   try {
@@ -129,15 +129,15 @@ export async function initiateProviderCall(
 
     if (DEBUG) {
       console.log(`[twilio/initiate] requestId=${requestId}`);
-      console.log(`[twilio/initiate] to=${providerConfig.phoneNumber} from=${providerConfig.twilioPhoneNumber} timeout=${timeoutSeconds}s`);
+      console.log(`[twilio/initiate] to=${expertConfig.phoneNumber} from=${expertConfig.twilioPhoneNumber} timeout=${timeoutSeconds}s`);
       console.log(`[twilio/initiate] twimlUrl=${twimlUrl}`);
       console.log(`[twilio/initiate] statusCallback=${statusCallback}`);
       console.log(`[twilio/initiate] questionText="${questionText}"`);
     }
 
     const call = await client.calls.create({
-      to: providerConfig.phoneNumber,
-      from: providerConfig.twilioPhoneNumber,
+      to: expertConfig.phoneNumber,
+      from: expertConfig.twilioPhoneNumber,
       url: twimlUrl,
       statusCallback,
       statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
@@ -168,7 +168,7 @@ export async function initiateProviderCall(
 }
 
 /**
- * Generate TwiML for the provider call.
+ * Generate TwiML for the expert call.
  * Reads the question, then gathers speech/DTMF input.
  * Language is always en-US for consistent speech recognition and TTS.
  */
@@ -202,7 +202,7 @@ export function generateCallTwiml(
 }
 
 /**
- * Generate TwiML for after the provider gives a response.
+ * Generate TwiML for after the expert gives a response.
  */
 export function generateThankYouTwiml(): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -274,12 +274,12 @@ export function parseGatherResult(
 export async function getAuthTokenForHelpRequest(requestId: string): Promise<string | null> {
   const helpRequest = await prisma.helpRequest.findUnique({
     where: { id: requestId },
-    select: { apiKey: { select: { providerId: true } } },
+    select: { apiKey: { select: { expertId: true } } },
   });
 
-  if (!helpRequest?.apiKey?.providerId) return null;
+  if (!helpRequest?.apiKey?.expertId) return null;
 
-  const config = await getPhoneFirstConfig(helpRequest.apiKey.providerId);
+  const config = await getPhoneFirstConfig(helpRequest.apiKey.expertId);
   if (!config) return null;
 
   return config.systemConfig.authToken;
@@ -335,12 +335,12 @@ export function parseFormParams(formData: FormData): Record<string, string> {
 }
 
 /**
- * Look up the Twilio system config and provider config for a given provider profile.
+ * Look up the Twilio system config and expert config for a given expert profile.
  * Returns null if phone-first is not configured.
  */
 export async function getPhoneFirstConfig(profileId: string): Promise<{
   systemConfig: TwilioVoiceSystemConfig;
-  providerConfig: TwilioVoiceProviderConfig;
+  expertConfig: TwilioVoiceExpertConfig;
   timeout: number;
 } | null> {
   const profile = await prisma.userProfile.findUnique({
@@ -359,25 +359,25 @@ export async function getPhoneFirstConfig(profileId: string): Promise<{
     return null;
   }
 
-  // Find the matching provider integration config
-  const providerIntConfig = profile.integrationConfigs.find(
+  // Find the matching expert integration config
+  const expertIntConfig = profile.integrationConfigs.find(
     (c) => c.integrationId === profile.phoneFirstIntegrationId && c.isActive
   );
-  if (!providerIntConfig) return null;
+  if (!expertIntConfig) return null;
 
   // Get the system-level integration
-  const integration = providerIntConfig.integration;
+  const integration = expertIntConfig.integration;
   if (!integration.isActive || integration.category !== "voice") return null;
 
   const sysResult = validateSystemConfig(JSON.parse(integration.config));
   if (!sysResult.valid) return null;
 
-  const provResult = validateProviderConfig(JSON.parse(providerIntConfig.config));
-  if (!provResult.valid) return null;
+  const expResult = validateExpertConfig(JSON.parse(expertIntConfig.config));
+  if (!expResult.valid) return null;
 
   return {
     systemConfig: sysResult.config,
-    providerConfig: provResult.config,
+    expertConfig: expResult.config,
     timeout: profile.phoneFirstTimeout,
   };
 }

@@ -176,14 +176,14 @@ describe("gdpr", () => {
         id: "user-1",
         email: "test@example.com",
         name: "Test User",
-        role: "provider",
+        role: "expert",
         onboardingComplete: true,
         expertise: "testing",
         notificationPref: "email",
         createdAt: new Date("2026-01-01"),
         updatedAt: new Date("2026-01-02"),
         accounts: [],
-        providers: [],
+        expertProfiles: [],
         sessions: [],
         certificates: [],
         consents: [],
@@ -196,12 +196,12 @@ describe("gdpr", () => {
       const result = await exportUserData("user-1");
 
       expect(result).not.toBeNull();
-      expect(result!.gdprArticle).toBe("Art. 15 GDPR — Right of Access");
+      expect(result!.gdprArticle).toBe("Art. 15 GDPR \u2014 Right of Access");
       expect(result!.user.id).toBe("user-1");
       expect(result!.user.email).toBe("test@example.com");
       expect(result!.exportDate).toBeDefined();
       expect(result!.accounts).toEqual([]);
-      expect(result!.providers).toEqual([]);
+      expect(result!.expertProfiles).toEqual([]);
       expect(result!.requests).toEqual([]);
       expect(result!.auditLogs).toEqual([]);
     });
@@ -230,7 +230,7 @@ describe("gdpr", () => {
       const result = await deleteUserData("user-1");
 
       expect(result).not.toBeNull();
-      expect(result!.gdprArticle).toBe("Art. 17 GDPR — Right to Erasure");
+      expect(result!.gdprArticle).toBe("Art. 17 GDPR \u2014 Right to Erasure");
       expect(result!.summary).toEqual({
         helpRequests: 3,
         auditLogs: 10,

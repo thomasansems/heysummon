@@ -48,8 +48,8 @@ const mainNav = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
 ];
 
-const providerNav = [
-  { label: "Providers", href: "/dashboard/providers", icon: Users },
+const expertNav = [
+  { label: "Experts", href: "/dashboard/experts", icon: Users },
   { label: "Clients", href: "/dashboard/clients", icon: Building2 },
   { label: "Integrations", href: "/dashboard/integrations", icon: Plug },
 ];
@@ -155,7 +155,7 @@ export function AppSidebar() {
       {/* Nav */}
       <SidebarContent className="gap-0">
         <NavGroup items={mainNav} pathname={pathname} badges={pendingIpCount > 0 ? { "/dashboard": pendingIpCount } : undefined} />
-        <NavGroup items={providerNav} pathname={pathname} />
+        <NavGroup items={expertNav} pathname={pathname} />
         <NavGroup items={adminNav} pathname={pathname} />
       </SidebarContent>
 

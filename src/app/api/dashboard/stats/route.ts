@@ -14,12 +14,12 @@ export async function GET() {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  // Get provider profile IDs for missed request count
-  const providerProfiles = await prisma.userProfile.findMany({
+  // Get expert profile IDs for missed request count
+  const expertProfiles = await prisma.userProfile.findMany({
     where: { userId },
     select: { id: true },
   });
-  const profileIds = providerProfiles.map((p) => p.id);
+  const profileIds = expertProfiles.map((p) => p.id);
 
   const [total, open, resolvedCount, expiredCount, missedCount, recentRequests, prevRequests, topClientsRaw] = await Promise.all([
     prisma.helpRequest.count({ where: { expertId: userId } }),
@@ -27,7 +27,7 @@ export async function GET() {
     prisma.helpRequest.count({ where: { expertId: userId, status: "responded" } }),
     prisma.helpRequest.count({ where: { expertId: userId, status: "expired" } }),
     profileIds.length > 0
-      ? prisma.missedRequest.count({ where: { providerId: { in: profileIds } } })
+      ? prisma.missedRequest.count({ where: { expertId: { in: profileIds } } })
       : 0,
     // Last 7 days
     prisma.helpRequest.findMany({
@@ -134,7 +134,7 @@ export async function GET() {
     status: r.status,
     messageCount: r._count.messageHistory,
     inbound: r.messageHistory.filter((m) => m.from === "consumer").length,
-    outbound: r.messageHistory.filter((m) => m.from === "provider").length,
+    outbound: r.messageHistory.filter((m) => m.from === "expert").length,
     deliveredAt: r.deliveredAt,
     clientTimedOutAt: r.clientTimedOutAt,
     createdAt: r.createdAt,

@@ -66,9 +66,9 @@ describe("api-key-auth", () => {
       expect(redacted).toContain("\u2022".repeat(8));
     });
 
-    it("redacts a provider key", () => {
-      const redacted = redactKey("hs_prov_abcdef1234567890");
-      expect(redacted).toMatch(/^hs_prov_/);
+    it("redacts an expert key", () => {
+      const redacted = redactKey("hs_exp_abcdef1234567890");
+      expect(redacted).toMatch(/^hs_exp_/);
       expect(redacted).toMatch(/7890$/);
     });
 

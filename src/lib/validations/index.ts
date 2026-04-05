@@ -52,16 +52,16 @@ export const settingsUpdateSchema = z.object({
   telegramChatId: z.string().nullable().optional(),
 });
 
-// ── Provider schemas ──
+// ── Expert schemas ──
 
-export const providerCreateSchema = z.object({
+export const expertCreateSchema = z.object({
   name: z.string().min(1, "Name is required").max(100).regex(
     /^[a-zA-Z0-9 _\-'.]+$/,
     "Name may only contain letters, numbers, spaces, hyphens, underscores, apostrophes, and periods"
   ).transform((s) => s.trim()),
 });
 
-export const providerUpdateSchema = z.object({
+export const expertUpdateSchema = z.object({
   name: z.string().max(100).regex(
     /^[a-zA-Z0-9 _\-'.]+$/,
     "Name may only contain letters, numbers, spaces, hyphens, underscores, apostrophes, and periods"
@@ -85,7 +85,7 @@ export const apiKeyScopeEnum = z.enum(["full", "read", "write", "admin"]);
 
 export const keyCreateSchema = z.object({
   name: z.string().nullable().optional(),
-  providerId: z.string().optional(),
+  expertId: z.string().optional(),
   scope: apiKeyScopeEnum.optional(),
   allowedIps: z.string().nullable().optional(),
   rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
@@ -133,7 +133,7 @@ export const keyExchangeSchema = z.object({
 // ── V1 Message schema ──
 
 export const messageCreateSchema = z.object({
-  from: z.enum(["consumer", "provider"], { message: "from must be consumer or provider" }),
+  from: z.enum(["consumer", "expert"], { message: "from must be consumer or expert" }),
   plaintext: z.string().max(100_000).optional(),
   ciphertext: z.string().max(200_000).optional(),
   iv: z.string().max(512).optional(),

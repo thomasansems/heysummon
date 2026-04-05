@@ -15,7 +15,7 @@ const DEBUG = process.env.DEBUG === "true";
  * POST /api/integrations/twilio/voice/:requestId/twiml
  *
  * Twilio fetches this URL when the call connects.
- * Returns TwiML that reads the question and gathers the provider's response.
+ * Returns TwiML that reads the question and gathers the expert's response.
  */
 export async function POST(
   request: Request,

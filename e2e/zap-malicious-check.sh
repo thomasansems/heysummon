@@ -7,7 +7,7 @@ set -uo pipefail
 
 GUARD_URL="${GUARD_URL:-http://localhost:3457}"
 CLIENT_KEY="${E2E_CLIENT_KEY:?Set E2E_CLIENT_KEY}"
-PROVIDER_KEY="${E2E_PROVIDER_KEY:?Set E2E_PROVIDER_KEY}"
+EXPERT_KEY="${E2E_EXPERT_KEY:?Set E2E_EXPERT_KEY}"
 BASE_URL="${E2E_BASE_URL:-http://localhost:3000}"
 
 RED='\033[0;31m'
@@ -94,8 +94,8 @@ C=$(code_of "$R")
 section "6. /api/v1/message — malicious plaintext must not be accepted unauthenticated"
 R=$(curl -s -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/message/nonexistent-id" \
   -H "Content-Type: application/json" \
-  -H "x-api-key: ${PROVIDER_KEY}" \
-  -d '{"from":"provider","plaintext":"<script>steal()</script>"}')
+  -H "x-api-key: ${EXPERT_KEY}" \
+  -d '{"from":"expert","plaintext":"<script>steal()</script>"}')
 C=$(code_of "$R")
 [ "$C" = "403" ] || [ "$C" = "404" ] && pass "Message to nonexistent request rejected ($C)" || fail "Unexpected response for malicious message: HTTP $C"
 

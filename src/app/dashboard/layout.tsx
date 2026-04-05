@@ -14,18 +14,21 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const shouldRedirect =
+  const shouldOnboard =
     !SKIP_ONBOARDING &&
     status === "authenticated" &&
     (FORCE_ONBOARDING || session?.user?.onboardingComplete === false);
 
   useEffect(() => {
-    if (shouldRedirect) {
+    if (shouldOnboard) {
       router.replace("/onboarding");
     }
-  }, [shouldRedirect, router]);
+    if (status === "unauthenticated") {
+      router.replace("/auth/login?callbackUrl=/dashboard");
+    }
+  }, [shouldOnboard, status, router]);
 
-  if (status === "loading") {
+  if (status === "loading" || status === "unauthenticated") {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
@@ -33,7 +36,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (shouldRedirect) {
+  if (shouldOnboard) {
     return null;
   }
 

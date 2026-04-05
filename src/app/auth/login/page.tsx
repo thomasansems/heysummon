@@ -189,7 +189,7 @@ function LoginForm() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "login"
-              ? "Sign in to your provider dashboard"
+              ? "Sign in to your expert dashboard"
               : flags?.hasUsers === false
                 ? "Create the first admin account to get started"
                 : "Get started with HeySummon"}

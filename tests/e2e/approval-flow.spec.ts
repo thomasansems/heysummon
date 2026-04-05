@@ -9,7 +9,7 @@ import { apiGet, apiPost, apiRaw } from "./helpers/api";
 import { PW } from "./helpers/constants";
 
 const CONSUMER_HEADERS = { "x-api-key": PW.CLIENT_KEY };
-const PROVIDER_HEADERS = { "x-api-key": PW.PROVIDER_KEY };
+const EXPERT_HEADERS = { "x-api-key": PW.EXPERT_KEY };
 
 test.describe("Approval workflow", () => {
   let approveRequestId: string;
@@ -46,11 +46,11 @@ test.describe("Approval workflow", () => {
     denyRequestId = data.requestId;
   });
 
-  test("3. Provider approves first request", async () => {
+  test("3. Expert approves first request", async () => {
     const data = await apiPost<{ success: boolean; decision: string }>(
       `/api/v1/approve/${approveRequestId}`,
       { decision: "approved" },
-      PROVIDER_HEADERS
+      EXPERT_HEADERS
     );
     expect(data.success).toBe(true);
     expect(data.decision).toBe("approved");
@@ -69,16 +69,16 @@ test.describe("Approval workflow", () => {
       "POST",
       `/api/v1/approve/${approveRequestId}`,
       { decision: "denied" },
-      PROVIDER_HEADERS
+      EXPERT_HEADERS
     );
     expect(res.status).toBe(409);
   });
 
-  test("6. Provider denies second request", async () => {
+  test("6. Expert denies second request", async () => {
     const data = await apiPost<{ success: boolean; decision: string }>(
       `/api/v1/approve/${denyRequestId}`,
       { decision: "denied" },
-      PROVIDER_HEADERS
+      EXPERT_HEADERS
     );
     expect(data.success).toBe(true);
     expect(data.decision).toBe("denied");

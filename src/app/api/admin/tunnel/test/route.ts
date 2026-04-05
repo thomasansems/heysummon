@@ -24,7 +24,7 @@ export async function POST() {
 
   // Test 2: Verify Telegram webhooks are registered correctly
   // Only check channels with a valid-looking bot token (not test/fake tokens)
-  const channels = await prisma.channelProvider.findMany({
+  const channels = await prisma.expertChannel.findMany({
     where: { type: "telegram", isActive: true, status: { not: "error" } },
     select: { id: true, name: true, config: true, status: true },
   });

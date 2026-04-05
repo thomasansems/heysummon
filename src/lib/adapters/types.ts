@@ -7,10 +7,10 @@ export interface TelegramConfig {
   botToken: string;
   botUsername?: string;
   webhookSecret?: string;
-  /** One-time token the provider must include in /start to bind their chat */
+  /** One-time token the expert must include in /start to bind their chat */
   setupToken?: string;
-  /** The provider's own Telegram chat ID (captured when they send /start) */
-  providerChatId?: string;
+  /** The expert's own Telegram chat ID (captured when they send /start) */
+  expertChatId?: string;
 }
 
 export interface SlackConfig {

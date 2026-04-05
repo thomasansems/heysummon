@@ -6,9 +6,9 @@
  *
  * Usage:
  *   export const POST = withProtocol(
- *     { requireAuth: true, authType: "any", auditEvent: "PROVIDER_RESPONSE" },
+ *     { requireAuth: true, authType: "any", auditEvent: "EXPERT_RESPONSE" },
  *     async (request, ctx) => {
- *       // ctx.callerRole, ctx.apiKey, ctx.provider available
+ *       // ctx.callerRole, ctx.apiKey, ctx.expert available
  *       return NextResponse.json({ success: true });
  *     }
  *   );
@@ -16,24 +16,24 @@
 
 import { NextResponse } from "next/server";
 import { validateApiKeyRequest, sanitizeError } from "./api-key-auth";
-import { validateProviderKey } from "./provider-key-auth";
+import { validateExpertKey } from "./expert-key-auth";
 import { logAuditEvent, type AuditEventType } from "./audit";
 
 export interface ProtocolContext {
-  callerRole: "consumer" | "provider";
+  callerRole: "consumer" | "expert";
   /** Raw API key string */
   apiKeyValue?: string;
   /** API key record (for consumer keys) */
-  apiKey?: { id: string; userId: string; providerId?: string | null };
-  /** Provider profile (for provider keys) */
-  provider?: { id: string; userId: string; name: string };
+  apiKey?: { id: string; userId: string; expertId?: string | null };
+  /** Expert profile (for expert keys) */
+  expert?: { id: string; userId: string; name: string };
 }
 
 export interface ProtocolConfig {
   /** Whether authentication is required */
   requireAuth: boolean;
   /** Which key types are accepted */
-  authType?: "consumer" | "provider" | "any";
+  authType?: "consumer" | "expert" | "any";
   /** Audit event to log on success */
   auditEvent?: AuditEventType;
   /** Whether to check rate limits (consumer keys only) */
@@ -62,19 +62,19 @@ export function withProtocol(
       if (config.requireAuth) {
         const authType = config.authType ?? "any";
 
-        // Try provider key first if allowed
-        if (authType === "provider" || authType === "any") {
-          const result = await validateProviderKey(request);
+        // Try expert key first if allowed
+        if (authType === "expert" || authType === "any") {
+          const result = await validateExpertKey(request);
           if (result.ok) {
             ctx = {
-              callerRole: "provider",
-              provider: result.provider,
+              callerRole: "expert",
+              expert: result.expert,
               apiKeyValue: request.headers.get("x-api-key") ?? undefined,
             };
           }
         }
 
-        // Try consumer key if provider didn't match
+        // Try consumer key if expert didn't match
         if (!ctx && (authType === "consumer" || authType === "any")) {
           const result = await validateApiKeyRequest(request);
           if (result.ok) {
@@ -104,7 +104,7 @@ export function withProtocol(
       if (config.auditEvent && response.status < 400) {
         logAuditEvent({
           eventType: config.auditEvent,
-          userId: ctx.provider?.userId ?? ctx.apiKey?.userId ?? null,
+          userId: ctx.expert?.userId ?? ctx.apiKey?.userId ?? null,
           apiKeyId: ctx.apiKey?.id ?? null,
           success: true,
           request,

@@ -19,8 +19,8 @@ All endpoints require `x-api-key` authentication unless noted.
 | `question` | string | ✅ | Question for the human expert |
 | `signPublicKey` | string | ❌ | Ed25519 public key (enables E2E) |
 | `encryptPublicKey` | string | ❌ | X25519 public key (enables E2E) |
-| `providerName` | string | ❌ | Route to a specific provider |
-| `requiresApproval` | boolean | ❌ | Provider must approve before responding |
+| `expertName` | string | ❌ | Route to a specific expert |
+| `requiresApproval` | boolean | ❌ | Expert must approve before responding |
 | `messages` | string | ❌ | Encrypted conversation history |
 | `messageCount` | number | ❌ | Count of messages in history |
 
@@ -63,9 +63,9 @@ Look up any request using its `HS-XXXXXXXX` reference code.
 ### Exchange public keys
 `POST /api/v1/key-exchange/:requestId`
 
-**Header:** `x-api-key: hs_prov_*`
+**Header:** `x-api-key: hs_exp_*`
 
-Provider sends their public keys to enable E2E encryption with the consumer.
+Expert sends their public keys to enable E2E encryption with the consumer.
 
 ```json
 {
@@ -124,9 +124,9 @@ Returns all messages in the conversation, ordered by creation time.
 ### Close a request
 `POST /api/v1/close/:requestId`
 
-**Header:** `x-api-key: hs_prov_*`
+**Header:** `x-api-key: hs_exp_*`
 
-Closes the request. Provider key required.
+Closes the request. Expert key required.
 
 ---
 
@@ -154,7 +154,7 @@ Rating is `1`–`5`. Each request can only be rated once — a second call retur
 **Header:** `x-api-key`
 
 Tells the server the consumer gave up waiting. The request stays visible on the
-dashboard so the provider can still respond later.
+dashboard so the expert can still respond later.
 
 ---
 
@@ -195,44 +195,44 @@ Mark an event as delivered.
 
 ---
 
-## Provider availability
+## Expert availability
 
-Providers can configure availability windows. If a request is submitted outside
-the provider's available hours, the API returns:
+Experts can configure availability windows. If a request is submitted outside
+the expert's available hours, the API returns:
 
 ```json
 {
   "rejected": true,
   "nextAvailableAt": "2026-03-27T09:00:00Z",
-  "message": "Provider is currently unavailable. Next available at 09:00 CET."
+  "message": "Expert is currently unavailable. Next available at 09:00 CET."
 }
 ```
 
-Availability is configured per provider profile in the dashboard:
-- **Quiet hours** — start/end time in the provider's timezone
-- **Available days** — which days of the week the provider accepts requests
+Availability is configured per expert profile in the dashboard:
+- **Quiet hours** — start/end time in the expert's timezone
+- **Available days** — which days of the week the expert accepts requests
 
 ---
 
 ## Summoning context
 
 Summoning context is **per-client** -- each client connection can have its own advisory
-text (max 500 characters) that tells AI agents when to summon the provider. The context
+text (max 500 characters) that tells AI agents when to summon the expert. The context
 is set during client setup and stored on the `SetupToken`:
 
-1. Provider enters context in the onboarding wizard when connecting a client
+1. Expert enters context in the onboarding wizard when connecting a client
 2. Passed in the `POST /api/v1/setup-link` body as `summonContext`
 3. Stored on `SetupToken.summonContext` for that specific client
 4. Embedded as `HEYSUMMON_SUMMON_CONTEXT` in the consumer's `.env`
 5. Referenced by the skill's "When to summon" section at runtime
 
-Recently used contexts are saved to the provider's `recentSummonContexts` (JSON array,
+Recently used contexts are saved to the expert's `recentSummonContexts` (JSON array,
 max 10 entries, most recent first) for quick reuse when setting up new clients.
 
 | Field | Location | Type | Max | Description |
 |-------|----------|------|-----|-------------|
 | `summonContext` | `POST /api/v1/setup-link` body | string \| null | 500 | Per-client advisory guidelines for AI |
-| `recentSummonContexts` | `GET /api/providers/:id` response | string (JSON) \| null | 10 entries | Recently used contexts for quick reuse |
+| `recentSummonContexts` | `GET /api/experts/:id` response | string (JSON) \| null | 10 entries | Recently used contexts for quick reuse |
 
 ---
 
@@ -272,10 +272,10 @@ pending → cancelled
 
 | State | Meaning |
 |-------|---------|
-| `pending` | Submitted, waiting for provider |
-| `reviewing` | Provider has opened the request |
-| `active` | Provider is composing a response |
-| `responded` | Provider sent a response |
+| `pending` | Submitted, waiting for expert |
+| `reviewing` | Expert has opened the request |
+| `active` | Expert is composing a response |
+| `responded` | Expert sent a response |
 | `closed` | Consumer acknowledged and closed |
 | `expired` | No response within 72 hours |
 | `cancelled` | Explicitly cancelled |

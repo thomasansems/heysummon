@@ -36,9 +36,9 @@ REQUEST_ID=$(echo "$BODY" | jq -r '.requestId // empty')
 if [ "$CODE" = "200" ] && [ -n "$REQUEST_ID" ]; then
   # Request is fresh — send a message, should work
   REPLY=$(curl -s -X POST "${BASE_URL}/api/v1/message/${REQUEST_ID}" \
-    -H "x-api-key: ${PROVIDER_KEY}" \
+    -H "x-api-key: ${EXPERT_KEY}" \
     -H "Content-Type: application/json" \
-    -d '{"from": "provider", "plaintext": "Reply before expiry"}')
+    -d '{"from": "expert", "plaintext": "Reply before expiry"}')
   REPLY_OK=$(echo "$REPLY" | jq -r '.success // empty')
   [ "$REPLY_OK" = "true" ] && pass "Response before expiry succeeds" || fail "Reply before expiry failed: $REPLY"
 else
@@ -67,7 +67,7 @@ if [ "$CODE" = "200" ] && [ -n "$EXPIRED_REQUEST_ID" ]; then
 
   # Poll status — should auto-expire
   STATUS_RESP=$(curl -s "${BASE_URL}/api/v1/help/${EXPIRED_REQUEST_ID}" \
-    -H "x-api-key: ${PROVIDER_KEY}")
+    -H "x-api-key: ${EXPERT_KEY}")
   STATUS=$(echo "$STATUS_RESP" | jq -r '.status // "unknown"')
 
   if [ "$STATUS" = "expired" ]; then
@@ -93,9 +93,9 @@ fi
 section "Message to Expired Request"
 if [ -n "${EXPIRED_REQUEST_ID:-}" ]; then
   REPLY=$(curl -s "${E2E_BYPASS_ARGS[@]}" -w '\n%{http_code}' -X POST "${BASE_URL}/api/v1/message/${EXPIRED_REQUEST_ID}" \
-    -H "x-api-key: ${PROVIDER_KEY}" \
+    -H "x-api-key: ${EXPERT_KEY}" \
     -H "Content-Type: application/json" \
-    -d '{"from": "provider", "plaintext": "Reply to expired request"}')
+    -d '{"from": "expert", "plaintext": "Reply to expired request"}')
   MSG_CODE=$(parse_code "$REPLY")
   MSG_BODY=$(parse_body "$REPLY")
 

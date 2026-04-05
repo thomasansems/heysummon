@@ -13,14 +13,14 @@ import { sendMessage } from "@/lib/adapters/telegram";
 import { sendMessage as sendSlackMessage } from "@/lib/adapters/slack";
 import { escapeSlack } from "@/lib/channels/slack";
 import type { TelegramConfig, SlackConfig } from "@/lib/adapters/types";
-import { getPhoneFirstConfig, initiateProviderCall } from "@/lib/adapters/twilio-voice";
+import { getPhoneFirstConfig, initiateExpertCall } from "@/lib/adapters/twilio-voice";
 
 /**
- * Returns whether the provider is currently unavailable and when they'll next be available.
+ * Returns whether the expert is currently unavailable and when they'll next be available.
  * availableFrom/Until are "HH:MM" strings (the AVAILABLE window).
  * availableDays is comma-separated weekday numbers (0=Sun … 6=Sat).
  */
-function getProviderAvailability(
+function getExpertAvailability(
   availableFrom: string | null,
   availableUntil: string | null,
   availableDays: string | null,
@@ -144,32 +144,32 @@ export async function POST(request: Request) {
     if (!authResult.ok) return authResult.response;
     const key = authResult.apiKey;
 
-    // ─── Provider + channel check ───
-    // If this key is linked to a specific provider, ensure that provider exists,
+    // ─── Expert + channel check ───
+    // If this key is linked to a specific expert, ensure that expert exists,
     // is active, and has at least one notification channel configured.
-    if (key.providerId) {
-      const provider = await prisma.userProfile.findUnique({
-        where: { id: key.providerId },
+    if (key.expertId) {
+      const expert = await prisma.userProfile.findUnique({
+        where: { id: key.expertId },
         select: {
           isActive: true,
-          channelProviders: { where: { isActive: true }, select: { id: true } },
+          expertChannels: { where: { isActive: true }, select: { id: true } },
         },
       });
-      if (!provider) {
+      if (!expert) {
         return NextResponse.json(
-          { error: "The provider linked to this client no longer exists. Contact your provider to reissue your API key." },
+          { error: "The expert linked to this client no longer exists. Contact your expert to reissue your API key." },
           { status: 503 }
         );
       }
-      if (!provider.isActive) {
+      if (!expert.isActive) {
         return NextResponse.json(
-          { error: "The provider linked to this client is currently inactive." },
+          { error: "The expert linked to this client is currently inactive." },
           { status: 503 }
         );
       }
-      if (provider.channelProviders.length === 0) {
+      if (expert.expertChannels.length === 0) {
         return NextResponse.json(
-          { error: "The provider linked to this client has no notification channel configured and cannot receive requests yet." },
+          { error: "The expert linked to this client has no notification channel configured and cannot receive requests yet." },
           { status: 503 }
         );
       }
@@ -183,31 +183,31 @@ export async function POST(request: Request) {
     applySanitizedContent(body as Record<string, unknown>, safetyCheck.sanitizedText);
     const guardVerified = true; // Content safety always runs in-process
 
-    // ─── Provider availability check ───
-    // Check BEFORE creating the request — reject if provider is unavailable
-    // Scope to specific provider linked to this API key
-    const providerProfileForAvail = await prisma.userProfile.findFirst({
-      where: key.providerId
-        ? { id: key.providerId }
+    // ─── Expert availability check ───
+    // Check BEFORE creating the request — reject if expert is unavailable
+    // Scope to specific expert linked to this API key
+    const expertProfileForAvail = await prisma.userProfile.findFirst({
+      where: key.expertId
+        ? { id: key.expertId }
         : { userId: key.userId },
       select: { id: true, quietHoursStart: true, quietHoursEnd: true, availableDays: true, timezone: true },
     });
-    const availCheck = providerProfileForAvail
-      ? getProviderAvailability(
-          providerProfileForAvail.quietHoursStart,
-          providerProfileForAvail.quietHoursEnd,
-          providerProfileForAvail.availableDays,
-          providerProfileForAvail.timezone
+    const availCheck = expertProfileForAvail
+      ? getExpertAvailability(
+          expertProfileForAvail.quietHoursStart,
+          expertProfileForAvail.quietHoursEnd,
+          expertProfileForAvail.availableDays,
+          expertProfileForAvail.timezone
         )
       : { unavailable: false, nextAvailableAt: null };
 
     if (availCheck.unavailable) {
       // Track the missed request
-      if (providerProfileForAvail) {
+      if (expertProfileForAvail) {
         await prisma.missedRequest.create({
           data: {
             apiKeyId: key.id,
-            providerId: providerProfileForAvail.id,
+            expertId: expertProfileForAvail.id,
             nextAvailableAt: availCheck.nextAvailableAt ? new Date(availCheck.nextAvailableAt) : null,
             questionPreview: (body.questionPreview || question || "")?.slice(0, 200) || null,
           },
@@ -220,25 +220,25 @@ export async function POST(request: Request) {
         apiKeyId: key.id,
         success: false,
         metadata: {
-          reason: "provider_unavailable",
+          reason: "expert_unavailable",
           apiKey: redactApiKey(apiKey),
           nextAvailableAt: availCheck.nextAvailableAt,
         },
         request,
       });
 
-      const tz = providerProfileForAvail?.timezone || "UTC";
+      const tz = expertProfileForAvail?.timezone || "UTC";
       const timeStr = availCheck.nextAvailableAt
         ? new Date(availCheck.nextAvailableAt).toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit" })
         : null;
 
       return NextResponse.json({
         rejected: true,
-        reason: "provider_unavailable",
+        reason: "expert_unavailable",
         nextAvailableAt: availCheck.nextAvailableAt,
         message: timeStr
-          ? `Provider is not available right now. They will be available again at ${timeStr} (${tz}). You can ask your question again at that time.`
-          : `Provider is not available right now. Try again later.`,
+          ? `Expert is not available right now. They will be available again at ${timeStr} (${tz}). You can ask your question again at that time.`
+          : `Expert is not available right now. Try again later.`,
       });
     }
 
@@ -288,18 +288,18 @@ export async function POST(request: Request) {
     });
 
     // ─── Phone-first: attempt voice call before chat ───
-    // Scope to the specific provider linked to this API key, not all profiles for the user
-    const providerProfiles = await prisma.userProfile.findMany({
-      where: key.providerId
-        ? { id: key.providerId }
+    // Scope to the specific expert linked to this API key, not all profiles for the user
+    const expertProfiles = await prisma.userProfile.findMany({
+      where: key.expertId
+        ? { id: key.expertId }
         : { userId: key.userId },
       select: { id: true, phoneFirst: true, phoneFirstIntegrationId: true },
     });
 
     let phoneFirstAttempted = false;
 
-    // Attempt phone-first call (provider is confirmed available at this point)
-    for (const profile of providerProfiles) {
+    // Attempt phone-first call (expert is confirmed available at this point)
+    for (const profile of expertProfiles) {
       if (!profile.phoneFirst || !profile.phoneFirstIntegrationId) continue;
 
       const phoneConfig = await getPhoneFirstConfig(profile.id);
@@ -307,18 +307,18 @@ export async function POST(request: Request) {
 
       const questionText = body.questionPreview || question || "A new help request has been submitted.";
 
-      const callResult = await initiateProviderCall(
+      const callResult = await initiateExpertCall(
         helpRequest.id,
         questionText.slice(0, 500),
         phoneConfig.systemConfig,
-        phoneConfig.providerConfig,
+        phoneConfig.expertConfig,
         phoneConfig.timeout
       );
 
       if ("callSid" in callResult) {
         phoneFirstAttempted = true;
         // Store questionPreview for TTS + mark as notified
-        const updateData: Record<string, unknown> = { notifiedProviderAt: new Date() };
+        const updateData: Record<string, unknown> = { notifiedExpertAt: new Date() };
         if (body.questionPreview && !helpRequest.questionPreview) {
           updateData.questionPreview = body.questionPreview.slice(0, 200);
         }
@@ -332,12 +332,12 @@ export async function POST(request: Request) {
       break; // Only call the first matching profile
     }
 
-    // Push Telegram notification to provider (fire-and-forget, non-blocking)
+    // Push Telegram notification to expert (fire-and-forget, non-blocking)
     // If phone-first was attempted, Telegram fallback happens via the status callback
     if (!phoneFirstAttempted) {
-      prisma.channelProvider.findFirst({
+      prisma.expertChannel.findFirst({
         where: {
-          profileId: { in: providerProfiles.map(p => p.id) },
+          profileId: { in: expertProfiles.map(p => p.id) },
           type: "telegram",
           isActive: true,
           status: "connected",
@@ -345,25 +345,25 @@ export async function POST(request: Request) {
       }).then(async (telegramChannel) => {
         if (!telegramChannel) return;
         const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
-        if (!cfg.providerChatId || !cfg.botToken) return;
+        if (!cfg.expertChatId || !cfg.botToken) return;
 
         const questionPreview = question ? `\n\n*Question:* ${question.slice(0, 500)}${question.length > 500 ? "…" : ""}` : "";
         const msg = `🦞 *New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
 
-        await sendMessage(cfg.botToken, cfg.providerChatId, msg);
+        await sendMessage(cfg.botToken, cfg.expertChatId, msg);
         // Mark as notified
         await prisma.helpRequest.update({
           where: { id: helpRequest.id },
-          data: { notifiedProviderAt: new Date() },
+          data: { notifiedExpertAt: new Date() },
         }).catch(() => {});
       }).catch((err) => {
         console.error("[help/route] Telegram notify failed:", err);
       });
 
       // Also try Slack notification (fire-and-forget, non-blocking)
-      prisma.channelProvider.findFirst({
+      prisma.expertChannel.findFirst({
         where: {
-          profileId: { in: providerProfiles.map(p => p.id) },
+          profileId: { in: expertProfiles.map(p => p.id) },
           type: "slack",
           isActive: true,
           status: "connected",
@@ -380,7 +380,7 @@ export async function POST(request: Request) {
         // Mark as notified (if not already set by Telegram)
         await prisma.helpRequest.update({
           where: { id: helpRequest.id },
-          data: { notifiedProviderAt: new Date() },
+          data: { notifiedExpertAt: new Date() },
         }).catch(() => {});
       }).catch((err) => {
         console.error("[help/route] Slack notify failed:", err);

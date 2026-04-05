@@ -16,73 +16,42 @@ Manage afterwards with: `heysummon start -d` · `heysummon stop` · `heysummon s
 
 ---
 
-## Manual Setup (Development)
+## Setup Wizard (Development)
 
 ### 1. Prerequisites
 
 | Tool | Version | Required? |
 |------|---------|-----------|
-| **Node.js** | 18+ | ✅ Yes |
-| **pnpm** | 9+ (`npm i -g pnpm@latest` or `corepack enable`) | ✅ Yes |
-| **Docker** | Any recent version | ❌ Optional (for PostgreSQL) |
+| **Node.js** | 18+ | Yes |
+| **pnpm** | 9+ (`npm i -g pnpm@latest` or `corepack enable`) | Yes |
+| **Docker** | Any recent version | Optional (for PostgreSQL) |
 
 > **No Docker?** No problem — HeySummon defaults to SQLite.
 
 ---
 
-### 2. Clone & Install
+### 2. Clone & Run Setup
 
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
 cd heysummon
-pnpm install
+bash install-local-dev.sh
 ```
+
+The interactive setup wizard handles everything: installs dependencies, generates secrets,
+creates the database, and configures your environment.
 
 ---
 
-### 3. Environment Setup
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and set these two **required** secrets:
-
-```bash
-# Generate secret (copy-paste output into .env)
-openssl rand -hex 32   # → NEXTAUTH_SECRET
-```
-
-The defaults handle everything else for local dev:
-
-| Variable | Default | Notes |
-|----------|---------|-------|
-| `DATABASE_URL` | `file:./prisma/heysummon.db` | SQLite, zero config |
-| `NEXTAUTH_URL` | `http://localhost:3425` | Local dev URL |
-| `ENABLE_FORM_LOGIN` | `true` | Email + password login (no OAuth needed) |
-| `HEYSUMMON_EDITION` | `community` | Self-hosted edition |
-
-> See `.env.example` for all available options (OAuth, PostgreSQL, etc.)
-
----
-
-### 4. Database Setup
-
-```bash
-pnpm exec prisma migrate dev
-```
-
-This creates the SQLite database and runs all migrations.
-
----
-
-### 5. Start the Dev Server
+### 3. Start the Dev Server
 
 ```bash
 pnpm dev
 ```
 
-Open **http://localhost:3425** — you should see the HeySummon login page. 🎉
+Open **http://localhost:3425** — sign up to create the admin account.
+
+> To re-run the wizard, delete `.env.local` and run `bash install-local-dev.sh` again.
 
 ---
 
@@ -91,11 +60,11 @@ Open **http://localhost:3425** — you should see the HeySummon login page. 🎉
 1. Go to **http://localhost:3425**
 2. Click **Sign up** (or register)
 3. Enter your email and password
-4. You're in! You'll land on the provider dashboard.
+4. You're in! You'll land on the expert dashboard.
 
 ---
 
-## 7. Create a Provider + Client Key
+## 7. Create an Expert + Client Key
 
 1. In the dashboard, navigate to **API Keys** (or Settings → Keys)
 2. Click **Create Key**

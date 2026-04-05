@@ -15,7 +15,7 @@ import {
 const routeLabels: Record<string, string> = {
   dashboard: "Overview",
   requests: "Requests",
-  providers: "Providers",
+  experts: "Experts",
   channels: "Channels",
   clients: "Clients",
   users: "Users",

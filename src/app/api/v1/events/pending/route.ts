@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { validateProviderKey } from "@/lib/provider-key-auth";
+import { validateExpertKey } from "@/lib/expert-key-auth";
 import { decryptMessage } from "@/lib/crypto";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import { sendMessage } from "@/lib/adapters/telegram";
@@ -11,12 +11,12 @@ import type { TelegramConfig } from "@/lib/adapters/types";
 const DEBUG = process.env.DEBUG === "true";
 
 /**
- * GET /api/v1/events/pending — List pending events for providers or consumers
+ * GET /api/v1/events/pending — List pending events for experts or consumers
  *
- * Provider key (hs_prov_*): returns undelivered pending requests (new_request)
- * Client key (hs_cli_*):    returns requests with new provider messages (new_message)
+ * Expert key (hs_exp_*): returns undelivered pending requests (new_request)
+ * Client key (hs_cli_*):  returns requests with new expert messages (new_message)
  *
- * Auth: x-api-key (provider key or client key)
+ * Auth: x-api-key (expert key or client key)
  */
 export async function GET(request: NextRequest) {
   const apiKey = request.headers.get("x-api-key");
@@ -24,11 +24,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing x-api-key" }, { status: 401 });
   }
 
-  // Provider key — route through validateProviderKey for IP binding
-  if (apiKey.startsWith("hs_prov_")) {
-    const result = await validateProviderKey(request);
+  // Expert key — route through validateExpertKey for IP binding
+  if (apiKey.startsWith("hs_exp_")) {
+    const result = await validateExpertKey(request);
     if (!result.ok) return result.response;
-    return handleProviderPending({ id: result.provider.id, userId: result.provider.userId });
+    return handleExpertPending({ id: result.expert.id, userId: result.expert.userId });
   }
 
   // Try client key (ApiKey)
@@ -64,10 +64,10 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Check if the provider is currently within their availability window.
+ * Check if the expert is currently within their availability window.
  * availableFrom/Until = HH:MM strings (the AVAILABLE period).
  * availableDays = comma-separated weekday numbers (0=Sun, 1=Mon … 6=Sat).
- * Returns true if provider is UNAVAILABLE (should back off).
+ * Returns true if expert is UNAVAILABLE (should back off).
  */
 function isUnavailable(
   availableFrom: string | null,
@@ -80,7 +80,7 @@ function isUnavailable(
     const tz = timezone || "UTC";
     const now = new Date();
 
-    // Get current time + weekday in provider's timezone
+    // Get current time + weekday in expert's timezone
     const timeFmt = new Intl.DateTimeFormat("en-GB", {
       hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz,
     });
@@ -116,11 +116,11 @@ function isUnavailable(
   }
 }
 
-/** Provider: return undelivered pending requests */
-async function handleProviderPending(provider: { id: string; userId: string }) {
+/** Expert: return undelivered pending requests */
+async function handleExpertPending(expert: { id: string; userId: string }) {
   // Check availability window
   const profile = await prisma.userProfile.findUnique({
-    where: { id: provider.id },
+    where: { id: expert.id },
     select: { quietHoursStart: true, quietHoursEnd: true, availableDays: true, timezone: true },
   });
 
@@ -133,9 +133,9 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
 
   const requests = await prisma.helpRequest.findMany({
     where: {
-      expertId: provider.userId,
-      // Only return requests from clients linked to THIS specific provider
-      apiKey: { providerId: provider.id },
+      expertId: expert.userId,
+      // Only return requests from clients linked to THIS specific expert
+      apiKey: { expertId: expert.id },
       deliveredAt: null,
       status: { in: ["pending", "active"] },
       expiresAt: { gt: new Date() },
@@ -189,13 +189,13 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
   });
 
   // Send deferred Telegram notifications for requests that were queued during unavailability
-  sendDeferredNotifications(provider.id, requests).catch((err) => {
+  sendDeferredNotifications(expert.id, requests).catch((err) => {
     console.error("[events/pending] Deferred notification failed:", err);
   });
 
   if (DEBUG) {
-    console.log("[GET /api/v1/events/pending] Provider poll:", {
-      providerId: provider.id,
+    console.log("[GET /api/v1/events/pending] Expert poll:", {
+      expertId: expert.id,
       eventCount: mapped.length,
       events: mapped.map((e) => ({
         requestId: e.requestId,
@@ -209,7 +209,7 @@ async function handleProviderPending(provider: { id: string; userId: string }) {
   return NextResponse.json({ events: mapped });
 }
 
-/** Send Telegram notifications for requests that were deferred during provider unavailability */
+/** Send Telegram notifications for requests that were deferred during expert unavailability */
 async function sendDeferredNotifications(
   profileId: string,
   requests: Array<{ id: string; refCode: string | null; questionPreview: string | null; question: string | null; serverPrivateKey: string | null }>
@@ -218,28 +218,28 @@ async function sendDeferredNotifications(
   const unnotified = await prisma.helpRequest.findMany({
     where: {
       id: { in: requests.map((r) => r.id) },
-      notifiedProviderAt: null,
+      notifiedExpertAt: null,
     },
     select: { id: true, refCode: true, questionPreview: true },
   });
 
   if (unnotified.length === 0) return;
 
-  // Find active Telegram channel for this provider
-  const telegramChannel = await prisma.channelProvider.findFirst({
+  // Find active Telegram channel for this expert
+  const telegramChannel = await prisma.expertChannel.findFirst({
     where: { profileId, type: "telegram", isActive: true, status: "connected" },
   });
   if (!telegramChannel) {
-    // No Telegram channel — just mark as notified (provider sees them via polling)
+    // No Telegram channel — just mark as notified (expert sees them via polling)
     await prisma.helpRequest.updateMany({
       where: { id: { in: unnotified.map((r) => r.id) } },
-      data: { notifiedProviderAt: new Date() },
+      data: { notifiedExpertAt: new Date() },
     });
     return;
   }
 
   const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
-  if (!cfg.providerChatId || !cfg.botToken) return;
+  if (!cfg.expertChatId || !cfg.botToken) return;
 
   for (const req of unnotified) {
     const preview = req.questionPreview
@@ -247,18 +247,18 @@ async function sendDeferredNotifications(
       : "";
     const msg = `🦞 *New help request* \`${req.refCode}\`${preview}\n\nReply with:\n\`/reply ${req.refCode} your answer\``;
 
-    await sendMessage(cfg.botToken, cfg.providerChatId, msg).catch((err) => {
+    await sendMessage(cfg.botToken, cfg.expertChatId, msg).catch((err) => {
       console.error(`[events/pending] Deferred Telegram notify failed for ${req.refCode}:`, err);
     });
 
     await prisma.helpRequest.update({
       where: { id: req.id },
-      data: { notifiedProviderAt: new Date() },
+      data: { notifiedExpertAt: new Date() },
     }).catch(() => {});
   }
 }
 
-/** Consumer: return requests that have new provider messages or direct phone responses */
+/** Consumer: return requests that have new expert messages or direct phone responses */
 async function handleConsumerPending(clientKey: { id: string; userId: string }) {
   // Fire-and-forget heartbeat — enables connection verification without blocking the response
   prisma.apiKey.update({
@@ -274,7 +274,7 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
         // Message-based responses (via chat channels)
         {
           status: { in: ["pending", "active", "responded"] },
-          messageHistory: { some: { from: "provider" } },
+          messageHistory: { some: { from: "expert" } },
         },
         // Direct responses (via phone/Twilio) — no messageHistory entry
         {
@@ -290,7 +290,7 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
       respondedAt: true,
       consumerDeliveredAt: true,
       messageHistory: {
-        where: { from: "provider" },
+        where: { from: "expert" },
         orderBy: { createdAt: "desc" },
         take: 1,
         select: { id: true, createdAt: true },
@@ -321,7 +321,7 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
     type: "new_message" as const,
     requestId: r.id,
     refCode: r.refCode,
-    from: "provider" as const,
+    from: "expert" as const,
     messageCount: r._count.messageHistory,
     respondedAt: r.respondedAt?.toISOString() || null,
     latestMessageAt: r.messageHistory[0]?.createdAt.toISOString() || r.respondedAt?.toISOString() || null,

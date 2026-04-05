@@ -160,7 +160,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { id: token.id as string },
           select: { role: true, onboardingComplete: true },
         });
-        token.role = dbUser?.role ?? "provider";
+        token.role = dbUser?.role ?? "expert";
         token.onboardingComplete = dbUser?.onboardingComplete ?? false;
       }
       return token;
@@ -169,7 +169,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         // JWT strategy uses token, database strategy uses user
         session.user.id = (token?.id as string) || user?.id;
-        session.user.role = (token?.role as string) ?? "provider";
+        session.user.role = (token?.role as string) ?? "expert";
         session.user.onboardingComplete = (token?.onboardingComplete as boolean) ?? false;
       }
       return session;

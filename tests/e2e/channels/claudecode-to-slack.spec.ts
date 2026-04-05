@@ -1,9 +1,9 @@
 /**
- * Channel combination 6: Claude Code consumer -> Slack provider notification.
+ * Channel combination 6: Claude Code consumer -> Slack expert notification.
  *
  * Tests the full Slack reply flow:
  * 1. Consumer submits -> platform sends Slack notification
- * 2. Provider can reply via /reply HS-XXXX command through Slack webhook
+ * 2. Expert can reply via /reply HS-XXXX command through Slack webhook
  * 3. Consumer polling detects the response
  */
 
@@ -13,9 +13,9 @@ import { simulateSlackReply } from "../helpers/slack-mock";
 import { PW, BASE_URL } from "../helpers/constants";
 
 const CONSUMER_HEADERS = { "x-api-key": PW.CC_SLACK_KEY };
-const PROVIDER_HEADERS = { "x-api-key": PW.PROVIDER_KEY };
+const EXPERT_HEADERS = { "x-api-key": PW.EXPERT_KEY };
 
-test.describe("Channel: Claude Code consumer -> Slack provider (reply flow)", () => {
+test.describe("Channel: Claude Code consumer -> Slack expert (reply flow)", () => {
   let requestId: string;
   let refCode: string;
 
@@ -36,18 +36,18 @@ test.describe("Channel: Claude Code consumer -> Slack provider (reply flow)", ()
     expect(refCode).toMatch(/^[A-Z0-9-]+$/);
   });
 
-  test("2. Provider sees request in events/pending", async () => {
+  test("2. Expert sees request in events/pending", async () => {
     const data = await apiGet<{
       events: Array<{ type: string; requestId: string; refCode: string }>;
-    }>("/api/v1/events/pending", PROVIDER_HEADERS);
+    }>("/api/v1/events/pending", EXPERT_HEADERS);
 
     const match = data.events.find((e) => e.requestId === requestId);
     expect(match).toBeTruthy();
     expect(match?.type).toBe("new_request");
   });
 
-  test.skip("3. Provider replies via /reply command through Slack webhook", async () => {
-    // Find the Slack channel ID for the playwright provider profile
+  test.skip("3. Expert replies via /reply command through Slack webhook", async () => {
+    // Find the Slack channel ID for the playwright expert profile
     const channelsData = await apiGet<{
       channels: Array<{
         id: string;
@@ -55,7 +55,7 @@ test.describe("Channel: Claude Code consumer -> Slack provider (reply flow)", ()
         config: string;
         profileId: string;
       }>;
-    }>("/api/channels", PROVIDER_HEADERS);
+    }>("/api/channels", EXPERT_HEADERS);
 
     const slackChannel = channelsData.channels?.find(
       (c) => c.type === "slack",
@@ -65,8 +65,8 @@ test.describe("Channel: Claude Code consumer -> Slack provider (reply flow)", ()
       // Fall back to direct message API if Slack channel not found
       const data = await apiPost<{ success: boolean }>(
         `/api/v1/message/${requestId}`,
-        { from: "provider", plaintext: "CC->Slack test response (fallback)" },
-        PROVIDER_HEADERS,
+        { from: "expert", plaintext: "CC->Slack test response (fallback)" },
+        EXPERT_HEADERS,
       );
       expect(data.success).toBe(true);
       return;
@@ -95,8 +95,8 @@ test.describe("Channel: Claude Code consumer -> Slack provider (reply flow)", ()
     if (status.status !== "responded") {
       const data = await apiPost<{ success: boolean }>(
         `/api/v1/message/${requestId}`,
-        { from: "provider", plaintext: "CC->Slack test response" },
-        PROVIDER_HEADERS,
+        { from: "expert", plaintext: "CC->Slack test response" },
+        EXPERT_HEADERS,
       );
       expect(data.success).toBe(true);
     }

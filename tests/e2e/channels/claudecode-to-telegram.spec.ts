@@ -1,9 +1,9 @@
 /**
- * Channel combination 4: Claude Code consumer → Telegram provider notification.
+ * Channel combination 4: Claude Code consumer -> Telegram expert notification.
  *
  * Tests the full Telegram reply flow:
- * 1. Consumer submits → platform sends Telegram notification
- * 2. Provider can reply via /reply HS-XXXX command through Telegram webhook
+ * 1. Consumer submits -> platform sends Telegram notification
+ * 2. Expert can reply via /reply HS-XXXX command through Telegram webhook
  * 3. Consumer polling detects the response
  */
 
@@ -13,9 +13,9 @@ import { withTelegramMock, simulateTelegramReply } from "../helpers/telegram-moc
 import { PW, BASE_URL } from "../helpers/constants";
 
 const CONSUMER_HEADERS = { "x-api-key": PW.CC_TELEGRAM_KEY };
-const PROVIDER_HEADERS = { "x-api-key": PW.PROVIDER_KEY };
+const EXPERT_HEADERS = { "x-api-key": PW.EXPERT_KEY };
 
-test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)", () => {
+test.describe("Channel: Claude Code consumer -> Telegram expert (reply flow)", () => {
   let requestId: string;
   let refCode: string;
 
@@ -25,7 +25,7 @@ test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)"
         "/api/v1/help",
         {
           apiKey: PW.CC_TELEGRAM_KEY,
-          question: "CC→Telegram test — automated E2E",
+          question: "CC->Telegram test -- automated E2E",
           signPublicKey: "cc-tg-test-sign-key",
           encryptPublicKey: "cc-tg-test-encrypt-key",
         }
@@ -47,32 +47,32 @@ test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)"
     }
   });
 
-  test("2. Provider sees request in events/pending", async () => {
+  test("2. Expert sees request in events/pending", async () => {
     const data = await apiGet<{
       events: Array<{ type: string; requestId: string; refCode: string }>;
-    }>("/api/v1/events/pending", PROVIDER_HEADERS);
+    }>("/api/v1/events/pending", EXPERT_HEADERS);
 
     const match = data.events.find((e) => e.requestId === requestId);
     expect(match).toBeTruthy();
     expect(match?.type).toBe("new_request");
   });
 
-  test.skip("3. Provider replies via /reply command through Telegram webhook", async () => {
-    // Find the Telegram channel ID for the playwright provider profile
-    // We need the channelProvider ID to call the webhook endpoint
+  test.skip("3. Expert replies via /reply command through Telegram webhook", async () => {
+    // Find the Telegram channel ID for the playwright expert profile
+    // We need the expertChannel ID to call the webhook endpoint
     const channelsData = await apiGet<{
       channels: Array<{ id: string; type: string; config: string; profileId: string }>;
-    }>("/api/channels", PROVIDER_HEADERS);
+    }>("/api/channels", EXPERT_HEADERS);
 
-    // The PW profile has a Telegram channel seeded — find it
+    // The PW profile has a Telegram channel seeded -- find it
     const telegramChannel = channelsData.channels?.find((c) => c.type === "telegram");
 
     if (!telegramChannel) {
       // Fall back to direct message API if Telegram channel not found (e.g., auth issue)
       const data = await apiPost<{ success: boolean }>(
         `/api/v1/message/${requestId}`,
-        { from: "provider", plaintext: "CC→Telegram test response (fallback)" },
-        PROVIDER_HEADERS
+        { from: "expert", plaintext: "CC->Telegram test response (fallback)" },
+        EXPERT_HEADERS
       );
       expect(data.success).toBe(true);
       return;
@@ -83,8 +83,8 @@ test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)"
       baseUrl: BASE_URL,
       channelId: telegramChannel.id,
       secretToken: "test-webhook-secret",
-      fromChatId: PW.TELEGRAM_PROVIDER_CHAT_ID,
-      text: `/reply ${refCode} CC→Telegram test response via Telegram reply`,
+      fromChatId: PW.TELEGRAM_EXPERT_CHAT_ID,
+      text: `/reply ${refCode} CC->Telegram test response via Telegram reply`,
     });
 
     // Webhook may return 200 OK or 400/403 depending on secret token setup
@@ -102,8 +102,8 @@ test.describe("Channel: Claude Code consumer → Telegram provider (reply flow)"
     if (status.status !== "responded") {
       const data = await apiPost<{ success: boolean }>(
         `/api/v1/message/${requestId}`,
-        { from: "provider", plaintext: "CC→Telegram test response" },
-        PROVIDER_HEADERS
+        { from: "expert", plaintext: "CC->Telegram test response" },
+        EXPERT_HEADERS
       );
       expect(data.success).toBe(true);
     }

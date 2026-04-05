@@ -32,7 +32,7 @@ vi.mock("@/lib/audit", () => ({
   },
 }));
 
-vi.mock("@/lib/provider-metrics", () => ({
+vi.mock("@/lib/expert-metrics", () => ({
   recalculateMetrics: vi.fn(),
 }));
 
@@ -40,7 +40,7 @@ import { prisma } from "@/lib/prisma";
 import { transitionRequest, StaleStateError } from "@/lib/request-lifecycle";
 import { buildRetryUpdate } from "@/lib/delivery-retry";
 import { logAuditEvent } from "@/lib/audit";
-import { recalculateMetrics } from "@/lib/provider-metrics";
+import { recalculateMetrics } from "@/lib/expert-metrics";
 import { runMonitorCycle } from "@/lib/active-monitor";
 
 const mockFindMany = vi.mocked(prisma.helpRequest.findMany);
@@ -61,7 +61,7 @@ describe("active-monitor", () => {
     it("transitions stale pending/active requests to expired", async () => {
       // First findMany call returns stale requests (expire job)
       mockFindMany.mockResolvedValueOnce([
-        { id: "req-1", status: "pending", expertId: "prov-1" },
+        { id: "req-1", status: "pending", expertId: "exp-1" },
         { id: "req-2", status: "active", expertId: null },
       ] as never);
       mockTransition.mockResolvedValue(undefined as never);
@@ -84,13 +84,13 @@ describe("active-monitor", () => {
 
     it("recalculates metrics for expired requests with an expertId", async () => {
       mockFindMany.mockResolvedValueOnce([
-        { id: "req-1", status: "pending", expertId: "prov-1" },
+        { id: "req-1", status: "pending", expertId: "exp-1" },
       ] as never);
       mockTransition.mockResolvedValue(undefined as never);
 
       await runMonitorCycle();
 
-      expect(mockRecalcMetrics).toHaveBeenCalledWith("prov-1");
+      expect(mockRecalcMetrics).toHaveBeenCalledWith("exp-1");
     });
 
     it("skips metrics recalculation when no expertId", async () => {
@@ -136,7 +136,7 @@ describe("active-monitor", () => {
       mockFindMany
         .mockResolvedValueOnce([]) // expire
         .mockResolvedValueOnce([
-          { id: "req-1", deliveryRetryCount: 1, expertId: "prov-1", refCode: "ABC" },
+          { id: "req-1", deliveryRetryCount: 1, expertId: "exp-1", refCode: "ABC" },
         ] as never)
         .mockResolvedValueOnce([]); // escalate
 
@@ -172,7 +172,7 @@ describe("active-monitor", () => {
         .mockResolvedValueOnce([]) // expire
         .mockResolvedValueOnce([]) // retry
         .mockResolvedValueOnce([
-          { id: "req-1", expertId: "prov-1", refCode: "XYZ" },
+          { id: "req-1", expertId: "exp-1", refCode: "XYZ" },
         ] as never);
 
       mockUpdate.mockResolvedValue({} as never);

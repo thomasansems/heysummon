@@ -15,11 +15,11 @@ For setup and usage, run:
 bash $SKILL_DIR/scripts/setup.sh
 ```
 
-Prompts for your HeySummon base URL and API key, validates the key, and registers the provider.
+Prompts for your HeySummon base URL and API key, validates the key, and registers the expert.
 
 ## Quick reference
 
 ```bash
-# Ask a specific provider
-bash $SKILL_DIR/scripts/ask.sh "Your question here" "" "ProviderName"
+# Ask a specific expert
+bash $SKILL_DIR/scripts/ask.sh "Your question here" "" "ExpertName"
 ```

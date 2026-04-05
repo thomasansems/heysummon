@@ -45,16 +45,21 @@ Installs to `~/.heysummon-docker/`. HeySummon is available at `http://localhost:
 
 ## Option 3: Local development
 
+The setup wizard generates secrets, creates the database, and gets you ready to develop:
+
 ```bash
 git clone https://github.com/thomasansems/heysummon.git
 cd heysummon
-pnpm install
-cp .env.example .env.local
-pnpm exec prisma migrate dev
-pnpm run dev
+bash install-local-dev.sh
+pnpm dev
 ```
 
-Open `http://localhost:3425`.
+Open `http://localhost:3425` — sign up to create the admin account.
+
+<Callout type="info">
+  The wizard creates `.env.local` with auto-generated secrets and an SQLite database.
+  To re-run, delete `.env.local` and run `bash install-local-dev.sh` again.
+</Callout>
 
 ---
 
@@ -68,7 +73,7 @@ Open `http://localhost:3425`.
 Keys follow this format:
 ```
 hs_live_abc123...    # client key (for AI agents)
-hs_prov_abc123...    # provider key (for watchers/integrations)
+hs_exp_abc123...     # expert key (for watchers/integrations)
 ```
 
 ---
@@ -126,4 +131,4 @@ curl http://localhost:3425/api/v1/help/cmxxx... \
 - [API Reference](/reference/api) — All endpoints
 - [E2E Encryption](/security/encryption) — How keys and ciphertext work
 - [Polling for Updates](/consumer/realtime) — Poll for events and responses
-- [Provider Conversations](/provider/conversations) — Reply via Telegram
+- [Expert Conversations](/expert/conversations) — Reply via Telegram

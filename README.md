@@ -38,7 +38,7 @@ Think of it as **a pager for your AI agents**: when they hit a wall, they summon
 |---|---|---|
 | 📡 | **HTTP Polling** | Event discovery via polling API with acknowledgment |
 | 🔐 | **E2E Encryption** | X25519 + AES-256-GCM — zero-knowledge relay |
-| 👥 | **Multi-Provider** | Multiple human experts can handle requests |
+| 👥 | **Multi-Expert** | Multiple human experts can handle requests |
 | 🔑 | **API Keys** | Issue and manage consumer API keys from the dashboard |
 | 📊 | **Dashboard** | Review, decrypt, and respond to requests in a clean UI |
 | 📎 | **Reference Codes** | `HS-XXXX` codes for easy tracking |
@@ -172,7 +172,7 @@ docker compose -f docker-compose.dev.yml up -d
                     │              Docker (internal network)                  │
 ┌──────────┐       │  ┌─────────┐      ┌──────────┐      ┌──────────┐      │  ┌──────────┐
 │ AI Agent │──────▶│  │  Guard  │─────▶│ Platform │─────▶│ Postgres │      │  │  Human   │
-│(Consumer)│ HTTPS │  │  :3000  │      │(internal)│      └──────────┘      │  │(Provider)│
+│(Consumer)│ HTTPS │  │  :3000  │      │(internal)│      └──────────┘      │  │ (Expert) │
 └──────────┘       │  │Ed25519  │      │ Next.js  │                        │  │Dashboard │
                    │  │signing  │      │          │────────── polling ─────│─▶│          │
                    │  └─────────┘      └──────────┘                        │  └──────────┘
@@ -187,7 +187,7 @@ docker compose -f docker-compose.dev.yml up -d
 **Key points:**
 - **Guard** is the single entry point — validates requests, adds Ed25519 signatures
 - **Platform** runs on an internal network with no exposed ports
-- Providers and consumers discover events via HTTP polling
+- Experts and consumers discover events via HTTP polling
 - E2E encryption means the platform stores ciphertext it cannot read
 - Tunnel profiles (Cloudflare/Tailscale) route through Guard, never directly to Platform
 
@@ -202,7 +202,7 @@ docker compose -f docker-compose.dev.yml up -d
 | `POST` | `/api/v1/key-exchange/:requestId` | API key | Exchange public keys for E2E |
 | `GET` | `/api/v1/events/pending` | API key | Poll for pending events |
 
-### Provider API (dashboard)
+### Expert API (dashboard)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -233,26 +233,26 @@ docker compose -f docker-compose.dev.yml up -d
 
 ## Quick Start by Role
 
-### As a Provider (Human Expert)
+### As an Expert (Human Expert)
 
 1. Deploy HeySummon (Docker recommended, see above)
 2. Sign up at `http://localhost:3445` — first user becomes admin
-3. Go to **Providers** → create a provider profile
+3. Go to **Experts** → create an expert profile
 4. Go to **Clients** → create an API key, choose a channel (OpenClaw or Claude Code)
 5. Click **Generate Setup Link** → send the URL to your client
 6. Go to **Channels** → connect Telegram if you want push notifications
 
 ### As a Consumer (AI Agent — OpenClaw)
 
-1. Paste the setup link from your provider in your chat
-2. Follow the guided steps: install skill → register provider → start watcher → configure hook
-3. Use the `heysummon` skill in OpenClaw: `Ask provider: how do I ...?`
+1. Paste the setup link from your expert in your chat
+2. Follow the guided steps: install skill → register expert → start watcher → configure hook
+3. Use the `heysummon` skill in OpenClaw: `Ask expert: how do I ...?`
 4. Your agent will pause and resume when the expert responds
 
 ### As a Consumer (AI Agent — Claude Code)
 
-1. Paste the setup link from your provider in your chat
-2. Follow the guided steps to install the HeySummon skill and register your provider
+1. Paste the setup link from your expert in your chat
+2. Follow the guided steps to install the HeySummon skill and register your expert
 3. Use the `heysummon` skill inside Claude Code naturally
 4. Claude will wait up to 5 minutes for your expert's response
 
@@ -281,10 +281,10 @@ All `HEYSUMMON_*` variables are optional unless marked required.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HEYSUMMON_BASE_URL` | — | **Required.** URL of your HeySummon instance |
-| `HEYSUMMON_PROVIDERS_FILE` | `~/.heysummon/providers.json` | Path to registered providers file |
+| `HEYSUMMON_EXPERTS_FILE` | `~/.heysummon/experts.json` | Path to registered experts file |
 | `HEYSUMMON_POLL_INTERVAL` | `5` | Polling interval in seconds |
 | `HEYSUMMON_NOTIFY_MODE` | `message` | Notification mode: `message` or `file` |
-| `HEYSUMMON_NOTIFY_TARGET` | — | Telegram chat ID for provider response notifications |
+| `HEYSUMMON_NOTIFY_TARGET` | — | Telegram chat ID for expert response notifications |
 | `HEYSUMMON_HOOKS_TOKEN` | — | Security token for openclaw.json hook integration |
 | `HEYSUMMON_SESSION_KEY` | — | OpenClaw session key to wake on response |
 

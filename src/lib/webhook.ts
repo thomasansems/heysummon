@@ -1,7 +1,7 @@
 /**
  * HeySummon Webhook Dispatcher
  *
- * Sends webhook notifications to registered provider endpoints.
+ * Sends webhook notifications to registered expert endpoints.
  * Designed as a reliable alternative/complement to SSE via Mercure.
  *
  * Security: Each webhook delivery includes an HMAC-SHA256 signature
@@ -9,7 +9,7 @@
  *
  * Usage:
  *   // In your Next.js route handler after creating a help request:
- *   await dispatchWebhookToProvider(userId, { type: 'new_request', ... });
+ *   await dispatchWebhookToExpert(userId, { type: 'new_request', ... });
  */
 
 import crypto from 'crypto';
@@ -104,21 +104,21 @@ export async function deliverWebhook(
 }
 
 /**
- * Find all webhook ChannelProviders for a user and dispatch the payload to each.
+ * Find all webhook ExpertChannels for a user and dispatch the payload to each.
  * Non-blocking: errors are logged but don't throw.
  */
-export async function dispatchWebhookToProvider(
+export async function dispatchWebhookToExpert(
   userId: string,
   payload: WebhookPayload
 ): Promise<void> {
-  let webhookProviders: Array<{ id: string; config: string; name: string }> = [];
+  let webhookChannels: Array<{ id: string; config: string; name: string }> = [];
 
   try {
-    // Find all active webhook channels for this provider
+    // Find all active webhook channels for this expert
     const profile = await prisma.userProfile.findFirst({
       where: { userId },
       include: {
-        channelProviders: {
+        expertChannels: {
           where: {
             type: 'webhook',
             isActive: true,
@@ -129,17 +129,17 @@ export async function dispatchWebhookToProvider(
       },
     });
 
-    webhookProviders = profile?.channelProviders ?? [];
+    webhookChannels = profile?.expertChannels ?? [];
   } catch (err) {
-    console.error('[webhook] Failed to fetch webhook providers:', err);
+    console.error('[webhook] Failed to fetch webhook channels:', err);
     return;
   }
 
-  if (webhookProviders.length === 0) return;
+  if (webhookChannels.length === 0) return;
 
   // Dispatch all in parallel (fire-and-forget per webhook)
   await Promise.allSettled(
-    webhookProviders.map(async (ch) => {
+    webhookChannels.map(async (ch) => {
       let cfg: WebhookConfig;
       try {
         cfg = JSON.parse(ch.config) as WebhookConfig;

@@ -59,7 +59,7 @@ export class HeySummonClient {
     return res.json() as Promise<T>;
   }
 
-  /** Identify which provider this API key is linked to */
+  /** Identify which expert this API key is linked to */
   async whoami(): Promise<WhoamiResult> {
     return this.request<WhoamiResult>("GET", "/api/v1/whoami");
   }
@@ -72,7 +72,7 @@ export class HeySummonClient {
       messages: opts.messages,
       signPublicKey: opts.signPublicKey,
       encryptPublicKey: opts.encryptPublicKey,
-      providerName: opts.providerName,
+      expertName: opts.expertName,
       requiresApproval: opts.requiresApproval,
     });
   }

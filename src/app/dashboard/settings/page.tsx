@@ -13,7 +13,7 @@ interface IpEvent {
   lastSeen: string;
 }
 
-interface ProviderProfile {
+interface ExpertProfile {
   id: string;
   name: string;
   key: string;
@@ -33,7 +33,7 @@ export default function SettingsPage() {
   } | null>(null);
   const [cleanupRunning, setCleanupRunning] = useState(false);
   const [cleanupDone, setCleanupDone] = useState(false);
-  const [providerProfiles, setProviderProfiles] = useState<ProviderProfile[]>([]);
+  const [expertProfiles, setExpertProfiles] = useState<ExpertProfile[]>([]);
 
   // GDPR state
   const [gdpr, setGdpr] = useState<{
@@ -158,25 +158,25 @@ export default function SettingsPage() {
     setTestLoading(false);
   };
 
-  const fetchProviderIpEvents = useCallback(() => {
-    fetch("/api/providers/ip-events")
+  const fetchExpertIpEvents = useCallback(() => {
+    fetch("/api/experts/ip-events")
       .then((r) => r.json())
-      .then((data) => setProviderProfiles(data.profiles || []))
+      .then((data) => setExpertProfiles(data.profiles || []))
       .catch(() => {});
   }, []);
 
   const updateIpStatus = async (eventId: string, status: string) => {
-    await fetch(`/api/providers/ip-events/${eventId}`, {
+    await fetch(`/api/experts/ip-events/${eventId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
-    fetchProviderIpEvents();
+    fetchExpertIpEvents();
   };
 
   const deleteIpEvent = async (eventId: string) => {
-    await fetch(`/api/providers/ip-events/${eventId}`, { method: "DELETE" });
-    fetchProviderIpEvents();
+    await fetch(`/api/experts/ip-events/${eventId}`, { method: "DELETE" });
+    fetchExpertIpEvents();
   };
 
   useEffect(() => {
@@ -207,13 +207,13 @@ export default function SettingsPage() {
       .then((data) => setConsent(data))
       .catch(() => {});
 
-    // Fetch providers + clients for entity export selector
-    fetch("/api/providers")
+    // Fetch experts + clients for entity export selector
+    fetch("/api/experts")
       .then((r) => r.json())
       .then((data) => {
         const entities: { type: string; id: string; label: string }[] = [];
-        for (const p of data.providers || []) {
-          entities.push({ type: "provider", id: p.id, label: `Provider: ${p.name}` });
+        for (const p of data.experts || []) {
+          entities.push({ type: "expert", id: p.id, label: `Expert: ${p.name}` });
           for (const k of p.apiKeys || []) {
             entities.push({ type: "client", id: k.id, label: `Client: ${k.name || "Unnamed"}` });
           }
@@ -222,8 +222,8 @@ export default function SettingsPage() {
       })
       .catch(() => {});
 
-    fetchProviderIpEvents();
-  }, [fetchProviderIpEvents]);
+    fetchExpertIpEvents();
+  }, [fetchExpertIpEvents]);
 
   const triggerCleanup = async () => {
     setCleanupRunning(true);
@@ -808,7 +808,7 @@ export default function SettingsPage() {
                         const descriptions: Record<string, { title: string; description: string; legal: string }> = {
                           data_processing: {
                             title: "Data Processing",
-                            description: "Allows HeySummon to store and process your help requests, messages, provider responses, and associated metadata (timestamps, reference codes, approval decisions). This is the core functionality that enables the question-and-answer workflow between clients and providers.",
+                            description: "Allows HeySummon to store and process your help requests, messages, expert responses, and associated metadata (timestamps, reference codes, approval decisions). This is the core functionality that enables the question-and-answer workflow between clients and experts.",
                             legal: "Legal basis: Art. 6(1)(a) GDPR — consent, or Art. 6(1)(b) — necessary for the performance of the service you have requested.",
                           },
                           communications: {
@@ -866,7 +866,7 @@ export default function SettingsPage() {
                 <div className="rounded-lg border border-border bg-card p-6">
                   <h3 className="font-serif text-base font-semibold text-foreground mb-1">Your Data Rights</h3>
                   <p className="text-sm text-muted-foreground mb-5">
-                    Under GDPR, you have the right to access (Art. 15) and erase (Art. 17) your personal data. You can also export data for any client or provider in the system.
+                    Under GDPR, you have the right to access (Art. 15) and erase (Art. 17) your personal data. You can also export data for any client or expert in the system.
                   </p>
 
                   {/* Export own data */}
@@ -874,7 +874,7 @@ export default function SettingsPage() {
                     <div>
                       <p className="text-sm font-medium text-foreground mb-1">Export my data</p>
                       <p className="text-xs text-muted-foreground mb-2">
-                        Downloads a JSON file containing all your personal data: account info, provider profiles, API keys, help requests, messages, and audit logs.
+                        Downloads a JSON file containing all your personal data: account info, expert profiles, API keys, help requests, messages, and audit logs.
                       </p>
                       <button
                         onClick={exportMyData}
@@ -886,14 +886,14 @@ export default function SettingsPage() {
                       </button>
                     </div>
 
-                    {/* Export client/provider data */}
+                    {/* Export client/expert data */}
                     <div className="border-t border-border pt-4">
                       <div className="flex items-center gap-2 mb-1">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-sm font-medium text-foreground">Export client or provider data</p>
+                        <p className="text-sm font-medium text-foreground">Export client or expert data</p>
                       </div>
                       <p className="text-xs text-muted-foreground mb-3">
-                        Select a client or provider to export all their associated data. For clients, this includes all help requests submitted through that API key, messages, and interaction history. For providers, this includes their profile, linked clients, handled requests, and response history.
+                        Select a client or expert to export all their associated data. For clients, this includes all help requests submitted through that API key, messages, and interaction history. For experts, this includes their profile, linked clients, handled requests, and response history.
                       </p>
                       <div className="flex items-center gap-2">
                         <select
@@ -901,10 +901,10 @@ export default function SettingsPage() {
                           onChange={(e) => setEntityExportTarget(e.target.value)}
                           className="flex-1 max-w-sm rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
                         >
-                          <option value="">Select client or provider...</option>
-                          {exportEntities.filter((e) => e.type === "provider").length > 0 && (
-                            <optgroup label="Providers">
-                              {exportEntities.filter((e) => e.type === "provider").map((e) => (
+                          <option value="">Select client or expert...</option>
+                          {exportEntities.filter((e) => e.type === "expert").length > 0 && (
+                            <optgroup label="Experts">
+                              {exportEntities.filter((e) => e.type === "expert").map((e) => (
                                 <option key={`${e.type}:${e.id}`} value={`${e.type}:${e.id}`}>{e.label}</option>
                               ))}
                             </optgroup>
@@ -932,7 +932,7 @@ export default function SettingsPage() {
                     <div className="border-t border-border pt-4">
                       <p className="text-sm font-medium text-foreground mb-1">Delete my account</p>
                       <p className="text-xs text-muted-foreground mb-2">
-                        Permanently deletes your account and all associated data. This action is irreversible and will remove all provider profiles, API keys, help requests, messages, and audit logs.
+                        Permanently deletes your account and all associated data. This action is irreversible and will remove all expert profiles, API keys, help requests, messages, and audit logs.
                       </p>
                       <button
                         onClick={() => {

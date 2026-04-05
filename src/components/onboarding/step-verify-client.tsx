@@ -66,7 +66,7 @@ export function StepVerifyClient({
   const installCmd = isSkillBased
     ? `npm install -g @heysummon/consumer-sdk && \\
 mkdir -p ${skillDir}/scripts && \\
-for f in ask.sh sdk.sh setup.sh add-provider.sh list-providers.sh check-status.sh; do \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
   curl -fsSL "${baseUrl}/api/v1/skill-scripts/${channel}?file=$f" \\
     -o ${skillDir}/scripts/$f && chmod +x ${skillDir}/scripts/$f; \\
 done && \\

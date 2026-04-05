@@ -31,12 +31,12 @@ AI Agent                     HeySummon                    Human
 AI Agent              HeySummon               Human
 
 ── POST /help ──────▶                ── notification: new_request ──▶
-                     ◀── POST /message (provider) ──
+                     ◀── POST /message (expert) ──
 ── GET /help/:id ──▶
    { response: "..." }
 
 ── POST /message (consumer) ──▶      ── notification: new_message ──▶
-                     ◀── POST /message (provider) ──
+                     ◀── POST /message (expert) ──
 ── GET /messages/:id ──▶
    [all messages...]
 ```
@@ -50,7 +50,7 @@ AI Agent              HeySummon               Human
 
 ── POST /help ──────────▶               ── notification ──▶
 
-                         ◀── provider responds ──
+                         ◀── expert responds ──
 ── GET /api/v1/events/pending ──▶
    [{ type: "status_change", status: "responded" }]
 ── GET /help/:id ──▶ { response: "..." }
@@ -62,7 +62,7 @@ AI Agent              HeySummon               Human
 
 | Topic | Who subscribes | Events |
 |-------|---------------|--------|
-| `/heysummon/providers/{userId}` | Provider watcher, dashboard | `new_request`, `new_message` |
+| `/heysummon/experts/{userId}` | Expert watcher, dashboard | `new_request`, `new_message` |
 | `/heysummon/requests/{requestId}` | Consumer watcher | `status_change`, `new_message` |
 
 The platform resolves which topics a key can subscribe to based on its type and ownership.
@@ -100,7 +100,7 @@ All events are JSON:
   "requestId": "cm...",
   "refCode": "HS-A1B2C3D4",
   "messageId": "uuid...",
-  "from": "provider"
+  "from": "expert"
 }
 ```
 

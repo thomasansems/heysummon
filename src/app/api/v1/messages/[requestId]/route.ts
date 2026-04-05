@@ -72,8 +72,8 @@ export async function GET(
       status: helpRequest.status,
       consumerSignPubKey: helpRequest.consumerSignPubKey,
       consumerEncryptPubKey: helpRequest.consumerEncryptPubKey,
-      providerSignPubKey: helpRequest.providerSignPubKey,
-      providerEncryptPubKey: helpRequest.providerEncryptPubKey,
+      expertSignPubKey: helpRequest.expertSignPubKey,
+      expertEncryptPubKey: helpRequest.expertEncryptPubKey,
       messages,
       expiresAt: helpRequest.expiresAt.toISOString(),
     });

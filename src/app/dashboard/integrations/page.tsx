@@ -24,7 +24,7 @@ interface Integration {
   isActive: boolean;
   config: string;
   createdAt: string;
-  _count: { providerConfigs: number };
+  _count: { expertConfigs: number };
 }
 
 const INTEGRATION_TYPES = [
@@ -33,7 +33,7 @@ const INTEGRATION_TYPES = [
     label: "Twilio",
     category: "voice",
     categoryLabel: "Voice / Calling",
-    description: "Enable phone-first notifications. Providers can receive help requests via phone calls and respond verbally.",
+    description: "Enable phone-first notifications. Experts can receive help requests via phone calls and respond verbally.",
     icon: Phone,
   },
 ];
@@ -160,7 +160,7 @@ export default function IntegrationsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Integrations</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Connect external services to extend provider capabilities.
+            Connect external services to extend expert capabilities.
           </p>
         </div>
       </div>
@@ -272,7 +272,7 @@ export default function IntegrationsPage() {
                           <StatusBadge active={integration.isActive} />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {integration._count.providerConfigs} provider{integration._count.providerConfigs !== 1 ? "s" : ""} using this integration
+                          {integration._count.expertConfigs} expert{integration._count.expertConfigs !== 1 ? "s" : ""} using this integration
                         </p>
                       </div>
                     </div>
@@ -378,7 +378,7 @@ export default function IntegrationsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete integration?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the integration and disconnect all providers using it. This cannot be undone.
+              This will remove the integration and disconnect all experts using it. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

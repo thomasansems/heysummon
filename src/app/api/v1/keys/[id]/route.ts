@@ -29,12 +29,12 @@ export async function GET(
       previousKeyExpiresAt: true,
       createdAt: true,
       machineId: true,
-      provider: {
+      expert: {
         select: {
           id: true,
           name: true,
           isActive: true,
-          channelProviders: {
+          expertChannels: {
             where: { isActive: true },
             select: { id: true, type: true, status: true },
           },

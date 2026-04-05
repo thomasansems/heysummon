@@ -7,10 +7,10 @@ import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 /**
  * POST /api/v1/events/ack/:requestId — Acknowledge delivery of a notification
  *
- * Called by the provider watcher after it successfully processes a pending event.
+ * Called by the expert watcher after it successfully processes a pending event.
  * Updates deliveredAt on the HelpRequest and logs an audit event.
  *
- * Auth: x-api-key (provider key)
+ * Auth: x-api-key (expert key)
  */
 export async function POST(
   request: NextRequest,
@@ -23,18 +23,18 @@ export async function POST(
     return NextResponse.json({ error: "Missing x-api-key" }, { status: 401 });
   }
 
-  // Validate provider key OR client key
+  // Validate expert key OR client key
   let userId: string | null = null;
   let helpRequestFilter: Record<string, unknown> = { id: requestId };
 
-  const provider = await prisma.userProfile.findFirst({
+  const expert = await prisma.userProfile.findFirst({
     where: { key: apiKey, isActive: true },
     select: { id: true, userId: true },
   });
 
-  if (provider) {
-    userId = provider.userId;
-    helpRequestFilter.expertId = provider.userId;
+  if (expert) {
+    userId = expert.userId;
+    helpRequestFilter.expertId = expert.userId;
   } else {
     // Try client key
     const clientKey = await prisma.apiKey.findFirst({
@@ -60,8 +60,8 @@ export async function POST(
 
   const now = new Date();
 
-  if (provider) {
-    // Provider ACK: set deliveredAt (only once)
+  if (expert) {
+    // Expert ACK: set deliveredAt (only once)
     if (!helpRequest.deliveredAt) {
       await prisma.helpRequest.update({
         where: { id: requestId },
@@ -83,7 +83,7 @@ export async function POST(
     metadata: {
       requestId,
       refCode: helpRequest.refCode,
-      keyType: provider ? "provider" : "consumer",
+      keyType: expert ? "expert" : "consumer",
     },
     request,
   });

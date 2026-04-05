@@ -25,8 +25,7 @@ describe("HeySummonClient", () => {
         return HttpResponse.json({
           keyId: "kid1",
           keyName: "test key",
-          provider: { id: "prov1", name: "TestProvider", isActive: true },
-          expert: { id: "exp1", name: "Expert One" },
+          expert: { id: "exp1", name: "Expert One", isActive: true },
         });
       })
     );
@@ -34,7 +33,7 @@ describe("HeySummonClient", () => {
     const result = await client().whoami();
     expect(receivedKey).toBe(API_KEY);
     expect(result.keyId).toBe("kid1");
-    expect(result.provider.name).toBe("TestProvider");
+    expect(result.expert.name).toBe("Expert One");
   });
 
   it("submitRequest() sends question and keys in body", async () => {
@@ -104,7 +103,7 @@ describe("HeySummonClient", () => {
           messages: [
             {
               id: "msg1",
-              from: "provider",
+              from: "expert",
               ciphertext: "abc",
               iv: "iv1",
               authTag: "tag1",
@@ -119,7 +118,7 @@ describe("HeySummonClient", () => {
 
     const result = await client().getMessages("req1");
     expect(result.messages).toHaveLength(1);
-    expect(result.messages[0].from).toBe("provider");
+    expect(result.messages[0].from).toBe("expert");
   });
 
   it("getRequestStatus() returns flat status object", async () => {
@@ -148,7 +147,7 @@ describe("HeySummonClient", () => {
           status: "responded",
           refCode: "HS-TEST",
           question: "Should I?",
-          provider: { id: "prov1", name: "Thomas" },
+          expert: { id: "exp1", name: "Thomas" },
         })
       )
     );
@@ -156,7 +155,7 @@ describe("HeySummonClient", () => {
     const result = await client().getRequestByRef("HS-TEST");
     expect(result.requestId).toBe("req1");
     expect(result.question).toBe("Should I?");
-    expect(result.provider?.name).toBe("Thomas");
+    expect(result.expert?.name).toBe("Thomas");
   });
 
   it("throws descriptive error on non-OK response", async () => {
@@ -177,8 +176,7 @@ describe("HeySummonClient", () => {
         return HttpResponse.json({
           keyId: "kid1",
           keyName: null,
-          provider: { id: "p1", name: "P", isActive: true },
-          expert: { id: "e1", name: null },
+          expert: { id: "e1", name: "P", isActive: true },
         });
       })
     );

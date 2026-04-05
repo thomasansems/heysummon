@@ -116,18 +116,17 @@ export function proxy(request: NextRequest) {
 
   // Skip rate limiting for localhost (development + test runners)
   const isLocalhost = ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
-  if (isLocalhost) {
-    return applySecurityHeaders(NextResponse.next());
-  }
 
-  const limitKey = isApiV1 ? `api:${ip}` : `page:${ip}`;
-  const maxReqs = isApiV1 ? RATE_LIMIT_API_MAX : RATE_LIMIT_MAX_REQUESTS;
+  if (!isLocalhost) {
+    const limitKey = isApiV1 ? `api:${ip}` : `page:${ip}`;
+    const maxReqs = isApiV1 ? RATE_LIMIT_API_MAX : RATE_LIMIT_MAX_REQUESTS;
 
-  if (isRateLimited(limitKey, maxReqs)) {
-    return NextResponse.json(
-      { error: "Too many requests. Please try again later." },
-      { status: 429, headers: { "Retry-After": "60" } }
-    );
+    if (isRateLimited(limitKey, maxReqs)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
   }
 
   // --- API key validation on polling (optional, backward-compatible) ---
@@ -138,7 +137,7 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // --- Auth redirects (merged from proxy.ts) ---
+  // --- Auth redirects ---
   const hasSession =
     request.cookies.get("authjs.session-token")?.value ||
     request.cookies.get("__Secure-authjs.session-token")?.value ||

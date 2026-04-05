@@ -160,9 +160,9 @@ export async function exportUserData(userId: string) {
     where: { id: userId },
     include: {
       accounts: true,
-      providers: {
+      expertProfiles: {
         include: {
-          channelProviders: true,
+          expertChannels: true,
           ipEvents: true,
         },
       },
@@ -215,14 +215,14 @@ export async function exportUserData(userId: string) {
       updatedAt: user.updatedAt,
     },
     accounts: user.accounts.map(({ id, type, provider }) => ({ id, type, provider })),
-    providers: user.providers.map((p) => ({
+    expertProfiles: user.expertProfiles.map((p) => ({
       id: p.id,
       name: p.name,
       key: p.key,
       isActive: p.isActive,
       timezone: p.timezone,
       createdAt: p.createdAt,
-      channelProviders: p.channelProviders.map((cp) => ({
+      expertChannels: p.expertChannels.map((cp) => ({
         id: cp.id,
         type: cp.type,
         name: cp.name,
@@ -329,7 +329,7 @@ export async function deleteUserData(userId: string) {
   // 3. Delete API keys (cascading ip events)
   await prisma.apiKey.deleteMany({ where: { userId } });
 
-  // 4. Delete user profiles (cascading channel providers, ip events)
+  // 4. Delete user profiles (cascading expert channels, ip events)
   await prisma.userProfile.deleteMany({ where: { userId } });
 
   // 5. Delete the user (cascading accounts, sessions, certificates, consents, data requests)

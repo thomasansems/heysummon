@@ -12,7 +12,7 @@ interface StepTestE2eProps {
 type E2eStatus =
   | "ready"
   | "sending"
-  | "waiting_provider"
+  | "waiting_expert"
   | "waiting_response"
   | "complete"
   | "timeout";
@@ -55,7 +55,7 @@ export function StepTestE2e({ apiKeyId, onSuccess, onStatusChange }: StepTestE2e
 
       const data = await res.json();
       setRequestId(data.requestId);
-      setStatus("waiting_provider");
+      setStatus("waiting_expert");
 
       // Start polling
       const startTime = Date.now();
@@ -101,8 +101,8 @@ export function StepTestE2e({ apiKeyId, onSuccess, onStatusChange }: StepTestE2e
 
   const statusSteps = [
     { key: "sending", label: "Creating test request..." },
-    { key: "waiting_provider", label: "Sending to provider..." },
-    { key: "waiting_response", label: "Waiting for provider response..." },
+    { key: "waiting_expert", label: "Sending to expert..." },
+    { key: "waiting_response", label: "Waiting for expert response..." },
     { key: "complete", label: "Response received!" },
   ];
 
@@ -112,7 +112,7 @@ export function StepTestE2e({ apiKeyId, onSuccess, onStatusChange }: StepTestE2e
         End-to-End Test
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        This tests the complete flow: client sends a question, provider receives it,
+        This tests the complete flow: client sends a question, expert receives it,
         responds, and the response is delivered back.
       </p>
 
@@ -122,8 +122,8 @@ export function StepTestE2e({ apiKeyId, onSuccess, onStatusChange }: StepTestE2e
             <p className="text-sm text-foreground mb-2">Full round-trip test:</p>
             <ol className="space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
               <li>A test question is sent from the client</li>
-              <li>Your provider receives a notification</li>
-              <li>You respond from your provider channel</li>
+              <li>Your expert receives a notification</li>
+              <li>You respond from your expert channel</li>
               <li>We verify the response reaches the client</li>
             </ol>
           </div>
@@ -144,7 +144,7 @@ export function StepTestE2e({ apiKeyId, onSuccess, onStatusChange }: StepTestE2e
           {statusSteps.map((s) => {
             const isActive =
               s.key === status ||
-              (s.key === "waiting_provider" && status === "sending");
+              (s.key === "waiting_expert" && status === "sending");
             const isDone =
               statusSteps.findIndex((x) => x.key === status) >
               statusSteps.findIndex((x) => x.key === s.key);
@@ -184,9 +184,9 @@ export function StepTestE2e({ apiKeyId, onSuccess, onStatusChange }: StepTestE2e
             );
           })}
 
-          {(status === "waiting_provider" || status === "waiting_response") && (
+          {(status === "waiting_expert" || status === "waiting_response") && (
             <p className="text-xs text-muted-foreground text-center">
-              Check your provider channel and respond to the test message ({elapsed}s
+              Check your expert channel and respond to the test message ({elapsed}s
               elapsed)
             </p>
           )}
@@ -201,7 +201,7 @@ export function StepTestE2e({ apiKeyId, onSuccess, onStatusChange }: StepTestE2e
             </p>
             <p className="text-xs text-muted-foreground">
               The end-to-end test didn&apos;t complete within 3 minutes. This usually
-              means the provider didn&apos;t respond in time.
+              means the expert didn&apos;t respond in time.
             </p>
           </div>
           <div className="flex gap-2">

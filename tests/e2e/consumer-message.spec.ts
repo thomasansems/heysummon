@@ -10,7 +10,7 @@ import { apiGet, apiPost, apiRaw } from "./helpers/api";
 import { PW } from "./helpers/constants";
 
 const CONSUMER_HEADERS = { "x-api-key": PW.CLIENT_KEY };
-const PROVIDER_HEADERS = { "x-api-key": PW.PROVIDER_KEY };
+const EXPERT_HEADERS = { "x-api-key": PW.EXPERT_KEY };
 
 test.describe("Consumer message flow", () => {
   let requestId: string;
@@ -39,16 +39,16 @@ test.describe("Consumer message flow", () => {
     expect(data.messageId).toBeTruthy();
   });
 
-  test("3. Provider responds", async () => {
+  test("3. Expert responds", async () => {
     const data = await apiPost<{ success: boolean }>(
       `/api/v1/message/${requestId}`,
-      { from: "provider", plaintext: "Provider reply to consumer" },
-      PROVIDER_HEADERS
+      { from: "expert", plaintext: "Expert reply to consumer" },
+      EXPERT_HEADERS
     );
     expect(data.success).toBe(true);
   });
 
-  test("4. Request status is responded after provider message", async () => {
+  test("4. Request status is responded after expert message", async () => {
     const data = await apiGet<{ requestId: string; status: string }>(
       `/api/v1/help/${requestId}`,
       CONSUMER_HEADERS
@@ -56,7 +56,7 @@ test.describe("Consumer message flow", () => {
     expect(data.status).toBe("responded");
   });
 
-  test("5. Consumer can still send messages after provider responded", async () => {
+  test("5. Consumer can still send messages after expert responded", async () => {
     const data = await apiPost<{ success: boolean }>(
       `/api/v1/message/${requestId}`,
       { from: "consumer", plaintext: "Consumer follow-up after response" },

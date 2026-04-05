@@ -7,10 +7,10 @@ import { sanitizeError } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 
 /**
- * POST /api/v1/key-exchange/:requestId — Provider sends their public keys
+ * POST /api/v1/key-exchange/:requestId — Expert sends their public keys
  *
  * This completes the key exchange: consumer already sent their keys in POST /help,
- * now provider sends theirs and both can derive the shared secret via X25519 DH.
+ * now expert sends theirs and both can derive the shared secret via X25519 DH.
  *
  * Required: signPublicKey, encryptPublicKey
  * Returns: { success: true }
@@ -46,19 +46,19 @@ export async function POST(
       );
     }
 
-    if (helpRequest.providerSignPubKey || helpRequest.providerEncryptPubKey) {
+    if (helpRequest.expertSignPubKey || helpRequest.expertEncryptPubKey) {
       return NextResponse.json(
-        { error: "Provider keys already exchanged for this request" },
+        { error: "Expert keys already exchanged for this request" },
         { status: 400 }
       );
     }
 
-    // Store provider's public keys and set status to active
+    // Store expert's public keys and set status to active
     await prisma.helpRequest.update({
       where: { id: requestId },
       data: {
-        providerSignPubKey: signPublicKey,
-        providerEncryptPubKey: encryptPublicKey,
+        expertSignPubKey: signPublicKey,
+        expertEncryptPubKey: encryptPublicKey,
         status: "active",
       },
     });

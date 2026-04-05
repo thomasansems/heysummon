@@ -1,9 +1,9 @@
-export interface Provider {
+export interface Expert {
   name: string;
   nameLower: string;
   apiKey: string;
-  providerId: string;
-  providerName: string;
+  expertId: string;
+  expertName: string;
   addedAt: string;
 }
 
@@ -12,7 +12,7 @@ export interface SubmitRequestOptions {
   messages?: Array<{ role: string; content: string }>;
   signPublicKey?: string;
   encryptPublicKey?: string;
-  providerName?: string;
+  expertName?: string;
   requiresApproval?: boolean;
 }
 
@@ -22,7 +22,7 @@ export interface SubmitRequestResult {
   status?: string;
   expiresAt?: string;
   serverPublicKey?: string;
-  // Rejection fields (provider unavailable)
+  // Rejection fields (expert unavailable)
   rejected?: boolean;
   reason?: string;
   message?: string;
@@ -35,11 +35,11 @@ export interface PendingEvent {
     | "new_message"
     | "keys_exchanged"
     | "responded"
-    | "closed" 
+    | "closed"
     | "cancelled";
   requestId: string;
   refCode: string | null;
-  from?: "provider" | "consumer";
+  from?: "expert" | "consumer";
   messageCount?: number;
   respondedAt?: string | null;
   latestMessageAt?: string | null;
@@ -52,7 +52,7 @@ export interface PendingEvent {
 
 export interface Message {
   id: string;
-  from: "provider" | "consumer";
+  from: "expert" | "consumer";
   ciphertext: string;
   iv: string;
   authTag: string;
@@ -69,8 +69,8 @@ export interface RequestStatusResponse {
   response?: string;
   lastMessage?: string;
   question?: string;
-  providerName?: string;
-  provider?: { id: string; name: string };
+  expertName?: string;
+  expert?: { id: string; name: string };
   createdAt?: string;
   expiresAt?: string;
 }
@@ -83,12 +83,12 @@ export interface HeySummonClientOptions {
 export interface WhoamiResult {
   keyId: string;
   keyName: string | null;
-  provider: {
+  expert: {
     id: string;
     name: string;
     isActive: boolean;
   };
-  expert: {
+  owner: {
     id: string;
     name: string | null;
   };

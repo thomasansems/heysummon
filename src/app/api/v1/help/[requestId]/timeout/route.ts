@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateApiKeyRequest } from "@/lib/api-key-auth";
 import { sendMessage } from "@/lib/adapters/telegram";
-import { dispatchWebhookToProvider } from "@/lib/webhook";
+import { dispatchWebhookToExpert } from "@/lib/webhook";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import type { TelegramConfig } from "@/lib/adapters/types";
 
@@ -12,7 +12,7 @@ import type { TelegramConfig } from "@/lib/adapters/types";
  * POST /api/v1/help/:requestId/timeout
  *
  * Called by the consumer SDK when the blocking poll times out.
- * Records the timeout, notifies the provider via Telegram, and dispatches a webhook.
+ * Records the timeout, notifies the expert via Telegram, and dispatches a webhook.
  *
  * Auth: consumer API key (must own the request)
  */
@@ -77,11 +77,11 @@ export async function POST(
     request,
   });
 
-  // Notify provider via Telegram (fire-and-forget)
-  notifyProviderTimeout(helpRequest.expertId, helpRequest.refCode, helpRequest.questionPreview).catch(() => {});
+  // Notify expert via Telegram (fire-and-forget)
+  notifyExpertTimeout(helpRequest.expertId, helpRequest.refCode, helpRequest.questionPreview).catch(() => {});
 
   // Dispatch webhook (fire-and-forget)
-  dispatchWebhookToProvider(helpRequest.expertId, {
+  dispatchWebhookToExpert(helpRequest.expertId, {
     type: "client_timeout",
     requestId: helpRequest.id,
     refCode: helpRequest.refCode ?? undefined,
@@ -91,29 +91,29 @@ export async function POST(
 }
 
 /**
- * Send a Telegram notification to the provider that the client timed out waiting.
+ * Send a Telegram notification to the expert that the client timed out waiting.
  */
-async function notifyProviderTimeout(
+async function notifyExpertTimeout(
   expertId: string,
   refCode: string | null,
   questionPreview: string | null
 ) {
-  // Find active Telegram channel for this provider
+  // Find active Telegram channel for this expert
   const profile = await prisma.userProfile.findFirst({
     where: { userId: expertId },
     include: {
-      channelProviders: {
+      expertChannels: {
         where: { type: "telegram", isActive: true, status: "connected" },
         take: 1,
       },
     },
   });
 
-  const telegramChannel = profile?.channelProviders[0];
+  const telegramChannel = profile?.expertChannels[0];
   if (!telegramChannel) return;
 
   const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
-  if (!cfg.providerChatId || !cfg.botToken) return;
+  if (!cfg.expertChatId || !cfg.botToken) return;
 
   const ref = refCode ? `\`${refCode}\`` : "a request";
   const preview = questionPreview
@@ -122,5 +122,5 @@ async function notifyProviderTimeout(
 
   const msg = `*Client timed out* waiting for your response on ${ref}.${preview}`;
 
-  await sendMessage(cfg.botToken, cfg.providerChatId, msg);
+  await sendMessage(cfg.botToken, cfg.expertChatId, msg);
 }

@@ -6,17 +6,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLATFORM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "🌱 Seeding E2E data..."
+echo "Seeding E2E data..."
 cd "$PLATFORM_DIR"
 SEED_JSON=$(bash e2e/seed-e2e.sh)
 echo "$SEED_JSON" | jq .
 
-export E2E_PROVIDER_ID=$(echo "$SEED_JSON" | jq -r '.providerId')
-export E2E_PROVIDER_KEY=$(echo "$SEED_JSON" | jq -r '.providerKey')
+export E2E_EXPERT_ID=$(echo "$SEED_JSON" | jq -r '.expertId')
+export E2E_EXPERT_KEY=$(echo "$SEED_JSON" | jq -r '.expertKey')
 export E2E_CLIENT_KEY=$(echo "$SEED_JSON" | jq -r '.clientKey')
 export E2E_USER_ID=$(echo "$SEED_JSON" | jq -r '.userId')
 export E2E_BASE_URL="http://localhost:3456"
 
 echo ""
-echo "🧪 Running E2E tests..."
+echo "Running E2E tests..."
 bash "$SCRIPT_DIR/e2e-test.sh"

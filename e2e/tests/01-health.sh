@@ -31,7 +31,7 @@ HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${PENDING_URL}" 2>/dev/null 
 # ── Whoami ──
 section "Whoami"
 WHOAMI=$(curl -s "${BASE_URL}/api/v1/whoami" -H "x-api-key: ${CLIENT_KEY}")
-PROV_NAME=$(echo "$WHOAMI" | jq -r '.provider.name // empty' 2>/dev/null)
-[ -n "$PROV_NAME" ] && pass "Whoami: provider='$PROV_NAME'" || fail "Whoami failed: $WHOAMI"
+EXPERT_NAME=$(echo "$WHOAMI" | jq -r '.expert.name // empty' 2>/dev/null)
+[ -n "$EXPERT_NAME" ] && pass "Whoami: expert='$EXPERT_NAME'" || fail "Whoami failed: $WHOAMI"
 
 finish

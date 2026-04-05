@@ -43,8 +43,8 @@ Signal's Double Ratchet and one-time prekeys are designed for async multi-device
 |-----|-------|----------------|
 | Consumer signing private key | Consumer device only | Consumer only |
 | Consumer encryption private key | Consumer device only | Consumer only |
-| Provider signing private key | Provider device only | Provider only |
-| Provider encryption private key | Provider device only | Provider only |
+| Expert signing private key | Expert device only | Expert only |
+| Expert encryption private key | Expert device only | Expert only |
 | Public keys | Platform database | Platform (routing only) |
 | Shared secret | Never stored | Derived locally, never leaves device |
 
@@ -77,8 +77,8 @@ An attacker with only database access cannot brute-force the original key value 
   "question": "AqP3Kj...base64ciphertext...==",
   "consumerSignPubKey": "MCo...hex-encoded-Ed25519-pubkey...",
   "consumerEncryptPubKey": "MCo...hex-encoded-X25519-pubkey...",
-  "providerSignPubKey": "MCo...hex-encoded-Ed25519-pubkey...",
-  "providerEncryptPubKey": "MCo...hex-encoded-X25519-pubkey..."
+  "expertSignPubKey": "MCo...hex-encoded-Ed25519-pubkey...",
+  "expertEncryptPubKey": "MCo...hex-encoded-X25519-pubkey..."
 }
 ```
 

@@ -3,7 +3,7 @@ export const PW = {
   EMAIL: "playwright@heysummon.test",
   PASSWORD: "PlaywrightTest123!",
 
-  PROVIDER_KEY: "hs_prov_playwright00000000000000000001",
+  EXPERT_KEY: "hs_exp_playwright00000000000000000001",
 
   /** Base lifecycle test key */
   CLIENT_KEY: "hs_cli_playwright00000000000000000001",
@@ -18,7 +18,7 @@ export const PW = {
 
   /** Mock Telegram bot token (seeded) */
   TELEGRAM_BOT_TOKEN: "999999999:PLAYWRIGHT_TEST_BOT_TOKEN_000000000",
-  TELEGRAM_PROVIDER_CHAT_ID: "123456789",
+  TELEGRAM_EXPERT_CHAT_ID: "123456789",
 
   /** Mock Slack credentials (seeded) */
   SLACK_BOT_TOKEN: "xoxb-999999999999-9999999999999-PLAYWRIGHT_TEST",

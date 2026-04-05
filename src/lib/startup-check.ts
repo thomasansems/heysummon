@@ -6,14 +6,14 @@ import { prisma } from "./prisma";
 
 export async function runStartupCheck(): Promise<void> {
   try {
-    const [users, channelProviders, requests, auditLogs] = await Promise.all([
+    const [users, expertChannels, requests, auditLogs] = await Promise.all([
       prisma.user.count(),
-      prisma.channelProvider.count(),
+      prisma.expertChannel.count(),
       prisma.helpRequest.count(),
       prisma.auditLog.count(),
     ]);
 
-    console.log(`✅ Database OK — users: ${users}, channels: ${channelProviders}, requests: ${requests}, audit logs: ${auditLogs}`);
+    console.log(`Database OK -- users: ${users}, channels: ${expertChannels}, requests: ${requests}, audit logs: ${auditLogs}`);
 
     if (users === 0) {
       console.warn("⚠️  No users found in database. Run `npm run db:seed` to create demo data.");

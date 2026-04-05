@@ -51,7 +51,7 @@ Content safety runs as in-process middleware on API routes. Every incoming reque
 Events are delivered via **HTTP polling**. Clients poll `GET /api/v1/events/pending` to receive updates.
 
 ```
-Provider Watcher  -->  GET /api/v1/events/pending
+Expert Watcher  -->  GET /api/v1/events/pending
 Dashboard Browser -->  GET /api/v1/events/pending
 ```
 
@@ -72,9 +72,9 @@ AI Agent
 App
   |  Content safety middleware scans and sanitizes
   |  Stores encrypted request, generates ref code
-  |  Creates event on provider topic
+  |  Creates event on expert topic
   v
-Provider watcher / Dashboard (via polling)
+Expert watcher / Dashboard (via polling)
                        |
                        |  Human reads, responds
                        v
@@ -89,7 +89,7 @@ Provider watcher / Dashboard (via polling)
 ## E2E encryption flow
 
 ```
-Consumer (AI Agent)           Platform (blind relay)         Provider (Human)
+Consumer (AI Agent)           Platform (blind relay)         Expert (Human)
 
 Generate Ed25519 keypair
 Generate X25519 keypair

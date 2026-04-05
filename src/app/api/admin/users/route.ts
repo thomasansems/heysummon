@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 
-const VALID_ROLES = ["admin", "provider", "readonly"];
+const VALID_ROLES = ["admin", "expert", "readonly"];
 
 export async function GET() {
   const me = await getCurrentUser();
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
   }
 
-  const assignedRole = VALID_ROLES.includes(role) ? role : "provider";
+  const assignedRole = VALID_ROLES.includes(role) ? role : "expert";
 
   const existing = await prisma.user.findUnique({ where: { email: emailNorm } });
   if (existing) {

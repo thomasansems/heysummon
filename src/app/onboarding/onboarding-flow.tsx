@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { StepWelcome } from "@/components/onboarding/step-welcome";
 import { StepNetwork } from "@/components/onboarding/step-network";
-import { StepProvider } from "@/components/onboarding/step-provider";
-import { StepTestProvider } from "@/components/onboarding/step-test-provider";
+import { StepExpert } from "@/components/onboarding/step-expert";
+import { StepTestExpert } from "@/components/onboarding/step-test-expert";
 import { StepClient } from "@/components/onboarding/step-client";
 import { StepTestE2e } from "@/components/onboarding/step-test-e2e";
 import { StepFirstRequest } from "@/components/onboarding/step-first-request";
 import { StepComplete } from "@/components/onboarding/step-complete";
 import { E2eLiveView } from "@/components/onboarding/e2e-live-view";
-import type { ProviderChannelType } from "@/components/shared/channel-selector";
+import type { ExpertChannelType } from "@/components/shared/channel-selector";
 import type {
   ClientChannelType,
   ClientSubChannelType,
@@ -20,8 +20,8 @@ import type {
 
 const STEPS = [
   { label: "Welcome" },
+  { label: "Expert" },
   { label: "Network" },
-  { label: "Provider" },
   { label: "Test" },
   { label: "Client" },
   { label: "E2E" },
@@ -33,10 +33,10 @@ const STORAGE_KEY = "heysummon_onboarding";
 
 interface OnboardingState {
   step: number;
-  providerId: string | null;
-  providerKey: string | null;
-  providerName: string | null;
-  providerChannel: ProviderChannelType | null;
+  expertId: string | null;
+  expertKey: string | null;
+  expertName: string | null;
+  expertChannel: ExpertChannelType | null;
   clientKeyId: string | null;
   clientApiKey: string | null;
   clientChannel: ClientChannelType | null;
@@ -46,10 +46,10 @@ interface OnboardingState {
 
 const DEFAULT_STATE: OnboardingState = {
   step: 0,
-  providerId: null,
-  providerKey: null,
-  providerName: null,
-  providerChannel: null,
+  expertId: null,
+  expertKey: null,
+  expertName: null,
+  expertChannel: null,
   clientKeyId: null,
   clientApiKey: null,
   clientChannel: null,
@@ -87,7 +87,7 @@ function clearState() {
 type E2eStatus =
   | "ready"
   | "sending"
-  | "waiting_provider"
+  | "waiting_expert"
   | "waiting_response"
   | "complete"
   | "timeout";
@@ -125,46 +125,51 @@ export function OnboardingFlow() {
         return <StepWelcome onNext={() => setStep(1)} />;
 
       case 1:
-        return <StepNetwork onNext={() => setStep(2)} />;
-
-      case 2:
         return (
-          <StepProvider
-            onComplete={({ providerId, providerKey, providerName, channel }) => {
+          <StepExpert
+            onComplete={({ expertId, expertKey, expertName, channel }) => {
               setState((s) => ({
                 ...s,
-                step: 3,
-                providerId,
-                providerKey,
-                providerName,
-                providerChannel: channel,
+                step: 2,
+                expertId,
+                expertKey,
+                expertName,
+                expertChannel: channel,
               }));
             }}
           />
         );
 
+      case 2:
+        // OpenClaw is polling-based — no public access needed
+        if (state.expertChannel === "openclaw") {
+          setStep(3);
+          return null;
+        }
+        return <StepNetwork onNext={() => setStep(3)} />;
+
       case 3:
-        if (!state.providerId || !state.providerChannel) {
-          setStep(2);
+        if (!state.expertId || !state.expertChannel) {
+          setStep(1);
           return null;
         }
         return (
-          <StepTestProvider
-            providerId={state.providerId}
-            channel={state.providerChannel}
+          <StepTestExpert
+            expertId={state.expertId}
+            channel={state.expertChannel}
             onSuccess={() => setStep(4)}
           />
         );
 
       case 4:
-        if (!state.providerId) {
-          setStep(2);
+        if (!state.expertId) {
+          setStep(1);
           return null;
         }
         return (
           <StepClient
-            providerId={state.providerId}
-            providerName={state.providerName ?? "Your Provider"}
+            expertId={state.expertId}
+            expertName={state.expertName ?? "Your Expert"}
             baseUrl={baseUrl}
             onComplete={({ keyId, apiKey, channel, subChannel, clientName }) => {
               setState((s) => ({
@@ -205,7 +210,7 @@ export function OnboardingFlow() {
         clearState();
         return (
           <StepComplete
-            providerName={state.providerName ?? "Provider"}
+            expertName={state.expertName ?? "Expert"}
             clientName={state.clientName ?? "Client"}
           />
         );
@@ -220,7 +225,7 @@ export function OnboardingFlow() {
     state.step === 5 ? (
       <E2eLiveView
         status={e2eStatus}
-        providerChannel={state.providerChannel}
+        expertChannel={state.expertChannel}
       />
     ) : undefined;
 
@@ -228,7 +233,7 @@ export function OnboardingFlow() {
     <OnboardingShell
       currentStep={state.step}
       totalSteps={STEPS.length}
-      providerName={state.providerName}
+      expertName={state.expertName}
       onSkip={handleSkip}
       showSkip={state.step > 0 && state.step < 7}
       sideContent={sideContent}

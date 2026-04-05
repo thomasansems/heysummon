@@ -23,8 +23,8 @@ const snPro = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "HeySummon Provider Portal",
-  description: "Human in the Loop as a Service — Provider Dashboard",
+  title: "HeySummon Expert Portal",
+  description: "Human in the Loop as a Service -- Expert Dashboard",
   icons: {
     icon: [{ url: "/hey-summon.png", type: "image/png" }],
     shortcut: "/hey-summon.png",

@@ -10,7 +10,7 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  // Get provider profile IDs for this user
+  // Get expert profile IDs for this user
   const profiles = await prisma.userProfile.findMany({
     where: { userId },
     select: { id: true },
@@ -23,20 +23,20 @@ export async function GET() {
 
   const [missedRequests, total] = await Promise.all([
     prisma.missedRequest.findMany({
-      where: { providerId: { in: profileIds } },
+      where: { expertId: { in: profileIds } },
       select: {
         id: true,
         questionPreview: true,
         nextAvailableAt: true,
         createdAt: true,
         apiKey: { select: { name: true, clientChannel: true } },
-        provider: { select: { name: true } },
+        expert: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 100,
     }),
     prisma.missedRequest.count({
-      where: { providerId: { in: profileIds } },
+      where: { expertId: { in: profileIds } },
     }),
   ]);
 
@@ -48,7 +48,7 @@ export async function GET() {
       createdAt: m.createdAt,
       clientName: m.apiKey.name || "Unnamed",
       clientChannel: m.apiKey.clientChannel,
-      providerName: m.provider.name,
+      expertName: m.expert.name,
     })),
     total,
   });

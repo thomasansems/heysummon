@@ -21,14 +21,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface ProviderChannel { id: string; type: string; status: string }
-interface Provider { id: string; name: string; isActive: boolean; channelProviders: ProviderChannel[] }
+interface ExpertChannel { id: string; type: string; status: string }
+interface ExpertProfile { id: string; name: string; isActive: boolean; expertChannels: ExpertChannel[] }
 interface IpEvent { id: string; ip: string; status: string; attempts: number; firstSeen: string; lastSeen: string }
 interface ApiKey {
   id: string; key: string; name: string | null; isActive: boolean; scope: string;
   rateLimitPerMinute: number; clientChannel: string | null; clientSubChannel: string | null;
   previousKeyExpiresAt: string | null; createdAt: string; machineId: string | null;
-  provider: Provider | null; ipEvents: IpEvent[]; _count: { requests: number };
+  expert: ExpertProfile | null; ipEvents: IpEvent[]; _count: { requests: number };
 }
 
 const scopeBadge: Record<string, string> = {
@@ -234,19 +234,19 @@ export function ClientDetailPanel({
           </div>
         </div>
 
-        {/* ── Provider ─────────────────────────────────────── */}
+        {/* ── Expert ─────────────────────────────────────── */}
         <div className="pt-8 mt-8 border-t border-border">
-          <SectionHeading>Provider</SectionHeading>
-          {client.provider ? (
-            <p className={`text-sm ${!client.provider.isActive || client.provider.channelProviders.length === 0 ? "text-orange-600" : "text-foreground"}`}>
-              {client.provider.name}
-              {!client.provider.isActive && " (inactive)"}
-              {client.provider.isActive && client.provider.channelProviders.length === 0 && " — no channel configured"}
+          <SectionHeading>Expert</SectionHeading>
+          {client.expert ? (
+            <p className={`text-sm ${!client.expert.isActive || client.expert.expertChannels.length === 0 ? "text-orange-600" : "text-foreground"}`}>
+              {client.expert.name}
+              {!client.expert.isActive && " (inactive)"}
+              {client.expert.isActive && client.expert.expertChannels.length === 0 && " — no channel configured"}
             </p>
           ) : (
             <p className="text-sm text-orange-600 inline-flex items-center gap-1.5">
               <AlertTriangle className="h-4 w-4" />
-              No provider linked
+              No expert linked
             </p>
           )}
         </div>

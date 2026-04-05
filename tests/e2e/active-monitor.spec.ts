@@ -3,7 +3,7 @@
  *
  * Tests the background monitoring job:
  * 1. Request with very short TTL auto-expires without consumer polling
- * 2. Provider metrics updated after expiration
+ * 2. Expert metrics updated after expiration
  *
  * Requires HEYSUMMON_MONITOR_INTERVAL_MS to be set low (e.g., 2000ms) in CI.
  * Requires HEYSUMMON_REQUEST_TTL_MS to be overrideable per-request or very short.
@@ -14,7 +14,7 @@ import { apiGet, apiPost, apiRaw } from "./helpers/api";
 import { PW, BASE_URL } from "./helpers/constants";
 
 const CLIENT_HEADERS = { "x-api-key": PW.CLIENT_KEY };
-const PROVIDER_HEADERS = { "x-api-key": PW.PROVIDER_KEY };
+const EXPERT_HEADERS = { "x-api-key": PW.EXPERT_KEY };
 
 test.describe("Active monitor: auto-expiration", () => {
   let requestId: string;
@@ -85,10 +85,10 @@ test.describe("Active monitor: escalation flag", () => {
     );
     expect(submitData.requestId).toBeTruthy();
 
-    // Provider polls — should see escalated: false
+    // Expert polls -- should see escalated: false
     const eventsData = await apiGet<{
       events: Array<{ requestId: string; escalated?: boolean }>;
-    }>("/api/v1/events/pending", PROVIDER_HEADERS);
+    }>("/api/v1/events/pending", EXPERT_HEADERS);
 
     const match = eventsData.events.find((e) => e.requestId === submitData.requestId);
     expect(match).toBeTruthy();

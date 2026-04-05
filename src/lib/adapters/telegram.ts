@@ -77,18 +77,18 @@ export async function sendMessage(token: string, chatId: string, text: string): 
 export async function sendResponseToTelegram(requestId: string, responseText: string): Promise<boolean> {
   const request = await prisma.helpRequest.findUnique({
     where: { id: requestId },
-    include: { channelProvider: true },
+    include: { expertChannel: true },
   });
 
-  if (!request?.channelProviderId || !request.consumerChatId || !request.channelProvider) {
+  if (!request?.expertChannelId || !request.consumerChatId || !request.expertChannel) {
     return false;
   }
 
-  if (request.channelProvider.type !== "telegram") {
+  if (request.expertChannel.type !== "telegram") {
     return false;
   }
 
-  const config = JSON.parse(request.channelProvider.config) as TelegramConfig;
+  const config = JSON.parse(request.expertChannel.config) as TelegramConfig;
   await sendMessage(config.botToken, request.consumerChatId, responseText);
   return true;
 }
@@ -136,7 +136,7 @@ export const telegramAdapter: ChannelAdapter = {
     await setWebhook(tgConfig.botToken, webhookUrl, webhookSecret);
 
     // Update channel with bot username, webhook secret, and setup token
-    await prisma.channelProvider.update({
+    await prisma.expertChannel.update({
       where: { id: channelId },
       data: {
         config: JSON.stringify({

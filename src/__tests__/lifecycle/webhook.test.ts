@@ -13,7 +13,7 @@ vi.mock("@/lib/prisma", () => ({
 import { prisma } from "@/lib/prisma";
 import {
   deliverWebhook,
-  dispatchWebhookToProvider,
+  dispatchWebhookToExpert,
   type WebhookConfig,
   type WebhookPayload,
 } from "@/lib/webhook";
@@ -205,20 +205,20 @@ describe("webhook", () => {
     });
   });
 
-  describe("dispatchWebhookToProvider", () => {
+  describe("dispatchWebhookToExpert", () => {
     const payload: WebhookPayload = {
       type: "new_request",
       requestId: "req-1",
     };
 
-    it("does nothing when no webhook providers exist", async () => {
+    it("does nothing when no webhook experts exist", async () => {
       mockFindFirst.mockResolvedValue({
-        channelProviders: [],
+        expertChannels: [],
       } as never);
 
       global.fetch = vi.fn();
 
-      await dispatchWebhookToProvider("user-1", payload);
+      await dispatchWebhookToExpert("user-1", payload);
 
       expect(global.fetch).not.toHaveBeenCalled();
     });
@@ -228,14 +228,14 @@ describe("webhook", () => {
 
       global.fetch = vi.fn();
 
-      await dispatchWebhookToProvider("user-1", payload);
+      await dispatchWebhookToExpert("user-1", payload);
 
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it("dispatches to all active webhook channels", async () => {
       mockFindFirst.mockResolvedValue({
-        channelProviders: [
+        expertChannels: [
           {
             id: "ch-1",
             name: "Webhook 1",
@@ -251,7 +251,7 @@ describe("webhook", () => {
 
       global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
 
-      await dispatchWebhookToProvider("user-1", payload);
+      await dispatchWebhookToExpert("user-1", payload);
 
       expect(global.fetch).toHaveBeenCalledTimes(2);
     });
@@ -259,14 +259,14 @@ describe("webhook", () => {
     it("handles invalid JSON config gracefully", async () => {
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       mockFindFirst.mockResolvedValue({
-        channelProviders: [
+        expertChannels: [
           { id: "ch-bad", name: "Bad", config: "not-json" },
         ],
       } as never);
 
       global.fetch = vi.fn();
 
-      await dispatchWebhookToProvider("user-1", payload);
+      await dispatchWebhookToExpert("user-1", payload);
 
       expect(global.fetch).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -278,14 +278,14 @@ describe("webhook", () => {
     it("handles missing URL in config gracefully", async () => {
       const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       mockFindFirst.mockResolvedValue({
-        channelProviders: [
+        expertChannels: [
           { id: "ch-nourl", name: "NoURL", config: JSON.stringify({}) },
         ],
       } as never);
 
       global.fetch = vi.fn();
 
-      await dispatchWebhookToProvider("user-1", payload);
+      await dispatchWebhookToExpert("user-1", payload);
 
       expect(global.fetch).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -294,12 +294,12 @@ describe("webhook", () => {
       consoleSpy.mockRestore();
     });
 
-    it("handles fetch errors for individual providers without affecting others", async () => {
+    it("handles fetch errors for individual experts without affecting others", async () => {
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       vi.spyOn(console, "log").mockImplementation(() => {});
 
       mockFindFirst.mockResolvedValue({
-        channelProviders: [
+        expertChannels: [
           { id: "ch-1", name: "Failing", config: JSON.stringify({ url: "https://fail.example.com", retries: 0 }) },
           { id: "ch-2", name: "Working", config: JSON.stringify({ url: "https://work.example.com", retries: 0 }) },
         ],
@@ -310,7 +310,7 @@ describe("webhook", () => {
         .mockRejectedValueOnce(new Error("network error"))
         .mockResolvedValueOnce({ ok: true, status: 200 });
 
-      await dispatchWebhookToProvider("user-1", payload);
+      await dispatchWebhookToExpert("user-1", payload);
 
       // Both should have been attempted
       expect(global.fetch).toHaveBeenCalledTimes(2);

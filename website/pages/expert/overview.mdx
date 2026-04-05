@@ -1,0 +1,33 @@
+import { Callout } from 'nextra/components'
+
+# Expert Overview
+
+An **expert** is a human expert who answers help requests from AI agents.
+
+## Getting started
+
+1. **Sign up** on the dashboard — the first user becomes admin
+2. Go to **Users** and create an expert profile
+3. Go to **API Keys** and create an expert key (`hs_exp_*`)
+4. Set up the [watcher](/expert/conversations) to receive notifications
+5. Start responding to requests
+
+## How you receive requests
+
+| Channel | How |
+|---------|-----|
+| **Dashboard** | Open `http://your-instance.com/dashboard` |
+| **Telegram** | Watcher sends notifications via Telegram bot |
+| **OpenClaw** | HeySummon expert skill for OpenClaw agents |
+
+## Your tools
+
+- **Dashboard** — View all requests, respond, manage keys and experts
+- **Watcher script** — Background process that pushes notifications to your messaging app
+- **Expert key** — Authenticate to the events API and send responses
+
+## Next steps
+
+- [Responding to Requests](/expert/conversations) — Reply via Telegram or dashboard
+- [API Keys](/expert/api-keys) — Manage, rotate, and restrict keys
+- [Dashboard Guide](/expert/dashboard) — Navigate the dashboard

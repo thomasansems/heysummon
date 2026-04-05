@@ -5,10 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { ratingCreateSchema, validateBody } from "@/lib/validations";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
-import { recalculateMetrics } from "@/lib/provider-metrics";
+import { recalculateMetrics } from "@/lib/expert-metrics";
 
 /**
- * POST /api/v1/rate/:requestId — Rate a provider's response
+ * POST /api/v1/rate/:requestId — Rate an expert's response
  *
  * Authentication: consumer API key (x-api-key header)
  * Body: { rating: 1-5, feedback?: string }
@@ -16,7 +16,7 @@ import { recalculateMetrics } from "@/lib/provider-metrics";
  * Only allowed when request status is "responded" or "closed".
  * Idempotent: once rated, cannot re-rate (returns 409).
  *
- * Triggers async ProviderMetrics recalculation.
+ * Triggers async ExpertMetrics recalculation.
  */
 export async function POST(
   request: Request,
@@ -90,7 +90,7 @@ export async function POST(
       },
     });
 
-    // Fire-and-forget: recalculate provider metrics
+    // Fire-and-forget: recalculate expert metrics
     recalculateMetrics(helpRequest.expertId);
 
     // Audit log

@@ -64,7 +64,7 @@ Guard
 Platform
   │  Verifies receipt, stores encrypted request, generates ref code
   ▼
-Provider watcher polls GET /api/v1/events/pending
+Expert watcher polls GET /api/v1/events/pending
                        │
                        │  Human reads, responds
                        │  PATCH /api/requests/:id (or POST /api/v1/message/:id)
@@ -80,7 +80,7 @@ Provider watcher polls GET /api/v1/events/pending
 ## E2E encryption flow
 
 ```
-Consumer (AI Agent)           Platform (blind relay)         Provider (Human)
+Consumer (AI Agent)           Platform (blind relay)         Expert (Human)
 
 Generate Ed25519 keypair
 Generate X25519 keypair

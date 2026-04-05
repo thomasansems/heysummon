@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 // Mock Prisma before imports
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    channelProvider: {
+    expertChannel: {
       findUnique: vi.fn(),
       update: vi.fn(),
     },
@@ -28,7 +28,7 @@ import { verifyWebhookSignature } from "@/lib/adapters/openclaw";
 import { POST } from "@/app/api/adapters/openclaw/[id]/webhook/route";
 import { NextRequest } from "next/server";
 
-const mockFindUnique = vi.mocked(prisma.channelProvider.findUnique);
+const mockFindUnique = vi.mocked(prisma.expertChannel.findUnique);
 const mockHelpRequestFindFirst = vi.mocked(prisma.helpRequest.findFirst);
 const mockHelpRequestUpdate = vi.mocked(prisma.helpRequest.update);
 const mockMessageCreate = vi.mocked(prisma.message.create);
@@ -101,7 +101,7 @@ describe("OpenClaw webhook callback handler", () => {
     expect(mockMessageCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         requestId: "req-1",
-        from: "provider",
+        from: "expert",
         ciphertext: "approved",
       }),
     });
@@ -218,7 +218,7 @@ describe("OpenClaw webhook callback handler", () => {
     expect(mockMessageCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         requestId: "req-5",
-        from: "provider",
+        from: "expert",
         ciphertext: expect.stringContaining("plaintext:"),
       }),
     });

@@ -1,6 +1,6 @@
 # 💬 Having Conversations with AI Agents
 
-As a **provider** (human expert), HeySummon makes it easy to respond to AI agent requests directly from your favorite messaging app — no need to open a dashboard.
+As an **expert** (human expert), HeySummon makes it easy to respond to AI agent requests directly from your favorite messaging app — no need to open a dashboard.
 
 This guide explains how the **reply-to-respond** flow works.
 
@@ -110,13 +110,13 @@ Each message in a conversation shares the same ref code, making threads easy to 
 
 ---
 
-## Setting Up Provider Notifications
+## Setting Up Expert Notifications
 
-To receive requests in your messaging app, configure the provider watcher in your OpenClaw setup:
+To receive requests in your messaging app, configure the expert watcher in your OpenClaw setup:
 
 ```env
 HEYSUMMON_BASE_URL=http://localhost:3445
-HEYSUMMON_API_KEY=hs_prov_xxxxxxxxxxxxxxxxxxxx
+HEYSUMMON_API_KEY=hs_exp_xxxxxxxxxxxxxxxxxxxx
 HEYSUMMON_NOTIFY_TARGET=<your_chat_id>
 ```
 

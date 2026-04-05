@@ -9,7 +9,7 @@ HeySummon uses two types of API keys with different access levels.
 | Type | Prefix | Used by | Can do |
 |------|--------|---------|--------|
 | **Client key** | `hs_live_` | AI agents, SDKs | Submit requests, poll responses, send messages |
-| **Provider key** | `hs_prov_` | Watcher scripts, integrations | Receive SSE events, send provider responses, look up requests by ref code |
+| **Expert key** | `hs_exp_` | Watcher scripts, integrations | Receive SSE events, send expert responses, look up requests by ref code |
 
 ---
 
@@ -83,4 +83,4 @@ Every key action is logged in **Audit Logs** (dashboard → Audit Logs):
 - Key rotated
 - Key deleted
 - Help request submitted
-- Provider response sent
+- Expert response sent

@@ -129,7 +129,7 @@ export class HeySummonClient {
     );
 
     const keys = this.keyStore.get(requestId);
-    const hasProviderKeys = !!(res.providerEncryptPubKey && res.providerSignPubKey);
+    const hasExpertKeys = !!(res.expertEncryptPubKey && res.expertSignPubKey);
 
     const messages: DecryptedMessage[] = res.messages.map((msg) => {
       // Plaintext messages: return as-is
@@ -144,7 +144,7 @@ export class HeySummonClient {
       }
 
       // No keys available for decryption: return raw message
-      if (!keys || !hasProviderKeys) {
+      if (!keys || !hasExpertKeys) {
         return {
           id: msg.id,
           from: msg.from,
@@ -159,11 +159,11 @@ export class HeySummonClient {
 
       // Auto-decrypt with stored keys
       try {
-        const senderEncPub = msg.from === "provider"
-          ? publicKeyFromHex(res.providerEncryptPubKey!, "x25519")
+        const senderEncPub = msg.from === "expert"
+          ? publicKeyFromHex(res.expertEncryptPubKey!, "x25519")
           : publicKeyFromHex(res.consumerEncryptPubKey!, "x25519");
-        const senderSignPub = msg.from === "provider"
-          ? publicKeyFromHex(res.providerSignPubKey!, "ed25519")
+        const senderSignPub = msg.from === "expert"
+          ? publicKeyFromHex(res.expertSignPubKey!, "ed25519")
           : publicKeyFromHex(res.consumerSignPubKey!, "ed25519");
 
         const plaintext = decryptWithKeys(
@@ -229,7 +229,7 @@ export class HeySummonClient {
     await this.request<unknown>("POST", `/api/v1/help/${requestId}/timeout`, {});
   }
 
-  /** Send an encrypted message to the provider (falls back to plaintext if no keys) */
+  /** Send an encrypted message to the expert (falls back to plaintext if no keys) */
   async sendMessage(
     requestId: string,
     text: string
@@ -244,23 +244,23 @@ export class HeySummonClient {
       });
     }
 
-    // Need provider's public keys to encrypt — fetch them
+    // Need expert's public keys to encrypt — fetch them
     const res = await this.request<MessagesResponse>(
       "GET",
       `/api/v1/messages/${requestId}`
     );
 
-    if (!res.providerEncryptPubKey || !res.providerSignPubKey) {
+    if (!res.expertEncryptPubKey || !res.expertSignPubKey) {
       throw new Error(
-        "Cannot send encrypted message: provider has not completed key exchange yet"
+        "Cannot send encrypted message: expert has not completed key exchange yet"
       );
     }
 
-    const providerEncPub = publicKeyFromHex(res.providerEncryptPubKey, "x25519");
+    const expertEncPub = publicKeyFromHex(res.expertEncryptPubKey, "x25519");
 
     const payload = encryptWithKeys(
       text,
-      providerEncPub,
+      expertEncPub,
       keys.signKeyPair.privateKey,
       keys.encryptKeyPair.privateKey
     );

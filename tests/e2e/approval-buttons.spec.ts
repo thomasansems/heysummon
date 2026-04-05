@@ -93,7 +93,7 @@ test.describe("Approval buttons per channel", () => {
         baseUrl: BASE_URL,
         channelId: telegramChannelId,
         secretToken: PW.TELEGRAM_WEBHOOK_SECRET,
-        fromChatId: PW.TELEGRAM_PROVIDER_CHAT_ID,
+        fromChatId: PW.TELEGRAM_EXPERT_CHAT_ID,
         action: "approve",
         requestId: approveRequestId,
       });
@@ -116,7 +116,7 @@ test.describe("Approval buttons per channel", () => {
         baseUrl: BASE_URL,
         channelId: telegramChannelId,
         secretToken: PW.TELEGRAM_WEBHOOK_SECRET,
-        fromChatId: PW.TELEGRAM_PROVIDER_CHAT_ID,
+        fromChatId: PW.TELEGRAM_EXPERT_CHAT_ID,
         action: "deny",
         requestId: denyRequestId,
       });
@@ -406,7 +406,7 @@ test.describe("Approval buttons per channel", () => {
         baseUrl: BASE_URL,
         channelId: telegramChannelId,
         secretToken: PW.TELEGRAM_WEBHOOK_SECRET,
-        fromChatId: PW.TELEGRAM_PROVIDER_CHAT_ID,
+        fromChatId: PW.TELEGRAM_EXPERT_CHAT_ID,
         action: "approve",
         requestId: tgRequestId,
       });
@@ -420,7 +420,7 @@ test.describe("Approval buttons per channel", () => {
         baseUrl: BASE_URL,
         channelId: telegramChannelId,
         secretToken: PW.TELEGRAM_WEBHOOK_SECRET,
-        fromChatId: PW.TELEGRAM_PROVIDER_CHAT_ID,
+        fromChatId: PW.TELEGRAM_EXPERT_CHAT_ID,
         action: "deny",
         requestId: tgRequestId,
       });
@@ -488,13 +488,13 @@ test.describe("Approval buttons per channel", () => {
         },
       );
 
-      const providerHeaders = { "x-api-key": PW.PROVIDER_KEY };
+      const expertHeaders = { "x-api-key": PW.EXPERT_KEY };
 
       // First approve
       await apiPost(
         `/api/v1/approve/${data.requestId}`,
         { decision: "approved" },
-        providerHeaders,
+        expertHeaders,
       );
 
       // Second approve -- 409
@@ -502,7 +502,7 @@ test.describe("Approval buttons per channel", () => {
         "POST",
         `/api/v1/approve/${data.requestId}`,
         { decision: "denied" },
-        providerHeaders,
+        expertHeaders,
       );
       expect(res.status).toBe(409);
     });

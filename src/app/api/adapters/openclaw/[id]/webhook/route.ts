@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyWebhookSignature } from "@/lib/adapters/openclaw";
 import type { OpenClawConfig } from "@/lib/adapters/types";
 
-/** Max length for a provider reply via OpenClaw */
+/** Max length for an expert reply via OpenClaw */
 const MAX_REPLY_LENGTH = 10_000;
 
 const callbackSchema = z.object({
@@ -22,8 +22,8 @@ export async function POST(
 
   const rawBody = await request.text();
 
-  // Find the channel provider
-  const channel = await prisma.channelProvider.findUnique({
+  // Find the expert channel
+  const channel = await prisma.expertChannel.findUnique({
     where: { id },
     include: {
       profile: {
@@ -112,7 +112,7 @@ async function handleApproval(
 ): Promise<NextResponse> {
   const decision = action === "approve" ? "approved" : "denied";
 
-  // Find the help request -- must belong to this provider
+  // Find the help request -- must belong to this expert
   const helpRequest = await prisma.helpRequest.findFirst({
     where: {
       id: requestId,
@@ -162,7 +162,7 @@ async function handleApproval(
   await prisma.message.create({
     data: {
       requestId: helpRequest.id,
-      from: "provider",
+      from: "expert",
       ciphertext: decision,
       iv: "",
       authTag: "",
@@ -231,7 +231,7 @@ async function handleReply(
   await prisma.message.create({
     data: {
       requestId: helpRequest.id,
-      from: "provider",
+      from: "expert",
       ciphertext: `plaintext:${plainB64}`,
       iv: "plaintext",
       authTag: "plaintext",

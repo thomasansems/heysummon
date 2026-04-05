@@ -7,7 +7,7 @@ interface LegacyMessage {
 
 interface E2EMessage {
   id: string;
-  from: "consumer" | "provider";
+  from: "consumer" | "expert";
   messageId: string;
   createdAt: string;
   plaintext: string;

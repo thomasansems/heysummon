@@ -80,7 +80,7 @@ export async function simulateSlackApproval({
 }): Promise<Response> {
   const payload = {
     type: "block_actions",
-    user: { id: "U00PW00USER", username: "testprovider" },
+    user: { id: "U00PW00USER", username: "testexpert" },
     actions: [
       {
         action_id: action,

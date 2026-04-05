@@ -1,17 +1,17 @@
 # Polling API
 
-Providers poll for pending events and acknowledge delivery. No persistent connections needed.
+Experts poll for pending events and acknowledge delivery. No persistent connections needed.
 
 ---
 
 ## GET /api/v1/events/pending
 
-Returns pending events for the authenticated provider.
+Returns pending events for the authenticated expert.
 
 ### Headers
 
 ```
-x-api-key: hs_prov_abc123...    # provider key
+x-api-key: hs_exp_abc123...     # expert key
 ```
 
 ### Response
@@ -32,13 +32,13 @@ x-api-key: hs_prov_abc123...    # provider key
 }
 ```
 
-Returns up to 50 undelivered requests assigned to the authenticated provider.
+Returns up to 50 undelivered requests assigned to the authenticated expert.
 
 ### Example (curl)
 
 ```bash
 curl http://localhost:3425/api/v1/events/pending \
-  -H "x-api-key: hs_prov_abc123..."
+  -H "x-api-key: hs_exp_abc123..."
 ```
 
 ---
@@ -50,7 +50,7 @@ Acknowledge delivery of an event. Call this after successfully processing a pend
 ### Headers
 
 ```
-x-api-key: hs_prov_abc123...    # provider key
+x-api-key: hs_exp_abc123...     # expert key
 ```
 
 ### Response
@@ -66,7 +66,7 @@ x-api-key: hs_prov_abc123...    # provider key
 
 ```bash
 curl http://localhost:3425/api/v1/events/ack/cmxxx... \
-  -H "x-api-key: hs_prov_abc123..."
+  -H "x-api-key: hs_exp_abc123..."
 ```
 
 ---

@@ -85,7 +85,7 @@ export interface HeySummonClientOptions {
 
 export interface DecryptedMessage {
   id: string;
-  from: "provider" | "consumer";
+  from: "expert" | "consumer";
   ciphertext?: string;
   iv?: string;
   authTag?: string;
@@ -102,8 +102,8 @@ export interface MessagesResponse {
   status: string;
   consumerSignPubKey: string | null;
   consumerEncryptPubKey: string | null;
-  providerSignPubKey: string | null;
-  providerEncryptPubKey: string | null;
+  expertSignPubKey: string | null;
+  expertEncryptPubKey: string | null;
   messages: Message[];
   expiresAt: string;
 }

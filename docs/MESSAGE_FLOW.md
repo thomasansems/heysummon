@@ -6,7 +6,7 @@ This document explains how a message travels through HeySummon — from API subm
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              Consumer/Provider sends message                │
+│              Consumer/Expert sends message                │
 │              (via SDK or direct API call)                   │
 └─────────────────┬───────────────────────────────────────────┘
                   │
@@ -40,7 +40,7 @@ This document explains how a message travels through HeySummon — from API subm
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
 │   4. POLLING - Event Discovery                              │
-│   • Provider polls GET /api/v1/events/pending               │
+│   • Expert polls GET /api/v1/events/pending               │
 │   • Dashboard polls for updates                             │
 │   • Consumer polls GET /api/v1/help/:id                     │
 └─────────────────┬───────────────────────────────────────────┘
@@ -48,12 +48,12 @@ This document explains how a message travels through HeySummon — from API subm
         ┌────────┬────────┐
         │        │        │
         ▼        ▼        ▼
-    DASHBOARD  PROVIDER  CONSUMER
+    DASHBOARD  EXPERT    CONSUMER
     (Web UI)   WATCHER   (polling)
         │        │
         │        ▼
         │    ┌───────────────────────────┐
-        │    │ 5. PROVIDER NOTIFICATION  │
+        │    │ 5. EXPERT NOTIFICATION  │
         │    │ Channel Adapters:         │
         │    │ • Telegram                │
         │    │ • WhatsApp                │
@@ -65,7 +65,7 @@ This document explains how a message travels through HeySummon — from API subm
         │    ┌───────────────────────────┐
         │    │ 6. ACKNOWLEDGMENT (ACK)   │
         │    │ GET /api/v1/events/ack/:id│
-        │    │ Provider confirms receipt │
+        │    │ Expert confirms receipt │
         │    └───────┬───────────────────┘
         │            │
         │            ▼
@@ -166,21 +166,21 @@ if (!apiKeyRecord) return 401; // Invalid key
 ```
 
 **API Key Types**:
-- `hs_prov_*` — Provider key (human experts)
+- `hs_exp_*` — Expert key (human experts)
 - `hs_cli_*` — Consumer key (AI agents)
 
 #### Authorization (Do you have permission?)
 
 ```typescript
 // Extract the role from the API key
-const callerRole = "provider" || "consumer";
+const callerRole = "expert" || "consumer";
 
 // The message must match: from === callerRole
 if (message.from !== callerRole) {
-  return 403; // "Provider key can't send as consumer"
+  return 403; // "Expert key can't send as consumer"
 }
 
-// For providers: verify they own this request
+// For experts: verify they own this request
 const ownRequest = await prisma.helpRequest.findFirst({
   where: { 
     id: requestId, 
@@ -225,7 +225,7 @@ Once verified, the message is stored in the `Message` table:
 model Message {
   id          String      @id @default(cuid())
   requestId   String      // Which HelpRequest does this belong to?
-  from        String      // "consumer" or "provider"
+  from        String      // "consumer" or "expert"
   
   // E2E encrypted payload
   ciphertext  String      // AES-256-GCM encrypted (base64)
@@ -275,7 +275,7 @@ const signature = sign.detached(Buffer.from(ciphertext), signingKey);
 await prisma.message.create({
   data: {
     requestId,
-    from: "provider",
+    from: "expert",
     ciphertext,
     iv: iv.toString('base64'),
     authTag: authTag.toString('base64'),
@@ -311,13 +311,13 @@ if (existing) {
 
 After successful storage, interested parties discover new events by polling.
 
-#### Provider Watcher Polling
+#### Expert Watcher Polling
 
-The provider watcher polls `GET /api/v1/events/pending` on an interval to discover new requests:
+The expert watcher polls `GET /api/v1/events/pending` on an interval to discover new requests:
 
 ```bash
 # polling-watcher.sh polls every few seconds
-curl -H "x-api-key: hs_prov_secret123" \
+curl -H "x-api-key: hs_exp_secret123" \
   "http://localhost:3456/api/v1/events/pending"
 ```
 
@@ -343,20 +343,20 @@ The dashboard periodically fetches updated request data to reflect changes in th
 
 ---
 
-### 5️⃣ Provider Delivery: Notifications & Channel Adapters
+### 5️⃣ Expert Delivery: Notifications & Channel Adapters
 
 **File**: `/src/lib/channels/`, `/src/app/api/adapters/telegram/[id]/webhook/route.ts`
 
-When the provider watcher discovers a new event via polling, it processes the event and delivers a notification.
+When the expert watcher discovers a new event via polling, it processes the event and delivers a notification.
 
-#### Provider Watcher (CLI/OpenClaw Skill)
+#### Expert Watcher (CLI/OpenClaw Skill)
 
-The provider runs a **watcher script** (via OpenClaw integration) that:
+The expert runs a **watcher script** (via OpenClaw integration) that:
 
 1. **Polls for pending events**:
    ```bash
-   # ~/clawd/skills/heysummon-provider/scripts/polling-watcher.sh
-   curl -H "x-api-key: hs_prov_secret123" \
+   # ~/clawd/skills/heysummon-expert/scripts/polling-watcher.sh
+   curl -H "x-api-key: hs_exp_secret123" \
      "http://localhost:3456/api/v1/events/pending"
    ```
 
@@ -374,7 +374,7 @@ The provider runs a **watcher script** (via OpenClaw integration) that:
 3. **Acknowledges delivery**:
    ```bash
    curl "http://localhost:3456/api/v1/events/ack/$REQUEST_ID" \
-     -H "x-api-key: hs_prov_secret123"
+     -H "x-api-key: hs_exp_secret123"
    ```
 
 ---
@@ -383,15 +383,15 @@ The provider runs a **watcher script** (via OpenClaw integration) that:
 
 **File**: `/src/app/api/v1/events/ack/[requestId]/route.ts`
 
-The ACK mechanism proves that a provider has **received and processed** a notification.
+The ACK mechanism proves that an expert has **received and processed** a notification.
 
 #### How ACK Works
 
-When the provider watcher successfully sends a notification to the channel (Telegram, WhatsApp, etc.), it calls:
+When the expert watcher successfully sends a notification to the channel (Telegram, WhatsApp, etc.), it calls:
 
 ```bash
 POST /api/v1/events/ack/{requestId}
-Authorization: x-api-key: hs_prov_secret123
+Authorization: x-api-key: hs_exp_secret123
 ```
 
 **Request**:
@@ -410,17 +410,17 @@ Authorization: x-api-key: hs_prov_secret123
 #### What Happens on the Backend
 
 ```typescript
-// 1. Authenticate provider key
-const provider = await prisma.userProfile.findFirst({
+// 1. Authenticate expert key
+const expert = await prisma.userProfile.findFirst({
   where: { key: apiKey, isActive: true },
   select: { id: true, userId: true }
 });
 
-// 2. Verify request belongs to provider
+// 2. Verify request belongs to expert
 const helpRequest = await prisma.helpRequest.findFirst({
   where: {
     id: requestId,
-    expertId: provider.userId  // ← Only owner can ACK
+    expertId: expert.userId  // ← Only owner can ACK
   }
 });
 
@@ -435,7 +435,7 @@ if (!helpRequest.deliveredAt) {
 // 4. Log audit event
 logAuditEvent({
   eventType: 'NOTIFICATION_DELIVERED',
-  userId: provider.userId,
+  userId: expert.userId,
   metadata: { requestId, refCode: helpRequest.refCode }
 });
 ```
@@ -444,7 +444,7 @@ logAuditEvent({
 
 | Scenario | Without ACK | With ACK |
 |----------|-----------|----------|
-| Watcher crashes before delivery | Provider thinks they know | Platform tracks: not delivered |
+| Watcher crashes before delivery | Expert thinks they know | Platform tracks: not delivered |
 | Telegram bot disconnects | Unknown if sent | Platform knows: ACK not received |
 | Network timeout | Unknown status | Clear delivery proof |
 | Resend logic | No way to know if stale | Platform can resend if no ACK |
@@ -470,7 +470,7 @@ Shows:
 
 **File**: `/src/lib/channels/telegram.ts`, `/src/lib/channels/whatsapp.ts`
 
-HeySummon uses **adapters** so providers can receive notifications on their preferred channel.
+HeySummon uses **adapters** so experts can receive notifications on their preferred channel.
 
 #### How Adapters Work
 
@@ -481,7 +481,7 @@ interface ChannelAdapter {
   // Format request notification
   formatNotification(event: HelpRequestEvent): FormattedMessage;
   
-  // Format provider reply
+  // Format expert reply
   formatReply(response: string, refCode: string): FormattedMessage;
   
   // Activate channel (validate bot token, set webhooks)
@@ -540,7 +540,7 @@ If the watcher crashes or misses events, it catches up automatically on the next
 
 ```bash
 GET /api/v1/events/pending
-x-api-key: hs_prov_abc123
+x-api-key: hs_exp_abc123
 ```
 
 **Returns** (up to 50 undelivered requests):
@@ -584,16 +584,16 @@ The dashboard polls for updates to reflect new messages and status changes in th
 Let's trace a complete message:
 
 ```
-PROVIDER sends response via API:
+EXPERT sends response via API:
 ┌────────────────────────────────────────────┐
-│ Provider's computer:                       │
+│ Expert's computer:                       │
 │ POST /api/v1/message/req-xyz               │
 │ Headers:                                   │
-│   x-api-key: hs_prov_secret123            │
+│   x-api-key: hs_exp_secret123            │
 │   Content-Type: application/json           │
 │ Body:                                      │
 │   {                                        │
-│     "from": "provider",                   │
+│     "from": "expert",                   │
 │     "plaintext": "I can help!"            │
 │   }                                        │
 └────────────────────────────────────────────┘
@@ -629,7 +629,7 @@ PROVIDER sends response via API:
         ║                          ║
         ║ INSERT INTO Message:     ║
         ║   requestId: req-xyz     ║
-        ║   from: provider         ║
+        ║   from: expert         ║
         ║   ciphertext: ...        ║
         ║   iv, authTag, sig, ...  ║
         ║   messageId: msg-001     ║
@@ -639,7 +639,7 @@ PROVIDER sends response via API:
         ╔══════════════════════════╗
         ║  4. POLLING DISCOVERY    ║
         ║                          ║
-        ║ Provider watcher polls:  ║
+        ║ Expert watcher polls:  ║
         ║  GET /events/pending     ║
         ║                          ║
         ║ Dashboard polls for      ║
@@ -686,7 +686,7 @@ PROVIDER sends response via API:
 │        EVENT DISCOVERY (via HTTP polling)                                      │
 ├────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                │
-│  Provider Watcher                    Dashboard (Browser)                      │
+│  Expert Watcher                      Dashboard (Browser)                      │
 │  (OpenClaw Skill)                                                             │
 │      │                                  │                                     │
 │      │ 5a. GET /api/v1/events/          │ 5b. Polls for updated              │
@@ -706,15 +706,15 @@ PROVIDER sends response via API:
 └────────────────────────────────────────────────────────────────────────────────┘
 
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│                    PROVIDER REPLY (closing the loop)                           │
+│                    EXPERT REPLY (closing the loop)                             │
 ├────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                │
-│  Provider clicks "resolve" button OR replies via Telegram/WhatsApp            │
+│  Expert clicks "resolve" button OR replies via Telegram/WhatsApp              │
 │                                                                                │
 │  9. POST /api/v1/message/{requestId}                                          │
 │      (with consumer public key, encrypted payload)                            │
 │      ├──────────> /api/message (auth middleware)                              │
-│      │            • Verify provider signature                                │
+│      │            • Verify expert signature                                  │
 │      │            • Validate request exists                                  │
 │      │            • Create Message record (encrypted)                        │
 │      │                                                                        │
@@ -729,7 +729,7 @@ PROVIDER sends response via API:
 │      │             • Logs audit event                                        │
 │      │                                                                        │
 │      │ 12. Dashboard polls and sees ack                                      │
-│      │     • Updates UI: "Delivered to provider"                              │
+│      │     • Updates UI: "Delivered to expert"                                │
 │                                                                                │
 └────────────────────────────────────────────────────────────────────────────────┘
 
@@ -752,10 +752,10 @@ Key Architecture Points:
 
 ```bash
 curl -X POST http://localhost:3425/api/v1/message/req-123 \
-  -H "x-api-key: hs_prov_secret" \
+  -H "x-api-key: hs_exp_secret" \
   -H "Content-Type: application/json" \
   -d '{
-    "from": "provider",
+    "from": "expert",
     "plaintext": "Yes, I can help"
   }'
 ```
@@ -785,7 +785,7 @@ curl -X GET http://localhost:3425/api/v1/messages/req-123 \
   "messages": [
     {
       "id": "msg-001",
-      "from": "provider",
+      "from": "expert",
       "ciphertext": "base64...",
       "iv": "base64...",
       "authTag": "base64...",
@@ -803,7 +803,7 @@ curl -X GET http://localhost:3425/api/v1/messages/req-123 \
 
 ```bash
 curl http://localhost:3425/api/v1/events/pending \
-  -H "x-api-key: hs_prov_secret"
+  -H "x-api-key: hs_exp_secret"
 ```
 
 ### GET /api/v1/events/ack/:id
@@ -812,7 +812,7 @@ curl http://localhost:3425/api/v1/events/pending \
 
 ```bash
 curl http://localhost:3425/api/v1/events/ack/req-123 \
-  -H "x-api-key: hs_prov_secret"
+  -H "x-api-key: hs_exp_secret"
 ```
 
 ---
@@ -824,11 +824,11 @@ curl http://localhost:3425/api/v1/events/ack/req-123 \
 | Layer | Mechanism | Protects Against |
 |-------|-----------|------------------|
 | **Guard** | Content validation + Ed25519 signing | Malicious content, XSS, PII exposure |
-| **API Key** | Unique per consumer/provider, time-limited | Unauthorized access, key reuse |
-| **IP Binding** | Provider keys bound to specific IP | Theft of provider credentials |
+| **API Key** | Unique per consumer/expert, time-limited | Unauthorized access, key reuse |
+| **IP Binding** | Expert keys bound to specific IP | Theft of expert credentials |
 | **Device Secret** | IP + device secret pair validation | Lateral movement from compromised IP |
 | **Receipt** | Ed25519 signature + timestamp + nonce | Replay attacks, bypassing Guard |
-| **Ownership** | Request belongs to provider/consumer | Cross-user access |
+| **Ownership** | Request belongs to expert/consumer | Cross-user access |
 | **Encryption** | AES-256-GCM per message | Eavesdropping at rest |
 | **Signature** | Ed25519 on ciphertext | Tampering with encrypted content |
 | **Audit Log** | Log all API actions + ACK events | Post-breach investigation, delivery tracking |
@@ -845,19 +845,19 @@ curl http://localhost:3425/api/v1/events/ack/req-123 \
 ### Polling not returning events?
 
 1. **Verify API key format**:
-   - Provider watchers use: `hs_prov_*`
+   - Expert watchers use: `hs_exp_*`
    - Consumer clients use: `hs_cli_*`
    - Check the key isn't rotated or revoked
 
 2. **Check pending events endpoint**:
    ```bash
-   curl -H "x-api-key: hs_prov_YOUR_KEY" \
+   curl -H "x-api-key: hs_exp_YOUR_KEY" \
      http://localhost:3456/api/v1/events/pending
 
    # Should return 200 with events array
    ```
 
-3. **Check IP validation** (for provider keys):
+3. **Check IP validation** (for expert keys):
    - IP must match the key's IP binding
    - Check in database: `SELECT ipBound FROM ApiKey WHERE ...`
 
@@ -869,7 +869,7 @@ curl http://localhost:3425/api/v1/events/ack/req-123 \
 
 ### Message stored but not decrypted?
 
-- **Check shared secret**: Consumer and provider must use the same X25519 key exchange
+- **Check shared secret**: Consumer and expert must use the same X25519 key exchange
 - **Check IV/authTag**: Verify these are base64-encoded properly
 - **Check signature**: Ed25519 signature must match the signing public key
 - **Check proxy didn't modify**: Proxy passes messages through unchanged
@@ -890,7 +890,7 @@ curl http://localhost:3425/api/v1/events/ack/req-123 \
 ### Events not being acknowledged?
 
 - Ensure you call `GET /api/v1/events/ack/:id` after processing each event
-- The request ID in the ack URL must match a request owned by the authenticated provider
+- The request ID in the ack URL must match a request owned by the authenticated expert
 - Check audit log: `SELECT * FROM AuditLog WHERE action = 'ack'`
 
 ---

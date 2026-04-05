@@ -52,7 +52,7 @@ interface HelpRequestDetail {
 
 interface E2ERawMessage {
   id: string;
-  from: "consumer" | "provider";
+  from: "consumer" | "expert";
   plaintext?: string;
   ciphertext?: string;
   iv?: string;
@@ -67,15 +67,15 @@ interface E2EData {
   status: string;
   consumerSignPubKey: string | null;
   consumerEncryptPubKey: string | null;
-  providerSignPubKey: string | null;
-  providerEncryptPubKey: string | null;
+  expertSignPubKey: string | null;
+  expertEncryptPubKey: string | null;
   messages: E2ERawMessage[];
   expiresAt: string;
 }
 
 export interface DecryptedE2EMessage {
   id: string;
-  from: "consumer" | "provider";
+  from: "consumer" | "expert";
   messageId: string;
   createdAt: string;
   plaintext: string;
@@ -162,9 +162,9 @@ export function RequestDetail({ id }: { id: string }) {
 
       setE2eActive(true);
 
-      // Auto key-exchange: generate provider keys and POST them
+      // Auto key-exchange: generate expert keys and POST them
       if (
-        !data.providerSignPubKey &&
+        !data.expertSignPubKey &&
         !keyExchangeInProgress.current &&
         e2eSupported
       ) {
@@ -198,7 +198,7 @@ export function RequestDetail({ id }: { id: string }) {
         return;
       }
 
-      if (data.providerSignPubKey) {
+      if (data.expertSignPubKey) {
         setE2eKeyExchangeDone(true);
       }
 
@@ -251,11 +251,11 @@ export function RequestDetail({ id }: { id: string }) {
       try {
         // Determine which keys to use for signature verification + DH
         // Consumer messages: verify with consumer sign key, DH with consumer enc key
-        // Provider messages: we sent them — verify with our own sign key, DH with consumer enc key
+        // Expert messages: we sent them — verify with our own sign key, DH with consumer enc key
         const signPubHex =
           msg.from === "consumer"
             ? data.consumerSignPubKey!
-            : data.providerSignPubKey!;
+            : data.expertSignPubKey!;
         const encPubHex = data.consumerEncryptPubKey!;
 
         const plaintext = await decryptDashboardMessage(
@@ -329,7 +329,7 @@ export function RequestDetail({ id }: { id: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: "provider",
+          from: "expert",
           ...payload,
         }),
       });

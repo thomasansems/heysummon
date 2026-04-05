@@ -1,6 +1,6 @@
-# Provider conversations
+# Expert conversations
 
-As a provider (human expert), you can respond to help requests directly from your messaging app — no need to open the dashboard.
+As an expert (human expert), you can respond to help requests directly from your messaging app — no need to open the dashboard.
 
 ---
 
@@ -82,25 +82,25 @@ You reply: "Archive it instead" ─────▶ HeySummon ────▶ Age
 
 ## Setting up notifications
 
-Configure the provider watcher to receive notifications in your messaging app:
+Configure the expert watcher to receive notifications in your messaging app:
 
 ```env
-# ~/clawd/skills/heysummon-provider/.env
+# ~/clawd/skills/heysummon-expert/.env
 HEYSUMMON_BASE_URL=http://localhost:3445
-HEYSUMMON_API_KEY=hs_prov_abc123...
+HEYSUMMON_API_KEY=hs_exp_abc123...
 HEYSUMMON_NOTIFY_TARGET=<your_telegram_chat_id>
 ```
 
 Start the watcher:
 
 ```bash
-bash ~/clawd/skills/heysummon-provider/scripts/setup.sh
+bash ~/clawd/skills/heysummon-expert/scripts/setup.sh
 ```
 
 Check status:
 
 ```bash
-pm2 logs heysummon-provider-watcher
+pm2 logs heysummon-expert-watcher
 ```
 
 ---

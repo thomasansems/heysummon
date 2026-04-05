@@ -3,7 +3,7 @@
  *
  * Tests the complete always-on E2E encryption lifecycle using real crypto
  * operations and a lightweight in-memory API simulator. Validates that
- * consumer and provider can exchange keys and encrypted messages correctly.
+ * consumer and expert can exchange keys and encrypted messages correctly.
  *
  * Covers: auto-keygen, opt-out, explicit keys, mixed messages,
  * pre-key-exchange graceful handling, and importKeys for restarts.
@@ -160,11 +160,11 @@ interface StoredRequest {
   status: string;
   consumerSignPubKey: string | null;
   consumerEncryptPubKey: string | null;
-  providerSignPubKey: string | null;
-  providerEncryptPubKey: string | null;
+  expertSignPubKey: string | null;
+  expertEncryptPubKey: string | null;
   messages: Array<{
     id: string;
-    from: "consumer" | "provider";
+    from: "consumer" | "expert";
     ciphertext: string;
     iv: string;
     authTag: string;
@@ -190,14 +190,14 @@ class MockServer {
       status: "pending",
       consumerSignPubKey: opts.signPublicKey || null,
       consumerEncryptPubKey: opts.encryptPublicKey || null,
-      providerSignPubKey: null,
-      providerEncryptPubKey: null,
+      expertSignPubKey: null,
+      expertEncryptPubKey: null,
       messages: [],
     });
     return { requestId: id, refCode, status: "pending" };
   }
 
-  /** POST /api/v1/key-exchange/:requestId — provider sends keys */
+  /** POST /api/v1/key-exchange/:requestId — expert sends keys */
   keyExchange(
     requestId: string,
     signPublicKey: string,
@@ -205,9 +205,9 @@ class MockServer {
   ): { success: boolean; error?: string } {
     const req = this.requests.get(requestId);
     if (!req) return { success: false, error: "Not found" };
-    if (req.providerSignPubKey) return { success: false, error: "Already exchanged" };
-    req.providerSignPubKey = signPublicKey;
-    req.providerEncryptPubKey = encryptPublicKey;
+    if (req.expertSignPubKey) return { success: false, error: "Already exchanged" };
+    req.expertSignPubKey = signPublicKey;
+    req.expertEncryptPubKey = encryptPublicKey;
     req.status = "active";
     return { success: true };
   }
@@ -216,7 +216,7 @@ class MockServer {
   sendMessage(
     requestId: string,
     msg: {
-      from: "consumer" | "provider";
+      from: "consumer" | "expert";
       plaintext?: string;
       ciphertext?: string;
       iv?: string;
@@ -257,7 +257,7 @@ class MockServer {
       createdAt: new Date().toISOString(),
     });
 
-    if (msg.from === "provider" && req.status !== "responded") {
+    if (msg.from === "expert" && req.status !== "responded") {
       req.status = "responded";
     }
 
@@ -275,8 +275,8 @@ class MockServer {
       status: req.status,
       consumerSignPubKey: req.consumerSignPubKey,
       consumerEncryptPubKey: req.consumerEncryptPubKey,
-      providerSignPubKey: req.providerSignPubKey,
-      providerEncryptPubKey: req.providerEncryptPubKey,
+      expertSignPubKey: req.expertSignPubKey,
+      expertEncryptPubKey: req.expertEncryptPubKey,
       messages: req.messages.map((m) => {
         // Mirror server logic: decode plaintext Telegram replies inline
         if (m.iv === "plaintext") {
@@ -307,7 +307,7 @@ describe("E2E encryption integration flow", () => {
   });
 
   describe("Full E2E flow (default auto-keys)", () => {
-    it("consumer submits with auto-keys -> provider key-exchange -> encrypted message roundtrip", () => {
+    it("consumer submits with auto-keys -> expert key-exchange -> encrypted message roundtrip", () => {
       // 1. Consumer generates keys (simulates HeySummonClient auto-keygen)
       const consumer = generateKeyMaterial();
 
@@ -323,35 +323,35 @@ describe("E2E encryption integration flow", () => {
       expect(reqAfterSubmit.consumerEncryptPubKey).toBe(consumer.encryptPublicKey);
       expect(reqAfterSubmit.status).toBe("pending");
 
-      // 3. Provider generates keys and does key exchange
-      const provider = generateKeyMaterial();
+      // 3. Expert generates keys and does key exchange
+      const expert = generateKeyMaterial();
       const exchangeResult = server.keyExchange(
         requestId,
-        provider.signPublicKey,
-        provider.encryptPublicKey
+        expert.signPublicKey,
+        expert.encryptPublicKey
       );
       expect(exchangeResult.success).toBe(true);
 
       const reqAfterExchange = server.requests.get(requestId)!;
-      expect(reqAfterExchange.providerSignPubKey).toBe(provider.signPublicKey);
+      expect(reqAfterExchange.expertSignPubKey).toBe(expert.signPublicKey);
       expect(reqAfterExchange.status).toBe("active");
 
-      // 4. Provider encrypts a message for the consumer
+      // 4. Expert encrypts a message for the consumer
       const consumerEncPub = publicKeyFromHex(consumer.encryptPublicKey);
-      const providerMsg = encryptMessage(
+      const expertMsg = encryptMessage(
         "Here is your answer, agent.",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey
       );
 
       server.sendMessage(requestId, {
-        from: "provider",
-        ciphertext: providerMsg.ciphertext,
-        iv: providerMsg.iv,
-        authTag: providerMsg.authTag,
-        signature: providerMsg.signature,
-        messageId: providerMsg.messageId,
+        from: "expert",
+        ciphertext: expertMsg.ciphertext,
+        iv: expertMsg.iv,
+        authTag: expertMsg.authTag,
+        signature: expertMsg.signature,
+        messageId: expertMsg.messageId,
       });
 
       // 5. Consumer fetches messages and decrypts
@@ -362,9 +362,9 @@ describe("E2E encryption integration flow", () => {
       expect(msg.ciphertext).toBeTruthy();
       expect(msg.iv).not.toBe("plaintext");
 
-      // Consumer decrypts using provider's public keys from server
-      const providerEncPub = publicKeyFromHex(messagesResp.providerEncryptPubKey!);
-      const providerSignPub = publicKeyFromHex(messagesResp.providerSignPubKey!);
+      // Consumer decrypts using expert's public keys from server
+      const expertEncPub = publicKeyFromHex(messagesResp.expertEncryptPubKey!);
+      const expertSignPub = publicKeyFromHex(messagesResp.expertSignPubKey!);
 
       const decrypted = decryptMessage(
         {
@@ -374,17 +374,17 @@ describe("E2E encryption integration flow", () => {
           signature: msg.signature!,
           messageId: msg.messageId,
         },
-        providerEncPub,
-        providerSignPub,
+        expertEncPub,
+        expertSignPub,
         consumer.encryptKeyPair.privateKey
       );
 
       expect(decrypted).toBe("Here is your answer, agent.");
 
-      // 6. Consumer sends encrypted reply back to provider
+      // 6. Consumer sends encrypted reply back to expert
       const consumerReply = encryptMessage(
         "Thanks, that solved my issue!",
-        providerEncPub,
+        expertEncPub,
         consumer.signKeyPair.privateKey,
         consumer.encryptKeyPair.privateKey
       );
@@ -398,15 +398,15 @@ describe("E2E encryption integration flow", () => {
         messageId: consumerReply.messageId,
       });
 
-      // 7. Provider fetches and decrypts consumer's reply
+      // 7. Expert fetches and decrypts consumer's reply
       const allMessages = server.getMessages(requestId);
       expect(allMessages.messages).toHaveLength(2);
 
       const consumerMsg = allMessages.messages[1];
-      const consumerEncPubForProvider = publicKeyFromHex(allMessages.consumerEncryptPubKey!);
-      const consumerSignPubForProvider = publicKeyFromHex(allMessages.consumerSignPubKey!);
+      const consumerEncPubForExpert = publicKeyFromHex(allMessages.consumerEncryptPubKey!);
+      const consumerSignPubForExpert = publicKeyFromHex(allMessages.consumerSignPubKey!);
 
-      const providerDecrypted = decryptMessage(
+      const expertDecrypted = decryptMessage(
         {
           ciphertext: consumerMsg.ciphertext!,
           iv: consumerMsg.iv!,
@@ -414,36 +414,36 @@ describe("E2E encryption integration flow", () => {
           signature: consumerMsg.signature!,
           messageId: consumerMsg.messageId,
         },
-        consumerEncPubForProvider,
-        consumerSignPubForProvider,
-        provider.encryptKeyPair.privateKey
+        consumerEncPubForExpert,
+        consumerSignPubForExpert,
+        expert.encryptKeyPair.privateKey
       );
 
-      expect(providerDecrypted).toBe("Thanks, that solved my issue!");
+      expect(expertDecrypted).toBe("Thanks, that solved my issue!");
     });
 
     it("message deduplication prevents duplicate storage", () => {
       const consumer = generateKeyMaterial();
-      const provider = generateKeyMaterial();
+      const expert = generateKeyMaterial();
 
       const { requestId } = server.submitHelp({
         signPublicKey: consumer.signPublicKey,
         encryptPublicKey: consumer.encryptPublicKey,
       });
-      server.keyExchange(requestId, provider.signPublicKey, provider.encryptPublicKey);
+      server.keyExchange(requestId, expert.signPublicKey, expert.encryptPublicKey);
 
       const consumerEncPub = publicKeyFromHex(consumer.encryptPublicKey);
       const payload = encryptMessage(
         "Dedup test",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey,
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey,
         "fixed-message-id"
       );
 
       // Send same message twice
-      server.sendMessage(requestId, { from: "provider", ...payload });
-      server.sendMessage(requestId, { from: "provider", ...payload });
+      server.sendMessage(requestId, { from: "expert", ...payload });
+      server.sendMessage(requestId, { from: "expert", ...payload });
 
       const msgs = server.getMessages(requestId);
       expect(msgs.messages).toHaveLength(1);
@@ -451,7 +451,7 @@ describe("E2E encryption integration flow", () => {
   });
 
   describe("Opt-out flow (e2e: false)", () => {
-    it("consumer submits without keys -> provider responds plaintext -> consumer gets plaintext", () => {
+    it("consumer submits without keys -> expert responds plaintext -> consumer gets plaintext", () => {
       // Consumer opts out: no E2E keys sent
       const { requestId } = server.submitHelp({});
 
@@ -459,9 +459,9 @@ describe("E2E encryption integration flow", () => {
       expect(req.consumerSignPubKey).toBeNull();
       expect(req.consumerEncryptPubKey).toBeNull();
 
-      // Provider sends plaintext response
+      // Expert sends plaintext response
       server.sendMessage(requestId, {
-        from: "provider",
+        from: "expert",
         plaintext: "Here is a plaintext answer.",
       });
 
@@ -472,8 +472,8 @@ describe("E2E encryption integration flow", () => {
       const msg = messagesResp.messages[0];
       expect(msg.plaintext).toBe("Here is a plaintext answer.");
       expect(msg.ciphertext).toBeUndefined();
-      expect(messagesResp.providerSignPubKey).toBeNull();
-      expect(messagesResp.providerEncryptPubKey).toBeNull();
+      expect(messagesResp.expertSignPubKey).toBeNull();
+      expect(messagesResp.expertEncryptPubKey).toBeNull();
     });
 
     it("consumer sends plaintext follow-up without encryption", () => {
@@ -490,7 +490,7 @@ describe("E2E encryption integration flow", () => {
   });
 
   describe("Explicit keys flow", () => {
-    it("consumer provides own keys -> provider key-exchange -> consumer decrypts with own keys", () => {
+    it("consumer provides own keys -> expert key-exchange -> consumer decrypts with own keys", () => {
       // Consumer generates keys externally (e.g., OpenClaw with persistent keys)
       const consumerKeys = generateKeyMaterial();
 
@@ -500,26 +500,26 @@ describe("E2E encryption integration flow", () => {
         encryptPublicKey: consumerKeys.encryptPublicKey,
       });
 
-      // Provider generates keys and exchanges
-      const providerKeys = generateKeyMaterial();
-      server.keyExchange(requestId, providerKeys.signPublicKey, providerKeys.encryptPublicKey);
+      // Expert generates keys and exchanges
+      const expertKeys = generateKeyMaterial();
+      server.keyExchange(requestId, expertKeys.signPublicKey, expertKeys.encryptPublicKey);
 
-      // Provider sends encrypted message
+      // Expert sends encrypted message
       const consumerEncPub = publicKeyFromHex(consumerKeys.encryptPublicKey);
       const encrypted = encryptMessage(
         "Response to explicit-key consumer",
         consumerEncPub,
-        providerKeys.signKeyPair.privateKey,
-        providerKeys.encryptKeyPair.privateKey
+        expertKeys.signKeyPair.privateKey,
+        expertKeys.encryptKeyPair.privateKey
       );
 
-      server.sendMessage(requestId, { from: "provider", ...encrypted });
+      server.sendMessage(requestId, { from: "expert", ...encrypted });
 
       // Consumer decrypts with their explicit keys
       const resp = server.getMessages(requestId);
       const msg = resp.messages[0];
-      const providerEncPub = publicKeyFromHex(resp.providerEncryptPubKey!);
-      const providerSignPub = publicKeyFromHex(resp.providerSignPubKey!);
+      const expertEncPub = publicKeyFromHex(resp.expertEncryptPubKey!);
+      const expertSignPub = publicKeyFromHex(resp.expertSignPubKey!);
 
       const decrypted = decryptMessage(
         {
@@ -529,8 +529,8 @@ describe("E2E encryption integration flow", () => {
           signature: msg.signature!,
           messageId: msg.messageId,
         },
-        providerEncPub,
-        providerSignPub,
+        expertEncPub,
+        expertSignPub,
         consumerKeys.encryptKeyPair.privateKey
       );
 
@@ -541,37 +541,37 @@ describe("E2E encryption integration flow", () => {
   describe("Mixed messages (plaintext + encrypted)", () => {
     it("handles both plaintext (e.g., Telegram) and encrypted messages in same thread", () => {
       const consumer = generateKeyMaterial();
-      const provider = generateKeyMaterial();
+      const expert = generateKeyMaterial();
 
       const { requestId } = server.submitHelp({
         signPublicKey: consumer.signPublicKey,
         encryptPublicKey: consumer.encryptPublicKey,
       });
-      server.keyExchange(requestId, provider.signPublicKey, provider.encryptPublicKey);
+      server.keyExchange(requestId, expert.signPublicKey, expert.encryptPublicKey);
 
-      // Provider sends plaintext message (e.g., via Telegram adapter)
+      // Expert sends plaintext message (e.g., via Telegram adapter)
       server.sendMessage(requestId, {
-        from: "provider",
+        from: "expert",
         plaintext: "Quick note from Telegram",
         messageId: "tg-msg-1",
       });
 
-      // Provider sends encrypted message (via dashboard)
+      // Expert sends encrypted message (via dashboard)
       const consumerEncPub = publicKeyFromHex(consumer.encryptPublicKey);
       const encrypted = encryptMessage(
         "Detailed encrypted response from dashboard",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey,
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey,
         "enc-msg-1"
       );
-      server.sendMessage(requestId, { from: "provider", ...encrypted });
+      server.sendMessage(requestId, { from: "expert", ...encrypted });
 
       // Consumer sends encrypted reply
-      const providerEncPub = publicKeyFromHex(provider.encryptPublicKey);
+      const expertEncPub = publicKeyFromHex(expert.encryptPublicKey);
       const consumerReply = encryptMessage(
         "Got both, thanks!",
-        providerEncPub,
+        expertEncPub,
         consumer.signKeyPair.privateKey,
         consumer.encryptKeyPair.privateKey,
         "enc-msg-2"
@@ -599,13 +599,13 @@ describe("E2E encryption integration flow", () => {
           signature: msg2.signature!,
           messageId: msg2.messageId,
         },
-        publicKeyFromHex(resp.providerEncryptPubKey!),
-        publicKeyFromHex(resp.providerSignPubKey!),
+        publicKeyFromHex(resp.expertEncryptPubKey!),
+        publicKeyFromHex(resp.expertSignPubKey!),
         consumer.encryptKeyPair.privateKey
       );
       expect(decrypted2).toBe("Detailed encrypted response from dashboard");
 
-      // Message 3: encrypted consumer reply — provider decrypts
+      // Message 3: encrypted consumer reply — expert decrypts
       const msg3 = resp.messages[2];
       const decrypted3 = decryptMessage(
         {
@@ -617,7 +617,7 @@ describe("E2E encryption integration flow", () => {
         },
         publicKeyFromHex(resp.consumerEncryptPubKey!),
         publicKeyFromHex(resp.consumerSignPubKey!),
-        provider.encryptKeyPair.privateKey
+        expert.encryptKeyPair.privateKey
       );
       expect(decrypted3).toBe("Got both, thanks!");
     });
@@ -631,56 +631,56 @@ describe("E2E encryption integration flow", () => {
         encryptPublicKey: consumer.encryptPublicKey,
       });
 
-      // No key exchange yet — provider keys are null
+      // No key exchange yet — expert keys are null
       const resp = server.getMessages(requestId);
-      expect(resp.providerSignPubKey).toBeNull();
-      expect(resp.providerEncryptPubKey).toBeNull();
+      expect(resp.expertSignPubKey).toBeNull();
+      expect(resp.expertEncryptPubKey).toBeNull();
       expect(resp.messages).toHaveLength(0);
     });
 
-    it("consumer cannot decrypt without provider keys even if messages exist", () => {
+    it("consumer cannot decrypt without expert keys even if messages exist", () => {
       const consumer = generateKeyMaterial();
-      const provider = generateKeyMaterial();
+      const expert = generateKeyMaterial();
 
       const { requestId } = server.submitHelp({
         signPublicKey: consumer.signPublicKey,
         encryptPublicKey: consumer.encryptPublicKey,
       });
 
-      // Simulate provider sending a plaintext message before key exchange
+      // Simulate expert sending a plaintext message before key exchange
       server.sendMessage(requestId, {
-        from: "provider",
+        from: "expert",
         plaintext: "Initial plaintext before key exchange",
       });
 
       const resp = server.getMessages(requestId);
-      expect(resp.providerEncryptPubKey).toBeNull();
+      expect(resp.expertEncryptPubKey).toBeNull();
 
       // Plaintext messages still work
       expect(resp.messages[0].plaintext).toBe("Initial plaintext before key exchange");
 
       // Now do key exchange
-      server.keyExchange(requestId, provider.signPublicKey, provider.encryptPublicKey);
+      server.keyExchange(requestId, expert.signPublicKey, expert.encryptPublicKey);
 
       const respAfter = server.getMessages(requestId);
-      expect(respAfter.providerEncryptPubKey).toBe(provider.encryptPublicKey);
+      expect(respAfter.expertEncryptPubKey).toBe(expert.encryptPublicKey);
       expect(respAfter.status).toBe("active");
     });
 
     it("duplicate key exchange is rejected", () => {
       const consumer = generateKeyMaterial();
-      const provider1 = generateKeyMaterial();
-      const provider2 = generateKeyMaterial();
+      const expert1 = generateKeyMaterial();
+      const expert2 = generateKeyMaterial();
 
       const { requestId } = server.submitHelp({
         signPublicKey: consumer.signPublicKey,
         encryptPublicKey: consumer.encryptPublicKey,
       });
 
-      const first = server.keyExchange(requestId, provider1.signPublicKey, provider1.encryptPublicKey);
+      const first = server.keyExchange(requestId, expert1.signPublicKey, expert1.encryptPublicKey);
       expect(first.success).toBe(true);
 
-      const second = server.keyExchange(requestId, provider2.signPublicKey, provider2.encryptPublicKey);
+      const second = server.keyExchange(requestId, expert2.signPublicKey, expert2.encryptPublicKey);
       expect(second.success).toBe(false);
       expect(second.error).toContain("Already exchanged");
     });
@@ -708,20 +708,20 @@ describe("E2E encryption integration flow", () => {
         encryptPublicKey: consumerPubKeys.encryptPublicKey,
       });
 
-      // 3. Provider generates keys and exchanges
-      const provider = generateKeyMaterial();
-      server.keyExchange(requestId, provider.signPublicKey, provider.encryptPublicKey);
+      // 3. Expert generates keys and exchanges
+      const expert = generateKeyMaterial();
+      server.keyExchange(requestId, expert.signPublicKey, expert.encryptPublicKey);
 
-      // 4. Provider sends encrypted message
+      // 4. Expert sends encrypted message
       const consumerEncPub = publicKeyFromHex(consumerPubKeys.encryptPublicKey);
       const encrypted = encryptMessage(
         "Message sent while consumer was offline",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey,
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey,
         "msg-before-restart"
       );
-      server.sendMessage(requestId, { from: "provider", ...encrypted });
+      server.sendMessage(requestId, { from: "expert", ...encrypted });
 
       // 5. Simulate consumer restart: load keys from PEM files
       const signPubPem = readFileSync(join(keyDir, "sign_public.pem"), "utf8");
@@ -749,8 +749,8 @@ describe("E2E encryption integration flow", () => {
       const resp = server.getMessages(requestId);
       const msg = resp.messages[0];
 
-      const providerEncPub = publicKeyFromHex(resp.providerEncryptPubKey!);
-      const providerSignPub = publicKeyFromHex(resp.providerSignPubKey!);
+      const expertEncPub = publicKeyFromHex(resp.expertEncryptPubKey!);
+      const expertSignPub = publicKeyFromHex(resp.expertSignPubKey!);
 
       const decrypted = decryptMessage(
         {
@@ -760,8 +760,8 @@ describe("E2E encryption integration flow", () => {
           signature: msg.signature!,
           messageId: msg.messageId,
         },
-        providerEncPub,
-        providerSignPub,
+        expertEncPub,
+        expertSignPub,
         importedEncPriv
       );
 
@@ -770,20 +770,20 @@ describe("E2E encryption integration flow", () => {
       // 7. Consumer can also send encrypted replies with imported keys
       const reply = encryptMessage(
         "Back online, thanks for waiting!",
-        providerEncPub,
+        expertEncPub,
         importedSignPriv,
         importedEncPriv,
         "msg-after-restart"
       );
       server.sendMessage(requestId, { from: "consumer", ...reply });
 
-      // 8. Provider decrypts the reply
+      // 8. Expert decrypts the reply
       const allMsgs = server.getMessages(requestId);
       const replyMsg = allMsgs.messages[1];
       const consumerEncPubObj = publicKeyFromHex(allMsgs.consumerEncryptPubKey!);
       const consumerSignPubObj = publicKeyFromHex(allMsgs.consumerSignPubKey!);
 
-      const providerDecrypted = decryptMessage(
+      const expertDecrypted = decryptMessage(
         {
           ciphertext: replyMsg.ciphertext!,
           iv: replyMsg.iv!,
@@ -793,24 +793,24 @@ describe("E2E encryption integration flow", () => {
         },
         consumerEncPubObj,
         consumerSignPubObj,
-        provider.encryptKeyPair.privateKey
+        expert.encryptKeyPair.privateKey
       );
 
-      expect(providerDecrypted).toBe("Back online, thanks for waiting!");
+      expect(expertDecrypted).toBe("Back online, thanks for waiting!");
     });
   });
 
   describe("Crypto security validations", () => {
     it("tampered ciphertext fails AES-GCM auth tag verification", () => {
       const consumer = generateKeyMaterial();
-      const provider = generateKeyMaterial();
+      const expert = generateKeyMaterial();
 
       const consumerEncPub = publicKeyFromHex(consumer.encryptPublicKey);
       const encrypted = encryptMessage(
         "Sensitive data",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey
       );
 
       // Tamper with ciphertext
@@ -818,20 +818,20 @@ describe("E2E encryption integration flow", () => {
       tampered[0] ^= 0xff;
       encrypted.ciphertext = tampered.toString("base64");
 
-      // Re-sign with provider's key (attacker has signing key in this scenario)
+      // Re-sign with expert's key (attacker has signing key in this scenario)
       encrypted.signature = crypto
-        .sign(null, tampered, provider.signKeyPair.privateKey)
+        .sign(null, tampered, expert.signKeyPair.privateKey)
         .toString("base64");
 
-      const providerEncPub = publicKeyFromHex(provider.encryptPublicKey);
-      const providerSignPub = publicKeyFromHex(provider.signPublicKey);
+      const expertEncPub = publicKeyFromHex(expert.encryptPublicKey);
+      const expertSignPub = publicKeyFromHex(expert.signPublicKey);
 
       // Decryption should fail due to AES-GCM auth tag mismatch
       expect(() =>
         decryptMessage(
           encrypted,
-          providerEncPub,
-          providerSignPub,
+          expertEncPub,
+          expertSignPub,
           consumer.encryptKeyPair.privateKey
         )
       ).toThrow();
@@ -839,27 +839,27 @@ describe("E2E encryption integration flow", () => {
 
     it("tampered signature is detected before decryption", () => {
       const consumer = generateKeyMaterial();
-      const provider = generateKeyMaterial();
+      const expert = generateKeyMaterial();
 
       const consumerEncPub = publicKeyFromHex(consumer.encryptPublicKey);
       const encrypted = encryptMessage(
         "Signed data",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey
       );
 
       // Tamper with signature
       encrypted.signature = Buffer.from("tampered-signature").toString("base64");
 
-      const providerEncPub = publicKeyFromHex(provider.encryptPublicKey);
-      const providerSignPub = publicKeyFromHex(provider.signPublicKey);
+      const expertEncPub = publicKeyFromHex(expert.encryptPublicKey);
+      const expertSignPub = publicKeyFromHex(expert.signPublicKey);
 
       expect(() =>
         decryptMessage(
           encrypted,
-          providerEncPub,
-          providerSignPub,
+          expertEncPub,
+          expertSignPub,
           consumer.encryptKeyPair.privateKey
         )
       ).toThrow("Signature verification failed");
@@ -867,26 +867,26 @@ describe("E2E encryption integration flow", () => {
 
     it("wrong recipient cannot decrypt (different X25519 key pair)", () => {
       const consumer = generateKeyMaterial();
-      const provider = generateKeyMaterial();
+      const expert = generateKeyMaterial();
       const attacker = generateKeyMaterial();
 
       const consumerEncPub = publicKeyFromHex(consumer.encryptPublicKey);
       const encrypted = encryptMessage(
         "Only for consumer",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey
       );
 
-      const providerEncPub = publicKeyFromHex(provider.encryptPublicKey);
-      const providerSignPub = publicKeyFromHex(provider.signPublicKey);
+      const expertEncPub = publicKeyFromHex(expert.encryptPublicKey);
+      const expertSignPub = publicKeyFromHex(expert.signPublicKey);
 
       // Attacker has different X25519 private key — DH shared secret differs
       expect(() =>
         decryptMessage(
           encrypted,
-          providerEncPub,
-          providerSignPub,
+          expertEncPub,
+          expertSignPub,
           attacker.encryptKeyPair.privateKey
         )
       ).toThrow();
@@ -894,21 +894,21 @@ describe("E2E encryption integration flow", () => {
 
     it("each message uses unique HKDF salt (messageId)", () => {
       const consumer = generateKeyMaterial();
-      const provider = generateKeyMaterial();
+      const expert = generateKeyMaterial();
       const consumerEncPub = publicKeyFromHex(consumer.encryptPublicKey);
 
       const msg1 = encryptMessage(
         "Same text",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey
       );
 
       const msg2 = encryptMessage(
         "Same text",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey
       );
 
       // Different messageIds lead to different ciphertexts (different AES keys via HKDF)

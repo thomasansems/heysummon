@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // Mock Prisma before imports
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    channelProvider: {
+    expertChannel: {
       findUnique: vi.fn(),
       update: vi.fn(),
     },
@@ -29,8 +29,8 @@ import { answerCallbackQuery, editMessageText } from "@/lib/adapters/telegram";
 import { POST } from "@/app/api/adapters/telegram/[id]/webhook/route";
 import { NextRequest } from "next/server";
 
-const mockFindUnique = vi.mocked(prisma.channelProvider.findUnique);
-const mockChannelUpdate = vi.mocked(prisma.channelProvider.update);
+const mockFindUnique = vi.mocked(prisma.expertChannel.findUnique);
+const mockChannelUpdate = vi.mocked(prisma.expertChannel.update);
 const mockHelpRequestFindFirst = vi.mocked(prisma.helpRequest.findFirst);
 const mockHelpRequestUpdate = vi.mocked(prisma.helpRequest.update);
 const mockMessageCreate = vi.mocked(prisma.message.create);
@@ -109,7 +109,7 @@ describe("Telegram webhook callback_query handler", () => {
     expect(mockMessageCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         requestId: "req-1",
-        from: "provider",
+        from: "expert",
         ciphertext: "approved",
       }),
     });

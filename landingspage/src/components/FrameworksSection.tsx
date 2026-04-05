@@ -58,13 +58,13 @@ const clientSoon = [
   { name: "NemoClaw", icon: "/icons/nvidia.svg" },
 ];
 
-const providerCurrent = [
+const expertCurrent = [
   { name: "OpenClaw", icon: "/icons/openclaw.svg" },
   { name: "Telegram", icon: "/icons/telegram.svg" },
   { name: "Slack", icon: "/icons/slack.svg" },
 ];
 
-const providerSoon = [
+const expertSoon = [
   { name: "WhatsApp", icon: "/icons/whatsapp.svg" },
 ];
 
@@ -240,15 +240,15 @@ export function FrameworksSection() {
               ))}
             </div>
 
-            {/* Provider section */}
+            {/* Expert section */}
             <div className="border-t border-white/10 pt-6 mt-auto">
-              <h4 className="font-serif text-2xl mb-2 text-text-heading">Provider Side</h4>
+              <h4 className="font-serif text-2xl mb-2 text-text-heading">Expert Side</h4>
               <p className="text-xs text-text-body mb-4">Human experts respond through their preferred channel.</p>
               <div className="flex items-center gap-4">
-                {providerCurrent.map(item => (
+                {expertCurrent.map(item => (
                   <img key={item.name} src={item.icon} alt={item.name} className="h-8 w-8 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 ))}
-                {providerSoon.map(item => (
+                {expertSoon.map(item => (
                   <img key={item.name} src={item.icon} alt={item.name} className="h-8 w-8 rounded opacity-40" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 ))}
               </div>

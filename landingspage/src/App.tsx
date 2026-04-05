@@ -6,7 +6,7 @@
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { VideoSection } from './components/VideoSection';
-import { ProvidersSection } from './components/ProvidersSection';
+import { ExpertsSection } from './components/ExpertsSection';
 import { ClientsSection } from './components/ClientsSection';
 import { FlowSection } from './components/FlowSection';
 import { FrameworksSection } from './components/FrameworksSection';
@@ -23,7 +23,7 @@ export default function App() {
         <main>
           <Hero />
           <VideoSection />
-          <ProvidersSection />
+          <ExpertsSection />
           <ClientsSection />
           <FlowSection />
           <FrameworksSection />

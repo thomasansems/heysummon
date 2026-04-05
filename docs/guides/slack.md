@@ -1,6 +1,6 @@
 # Slack Integration
 
-HeySummon can send help request notifications to a Slack channel. Your providers can reply directly from Slack using the `/reply` command, and responses are delivered back to the consumer.
+HeySummon can send help request notifications to a Slack channel. Your experts can reply directly from Slack using the `/reply` command, and responses are delivered back to the consumer.
 
 ---
 
@@ -96,7 +96,7 @@ Reply with: `reply HS-ABC123 your answer`
 
 ### Replying
 
-Providers reply directly in the Slack channel by typing (without a slash -- Slack intercepts `/` as built-in commands):
+Experts reply directly in the Slack channel by typing (without a slash -- Slack intercepts `/` as built-in commands):
 
 ```
 reply HS-ABC123 The database connection string is configured in the .env file...
@@ -106,7 +106,7 @@ HeySummon processes the reply, updates the request status to "responded", and de
 
 ### Dashboard
 
-Providers can also view and respond to requests from the HeySummon dashboard at `/dashboard`. The Slack channel status is visible in the provider settings panel.
+Experts can also view and respond to requests from the HeySummon dashboard at `/dashboard`. The Slack channel status is visible in the expert settings panel.
 
 ---
 

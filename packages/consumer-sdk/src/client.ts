@@ -45,6 +45,7 @@ export class HeySummonClient {
   private readonly apiKey: string;
   private readonly e2e: boolean;
   private readonly keyStore: Map<string, KeyMaterial> = new Map();
+  private readonly providerKeyCache: Map<string, { encPub: string; signPub: string }> = new Map();
 
   constructor(opts: HeySummonClientOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/$/, ""); // trim trailing slash
@@ -130,6 +131,14 @@ export class HeySummonClient {
 
     const keys = this.keyStore.get(requestId);
     const hasProviderKeys = !!(res.providerEncryptPubKey && res.providerSignPubKey);
+
+    // Cache provider public keys for sendMessage() to avoid N+1 fetches
+    if (hasProviderKeys) {
+      this.providerKeyCache.set(requestId, {
+        encPub: res.providerEncryptPubKey!,
+        signPub: res.providerSignPubKey!,
+      });
+    }
 
     const messages: DecryptedMessage[] = res.messages.map((msg) => {
       // Plaintext messages: return as-is
@@ -245,19 +254,26 @@ export class HeySummonClient {
       });
     }
 
-    // Need provider's public keys to encrypt — fetch them
-    const res = await this.request<MessagesResponse>(
-      "GET",
-      `/api/v1/messages/${requestId}`
-    );
+    // Use cached provider keys to avoid N+1 API calls; fetch only on cache miss
+    let cached = this.providerKeyCache.get(requestId);
+    if (!cached) {
+      const res = await this.request<MessagesResponse>(
+        "GET",
+        `/api/v1/messages/${requestId}`
+      );
+      if (res.providerEncryptPubKey && res.providerSignPubKey) {
+        cached = { encPub: res.providerEncryptPubKey, signPub: res.providerSignPubKey };
+        this.providerKeyCache.set(requestId, cached);
+      }
+    }
 
-    if (!res.providerEncryptPubKey || !res.providerSignPubKey) {
+    if (!cached) {
       throw new Error(
         "Cannot send encrypted message: provider has not completed key exchange yet"
       );
     }
 
-    const providerEncPub = publicKeyFromHex(res.providerEncryptPubKey, "x25519");
+    const providerEncPub = publicKeyFromHex(cached.encPub, "x25519");
 
     const payload = encryptWithKeys(
       text,
@@ -279,6 +295,7 @@ export class HeySummonClient {
   /** Remove keys from the store for a completed/closed request */
   releaseKeys(requestId: string): void {
     this.keyStore.delete(requestId);
+    this.providerKeyCache.delete(requestId);
   }
 
   /** Import persistent keys from PEM files into the key store for a given request */

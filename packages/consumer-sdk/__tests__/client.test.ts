@@ -109,6 +109,13 @@ describe("HeySummonClient", () => {
     server.use(
       http.get(`${BASE}/api/v1/messages/req1`, () =>
         HttpResponse.json({
+          requestId: "req1",
+          refCode: null,
+          status: "active",
+          consumerSignPubKey: null,
+          consumerEncryptPubKey: null,
+          providerSignPubKey: null,
+          providerEncryptPubKey: null,
           messages: [
             {
               id: "msg1",
@@ -121,6 +128,7 @@ describe("HeySummonClient", () => {
               createdAt: "2026-01-01T00:00:00Z",
             },
           ],
+          expiresAt: new Date().toISOString(),
         })
       )
     );

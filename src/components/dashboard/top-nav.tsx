@@ -52,11 +52,11 @@ export function TopNav() {
   const overflow = navItems.slice(visibleCount);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#eaeaea] bg-white">
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 text-sm font-bold text-black"
+          className="flex items-center gap-2 text-sm font-bold text-foreground"
         >
           <span style={{ fontFamily: 'var(--font-dm-sans)', fontWeight: 700, fontSize: '1.15rem' }}>"hey summon"</span>
         </Link>
@@ -73,8 +73,8 @@ export function TopNav() {
                 href={item.href}
                 className={`rounded-md px-2 py-1.5 text-xs sm:text-sm sm:px-3 transition-colors whitespace-nowrap ${
                   isActive
-                    ? "font-medium text-black"
-                    : "text-[#666] hover:text-black"
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {item.label}
@@ -87,14 +87,14 @@ export function TopNav() {
                 onClick={() => setMoreOpen(!moreOpen)}
                 className={`rounded-md px-2 py-1.5 text-xs sm:text-sm sm:px-3 transition-colors whitespace-nowrap ${
                   overflow.some((item) => pathname.startsWith(item.href))
-                    ? "font-medium text-black"
-                    : "text-[#666] hover:text-black"
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 More ▾
               </button>
               {moreOpen && (
-                <div className="absolute right-0 top-full mt-1 min-w-[160px] rounded-lg border border-[#eaeaea] bg-white py-1 shadow-lg z-50">
+                <div className="absolute right-0 top-full mt-1 min-w-[160px] rounded-lg border border-border bg-background py-1 shadow-lg z-50">
                   {overflow.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     return (
@@ -104,8 +104,8 @@ export function TopNav() {
                         onClick={() => setMoreOpen(false)}
                         className={`block px-4 py-2 text-sm transition-colors ${
                           isActive
-                            ? "font-medium text-black bg-[#f5f5f5]"
-                            : "text-[#666] hover:text-black hover:bg-[#fafafa]"
+                            ? "font-medium text-foreground bg-muted"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
                       >
                         {item.label}
@@ -126,13 +126,13 @@ export function TopNav() {
               className="h-7 w-7 rounded-full"
             />
           ) : (
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#eaeaea] text-xs font-medium text-[#666]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
               {session?.user?.name?.[0] || "?"}
             </div>
           )}
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="hidden sm:block text-sm text-[#666] transition-colors hover:text-black"
+            className="hidden sm:block text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Log out
           </button>

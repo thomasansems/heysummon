@@ -578,7 +578,7 @@ export default function ExpertsContent() {
                   <button
                     onClick={createExpertWizard}
                     disabled={wizardCreating || !wizardName.trim() || !wizardChannel || (wizardChannel === "telegram" && !wizardBotToken.trim()) || (wizardChannel === "slack" && (!wizardSlackBotToken.trim() || !wizardSlackSigningSecret.trim() || !wizardSlackChannelId.trim()))}
-                    className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+                    className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background disabled:opacity-40"
                   >
                     {wizardCreating ? "Creating..." : "Create Expert"}
                   </button>
@@ -597,7 +597,8 @@ export default function ExpertsContent() {
                 {wizardResult.channel === "openclaw" && (
                   <div className="space-y-3">
                     <p className="text-sm text-muted-foreground">Follow these steps to connect your OpenClaw agent:</p>
-                    <div className="rounded-lg border border-border bg-black p-4 space-y-3 text-xs">
+                    {/* intentionally dark — code/instruction block */}
+                    <div className="rounded-lg border border-border bg-zinc-950 p-4 space-y-3 text-xs">
                       <div>
                         <p className="mb-1 text-muted-foreground font-medium">Step 1 — Install the expert skill</p>
                         <code className="text-green-400">/skill install https://clawhub.ai/thomasansems/heysummon-expert</code>
@@ -620,7 +621,8 @@ export default function ExpertsContent() {
                 {wizardResult.channel === "telegram" && (
                   <div className="space-y-3">
                     <p className="text-sm text-muted-foreground">Your Telegram bot is connected!</p>
-                    <div className="rounded-lg border border-border bg-black p-4 space-y-3 text-xs">
+                    {/* intentionally dark — code/instruction block */}
+                    <div className="rounded-lg border border-border bg-zinc-950 p-4 space-y-3 text-xs">
                       <div>
                         <p className="mb-1 text-muted-foreground font-medium">How it works</p>
                         <p className="text-zinc-400">When a client sends a help request, your Telegram bot will forward it. Reply directly in Telegram to respond.</p>
@@ -642,7 +644,8 @@ export default function ExpertsContent() {
                 {wizardResult.channel === "slack" && (
                   <div className="space-y-3">
                     <p className="text-sm text-muted-foreground">Your Slack channel is connected! Paste this URL in your Slack app under Event Subscriptions &gt; Request URL:</p>
-                    <div className="rounded-lg border border-border bg-black p-4 text-xs">
+                    {/* intentionally dark — code/instruction block */}
+                    <div className="rounded-lg border border-border bg-zinc-950 p-4 text-xs">
                       {wizardResult.webhookUrl ? (
                         <div className="flex items-center gap-2">
                           <code className="text-green-400 break-all">{wizardResult.webhookUrl}</code>
@@ -665,7 +668,7 @@ export default function ExpertsContent() {
                 )}
 
                 <div className="mt-5 flex justify-end">
-                  <button onClick={closeWizard} className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white">Done</button>
+                  <button onClick={closeWizard} className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background">Done</button>
                 </div>
               </div>
             )}
@@ -677,7 +680,7 @@ export default function ExpertsContent() {
         <h1 className="text-2xl font-semibold text-foreground">Experts</h1>
         <button
           onClick={openWizard}
-          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black/90"
+          className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
         >
           Add New Expert
         </button>

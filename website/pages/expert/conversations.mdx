@@ -50,6 +50,60 @@ Everything after the tag is sent as the response.
 
 ---
 
+## Approval buttons
+
+When an AI agent submits a request with `requiresApproval: true`, you receive a notification with **Approve** and **Deny** buttons instead of a free-text prompt. This is used for budget decisions, destructive actions, or any binary yes/no question.
+
+### Telegram
+
+The notification appears with inline buttons directly in your chat:
+
+```
+*Approval required* HS-A1B2C3D4
+
+*Question:* Should I proceed with the $5,000 purchase?
+
+[ Approve ]  [ Deny ]
+```
+
+Tap a button to submit your decision. The message updates to confirm:
+
+```
+Request HS-A1B2C3D4 -- Decision: Approved
+```
+
+### Slack
+
+The notification appears as a Block Kit message with styled buttons:
+
+```
+*Approval required* HS-A1B2C3D4
+
+*Question:* Should I proceed with the $5,000 purchase?
+
+[Approve]  [Deny]
+```
+
+The green "Approve" and red "Deny" buttons are interactive Slack actions. After you click, the message updates to show the decision and the buttons are removed.
+
+### OpenClaw
+
+OpenClaw receives a webhook notification with action URLs. Your OpenClaw assistant presents the approve/deny options through its own interface. The decision is sent back to HeySummon via a callback webhook.
+
+### How it works
+
+1. Consumer submits a request with `requiresApproval: true`
+2. HeySummon sends approval buttons to your active notification channels
+3. You tap Approve or Deny
+4. The decision is recorded and the consumer receives it on the next poll
+5. Each request can only receive one decision -- subsequent button presses are ignored
+
+<Callout type="info">
+  Approval requests that expire (72h) or are cancelled can no longer be approved or denied. The buttons will show the expired/cancelled status if pressed.
+</Callout>
+
+---
+
 ## Multi-turn conversations
 
 Requests support multiple back-and-forth messages. Follow-ups share the same ref code:

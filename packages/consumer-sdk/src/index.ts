@@ -6,6 +6,10 @@ export {
   loadPublicKeys,
   encrypt,
   decrypt,
+  generateKeyMaterial,
+  publicKeyFromHex,
+  encryptWithKeys,
+  decryptWithKeys,
 } from "./crypto.js";
 export type {
   Expert,
@@ -13,8 +17,10 @@ export type {
   SubmitRequestResult,
   PendingEvent,
   Message,
+  DecryptedMessage,
+  MessagesResponse,
   RequestStatusResponse,
   WhoamiResult,
   HeySummonClientOptions,
 } from "./types.js";
-export type { KeyPair } from "./crypto.js";
+export type { KeyPair, KeyMaterial, EncryptedPayload } from "./crypto.js";

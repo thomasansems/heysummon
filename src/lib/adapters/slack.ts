@@ -113,6 +113,64 @@ export async function sendMessage(
   }
 }
 
+/** Send a Block Kit message with action buttons to a Slack channel */
+export async function sendMessageWithBlocks(
+  token: string,
+  channelId: string,
+  text: string,
+  actions: Array<{ text: string; action_id: string; value: string; style?: "primary" | "danger" }>,
+): Promise<void> {
+  const blocks = [
+    {
+      type: "section",
+      text: { type: "mrkdwn", text },
+    },
+    {
+      type: "actions",
+      elements: actions.map((a) => ({
+        type: "button",
+        text: { type: "plain_text", text: a.text },
+        action_id: a.action_id,
+        value: a.value,
+        ...(a.style ? { style: a.style } : {}),
+      })),
+    },
+  ];
+
+  const data = await slackPost("chat.postMessage", token, {
+    channel: channelId,
+    text, // fallback for notifications
+    blocks,
+    unfurl_links: false,
+    unfurl_media: false,
+  });
+  if (!data.ok) {
+    throw new Error(
+      `Failed to send Slack Block Kit message: ${data.error ?? "unknown error"}`,
+    );
+  }
+}
+
+/** Update an existing Slack message (used to replace buttons with decision text) */
+export async function updateMessage(
+  token: string,
+  channelId: string,
+  messageTs: string,
+  text: string,
+): Promise<void> {
+  const data = await slackPost("chat.update", token, {
+    channel: channelId,
+    ts: messageTs,
+    text,
+    blocks: [], // remove Block Kit actions
+  });
+  if (!data.ok) {
+    throw new Error(
+      `Failed to update Slack message: ${data.error ?? "unknown error"}`,
+    );
+  }
+}
+
 /** Verify an incoming Slack request signature */
 export function verifySlackSignature(
   signingSecret: string,

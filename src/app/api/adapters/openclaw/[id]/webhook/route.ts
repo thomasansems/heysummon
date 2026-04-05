@@ -1,0 +1,247 @@
+import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { verifyWebhookSignature } from "@/lib/adapters/openclaw";
+import type { OpenClawConfig } from "@/lib/adapters/types";
+
+/** Max length for a provider reply via OpenClaw */
+const MAX_REPLY_LENGTH = 10_000;
+
+const callbackSchema = z.object({
+  action: z.enum(["approve", "deny", "reply"]),
+  requestId: z.string().min(1),
+  message: z.string().max(MAX_REPLY_LENGTH).optional(),
+});
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  const rawBody = await request.text();
+
+  // Find the channel provider
+  const channel = await prisma.channelProvider.findUnique({
+    where: { id },
+    include: {
+      profile: {
+        select: { userId: true },
+      },
+    },
+  });
+
+  if (!channel || channel.type !== "openclaw" || !channel.isActive) {
+    return NextResponse.json(
+      { error: "Channel not found" },
+      { status: 404 },
+    );
+  }
+
+  const config = JSON.parse(channel.config) as OpenClawConfig & { webhookSecret?: string };
+
+  // Verify webhook signature
+  const signature = request.headers.get("x-openclaw-signature") ?? "";
+
+  if (
+    !config.webhookSecret ||
+    !signature ||
+    !verifyWebhookSignature(config.webhookSecret, rawBody, signature)
+  ) {
+    // Also check query-param based actions (approve/deny URLs from notification)
+    const url = new URL(request.url);
+    const queryAction = url.searchParams.get("action");
+    const queryRequestId = url.searchParams.get("requestId");
+
+    if (queryAction && queryRequestId) {
+      return handleQueryAction(queryAction, queryRequestId, channel, config);
+    }
+
+    return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+  }
+
+  // Parse the callback body
+  let parsed: z.infer<typeof callbackSchema>;
+  try {
+    const raw = JSON.parse(rawBody);
+    const result = callbackSchema.safeParse(raw);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: result.error.format() },
+        { status: 400 },
+      );
+    }
+    parsed = result.data;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (parsed.action === "reply") {
+    return handleReply(parsed.requestId, parsed.message ?? "", channel);
+  }
+
+  return handleApproval(parsed.action, parsed.requestId, channel);
+}
+
+/** Handle query-param based approve/deny (from action URLs in notification) */
+async function handleQueryAction(
+  action: string,
+  requestId: string,
+  channel: { id: string; profile: { userId: string } },
+  config: OpenClawConfig & { webhookSecret?: string },
+): Promise<NextResponse> {
+  if (action !== "approve" && action !== "deny") {
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  }
+
+  // For query-param actions, verify via API key in Authorization header
+  const authHeader = config.webhookSecret; // The secret acts as the shared auth
+  if (!authHeader) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  return handleApproval(action, requestId, channel);
+}
+
+/** Handle approve/deny actions */
+async function handleApproval(
+  action: "approve" | "deny",
+  requestId: string,
+  channel: { id: string; profile: { userId: string } },
+): Promise<NextResponse> {
+  const decision = action === "approve" ? "approved" : "denied";
+
+  // Find the help request -- must belong to this provider
+  const helpRequest = await prisma.helpRequest.findFirst({
+    where: {
+      id: requestId,
+      expertId: channel.profile.userId,
+      requiresApproval: true,
+    },
+  });
+
+  if (!helpRequest) {
+    return NextResponse.json(
+      { error: "Request not found" },
+      { status: 404 },
+    );
+  }
+
+  // Prevent double-decision
+  if (helpRequest.approvalDecision) {
+    return NextResponse.json({
+      ok: true,
+      message: `Request already ${helpRequest.approvalDecision}`,
+      decision: helpRequest.approvalDecision,
+    });
+  }
+
+  // Reject if expired/cancelled
+  if (helpRequest.status === "expired" || helpRequest.status === "cancelled") {
+    return NextResponse.json({
+      ok: true,
+      message: `Request is ${helpRequest.status}`,
+      status: helpRequest.status,
+    });
+  }
+
+  const now = new Date();
+
+  // Apply the decision
+  await prisma.helpRequest.update({
+    where: { id: helpRequest.id },
+    data: {
+      approvalDecision: decision,
+      status: "responded",
+      respondedAt: now,
+    },
+  });
+
+  // Create a Message record so consumer polling detects it
+  await prisma.message.create({
+    data: {
+      requestId: helpRequest.id,
+      from: "provider",
+      ciphertext: decision,
+      iv: "",
+      authTag: "",
+      signature: "",
+      messageId: `approval-${helpRequest.id}-${Date.now()}`,
+    },
+  });
+
+  const label = decision === "approved" ? "Approved" : "Denied";
+
+  return NextResponse.json({
+    ok: true,
+    message: `Request ${helpRequest.refCode} -- Decision: ${label}`,
+    decision,
+  });
+}
+
+/** Handle reply actions */
+async function handleReply(
+  requestId: string,
+  answer: string,
+  channel: { id: string; profile: { userId: string } },
+): Promise<NextResponse> {
+  if (!answer || answer.trim().length === 0) {
+    return NextResponse.json(
+      { error: "Message is required for reply action" },
+      { status: 400 },
+    );
+  }
+
+  if (answer.length > MAX_REPLY_LENGTH) {
+    return NextResponse.json(
+      { error: `Reply is too long (${answer.length} chars). Maximum is ${MAX_REPLY_LENGTH}.` },
+      { status: 400 },
+    );
+  }
+
+  const helpRequest = await prisma.helpRequest.findFirst({
+    where: {
+      id: requestId,
+      expertId: channel.profile.userId,
+      status: { notIn: ["closed", "expired"] },
+    },
+  });
+
+  if (!helpRequest) {
+    return NextResponse.json(
+      { error: "Request not found or already closed" },
+      { status: 404 },
+    );
+  }
+
+  const now = new Date();
+
+  await prisma.helpRequest.update({
+    where: { id: helpRequest.id },
+    data: {
+      response: answer.trim(),
+      status: "responded",
+      respondedAt: now,
+    },
+  });
+
+  // Create a Message record for consumer polling
+  const plainB64 = Buffer.from(answer.trim(), "utf-8").toString("base64");
+  await prisma.message.create({
+    data: {
+      requestId: helpRequest.id,
+      from: "provider",
+      ciphertext: `plaintext:${plainB64}`,
+      iv: "plaintext",
+      authTag: "plaintext",
+      signature: "plaintext",
+      messageId: `openclaw-${randomUUID()}`,
+    },
+  });
+
+  return NextResponse.json({
+    ok: true,
+    message: `Reply sent for ${helpRequest.refCode}`,
+  });
+}

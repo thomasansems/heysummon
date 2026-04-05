@@ -15,7 +15,7 @@
 import { HeySummonClient, HeySummonHttpError } from "./client.js";
 import { ExpertStore } from "./expert-store.js";
 import { generateEphemeralKeys, generatePersistentKeys } from "./crypto.js";
-import type { Message } from "./types.js";
+import type { DecryptedMessage } from "./types.js";
 import { existsSync } from "node:fs";
 
 // ---------------------------------------------------------------------------
@@ -173,7 +173,7 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
 
       // Fallback: check messages for plaintext replies
       const { messages: msgs } = await client.getMessages(result.requestId);
-      const expertMsg = msgs.filter((m: Message) => m.from === "expert").pop();
+      const expertMsg = msgs.filter((m: DecryptedMessage) => m.from === "expert").pop();
       if (expertMsg) {
         if (expertMsg.plaintext) {
           process.stderr.write(`\nHuman responded [${ref}]\n`);

@@ -46,7 +46,7 @@ export function StepExpert({ onComplete }: StepExpertProps) {
   }, []);
 
   useEffect(() => {
-    if (channel === "telegram") fetchTunnelStatus();
+    if (channel === "telegram" || channel === "slack") fetchTunnelStatus();
   }, [channel, fetchTunnelStatus]);
 
   const stopPolling = useCallback(() => {

@@ -162,6 +162,19 @@ else
   docker compose up -d
 fi
 
+# ── Verify public access (non-blocking) ──────────────
+
+if [[ -n "$CONFIGURED_URL" ]]; then
+  info "Verifying public access..."
+  sleep 5
+  if curl -fsSL --max-time 10 "${CONFIGURED_URL}/api/health" >/dev/null 2>&1; then
+    ok "Public access verified: ${CONFIGURED_URL}"
+  else
+    warn "Could not reach ${CONFIGURED_URL}/api/health yet."
+    warn "The onboarding wizard will verify connectivity when you log in."
+  fi
+fi
+
 echo ""
 echo -e "${GREEN}${BOLD}HeySummon is running!${NC}"
 echo ""

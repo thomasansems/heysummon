@@ -20,8 +20,8 @@ import type {
 
 const STEPS = [
   { label: "Welcome" },
-  { label: "Network" },
   { label: "Expert" },
+  { label: "Network" },
   { label: "Test" },
   { label: "Client" },
   { label: "E2E" },
@@ -125,15 +125,12 @@ export function OnboardingFlow() {
         return <StepWelcome onNext={() => setStep(1)} />;
 
       case 1:
-        return <StepNetwork onNext={() => setStep(2)} />;
-
-      case 2:
         return (
           <StepExpert
             onComplete={({ expertId, expertKey, expertName, channel }) => {
               setState((s) => ({
                 ...s,
-                step: 3,
+                step: 2,
                 expertId,
                 expertKey,
                 expertName,
@@ -143,9 +140,17 @@ export function OnboardingFlow() {
           />
         );
 
+      case 2:
+        // OpenClaw is polling-based — no public access needed
+        if (state.expertChannel === "openclaw") {
+          setStep(3);
+          return null;
+        }
+        return <StepNetwork onNext={() => setStep(3)} />;
+
       case 3:
         if (!state.expertId || !state.expertChannel) {
-          setStep(2);
+          setStep(1);
           return null;
         }
         return (
@@ -158,7 +163,7 @@ export function OnboardingFlow() {
 
       case 4:
         if (!state.expertId) {
-          setStep(2);
+          setStep(1);
           return null;
         }
         return (

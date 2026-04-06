@@ -24,15 +24,17 @@ services:
       - sh
       - -c
       - |
-        echo 'Waiting for database...'
+        echo 'Running database migration...'
         tries=0
-        while [ $$tries -lt 30 ]; do
-          nc -z db 5432 2>/dev/null && break
+        until prisma db push --skip-generate --accept-data-loss; do
           tries=$$((tries + 1))
-          sleep 1
+          if [ $$tries -ge 10 ]; then
+            echo 'Migration failed after 10 attempts'
+            exit 1
+          fi
+          echo "Attempt $$tries failed — retrying in 3s..."
+          sleep 3
         done
-        echo 'Database ready - running migration'
-        prisma db push --skip-generate --accept-data-loss
     environment:
       DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
     networks:
@@ -53,11 +55,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U heysummon"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      test: ["CMD-SHELL", "pg_isready -U heysummon -d heysummon && psql -U heysummon -d heysummon -c 'SELECT 1' > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
 
   app:
     image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}

@@ -298,7 +298,6 @@ fi
 
 echo ""
 echo -e "${BLUE}Tip:${NC} The first user to sign up becomes the admin."
-echo -e "${BLUE}Tip:${NC} Run ${BOLD}pnpm db:seed${NC} to load demo data."
 
 if [[ "${CONFIGURED_PROFILE:-direct}" == "direct" ]]; then
   echo ""

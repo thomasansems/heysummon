@@ -90,6 +90,6 @@ export default [
     },
   },
   {
-    ignores: ["node_modules/", ".next/", "prisma/", "e2e/", "guard/", "relay/", "scripts/", "skills/", "*.config.*", "**/*.mjs", "waitlist-app/", "waitlist-app/**", "website/", "website/**", "landingpage/", "landingpage/**", "cli/dist/", "cli/dist/**", "**/dist/**"],
+    ignores: ["node_modules/", "**/.next/", "**/node_modules/", "prisma/", "e2e/", "guard/", "relay/", "scripts/", "skills/", "*.config.*", "**/*.mjs", "waitlist-app/", "waitlist-app/**", "website/", "website/**", "landingspage/", "landingspage/**", "vercel-waitlist/", "vercel-waitlist/**", "cli/", "cli/**", "**/dist/**"],
   },
 ];

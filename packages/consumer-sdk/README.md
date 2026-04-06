@@ -222,4 +222,4 @@ pnpm dlx @heysummon/consumer-sdk keygen --dir ./keys
 
 ## License
 
-MIT
+Sustainable Use License (SUL) - see [LICENSE.md](../../LICENSE.md)

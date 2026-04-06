@@ -220,7 +220,7 @@ async function sendDeferredNotifications(
       id: { in: requests.map((r) => r.id) },
       notifiedExpertAt: null,
     },
-    select: { id: true, refCode: true, questionPreview: true },
+    select: { id: true, refCode: true, questionPreview: true, apiKey: { select: { name: true } } },
   });
 
   if (unnotified.length === 0) return;
@@ -242,10 +242,16 @@ async function sendDeferredNotifications(
   if (!cfg.expertChatId || !cfg.botToken) return;
 
   for (const req of unnotified) {
-    const preview = req.questionPreview
-      ? `\n\n*Question:* ${req.questionPreview.slice(0, 500)}${req.questionPreview.length > 500 ? "…" : ""}`
-      : "";
-    const msg = `🦞 *New help request* \`${req.refCode}\`${preview}\n\nReply with:\n\`/reply ${req.refCode} your answer\``;
+    const clientName = req.apiKey?.name || "Unknown client";
+    const questionLine = req.questionPreview
+      ? `\n"${req.questionPreview.slice(0, 500)}${req.questionPreview.length > 500 ? "..." : ""}"\n`
+      : "\n";
+    const msg = [
+      `*New help request* from ${clientName}`,
+      questionLine,
+      `Reply with:`,
+      `\`/reply ${req.refCode} your answer\``,
+    ].join("\n");
 
     await sendMessage(cfg.botToken, cfg.expertChatId, msg).catch((err) => {
       console.error(`[events/pending] Deferred Telegram notify failed for ${req.refCode}:`, err);

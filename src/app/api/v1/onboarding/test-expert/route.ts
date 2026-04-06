@@ -42,7 +42,15 @@ export async function POST(request: NextRequest) {
       await sendMessage(
         config.botToken,
         config.expertChatId,
-        `*HeySummon Onboarding Test*\n\nThis is a test message to verify your setup works.\n\nReply with:\n\`/reply ${testId} ok\`\n\nto confirm.`
+        [
+          `*HeySummon Setup -- Step 4 of 7*`,
+          ``,
+          `Testing your Telegram connection.`,
+          `If you see this message, your bot is correctly linked to this chat.`,
+          ``,
+          `To confirm, reply with:`,
+          `\`/reply ${testId} ok\``,
+        ].join("\n")
       );
 
       return NextResponse.json({

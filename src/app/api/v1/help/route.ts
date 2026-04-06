@@ -349,10 +349,17 @@ export async function POST(request: Request) {
         const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
         if (!cfg.expertChatId || !cfg.botToken) return;
 
-        const questionPreview = question ? `\n\n*Question:* ${question.slice(0, 500)}${question.length > 500 ? "…" : ""}` : "";
+        const clientName = key.name || "Unknown client";
+        const questionLine = question
+          ? `\n"${question.slice(0, 500)}${question.length > 500 ? "..." : ""}"\n`
+          : "\n";
 
         if (helpRequest.requiresApproval) {
-          const msg = `*Approval required* \`${helpRequest.refCode}\`${questionPreview}`;
+          const msg = [
+            `*Approval required* from ${clientName}`,
+            `Ref: \`${helpRequest.refCode}\``,
+            questionLine,
+          ].join("\n");
           await sendMessageWithButtons(cfg.botToken, cfg.expertChatId, msg, [
             [
               { text: "Approve", callback_data: `approve:${helpRequest.id}` },
@@ -360,7 +367,12 @@ export async function POST(request: Request) {
             ],
           ]);
         } else {
-          const msg = `*New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode}\` your answer`;
+          const msg = [
+            `*New help request* from ${clientName}`,
+            questionLine,
+            `Reply with:`,
+            `\`/reply ${helpRequest.refCode} your answer\``,
+          ].join("\n");
           await sendMessage(cfg.botToken, cfg.expertChatId, msg);
         }
         // Mark as notified

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { requireSecret } from "@/lib/env";
 
 const AUTO_BLACKLIST_THRESHOLD = 20;
 
@@ -12,7 +13,7 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
  * infeasible to reverse from DB alone.
  */
 export function hashDeviceToken(token: string): string {
-  const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
+  const hmacSecret = requireSecret("NEXTAUTH_SECRET", "fallback-dev-secret");
   return crypto.createHmac("sha256", hmacSecret).update(token).digest("hex");
 }
 
@@ -163,7 +164,7 @@ export async function validateApiKeyRequest(
   // HMAC with server secret (NEXTAUTH_SECRET) — deterministic for DB lookup but
   // infeasible to reverse without the server secret, even with DB access.
   if (!keyRecord) {
-    const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
+    const hmacSecret = requireSecret("NEXTAUTH_SECRET", "fallback-dev-secret");
     const hashedKey = crypto.createHmac("sha256", hmacSecret).update(apiKeyValue).digest("hex");
     keyRecord = await prisma.apiKey.findFirst({
       where: {

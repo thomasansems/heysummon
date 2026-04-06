@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { OnboardingCanvas } from "./onboarding-canvas";
+import { OnboardingProgress, type StepDef } from "./onboarding-progress";
 
 const ROTATING_NAMES = ["Thomas", "Pete", "Ridwan", "Donald", "Kitze"];
 const BASE = "Hey summon ";
@@ -105,7 +106,7 @@ function useTypingAnimation(expertName: string | null) {
 interface OnboardingShellProps {
   children: React.ReactNode;
   currentStep: number;
-  totalSteps: number;
+  steps: StepDef[];
   expertName: string | null;
   onSkip: () => void;
   onRestart?: () => void;
@@ -116,7 +117,7 @@ interface OnboardingShellProps {
 export function OnboardingShell({
   children,
   currentStep,
-  totalSteps,
+  steps,
   expertName,
   onSkip,
   onRestart,
@@ -124,7 +125,7 @@ export function OnboardingShell({
   sideContent,
 }: OnboardingShellProps) {
   const { text: typingText, locked } = useTypingAnimation(expertName);
-  const progress = totalSteps > 1 ? currentStep / (totalSteps - 1) : 0;
+  const totalSteps = steps.length;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -164,16 +165,9 @@ export function OnboardingShell({
             )}
           </div>
 
-          {/* Progress bar — minimal line below header */}
-          <div className="mt-4 h-0.5 w-full rounded-full bg-border overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500 ease-out"
-              style={{
-                width: `${progress * 100}%`,
-                background:
-                  "linear-gradient(90deg, #4a90d9, #e8835a)",
-              }}
-            />
+          {/* Step progress indicator */}
+          <div className="mt-5">
+            <OnboardingProgress steps={steps} currentStep={currentStep} />
           </div>
         </div>
 

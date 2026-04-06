@@ -219,7 +219,7 @@ export function OnboardingFlow() {
   return (
     <OnboardingShell
       currentStep={state.step}
-      totalSteps={STEPS.length}
+      steps={STEPS}
       expertName={state.expertName}
       onSkip={handleSkip}
       onRestart={handleRestart}

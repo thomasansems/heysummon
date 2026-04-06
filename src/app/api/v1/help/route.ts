@@ -362,8 +362,8 @@ export async function POST(request: Request) {
           ].join("\n");
           await sendMessageWithButtons(cfg.botToken, cfg.expertChatId, msg, [
             [
-              { text: "Approve", callback_data: `approve:${helpRequest.id}` },
-              { text: "Deny", callback_data: `deny:${helpRequest.id}` },
+              { text: "\u2713 Approve", callback_data: `approve:${helpRequest.id}` },
+              { text: "\u2717 Deny", callback_data: `deny:${helpRequest.id}` },
             ],
           ]);
         } else {
@@ -402,8 +402,8 @@ export async function POST(request: Request) {
         if (helpRequest.requiresApproval) {
           const msg = `*Approval required* \`${helpRequest.refCode}\`${questionPreview}`;
           await sendSlackBlocks(cfg.botToken, cfg.channelId, msg, [
-            { text: "Approve", action_id: "approve_request", value: helpRequest.id, style: "primary" },
-            { text: "Deny", action_id: "deny_request", value: helpRequest.id, style: "danger" },
+            { text: "\u2713 Approve", action_id: "approve_request", value: helpRequest.id, style: "primary" },
+            { text: "\u2717 Deny", action_id: "deny_request", value: helpRequest.id, style: "danger" },
           ]);
         } else {
           const msg = `*New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`reply ${helpRequest.refCode} your answer\``;

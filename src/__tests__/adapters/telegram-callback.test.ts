@@ -113,7 +113,7 @@ describe("Telegram webhook callback_query handler", () => {
         ciphertext: "approved",
       }),
     });
-    expect(mockAnswerCbq).toHaveBeenCalledWith("123:TOKEN", "cbq-1", "Approved");
+    expect(mockAnswerCbq).toHaveBeenCalledWith("123:TOKEN", "cbq-1", "\u2713 Approved");
     expect(mockEditMessage).toHaveBeenCalledWith(
       "123:TOKEN",
       "42",
@@ -157,7 +157,7 @@ describe("Telegram webhook callback_query handler", () => {
         status: "responded",
       }),
     });
-    expect(mockAnswerCbq).toHaveBeenCalledWith("123:TOKEN", "cbq-2", "Denied");
+    expect(mockAnswerCbq).toHaveBeenCalledWith("123:TOKEN", "cbq-2", "\u2717 Denied");
   });
 
   it("rejects callback from unauthorized chat", async () => {

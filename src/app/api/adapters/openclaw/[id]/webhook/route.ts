@@ -171,7 +171,7 @@ async function handleApproval(
     },
   });
 
-  const label = decision === "approved" ? "Approved" : "Denied";
+  const label = decision === "approved" ? "\u2713 Approved" : "\u2717 Denied";
 
   return NextResponse.json({
     ok: true,

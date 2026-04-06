@@ -350,7 +350,7 @@ async function handleBlockActions(
   });
 
   // Update the original message to show decision and remove buttons
-  const label = decision === "approved" ? "Approved" : "Denied";
+  const label = decision === "approved" ? "\u2713 Approved" : "\u2717 Denied";
   const messageTs = interactive.message?.ts ?? interactive.container?.message_ts;
   const channelId = interactive.channel?.id ?? interactive.container?.channel_id;
   if (messageTs && channelId) {

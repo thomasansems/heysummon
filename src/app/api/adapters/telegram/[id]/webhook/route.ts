@@ -168,14 +168,14 @@ export async function POST(
     });
 
     // Acknowledge the button press
-    const label = decision === "approved" ? "Approved" : "Denied";
+    const label = decision === "approved" ? "\u2713 Approved" : "\u2717 Denied";
     await answerCallbackQuery(config.botToken, cbq.id, label);
 
     // Edit the original message to show the decision and remove buttons
     if (cbq.message) {
       const statusLine = decision === "approved"
-        ? `\n\n*Decision:* Approved`
-        : `\n\n*Decision:* Denied`;
+        ? `\n\n*Decision:* \u2713 Approved`
+        : `\n\n*Decision:* \u2717 Denied`;
       const originalText = `Request \`${helpRequest.refCode}\`${statusLine}`;
       await editMessageText(
         config.botToken,

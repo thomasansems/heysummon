@@ -1,12 +1,12 @@
 # OpenClaw Integration Guide
 
-> How HeySummon connects OpenClaw agents (like Sandy) with human providers for async approvals and Q&A.
+> How HeySummon connects OpenClaw agents (like Sandy) with human experts for async approvals and Q&A.
 
 ---
 
 ## What is this?
 
-HeySummon bridges AI agents and human experts. An OpenClaw agent (the **consumer**) can pause its workflow, send a question or approval request to a human (the **provider**), and automatically resume when the human responds — all without losing context.
+HeySummon bridges AI agents and human experts. An OpenClaw agent (the **consumer**) can pause its workflow, send a question or approval request to a human (the **expert**), and automatically resume when the human responds — all without losing context.
 
 **Key properties:**
 - ✅ Fully async — the agent doesn't block while waiting
@@ -46,17 +46,17 @@ HeySummon bridges AI agents and human experts. An OpenClaw agent (the **consumer
 │  GET  /api/v1/events/pending    ← consumer polls                │
 │  POST /api/v1/events/ack        ← consumer acks event           │
 │  GET  /api/v1/requests/by-ref   ← look up by refCode            │
-│  POST /api/v1/message/[id]      ← provider sends response       │
+│  POST /api/v1/message/[id]      ← expert sends response          │
 │  GET  /api/v1/messages/[id]     ← consumer reads messages       │
 └─────────────────────────────────────────────────────────────────┘
               │
               ▼ HTTP (localhost:3425)
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Provider Side (local)                      │
+│                       Expert Side (local)                       │
 │                                                                 │
 │  ┌──────────────────────────┐   ┌───────────────────────────┐  │
-│  │ Provider Watcher         │   │ Thomas (human)            │  │
-│  │ (provider-watcher.sh)    │   │                           │  │
+│  │ Expert Watcher           │   │ Thomas (human)            │  │
+│  │ (expert-watcher.sh)      │   │                           │  │
 │  │ polls every 10s          │──►│ Telegram notification:    │  │
 │  │                          │   │ 🦞 HS-XXXX New request    │  │
 │  └──────────────────────────┘   │ [✅ Approve] [❌ Deny]    │  │
@@ -80,7 +80,7 @@ Sandy calls `submit-request.sh` with a question or approval request:
 bash submit-request.sh \
   --type approval \
   --question "Should I delete all test data?" \
-  --provider "thomas"
+  --expert "thomas"
 ```
 
 The script:
@@ -94,9 +94,9 @@ The script:
 
 ---
 
-### Step 2 — Provider is notified (~5–15s delay)
+### Step 2 — Expert is notified (~5–15s delay)
 
-The **provider watcher** polls `GET /api/v1/events/pending` every 10 seconds.
+The **expert watcher** polls `GET /api/v1/events/pending` every 10 seconds.
 
 When a new request event arrives:
 1. Watcher decrypts the question (server decrypts with `serverPrivateKey`)
@@ -126,7 +126,7 @@ The `reply-handler.sh` script:
    ```json
    {
      "plaintext": "approved",
-     "from": "provider",
+     "from": "expert",
      "approvalDecision": "approved"
    }
    ```
@@ -140,7 +140,7 @@ The `reply-handler.sh` script:
 
 The **consumer watcher** polls `GET /api/v1/events/pending` every 5 seconds.
 
-When a `new_message` event with `from: "provider"` arrives:
+When a `new_message` event with `from: "expert"` arrives:
 1. Watcher fetches the response text from `GET /api/v1/messages/{requestId}`
 2. Fetches the original question via `GET /api/v1/requests/by-ref/{refCode}`
 3. Builds a rich wake message:
@@ -150,7 +150,7 @@ When a `new_message` event with `from: "provider"` arrives:
    Jouw oorspronkelijke vraag was:
    Should I delete all test data?
 
-   Antwoord van de provider: approved
+   Antwoord van de expert: approved
 
    Ga nu verder op basis van dit antwoord.
    ```
@@ -189,7 +189,7 @@ Sandy receives the full context and continues her workflow:
 | Phase | Min | Typical | Max |
 |---|---|---|---|
 | Submit request | 0.3s | 0.5s | 1s |
-| Provider notified | 0s | 5s | 10s |
+| Expert notified | 0s | 5s | 10s |
 | Thomas responds | 5s | 30s | ∞ (human) |
 | Consumer watcher detects | 0s | 2.5s | 5s |
 | Sandy responds | 2s | 5s | 10s |
@@ -233,11 +233,11 @@ OPENCLAW_PORT=18789
 POLL_INTERVAL=5
 ```
 
-### Provider skill (`.env`)
+### Expert skill (`.env`)
 
 ```env
 HEYSUMMON_BASE_URL=http://localhost:3425
-HEYSUMMON_API_KEY=hs_prov_xxxx
+HEYSUMMON_API_KEY=hs_exp_xxxx
 HEYSUMMON_NOTIFY_TARGET=6406071563
 OPENCLAW_PORT=18789
 ```
@@ -255,10 +255,10 @@ The consumer watcher tracks processed events in `.seen-events.txt`. The key form
 Example:
 ```
 new_message:consumer:cmmnunxgb0149qh8e548u66ea   ← Sandy's own message (ignored)
-new_message:provider:cmmnunxgb0149qh8e548u66ea   ← Provider response (processed ✅)
+new_message:expert:cmmnunxgb0149qh8e548u66ea     ← Expert response (processed ✅)
 ```
 
-Including `from` ensures that Sandy's outgoing message doesn't block the incoming provider response.
+Including `from` ensures that Sandy's outgoing message doesn't block the incoming expert response.
 
 **Stale event protection:** Events older than 30 minutes are added to seen-events without triggering a wake call. This prevents queue flooding when the watcher restarts after downtime.
 
@@ -270,14 +270,14 @@ Including `from` ensures that Sandy's outgoing message doesn't block the incomin
 
 | Script | Purpose |
 |---|---|
-| `platform-watcher.sh` | Polls events, wakes Sandy on provider response |
+| `platform-watcher.sh` | Polls events, wakes Sandy on expert response |
 | `submit-request.sh` | Sandy calls this to create a new request |
 
-### Provider side
+### Expert side
 
 | Script | Purpose |
 |---|---|
-| `provider-watcher.sh` | Polls for new requests, notifies Thomas via Telegram |
+| `expert-watcher.sh` | Polls for new requests, notifies Thomas via Telegram |
 | `reply-handler.sh` | Processes Thomas's Telegram reply, sends response to HeySummon |
 | `setup.sh` | Installs the skill and starts the watcher |
 | `teardown.sh` | Stops the watcher |
@@ -292,8 +292,8 @@ Both watchers use **nohup + pidfile** (not pm2):
 # Start consumer watcher
 bash ~/.npm-global/lib/node_modules/openclaw/skills/heysummon/scripts/setup.sh
 
-# Start provider watcher
-bash ~/Code/heysummon/skills/openclaw/heysummon-provider/scripts/setup.sh
+# Start expert watcher
+bash ~/Code/heysummon/skills/openclaw/heysummon-expert/scripts/setup.sh
 
 # Check if running
 cat ~/.npm-global/lib/node_modules/openclaw/skills/heysummon/.requests/.watcher.pid
@@ -312,11 +312,11 @@ cat ~/.npm-global/lib/node_modules/openclaw/skills/heysummon/.requests/.watcher.
 3. Check OpenClaw gateway logs: `tail -f /tmp/openclaw/openclaw-$(date +%Y-%m-%d).log`
 4. Verify hooks config: `cat ~/.openclaw/openclaw.json | grep -A10 hooks`
 
-### Provider not notified
+### Expert not notified
 
-1. Check provider watcher: `pm2 list | grep heysummon-provider-watcher`
+1. Check expert watcher: `pm2 list | grep heysummon-expert-watcher`
 2. Check HeySummon server: `pm2 logs heysummon`
-3. Test API: `curl http://localhost:3425/api/v1/events/pending -H "x-api-key: hs_prov_xxx"`
+3. Test API: `curl http://localhost:3425/api/v1/events/pending -H "x-api-key: hs_exp_xxx"`
 
 ### Gateway crashes on restart
 

@@ -64,8 +64,8 @@ export async function GET(
     status: helpRequest.status,
     consumerSignPubKey: helpRequest.consumerSignPubKey,
     consumerEncryptPubKey: helpRequest.consumerEncryptPubKey,
-    providerSignPubKey: helpRequest.providerSignPubKey,
-    providerEncryptPubKey: helpRequest.providerEncryptPubKey,
+    expertSignPubKey: helpRequest.expertSignPubKey,
+    expertEncryptPubKey: helpRequest.expertEncryptPubKey,
     messages,
     expiresAt: helpRequest.expiresAt.toISOString(),
   });
@@ -75,7 +75,7 @@ export async function GET(
  * POST /api/dashboard/e2e/:requestId
  *
  * Session-authenticated endpoint for the dashboard to send encrypted
- * messages as the provider. Bypasses x-api-key auth since the dashboard
+ * messages as the expert. Bypasses x-api-key auth since the dashboard
  * authenticates via session.
  */
 export async function POST(
@@ -119,9 +119,9 @@ export async function POST(
     );
   }
 
-  if (!helpRequest.providerSignPubKey || !helpRequest.providerEncryptPubKey) {
+  if (!helpRequest.expertSignPubKey || !helpRequest.expertEncryptPubKey) {
     return NextResponse.json(
-      { error: "Provider must exchange keys first" },
+      { error: "Expert must exchange keys first" },
       { status: 400 },
     );
   }
@@ -132,7 +132,7 @@ export async function POST(
     return NextResponse.json({ success: true, messageId, duplicate: true });
   }
 
-  // Update request status on first provider message
+  // Update request status on first expert message
   if (helpRequest.status !== "responded") {
     await prisma.helpRequest.update({
       where: { id: requestId },
@@ -143,7 +143,7 @@ export async function POST(
   const message = await prisma.message.create({
     data: {
       requestId,
-      from: "provider",
+      from: "expert",
       ciphertext,
       iv,
       authTag,
@@ -153,7 +153,7 @@ export async function POST(
   });
 
   logAuditEvent({
-    eventType: AuditEventTypes.PROVIDER_RESPONSE,
+    eventType: AuditEventTypes.EXPERT_RESPONSE,
     userId: session.user.id,
     success: true,
     metadata: { requestId, refCode: helpRequest.refCode, via: "dashboard-e2e" },

@@ -85,7 +85,7 @@ export async function POST(
   }
   const update = parsed.data;
 
-  // ── callback_query ── Provider pressed an Approve/Deny inline button
+  // ── callback_query ── Expert pressed an Approve/Deny inline button
   if (update.callback_query) {
     const cbq = update.callback_query;
     const cbChatId = cbq.message?.chat?.id ? String(cbq.message.chat.id) : null;
@@ -112,7 +112,7 @@ export async function POST(
     const [, action, requestId] = match;
     const decision = action === "approve" ? "approved" : "denied";
 
-    // Find the help request — must belong to this provider
+    // Find the help request — must belong to this expert
     const helpRequest = await prisma.helpRequest.findFirst({
       where: {
         id: requestId,
@@ -158,7 +158,7 @@ export async function POST(
     await prisma.message.create({
       data: {
         requestId: helpRequest.id,
-        from: "provider",
+        from: "expert",
         ciphertext: decision,
         iv: "",
         authTag: "",

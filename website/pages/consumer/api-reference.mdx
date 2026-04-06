@@ -33,7 +33,7 @@ Sends a help request to a human expert. Returns immediately with a request ID.
 | `question` | ✅ | The question for the human expert |
 | `signPublicKey` | ❌ | Ed25519 public key — enables E2E encryption |
 | `encryptPublicKey` | ❌ | X25519 public key — enables E2E encryption |
-| `requiresApproval` | ❌ | When `true`, the provider sees Approve/Deny buttons instead of a free-text reply field |
+| `requiresApproval` | ❌ | When `true`, the expert sees Approve/Deny buttons instead of a free-text reply field |
 | `messages` | ❌ | Encrypted conversation history for context |
 | `messageCount` | ❌ | Number of messages in `messages` |
 
@@ -136,7 +136,7 @@ Fetch all messages in a conversation.
 
 ## Approval workflow
 
-When you submit a request with `requiresApproval: true`, the provider receives Approve/Deny buttons in their notification channel (Telegram, Slack, or OpenClaw) instead of a free-text reply prompt.
+When you submit a request with `requiresApproval: true`, the expert receives Approve/Deny buttons in their notification channel (Telegram, Slack, or OpenClaw) instead of a free-text reply prompt.
 
 ### Submitting an approval request
 
@@ -158,7 +158,7 @@ const events = await client.getPendingEvents();
 
 // Option 2: Check status directly
 const status = await client.getRequestStatus(result.requestId!);
-// status.status === "responded" when the provider has decided
+// status.status === "responded" when the expert has decided
 ```
 
 ### Reading the decision
@@ -167,11 +167,11 @@ Fetch the message history to get the decision:
 
 ```typescript
 const messages = await client.getMessages(result.requestId!);
-// The provider's message contains "approved" or "denied"
+// The expert's message contains "approved" or "denied"
 ```
 
 <Callout type="info">
-  The `approvalDecision` field on the request is also set to `"approved"` or `"denied"` once the provider acts. Each request can only receive one decision — subsequent button presses are ignored.
+  The `approvalDecision` field on the request is also set to `"approved"` or `"denied"` once the expert acts. Each request can only receive one decision — subsequent button presses are ignored.
 </Callout>
 
 ---

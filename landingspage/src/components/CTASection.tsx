@@ -23,7 +23,7 @@ export function CTASection() {
         </h2>
         <p className="text-lg text-text-body mb-8 max-w-2xl mx-auto">
           HeySummon is an open-source project with big ambitions and a small team. Whether you&apos;re
-          a provider who wants to be available to AI, or a client who needs expert judgment in your
+          an expert who wants to be available to AI, or a client who needs expert judgment in your
           workflows -- we want you involved.
         </p>
 

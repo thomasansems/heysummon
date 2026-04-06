@@ -12,7 +12,7 @@ working on the HeySummon codebase.
 When you modify, add, or remove a feature that affects **any of the following**:
 
 - API endpoints (`/api/v1/*`)
-- Provider or consumer behavior
+- Expert or consumer behavior
 - Authentication or security model
 - SDK package interface
 - Self-hosting configuration
@@ -24,7 +24,7 @@ When you modify, add, or remove a feature that affects **any of the following**:
 | Code area | Docs file |
 |-----------|-----------|
 | `/api/v1/help`, `/api/v1/message`, etc. | `website/pages/reference/` or `website/pages/consumer/` |
-| Provider polling, notifications | `website/pages/provider/` |
+| Expert polling, notifications | `website/pages/expert/` |
 | Self-hosting setup, env vars | `website/pages/self-hosting/` |
 | Security model, Guard proxy | `website/pages/security/` |
 | SDK (`packages/consumer-sdk/`) | `website/pages/consumer/sdk.mdx` |

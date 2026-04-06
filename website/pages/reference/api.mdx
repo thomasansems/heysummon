@@ -100,7 +100,7 @@ After this call, both sides have the other's public keys. Each side computes a s
 
 **Header:** `x-api-key`
 
-When E2E is active (the default), the consumer SDK encrypts messages automatically using the provider's public key. The wire format is:
+When E2E is active (the default), the consumer SDK encrypts messages automatically using the expert's public key. The wire format is:
 
 ```json
 {
@@ -137,7 +137,7 @@ Returns all messages in the conversation plus the public keys for both parties. 
   "messages": [
     {
       "id": "cm...",
-      "from": "provider",
+      "from": "expert",
       "ciphertext": "...",
       "iv": "...",
       "authTag": "...",
@@ -148,8 +148,8 @@ Returns all messages in the conversation plus the public keys for both parties. 
   ],
   "consumerSignPubKey": "hex-Ed25519-public-key",
   "consumerEncryptPubKey": "hex-X25519-public-key",
-  "providerSignPubKey": "hex-Ed25519-public-key",
-  "providerEncryptPubKey": "hex-X25519-public-key"
+  "expertSignPubKey": "hex-Ed25519-public-key",
+  "expertEncryptPubKey": "hex-X25519-public-key"
 }
 ```
 
@@ -276,9 +276,9 @@ max 10 entries, most recent first) for quick reuse when setting up new clients.
 
 ## Approval Buttons
 
-When `requiresApproval: true` is set on a help request, the provider receives Approve/Deny buttons instead of a free-text reply prompt. Buttons are delivered via Telegram inline keyboard, Slack Block Kit actions, or OpenClaw webhook actions, depending on the provider's active channel.
+When `requiresApproval: true` is set on a help request, the expert receives Approve/Deny buttons instead of a free-text reply prompt. Buttons are delivered via Telegram inline keyboard, Slack Block Kit actions, or OpenClaw webhook actions, depending on the expert's active channel.
 
-After the provider clicks a button, the request transitions to `responded` with `approvalDecision` set to `"approved"` or `"denied"`. The decision is also stored as a Message record so consumers can detect it via `GET /api/v1/events/pending`.
+After the expert clicks a button, the request transitions to `responded` with `approvalDecision` set to `"approved"` or `"denied"`. The decision is also stored as a Message record so consumers can detect it via `GET /api/v1/events/pending`.
 
 Each request can only receive one decision. Double-clicks and subsequent presses return the existing decision without changing state.
 

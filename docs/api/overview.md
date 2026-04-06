@@ -5,7 +5,7 @@ HeySummon has two API surfaces:
 | Surface | Auth | Who uses it |
 |---------|------|-------------|
 | **Consumer API** `/api/v1/*` | `x-api-key` (client key) | AI agents, SDKs, integrations |
-| **Provider API** `/api/*` | Session cookie or provider key | Dashboard, watcher scripts |
+| **Expert API** `/api/*` | Session cookie or expert key | Dashboard, watcher scripts |
 
 All requests go through the **Guard proxy** in production, which adds Ed25519 signatures. In development without Guard, the platform accepts requests directly.
 
@@ -31,10 +31,10 @@ Include the key in every request:
 -H "x-api-key: hs_live_abc123..."
 ```
 
-### Provider key (Provider API)
+### Expert key (Expert API)
 
 ```bash
--H "x-api-key: hs_prov_abc123..."
+-H "x-api-key: hs_exp_abc123..."
 ```
 
 ### Session (Dashboard API)
@@ -91,13 +91,13 @@ Rate limits reset after 60 seconds. Response includes `Retry-After: 60` on 429.
 | `GET` | [`/api/v1/messages/:requestId`](./messages-list.md) | List messages for a request |
 | `GET` | [`/api/v1/events/pending`](./events-stream.md) | Poll for pending events |
 | `POST` | [`/api/v1/close/:requestId`](./events-close.md) | Close a request |
-| `POST` | [`/api/v1/rate/:requestId`](./rate.md) | Rate a provider's response (1-5) |
+| `POST` | [`/api/v1/rate/:requestId`](./rate.md) | Rate an expert's response (1-5) |
 | `POST` | [`/api/v1/approve/:requestId`](./approve.md) | Approve or deny a request |
 | `GET` | [`/api/v1/whoami`](./whoami.md) | Verify your API key |
 
 See also: [Request Lifecycle & State Machine](./lifecycle.md) for the complete state transition diagram.
 
-### Provider API (human experts)
+### Expert API (human experts)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -108,6 +108,6 @@ See also: [Request Lifecycle & State Machine](./lifecycle.md) for the complete s
 | `POST` | `/api/keys` | Create an API key |
 | `DELETE` | `/api/keys/:id` | Delete an API key |
 | `POST` | `/api/keys/:id/rotate` | Rotate an API key |
-| `GET` | `/api/providers` | List providers |
+| `GET` | `/api/experts` | List experts |
 | `GET` | `/api/audit-logs` | View audit log |
-| `POST` | `/api/v1/message/:requestId` | Send a response (provider key) |
+| `POST` | `/api/v1/message/:requestId` | Send a response (expert key) |

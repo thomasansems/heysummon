@@ -208,9 +208,9 @@ describe("HeySummonClient", () => {
 /* -------------------------------------------------------------------------- */
 
 describe("HeySummonClient — E2E encryption", () => {
-  // Generate two sets of keys to simulate consumer <-> provider
+  // Generate two sets of keys to simulate consumer <-> expert
   const consumer = generateKeyMaterial();
-  const provider = generateKeyMaterial();
+  const expert = generateKeyMaterial();
 
   /** Helper: mock the /api/v1/help POST endpoint */
   function mockSubmit(handler?: (body: Record<string, unknown>) => void) {
@@ -231,9 +231,9 @@ describe("HeySummonClient — E2E encryption", () => {
   /** Helper: build a MessagesResponse with keys and messages */
   function messagesResponse(
     messages: unknown[],
-    opts?: { withProviderKeys?: boolean; withConsumerKeys?: boolean }
+    opts?: { withExpertKeys?: boolean; withConsumerKeys?: boolean }
   ) {
-    const withProvider = opts?.withProviderKeys !== false;
+    const withExpert = opts?.withExpertKeys !== false;
     const withConsumer = opts?.withConsumerKeys !== false;
     return {
       requestId: "req-e2e",
@@ -241,8 +241,8 @@ describe("HeySummonClient — E2E encryption", () => {
       status: "active",
       consumerSignPubKey: withConsumer ? consumer.signPublicKey : null,
       consumerEncryptPubKey: withConsumer ? consumer.encryptPublicKey : null,
-      providerSignPubKey: withProvider ? provider.signPublicKey : null,
-      providerEncryptPubKey: withProvider ? provider.encryptPublicKey : null,
+      expertSignPubKey: withExpert ? expert.signPublicKey : null,
+      expertEncryptPubKey: withExpert ? expert.encryptPublicKey : null,
       messages,
       expiresAt: new Date().toISOString(),
     };
@@ -311,16 +311,16 @@ describe("HeySummonClient — E2E encryption", () => {
       const c = client();
       await c.submitRequest({ question: "test" });
 
-      // Reconstruct the auto-generated consumer's public key so provider can encrypt for it
+      // Reconstruct the auto-generated consumer's public key so expert can encrypt for it
       const { publicKeyFromHex: pubFromHex } = await import("../src/crypto.js");
       const consumerEncPub = pubFromHex(consumerEncPubHex, "x25519");
 
-      // Provider encrypts a message targeting the auto-generated consumer key
+      // Expert encrypts a message targeting the auto-generated consumer key
       const encrypted = encryptWithKeys(
-        "Hello from provider",
+        "Hello from expert",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey,
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey,
         "msgid-001"
       );
 
@@ -332,12 +332,12 @@ describe("HeySummonClient — E2E encryption", () => {
             status: "active",
             consumerSignPubKey: null,
             consumerEncryptPubKey: consumerEncPubHex,
-            providerSignPubKey: provider.signPublicKey,
-            providerEncryptPubKey: provider.encryptPublicKey,
+            expertSignPubKey: expert.signPublicKey,
+            expertEncryptPubKey: expert.encryptPublicKey,
             messages: [
               {
                 id: "m1",
-                from: "provider",
+                from: "expert",
                 ciphertext: encrypted.ciphertext,
                 iv: encrypted.iv,
                 authTag: encrypted.authTag,
@@ -353,7 +353,7 @@ describe("HeySummonClient — E2E encryption", () => {
 
       const result = await c.getMessages("req-e2e");
       expect(result.messages).toHaveLength(1);
-      expect(result.messages[0].plaintext).toBe("Hello from provider");
+      expect(result.messages[0].plaintext).toBe("Hello from expert");
       expect(result.messages[0].ciphertext).toBeUndefined();
     });
 
@@ -367,7 +367,7 @@ describe("HeySummonClient — E2E encryption", () => {
             messagesResponse([
               {
                 id: "m2",
-                from: "provider",
+                from: "expert",
                 ciphertext: "encrypted-blob",
                 iv: "some-iv",
                 authTag: "some-tag",
@@ -395,7 +395,7 @@ describe("HeySummonClient — E2E encryption", () => {
             messagesResponse([
               {
                 id: "m3",
-                from: "provider",
+                from: "expert",
                 ciphertext: Buffer.from("Plain answer").toString("base64"),
                 iv: "plaintext",
                 authTag: "",
@@ -438,8 +438,8 @@ describe("HeySummonClient — E2E encryption", () => {
       const encrypted = encryptWithKeys(
         "Secret reply",
         consumerEncPub,
-        provider.signKeyPair.privateKey,
-        provider.encryptKeyPair.privateKey,
+        expert.signKeyPair.privateKey,
+        expert.encryptKeyPair.privateKey,
         "msgid-mix-1"
       );
 
@@ -451,12 +451,12 @@ describe("HeySummonClient — E2E encryption", () => {
             status: "active",
             consumerSignPubKey: null,
             consumerEncryptPubKey: consumerEncPubHex,
-            providerSignPubKey: provider.signPublicKey,
-            providerEncryptPubKey: provider.encryptPublicKey,
+            expertSignPubKey: expert.signPublicKey,
+            expertEncryptPubKey: expert.encryptPublicKey,
             messages: [
               {
                 id: "m-enc",
-                from: "provider",
+                from: "expert",
                 ciphertext: encrypted.ciphertext,
                 iv: encrypted.iv,
                 authTag: encrypted.authTag,
@@ -466,7 +466,7 @@ describe("HeySummonClient — E2E encryption", () => {
               },
               {
                 id: "m-plain",
-                from: "provider",
+                from: "expert",
                 ciphertext: Buffer.from("Open message").toString("base64"),
                 iv: "plaintext",
                 authTag: "",
@@ -570,7 +570,7 @@ describe("HeySummonClient — E2E encryption", () => {
             messagesResponse([
               {
                 id: "m-bad",
-                from: "provider",
+                from: "expert",
                 ciphertext: "corrupted-data",
                 iv: "bad-iv",
                 authTag: "bad-tag",
@@ -599,11 +599,11 @@ describe("HeySummonClient — E2E encryption", () => {
 
       let sentPayload: Record<string, unknown> = {};
 
-      // sendMessage fetches messages first to get provider keys
+      // sendMessage fetches messages first to get expert keys
       server.use(
         http.get(`${BASE}/api/v1/messages/req-e2e`, () =>
           HttpResponse.json(
-            messagesResponse([], { withProviderKeys: true })
+            messagesResponse([], { withExpertKeys: true })
           )
         ),
         http.post(`${BASE}/api/v1/message/req-e2e`, async ({ request }) => {
@@ -668,7 +668,7 @@ describe("HeySummonClient — E2E encryption", () => {
             messagesResponse([
               {
                 id: "m-after-release",
-                from: "provider",
+                from: "expert",
                 ciphertext: "still-encrypted",
                 iv: "enc-iv",
                 authTag: "enc-tag",
@@ -730,9 +730,9 @@ describe("HeySummonClient — E2E encryption", () => {
 
       // Create an encrypted message that uses the imported keys
       // We need to read the imported public keys to encrypt towards them
-      const importedKeys = generateKeyMaterial(); // stand-in for provider
+      const importedKeys = generateKeyMaterial(); // stand-in for expert
       // Actually, we need to encrypt using the imported consumer's public key.
-      // importKeys sets the consumer's keys in the store, so provider encrypts for consumer.
+      // importKeys sets the consumer's keys in the store, so expert encrypts for consumer.
       // We don't have direct access to keyStore, but we can test via getMessages.
 
       // Instead: verify importKeys works by checking sendMessage uses encryption
@@ -745,8 +745,8 @@ describe("HeySummonClient — E2E encryption", () => {
             status: "active",
             consumerSignPubKey: null,
             consumerEncryptPubKey: null,
-            providerSignPubKey: provider.signPublicKey,
-            providerEncryptPubKey: provider.encryptPublicKey,
+            expertSignPubKey: expert.signPublicKey,
+            expertEncryptPubKey: expert.encryptPublicKey,
             messages: [],
             expiresAt: new Date().toISOString(),
           })

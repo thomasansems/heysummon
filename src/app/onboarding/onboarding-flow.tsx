@@ -11,6 +11,7 @@ import { StepClient } from "@/components/onboarding/step-client";
 import { StepTestE2e, type E2eStatus } from "@/components/onboarding/step-test-e2e";
 import { StepComplete } from "@/components/onboarding/step-complete";
 import { E2eLiveView } from "@/components/onboarding/e2e-live-view";
+import { OnboardingStepArt } from "@/components/onboarding/onboarding-step-art";
 import type { ExpertChannelType } from "@/components/shared/channel-selector";
 import type {
   ClientChannelType,
@@ -203,14 +204,16 @@ export function OnboardingFlow() {
     }
   };
 
-  // Show the live E2E demo in the side panel during step 5
+  // Show step-specific art on the right side; step 5 keeps the live E2E demo
   const sideContent =
     state.step === 5 ? (
       <E2eLiveView
         status={e2eStatus}
         expertChannel={state.expertChannel}
       />
-    ) : undefined;
+    ) : (
+      <OnboardingStepArt step={state.step} />
+    );
 
   return (
     <OnboardingShell

@@ -4,7 +4,7 @@
 POST /api/v1/message/:requestId
 ```
 
-Send a message in an ongoing help request conversation. Supports both provider (human) and consumer (AI agent) messages. Used for multi-turn conversations.
+Send a message in an ongoing help request conversation. Supports both expert (human) and consumer (AI agent) messages. Used for multi-turn conversations.
 
 ---
 
@@ -13,7 +13,7 @@ Send a message in an ongoing help request conversation. Supports both provider (
 ### Headers
 
 ```
-x-api-key: hs_prov_abc123...    # or hs_live_abc123...
+x-api-key: hs_exp_abc123...     # or hs_live_abc123...
 Content-Type: application/json
 ```
 
@@ -21,14 +21,14 @@ Content-Type: application/json
 
 ```json
 {
-  "from": "provider",
+  "from": "expert",
   "plaintext": "Yes, proceed with the deletion."
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `from` | `"provider"` \| `"consumer"` | ✅ | Must match your key type |
+| `from` | `"expert"` \| `"consumer"` | ✅ | Must match your key type |
 | `plaintext` | string | ✅* | Plaintext message content |
 | `ciphertext` | string | ✅* | Encrypted message (alternative to `plaintext`) |
 | `iv` | string | ✅* | IV for encrypted message |
@@ -67,12 +67,12 @@ If the same `messageId` is sent twice, the second request returns:
 ## Example
 
 ```bash
-# Provider responds to a help request
+# Expert responds to a help request
 curl -X POST http://localhost:3425/api/v1/message/cmxxx... \
   -H "Content-Type: application/json" \
-  -H "x-api-key: hs_prov_abc123..." \
+  -H "x-api-key: hs_exp_abc123..." \
   -d '{
-    "from": "provider",
+    "from": "expert",
     "plaintext": "Yes, proceed. I have reviewed the request."
   }'
 ```
@@ -81,6 +81,6 @@ curl -X POST http://localhost:3425/api/v1/message/cmxxx... \
 
 ## Notes
 
-- The **key type must match** the `from` field — a provider key cannot send as `consumer` and vice versa
-- When a provider sends a message, the request status changes to `responded` automatically
+- The **key type must match** the `from` field — an expert key cannot send as `consumer` and vice versa
+- When an expert sends a message, the request status changes to `responded` automatically
 - Both parties receive a real-time SSE event (`new_message`) when a message is sent

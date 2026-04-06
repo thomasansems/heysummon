@@ -30,7 +30,7 @@ AI Agent  ◀──GET /api/v1/help/:id──  HeySummon  ◀──PATCH──  
 - **Self-hostable** — One Docker command. Your data stays on your infrastructure.
 - **Reference codes** — Every request gets an `HS-XXXXXXXX` code for easy tracking and replies.
 - **Guard proxy** — Ed25519-signed requests. Every message is cryptographically authenticated.
-- **Multi-provider** — Multiple human experts. Requests are routed to available providers.
+- **Multi-expert** — Multiple human experts. Requests are routed to available experts.
 - **CLI installer** — `npx @heysummon/app` gets you running in under 2 minutes.
 
 ---
@@ -52,4 +52,4 @@ AI Agent  ◀──GET /api/v1/help/:id──  HeySummon  ◀──PATCH──  
 - [Quickstart](./quickstart.md) — Running in 5 minutes
 - [API Reference](./api/overview.md) — Full endpoint reference
 - [Self-Hosting](./self-hosting/docker.md) — Deploy with Docker
-- [Provider Guide](./guides/provider-conversations.md) — Responding to requests
+- [Expert Guide](./guides/expert-conversations.md) — Responding to requests

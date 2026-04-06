@@ -67,7 +67,7 @@ Open `http://localhost:3425`.
 Keys follow this format:
 ```
 hs_live_abc123...    # client key (for AI agents)
-hs_prov_abc123...    # provider key (for watchers/integrations)
+hs_exp_abc123...     # expert key (for watchers/integrations)
 ```
 
 ---
@@ -125,4 +125,4 @@ curl http://localhost:3425/api/v1/help/cmxxx... \
 - [API Reference](./api/overview.md) — All endpoints
 - [E2E Encryption](./guides/encryption.md) — How keys and ciphertext work
 - [Real-time SSE](./guides/sse.md) — Stream responses instead of polling
-- [Provider Conversations](./guides/provider-conversations.md) — Reply via Telegram
+- [Expert Conversations](./guides/expert-conversations.md) — Reply via Telegram

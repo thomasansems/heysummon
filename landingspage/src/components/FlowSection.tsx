@@ -8,16 +8,16 @@ const flowSteps = [
   },
   {
     icon: Send,
-    label: 'Summons provider via HeySummon',
+    label: 'Summons expert via HeySummon',
   },
   {
     icon: Bell,
-    label: 'Provider gets notified',
+    label: 'Expert gets notified',
     sublabel: 'Slack / Telegram / Dashboard / Phone',
   },
   {
     icon: MessageSquare,
-    label: 'Provider responds',
+    label: 'Expert responds',
   },
   {
     icon: CheckCircle2,
@@ -44,7 +44,7 @@ export function FlowSection() {
             One question. One answer. Every channel.
           </h2>
           <p className="text-lg text-text-body max-w-3xl mx-auto">
-            Set up the provider side once, then connect unlimited AI agents across any platform
+            Set up the expert side once, then connect unlimited AI agents across any platform
             -- Claude Code, Codex, Cursor, n8n, OpenClaw, or any HTTP client. Every hard question
             flows to one place. Fully self-hosted.
           </p>

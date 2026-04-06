@@ -648,11 +648,11 @@ export default function ClientsContent() {
               </div>
 
               <p className="mb-3 text-sm text-muted-foreground">
-                Copy these instructions and paste them into your AI client, or send
-                them to your customer.
+                Copy and paste these instructions into your AI client, or follow the steps manually.
+                Feel free to edit the text to your liking before pasting.
               </p>
 
-              <div className="mb-3 rounded-md border border-border bg-black p-4">
+              <div className="mb-3 max-h-64 overflow-y-auto rounded-md border border-border bg-black p-4">
                 <pre className="text-xs text-zinc-300 whitespace-pre-wrap break-words font-mono leading-relaxed">
                   {wizardCopyText}
                 </pre>

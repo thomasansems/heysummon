@@ -99,7 +99,7 @@ export function StepVerifyExpert({
   return (
     <div>
       <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-        <Users className="h-5 w-5 text-primary shrink-0" />
+        <Users className="h-5 w-5 shrink-0" />
         Connect Your Expert
       </h2>
 

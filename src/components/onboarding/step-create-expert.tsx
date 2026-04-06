@@ -45,6 +45,21 @@ export function StepCreateExpert({ onCreated }: StepCreateExpertProps) {
     setError("");
 
     try {
+      // Validate Telegram bot token before creating anything
+      if (channel === "telegram") {
+        const validateRes = await fetch("/api/validate/telegram-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ botToken: botToken.trim() }),
+        });
+        const validateData = await validateRes.json().catch(() => ({}));
+        if (!validateRes.ok || !validateData.valid) {
+          setError(validateData.error || "Invalid bot token — please check and try again");
+          setCreating(false);
+          return;
+        }
+      }
+
       const provRes = await fetch("/api/experts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,7 +101,7 @@ export function StepCreateExpert({ onCreated }: StepCreateExpertProps) {
   return (
     <div>
       <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-        <Users className="h-5 w-5 text-primary shrink-0" />
+        <Users className="h-5 w-5 shrink-0" />
         Create Your Expert
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">

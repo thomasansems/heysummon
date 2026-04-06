@@ -214,7 +214,7 @@ export function StepTestE2e({
   return (
     <div>
       <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-        <Zap className="h-5 w-5 text-primary shrink-0" />
+        <Zap className="h-5 w-5 shrink-0" />
         End-to-End Test
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">

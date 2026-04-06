@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { OnboardingCanvas } from "./onboarding-canvas";
+import { RotateCcw, SkipForward } from "lucide-react";
+import { OnboardingStepArt } from "./onboarding-step-art";
 import { OnboardingProgress, type StepDef } from "./onboarding-progress";
 
 const ROTATING_NAMES = ["Thomas", "Pete", "Ridwan", "Donald", "Kitze"];
@@ -150,29 +151,25 @@ export function OnboardingShell({
                 {onRestart && currentStep > 0 && (
                   <button
                     onClick={onRestart}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    Restart
+                    <RotateCcw className="h-4 w-4" />
                   </button>
                 )}
                 <button
                   onClick={onSkip}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Skip setup
+                  <SkipForward className="h-4 w-4" />
                 </button>
               </div>
             )}
           </div>
 
-          {/* Step progress indicator */}
-          <div className="mt-5">
-            <OnboardingProgress steps={steps} currentStep={currentStep} />
-          </div>
         </div>
 
         {/* Centered content */}
-        <div className="flex flex-1 items-center px-6 py-8 sm:px-10">
+        <div className="flex flex-1 items-center px-8 py-12 sm:px-20">
           <div className="w-full">
             <div
               key={currentStep}
@@ -182,11 +179,17 @@ export function OnboardingShell({
             </div>
           </div>
         </div>
+      
+        {/* Progress at the bottom */}
+        <div className="px-6 py-4 sm:px-10">
+          <OnboardingProgress steps={steps} currentStep={currentStep} />
+        </div>
       </div>
+
 
       {/* Right side — canvas or contextual content */}
       <div className="hidden lg:block lg:flex-1 relative overflow-hidden">
-        {sideContent ?? <OnboardingCanvas />}
+        {sideContent ?? <OnboardingStepArt step={currentStep} />}
       </div>
     </div>
   );

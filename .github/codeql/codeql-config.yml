@@ -13,3 +13,8 @@ query-filters:
   - exclude:
       id: js/insufficient-password-hash
       path: src/lib/api-key-auth.ts
+  # detectMethod() classifies tunnel type from trusted input
+  # (process.env or tailscale CLI output), not for security sanitization
+  - exclude:
+      id: js/incomplete-url-substring-sanitization
+      path: src/app/api/admin/tunnel/status/route.ts

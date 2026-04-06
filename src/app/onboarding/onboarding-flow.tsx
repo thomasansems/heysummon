@@ -69,7 +69,8 @@ function loadState(): OnboardingState {
 
 function saveState(state: OnboardingState) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const { expertKey, clientApiKey, ...safe } = state;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
   } catch {
     // ignore
   }

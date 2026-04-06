@@ -4,6 +4,9 @@ import { Callout } from 'nextra/components'
 
 ## Unreleased
 
+### Fixed
+- Docker: all DB credentials (`DB_USER`, `DB_PASSWORD`, `DB_NAME`) are now parameterized via `.env` -- eliminates credential mismatch between `db` and `db-migrate` services on fresh deploys
+
 ### Changed
 - `ask.sh` no longer auto-detects approval intent from keywords in the question. Approval mode now requires the explicit `--requires-approval` flag. This removes false positives where questions like "should I proceed?" silently became Approve/Deny prompts.
 

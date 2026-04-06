@@ -174,7 +174,9 @@ else
 NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 
 # ─── Database ───────────────────────────────────────
+DB_USER=heysummon
 DB_PASSWORD=${DB_PASSWORD}
+DB_NAME=heysummon
 
 # ─── URLs ───────────────────────────────────────────
 # Public URL (optional). Leave empty for auto-detection via AUTH_TRUST_HOST.

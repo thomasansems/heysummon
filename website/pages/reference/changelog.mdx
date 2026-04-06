@@ -9,6 +9,8 @@ import { Callout } from 'nextra/components'
 
 ### Docs
 - Replaced "Best Practice Prompts" page with "Summoning Guidelines" -- documents the wizard-based guidelines flow used during onboarding and client setup instead of static copy-paste prompts
+- Updated "How It Works" page to document the client timeout (default 15 min) and fallback mechanism instead of only referencing the server-side 72h TTL
+- Updated "Key Concepts" page with new Timeout and Fallback section explaining the three fallback behaviors (proceed cautiously, skip and continue, stop)
 - Rewrote consumer API reference: fixed API key prefix (`hs_cli_*`), corrected whoami response format, added v3/v4 response distinction, documented 6 missing endpoints (by-ref lookup, timeout, rate, events/pending, events/ack, key-exchange), added curl/SDK CLI examples for all endpoints, added request lifecycle diagram, documented phone-first and expert unavailability behaviors
 - Patched reference API docs for parity: fixed API key prefix, whoami response format, and v3/v4 status response distinction
 

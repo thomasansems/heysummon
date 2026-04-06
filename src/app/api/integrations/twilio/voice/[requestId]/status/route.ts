@@ -71,8 +71,17 @@ export async function POST(
     await triggerChatFallback(requestId);
   }
 
-  // If completed and we already have a response, no action needed
-  // (the gather endpoint already handled the response)
+  // If completed but expert never responded (answered but stayed silent),
+  // also fall back to chat so the request doesn't stay pending forever
+  if (mappedStatus === "completed") {
+    const req = await prisma.helpRequest.findUnique({
+      where: { id: requestId },
+      select: { status: true, phoneCallResponse: true },
+    });
+    if (req && req.status === "pending" && !req.phoneCallResponse) {
+      await triggerChatFallback(requestId);
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

@@ -2,6 +2,14 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.2.7 -- 2026-04-06
+
+### Fixed
+- Phone-first: question not spoken during TTS -- `questionPreview` was only stored when explicitly provided by the consumer, now always stores the computed question text
+- Phone-first: no chat fallback when expert answers but stays silent -- completed calls with no DTMF response now trigger chat fallback so requests don't stay pending forever
+
+---
+
 ## Docs -- 2026-04-06
 
 ### Added

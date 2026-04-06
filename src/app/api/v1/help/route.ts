@@ -321,8 +321,8 @@ export async function POST(request: Request) {
         phoneFirstAttempted = true;
         // Store questionPreview for TTS + mark as notified
         const updateData: Record<string, unknown> = { notifiedExpertAt: new Date() };
-        if (body.questionPreview && !helpRequest.questionPreview) {
-          updateData.questionPreview = body.questionPreview.slice(0, 200);
+        if (!helpRequest.questionPreview) {
+          updateData.questionPreview = questionText.slice(0, 200);
         }
         await prisma.helpRequest.update({
           where: { id: helpRequest.id },

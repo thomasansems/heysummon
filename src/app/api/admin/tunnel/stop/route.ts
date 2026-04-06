@@ -27,8 +27,8 @@ export async function POST() {
   try {
     execSync("tailscale funnel reset", { timeout: 10000 });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: `Failed to stop funnel: ${msg}` }, { status: 500 });
+    console.error("[tunnel/stop] Failed to stop funnel:", err);
+    return NextResponse.json({ error: "Failed to stop tunnel" }, { status: 500 });
   }
 
   removeEnvVar("HEYSUMMON_PUBLIC_URL");

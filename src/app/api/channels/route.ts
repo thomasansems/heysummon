@@ -74,12 +74,13 @@ export async function POST(request: Request) {
     try {
       await adapter.onActivate(channel.id, validation.config);
     } catch (err) {
+      console.error(`[channels] Activation failed for channel ${channel.id}:`, err);
       // Update status to error but don't fail the create
       await prisma.expertChannel.update({
         where: { id: channel.id },
         data: {
           status: "error",
-          errorMessage: err instanceof Error ? err.message : "Activation failed",
+          errorMessage: "Channel activation failed",
         },
       });
     }

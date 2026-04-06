@@ -49,7 +49,8 @@ export async function POST() {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (!msg.toLowerCase().includes("already") && !msg.toLowerCase().includes("success")) {
-      return NextResponse.json({ error: `Failed to start funnel: ${msg}` }, { status: 500 });
+      console.error("[tunnel/start] Failed to start funnel:", err);
+      return NextResponse.json({ error: "Failed to start funnel" }, { status: 500 });
     }
   }
 
@@ -89,7 +90,8 @@ export async function POST() {
       });
       results.push({ id: ch.id, ok: true });
     } catch (err) {
-      results.push({ id: ch.id, ok: false, error: String(err) });
+      console.error(`[tunnel/start] Webhook update failed for channel ${ch.id}:`, err);
+      results.push({ id: ch.id, ok: false, error: "Webhook update failed" });
     }
   }
 

@@ -55,7 +55,7 @@ export function StepTestExpert({
         const elapsedMs = Date.now() - startTime;
         setElapsed(Math.floor(elapsedMs / 1000));
 
-        if (elapsedMs > 120_000) {
+        if (elapsedMs > 600_000) {
           stop();
           setStatus("timeout");
           return;
@@ -84,7 +84,7 @@ export function StepTestExpert({
   return (
     <div>
       <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-        <MessageSquare className="h-5 w-5 text-primary shrink-0" />
+        <MessageSquare className="h-5 w-5 shrink-0" />
         Test Expert
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">

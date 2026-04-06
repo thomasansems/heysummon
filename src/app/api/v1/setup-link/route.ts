@@ -23,14 +23,16 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { keyId, channel, subChannel, summonContext, timeout, pollInterval, globalInstall } = body as {
+  const { keyId, channel, subChannel, summonContext, summonContextMeta, timeout, pollInterval, globalInstall, timeoutFallback } = body as {
     keyId: string;
     channel: "openclaw" | "claudecode" | "codex" | "gemini" | "cursor";
     subChannel?: "telegram" | "whatsapp";
     summonContext?: string;
+    summonContextMeta?: Record<string, unknown>;
     timeout?: number;
     pollInterval?: number;
     globalInstall?: boolean;
+    timeoutFallback?: string;
   };
 
   if (!keyId || !channel) {
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
   const opaqueToken = `st_${randomBytes(24).toString("base64url")}`;
   const expiresAt = new Date(Date.now() + SETUP_LINK_TTL_SECONDS * 1000);
 
-  const trimmedContext = summonContext?.trim().slice(0, 500) || null;
+  const trimmedContext = summonContext?.trim().slice(0, 2000) || null;
 
   await prisma.setupToken.create({
     data: {
@@ -63,22 +65,36 @@ export async function POST(request: NextRequest) {
       summonContext: trimmedContext,
       timeout: timeout ?? 900,
       pollInterval: pollInterval ?? 3,
+      timeoutFallback: timeoutFallback ?? "proceed_cautiously",
       globalInstall: globalInstall ?? true,
       expiresAt,
     },
   });
 
   // Save context to expert's recentSummonContexts (prepend, dedup, cap at 10)
+  // Supports both legacy string entries and new { text, meta } objects
   if (trimmedContext && apiKey.expertId) {
     const expert = await prisma.userProfile.findUnique({
       where: { id: apiKey.expertId },
       select: { recentSummonContexts: true },
     });
 
-    const existing: string[] = expert?.recentSummonContexts
+    type RecentEntry = string | { text: string; meta: Record<string, unknown> };
+    const existing: RecentEntry[] = expert?.recentSummonContexts
       ? JSON.parse(expert.recentSummonContexts)
       : [];
-    const deduped = [trimmedContext, ...existing.filter((c: string) => c !== trimmedContext)];
+
+    const newEntry: RecentEntry = summonContextMeta
+      ? { text: trimmedContext, meta: summonContextMeta }
+      : trimmedContext;
+
+    const getEntryText = (entry: RecentEntry): string =>
+      typeof entry === "string" ? entry : entry.text;
+
+    const deduped = [
+      newEntry,
+      ...existing.filter((c) => getEntryText(c) !== trimmedContext),
+    ];
     const capped = deduped.slice(0, MAX_RECENT_CONTEXTS);
 
     await prisma.userProfile.update({

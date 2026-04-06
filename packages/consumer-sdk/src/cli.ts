@@ -62,6 +62,7 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
   const baseUrl = requireEnv("HEYSUMMON_BASE_URL");
   const timeout = parseInt(optEnv("HEYSUMMON_TIMEOUT", "900"), 10);
   const pollInterval = parseInt(optEnv("HEYSUMMON_POLL_INTERVAL", "3"), 10);
+  const timeoutFallback = optEnv("HEYSUMMON_TIMEOUT_FALLBACK", "proceed_cautiously");
   const expertsFile = optEnv("HEYSUMMON_EXPERTS_FILE", "");
 
   // Resolve API key
@@ -221,8 +222,20 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
 
   process.stderr.write(`\nTimeout after ${timeout}s -- no response received.\n`);
   process.stderr.write(`   Request ref: ${ref}\n`);
+
+  const fallbackInstructions: Record<string, string> = {
+    proceed_cautiously:
+      "Proceed with the safest available option. Document all decisions made without expert input and flag them for review.",
+    skip_continue:
+      "Skip the blocked task and continue with other available work. Flag the skipped task for expert review later.",
+    stop:
+      "Stop all execution immediately. Do not proceed with any tasks until an expert responds.",
+  };
+  const fallbackInstruction = fallbackInstructions[timeoutFallback] || fallbackInstructions.proceed_cautiously;
+
   process.stdout.write(
-    `TIMEOUT: No answer came back from the expert within the ${timeout}s timeout window. Request ref: ${ref}\n`
+    `TIMEOUT: No answer came back from the expert within the ${timeout}s timeout window. Request ref: ${ref}\n` +
+    `FALLBACK INSTRUCTION: ${fallbackInstruction}\n`
   );
 }
 

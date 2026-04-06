@@ -42,7 +42,7 @@ export function StepVerifyClient({
   const isSkillBased = channel !== "openclaw";
   const { status, elapsed, start, retry } = useConnectionVerify({
     keyId,
-    timeoutMs: 120_000,
+    timeoutMs: 600_000,
   });
 
   useEffect(() => {
@@ -87,7 +87,7 @@ echo "Connected and device bound successfully."`
   return (
     <div>
       <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-        <Building2 className="h-5 w-5 text-primary shrink-0" />
+        <Building2 className="h-5 w-5 shrink-0" />
         Connect Your Client
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">

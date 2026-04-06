@@ -5,13 +5,13 @@ import { describe, it, expect } from "vitest";
  *
  * In the per-client model:
  * - summonContext is passed in the setup-link POST body (not stored on the expert)
- * - The setup-link handler trims, caps at 500, and stores on SetupToken
+ * - The setup-link handler trims, caps at 2000, and stores on SetupToken
  * - Recently used contexts are saved to expert.recentSummonContexts (JSON array, max 10, deduped)
  */
 
 /** Mirrors the setup-link handler's summonContext trimming */
 function trimSummonContext(value: string | undefined): string | null {
-  return value?.trim().slice(0, 500) || null;
+  return value?.trim().slice(0, 2000) || null;
 }
 
 /** Mirrors the recentSummonContexts update logic */
@@ -31,18 +31,18 @@ describe("Per-client summonContext \u2014 trimming", () => {
     expect(result).toBe("some context");
   });
 
-  it("truncates strings exceeding 500 characters", () => {
-    const long = "x".repeat(600);
+  it("truncates strings exceeding 2000 characters", () => {
+    const long = "x".repeat(2500);
     const result = trimSummonContext(long);
-    expect(result).toHaveLength(500);
-    expect(result).toBe("x".repeat(500));
+    expect(result).toHaveLength(2000);
+    expect(result).toBe("x".repeat(2000));
   });
 
-  it("preserves strings at exactly 500 characters", () => {
-    const exact = "y".repeat(500);
+  it("preserves strings at exactly 2000 characters", () => {
+    const exact = "y".repeat(2000);
     const result = trimSummonContext(exact);
     expect(result).toBe(exact);
-    expect(result).toHaveLength(500);
+    expect(result).toHaveLength(2000);
   });
 
   it("converts empty string to null", () => {
@@ -73,11 +73,11 @@ describe("Per-client summonContext \u2014 trimming", () => {
   });
 
   it("truncates via JS string slice (UTF-16 code units)", () => {
-    const context = "a".repeat(498) + "\u{1F4B0}\u{1F6A8}";
-    expect(context.length).toBe(502);
+    const context = "a".repeat(1998) + "\u{1F4B0}\u{1F6A8}";
+    expect(context.length).toBe(2002);
     const result = trimSummonContext(context);
-    expect(result).toHaveLength(500);
-    expect(result).toBe("a".repeat(498) + "\u{1F4B0}");
+    expect(result).toHaveLength(2000);
+    expect(result).toBe("a".repeat(1998) + "\u{1F4B0}");
   });
 });
 

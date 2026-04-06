@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { OnboardingCanvas } from "./onboarding-canvas";
+import { useState, useEffect, useRef } from "react";
+import { RotateCcw, SkipForward } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { OnboardingStepArt } from "./onboarding-step-art";
 import { OnboardingProgress, type StepDef } from "./onboarding-progress";
 
 const ROTATING_NAMES = ["Thomas", "Pete", "Ridwan", "Donald", "Kitze"];
@@ -127,10 +129,23 @@ export function OnboardingShell({
   const { text: typingText, locked } = useTypingAnimation(expertName);
   const totalSteps = steps.length;
 
+  const prevStepRef = useRef(currentStep);
+  const dirRef = useRef(1);
+  if (currentStep !== prevStepRef.current) {
+    dirRef.current = currentStep > prevStepRef.current ? 1 : -1;
+    prevStepRef.current = currentStep;
+  }
+
+  const variants = {
+    enter: (dir: number) => ({ x: dir > 0 ? 40 : -40, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? -40 : 40, opacity: 0 }),
+  };
+
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Left side — wizard */}
-      <div className="relative z-10 flex w-full flex-col lg:w-1/2 lg:max-w-2xl">
+    <div className="flex min-h-screen items-start bg-background">
+      {/* Left side — wizard, scrollable */}
+      <div className="relative z-10 flex min-h-screen w-full flex-col lg:w-1/2 lg:max-w-2xl">
         {/* Header */}
         <div className="px-6 pt-6 sm:px-10 sm:pt-8">
           <div className="flex items-center justify-between">
@@ -150,43 +165,52 @@ export function OnboardingShell({
                 {onRestart && currentStep > 0 && (
                   <button
                     onClick={onRestart}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    Restart
+                    <RotateCcw className="h-4 w-4" />
                   </button>
                 )}
                 <button
                   onClick={onSkip}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Skip setup
+                  <SkipForward className="h-4 w-4" />
                 </button>
               </div>
             )}
           </div>
 
-          {/* Step progress indicator */}
-          <div className="mt-5">
-            <OnboardingProgress steps={steps} currentStep={currentStep} />
-          </div>
         </div>
 
-        {/* Centered content */}
-        <div className="flex flex-1 items-center px-6 py-8 sm:px-10">
-          <div className="w-full">
-            <div
-              key={currentStep}
-              className="animate-in fade-in slide-in-from-right-4 duration-300"
-            >
-              {children}
-            </div>
+        {/* Content */}
+        <div className="flex-1 px-8 py-8 sm:px-20 flex flex-col justify-center">
+          <div className="w-full overflow-x-clip">
+            <AnimatePresence mode="wait" custom={dirRef.current}>
+              <motion.div
+                key={currentStep}
+                custom={dirRef.current}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.25, ease: [0.32, 0, 0.67, 0] }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </div>
+        </div>
+      
+        {/* Progress at the bottom */}
+        <div className="px-6 py-4 sm:px-10">
+          <OnboardingProgress steps={steps} currentStep={currentStep} />
         </div>
       </div>
 
+
       {/* Right side — canvas or contextual content */}
       <div className="hidden lg:block lg:flex-1 relative overflow-hidden">
-        {sideContent ?? <OnboardingCanvas />}
+        {sideContent ?? <OnboardingStepArt step={currentStep} />}
       </div>
     </div>
   );

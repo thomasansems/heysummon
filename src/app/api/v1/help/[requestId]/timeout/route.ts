@@ -87,7 +87,29 @@ export async function POST(
     refCode: helpRequest.refCode ?? undefined,
   }).catch(() => {});
 
-  return NextResponse.json({ ok: true });
+  // Look up timeout fallback preference from the most recent SetupToken for this key
+  const setupToken = await prisma.setupToken.findFirst({
+    where: { apiKeyId: helpRequest.apiKeyId },
+    orderBy: { createdAt: "desc" },
+    select: { timeoutFallback: true },
+  });
+
+  const timeoutFallback = setupToken?.timeoutFallback || "proceed_cautiously";
+
+  const fallbackDescriptions: Record<string, string> = {
+    proceed_cautiously:
+      "Proceed with the safest available option. Document all decisions made without expert input and flag them for review.",
+    skip_continue:
+      "Skip the blocked task and continue with other available work. Flag the skipped task for expert review later.",
+    stop:
+      "Stop all execution immediately. Do not proceed with any tasks until an expert responds.",
+  };
+
+  return NextResponse.json({
+    ok: true,
+    timeoutFallback,
+    fallbackInstruction: fallbackDescriptions[timeoutFallback] || fallbackDescriptions.proceed_cautiously,
+  });
 }
 
 /**

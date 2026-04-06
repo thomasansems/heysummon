@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   Loader2,
-  Check,
   ChevronDown,
   ChevronRight,
   Building2,
@@ -16,13 +15,9 @@ import {
   SkipForward,
   RotateCcw,
   Clock,
-  Lightbulb,
   Settings,
   ScrollText,
-  CheckCircle,
-  XCircle,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useConnectionVerify } from "@/hooks/use-connection-verify";
 import {
@@ -30,13 +25,17 @@ import {
   type ClientChannelType,
   type ClientSubChannelType,
 } from "@/components/shared/client-channel-selector";
-import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
 import { buildSetupCopyText } from "@/lib/setup-copy-text";
 import { SuccessCelebration } from "@/components/onboarding/success-celebration";
+import {
+  SummoningWizard,
+  type WizardState,
+  DEFAULT_WIZARD_STATE,
+  generateGuidelines,
+} from "@/components/shared/summoning-wizard";
 
-const DEFAULT_TIMEOUT = 900;
+const DEFAULT_TIMEOUT = 900; // 15 min
 const DEFAULT_POLL_INTERVAL = 3;
-const MAX_RECENT_SHOWN = 5;
 
 const TIMEOUT_PRESETS = [
   { value: 300, label: "5 min", desc: "You're actively available" },
@@ -45,7 +44,7 @@ const TIMEOUT_PRESETS = [
   { value: -1, label: "Custom", desc: "" },
 ];
 
-type Phase = "channel" | "details" | "creating" | "connecting";
+type Phase = "channel" | "details" | "guidelines" | "creating" | "connecting";
 
 interface StepClientProps {
   expertId: string;
@@ -72,9 +71,8 @@ export function StepClient({
   const [pollInterval, setPollInterval] = useState(DEFAULT_POLL_INTERVAL);
   const [customTimeout, setCustomTimeout] = useState<number | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showExamples, setShowExamples] = useState(false);
   const [summonContext, setSummonContext] = useState("");
-  const [recentContexts, setRecentContexts] = useState<string[]>([]);
+  const [wizardMeta, setWizardMeta] = useState<WizardState | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Created client data
@@ -85,10 +83,10 @@ export function StepClient({
 
   const { status: verifyStatus, elapsed, start, retry } = useConnectionVerify({
     keyId: keyId || "noop",
-    timeoutMs: 120_000,
+    timeoutMs: 600_000,
   });
 
-  // Fetch recently used contexts from expert
+  // Fetch recently used wizard state from expert
   useEffect(() => {
     const fetchRecent = async () => {
       const res = await fetch(`/api/experts/${expertId}`);
@@ -98,7 +96,16 @@ export function StepClient({
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) setRecentContexts(parsed);
+          if (Array.isArray(parsed)) {
+            // Find the most recent wizard entry with meta for pre-populating
+            const latest = parsed.find(
+              (c: unknown): c is { text: string; meta: WizardState } =>
+                typeof c === "object" && c !== null && "meta" in c,
+            );
+            if (latest) {
+              setWizardMeta(latest.meta);
+            }
+          }
         } catch {
           // ignore invalid JSON
         }
@@ -115,10 +122,16 @@ export function StepClient({
   }, [phase, keyId, start]);
 
 
-  const handleCreate = async () => {
+  const handleCreate = async (
+    summonContextOverride?: string,
+    wizardMetaOverride?: WizardState,
+  ) => {
     if (!channel) return;
     setPhase("creating");
     setError(null);
+
+    const ctxToUse = summonContextOverride ?? summonContext;
+    const metaToUse = wizardMetaOverride ?? wizardMeta;
 
     try {
       const keyRes = await fetch("/api/v1/keys", {
@@ -154,7 +167,9 @@ export function StepClient({
           keyId: createdKeyId,
           channel,
           subChannel,
-          ...(summonContext.trim() && { summonContext: summonContext.trim() }),
+          ...(ctxToUse.trim() && { summonContext: ctxToUse.trim() }),
+          ...(metaToUse && { summonContextMeta: metaToUse }),
+          ...(metaToUse?.timeoutFallback && metaToUse.timeoutFallback !== "proceed_cautiously" && { timeoutFallback: metaToUse.timeoutFallback }),
           ...(timeout !== DEFAULT_TIMEOUT && { timeout }),
           ...(pollInterval !== DEFAULT_POLL_INTERVAL && { pollInterval }),
         }),
@@ -167,7 +182,7 @@ export function StepClient({
       setPhase("connecting");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-      setPhase("details");
+      setPhase("guidelines");
     }
   };
 
@@ -177,23 +192,26 @@ export function StepClient({
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const copyText = buildSetupCopyText(setupUrl, summonContext);
+  const copyText = buildSetupCopyText(setupUrl, summonContext, channel ?? "claudecode");
 
-  // Recently used contexts (truncated, max 5 shown) excluding presets
-  const presetTexts = SUMMON_CONTEXT_PRESETS.map((p) => p.text);
-  const recentNonPreset = recentContexts
-    .filter((c) => !presetTexts.includes(c))
-    .slice(0, MAX_RECENT_SHOWN);
+  const PHASE_TITLES: Record<string, { icon: React.ReactNode; title: string; subtitle: string }> = {
+    channel: { icon: <Building2 className="h-5 w-5 shrink-0" />, title: "Connect a Client", subtitle: "Choose your AI platform and link it to your expert." },
+    details:  { icon: <Settings className="h-5 w-5 shrink-0" />, title: "Client settings", subtitle: "Optional name and response preferences." },
+    guidelines: { icon: <ScrollText className="h-5 w-5 shrink-0" />, title: "Summoning guidelines", subtitle: "Tell the AI when and how to summon you." },
+    creating: { icon: <Building2 className="h-5 w-5 shrink-0" />, title: "Connect a Client", subtitle: "" },
+    connecting: { icon: <Building2 className="h-5 w-5 shrink-0" />, title: "Connect a Client", subtitle: "" },
+  };
+  const phaseInfo = PHASE_TITLES[phase] ?? PHASE_TITLES.channel;
 
   return (
     <div>
       <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
-        <Building2 className="h-5 w-5 text-primary shrink-0" />
-        Connect a Client
+        {phaseInfo.icon}
+        {phaseInfo.title}
       </h2>
-      <p className="mb-5 text-sm text-muted-foreground">
-        Choose your AI platform and link it to your expert.
-      </p>
+      {phaseInfo.subtitle && (
+        <p className="mb-5 text-sm text-muted-foreground">{phaseInfo.subtitle}</p>
+      )}
 
       {/* Phase: Channel selection */}
       {phase === "channel" && (
@@ -226,7 +244,7 @@ export function StepClient({
       {phase === "details" && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Client name (optional)
             </label>
             <input
@@ -237,219 +255,78 @@ export function StepClient({
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Expert
-            </label>
-            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
-              <span className="text-sm text-foreground">{expertName}</span>
-              <span className="rounded-full bg-green-100 dark:bg-green-950/40 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
-                Connected
-              </span>
-            </div>
-          </div>
-
-          {/* Response time -- preset selector */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
-              Response timeout
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {TIMEOUT_PRESETS.map((preset) => {
-                const isSelected =
-                  preset.value === -1
-                    ? customTimeout !== null
-                    : customTimeout === null && timeout === preset.value;
-                return (
-                  <button
-                    key={preset.value}
-                    type="button"
-                    onClick={() => {
-                      if (preset.value === -1) {
-                        setCustomTimeout(timeout);
-                      } else {
-                        setCustomTimeout(null);
-                        setTimeout_(preset.value);
-                      }
-                    }}
-                    className={`rounded-md border px-3 py-2 text-left transition-colors ${
-                      isSelected
-                        ? "border-primary bg-primary/5 dark:bg-primary/10"
-                        : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <span
-                      className={`text-sm font-medium ${isSelected ? "text-primary" : "text-foreground"}`}
-                    >
-                      {preset.label}
-                    </span>
-                    {preset.desc && (
-                      <span className="block text-[11px] text-muted-foreground">
-                        {preset.desc}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {customTimeout !== null && (
-              <div className="mt-2 animate-in fade-in duration-200">
-                <input
-                  type="number"
-                  min={10}
-                  max={3600}
-                  value={timeout}
-                  onChange={(e) =>
-                    setTimeout_(Number(e.target.value) || DEFAULT_TIMEOUT)
-                  }
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
-                  placeholder="Timeout in seconds"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Good vs Bad example -- educational */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowExamples((v) => !v)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showExamples ? (
-                <ChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
-              <Lightbulb className="h-3.5 w-3.5" />
-              What makes a good help request?
-            </button>
-
-            {showExamples && (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                <Card size="sm" className="border-green-200 dark:border-green-900/40 bg-green-50/30 dark:bg-green-950/10">
-                  <CardHeader className="pb-0">
-                    <CardTitle className="flex items-center gap-1.5 text-xs font-semibold text-green-600 dark:text-green-400">
-                      <CheckCircle className="h-4 w-4 shrink-0" />
-                      Good request
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`I'm implementing the checkout flow.
-The design shows a discount code field
-but the API spec has no discount endpoint.
-
-Should I:
-A) Skip the discount field for now
-B) Create a /discounts endpoint myself`}</pre>
-                    <p className="text-[11px] text-muted-foreground">
-                      Context + options = answerable in seconds.
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card size="sm" className="border-red-200 dark:border-red-900/40 bg-red-50/30 dark:bg-red-950/10">
-                  <CardHeader className="pb-0">
-                    <CardTitle className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
-                      <XCircle className="h-4 w-4 shrink-0" />
-                      Bad request
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`What should I do next?`}</pre>
-                    <p className="text-[11px] text-muted-foreground">
-                      No context = slow to answer.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-
-          {/* Summoning context */}
-          <div>
-            <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <ScrollText className="h-3.5 w-3.5" />
-              Summoning guidelines (optional)
-            </label>
-            <p className="mb-2 text-[11px] text-muted-foreground">
-              Tell the AI when to summon you.
-            </p>
-
-            {/* Recently used contexts */}
-            {recentNonPreset.length > 0 && (
-              <div className="mb-2">
-                <p className="mb-1 text-[11px] font-medium text-muted-foreground">
-                  Recently used
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {recentNonPreset.map((ctx, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setSummonContext(ctx)}
-                      className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors max-w-[200px] truncate ${
-                        summonContext === ctx
-                          ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
-                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                      }`}
-                      title={ctx}
-                    >
-                      {ctx.length > 40 ? ctx.slice(0, 40) + "..." : ctx}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {SUMMON_CONTEXT_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => setSummonContext(preset.text)}
-                  className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                    summonContext === preset.text
-                      ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
-                      : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-            <textarea
-              value={summonContext}
-              onChange={(e) => setSummonContext(e.target.value.slice(0, 500))}
-              placeholder="e.g. Only summon me when you need architecture decisions or production access..."
-              rows={3}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring resize-none"
-            />
-            <p className="mt-1 text-right text-[11px] text-muted-foreground">
-              {summonContext.length}/500
-            </p>
-          </div>
-
-          {/* Advanced settings -- poll interval */}
+          {/* Advanced settings */}
           <div>
             <button
               type="button"
               onClick={() => setShowAdvanced((v) => !v)}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              {showAdvanced ? (
-                <ChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
-              <Settings className="h-3.5 w-3.5" />
+              {showAdvanced ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              <Settings className="h-3.5 w-3.5 ml-0.5" />
               Advanced settings
             </button>
-
             {showAdvanced && (
-              <div className="mt-3 space-y-3 rounded-md border border-border bg-muted/20 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="mt-3 rounded-md bg-muted/20 p-3 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Response timeout */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    Response timeout
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {TIMEOUT_PRESETS.map((preset) => {
+                      const isSelected =
+                        preset.value === -1
+                          ? customTimeout !== null
+                          : customTimeout === null && timeout === preset.value;
+                      return (
+                        <button
+                          key={preset.value}
+                          type="button"
+                          onClick={() => {
+                            if (preset.value === -1) {
+                              setCustomTimeout(timeout);
+                            } else {
+                              setCustomTimeout(null);
+                              setTimeout_(preset.value);
+                            }
+                          }}
+                          className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                            isSelected
+                              ? "border-primary bg-primary/5 dark:bg-primary/10"
+                              : "border-border hover:border-primary/40"
+                          }`}
+                        >
+                          <span className={`text-sm font-medium ${isSelected ? "text-primary" : "text-foreground"}`}>
+                            {preset.label}
+                          </span>
+                          {preset.desc && (
+                            <span className="block text-[11px] text-muted-foreground">
+                              {preset.desc}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {customTimeout !== null && (
+                    <div className="mt-2 animate-in fade-in duration-200">
+                      <input
+                        type="number"
+                        min={10}
+                        max={3600}
+                        value={timeout}
+                        onChange={(e) => setTimeout_(Number(e.target.value) || DEFAULT_TIMEOUT)}
+                        className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                        placeholder="Timeout in seconds"
+                      />
+                    </div>
+                  )}
+                </div>
+                {/* Poll interval */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                     Poll interval (seconds)
                   </label>
                   <input
@@ -457,24 +334,16 @@ B) Create a /discounts endpoint myself`}</pre>
                     min={1}
                     max={30}
                     value={pollInterval}
-                    onChange={(e) =>
-                      setPollInterval(
-                        Number(e.target.value) || DEFAULT_POLL_INTERVAL
-                      )
-                    }
+                    onChange={(e) => setPollInterval(Number(e.target.value) || DEFAULT_POLL_INTERVAL)}
                     className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                   />
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Lower = faster delivery, more API calls.
-                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Lower = faster delivery, more API calls.</p>
                 </div>
               </div>
             )}
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
-
-          <div className="flex justify-between">
+          <div className="flex justify-between pt-4">
             <button
               onClick={() => setPhase("channel")}
               className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -485,15 +354,38 @@ B) Create a /discounts endpoint myself`}</pre>
               </span>
             </button>
             <button
-              onClick={handleCreate}
+              onClick={() => setPhase("guidelines")}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
             >
               <span className="flex items-center gap-1.5">
-                <Plus className="h-4 w-4" />
-                Create & Connect
+                Next
+                <ArrowRight className="h-4 w-4" />
               </span>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Phase: Guidelines */}
+      {phase === "guidelines" && (
+        <div className="animate-in fade-in duration-200 pt-4">
+          <SummoningWizard
+            initialState={wizardMeta ?? DEFAULT_WIZARD_STATE}
+            completeLabel="Create & Connect"
+            completeIcon={<Plus className="h-4 w-4" />}
+            onComplete={(text, state) => {
+              setSummonContext(text);
+              setWizardMeta(state);
+              handleCreate(text, state);
+            }}
+            onSkip={() => {
+              const defaultText = generateGuidelines(DEFAULT_WIZARD_STATE);
+              setSummonContext(defaultText);
+              setWizardMeta(DEFAULT_WIZARD_STATE);
+              handleCreate(defaultText, DEFAULT_WIZARD_STATE);
+            }}
+          />
+          {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
         </div>
       )}
 
@@ -509,11 +401,12 @@ B) Create a /discounts endpoint myself`}</pre>
       {phase === "connecting" && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <p className="text-sm text-muted-foreground">
-            Paste these instructions into your AI client.
+            Copy and paste these instructions into your AI client, or follow the steps manually.
+            Feel free to edit the text to your liking before pasting.
           </p>
 
           {/* Setup instructions as copyable text */}
-          <div className="rounded-md border border-border bg-black p-4">
+          <div className="max-h-64 overflow-y-auto rounded-md border border-border bg-black p-4">
             <pre className="text-xs text-zinc-300 whitespace-pre-wrap break-words font-mono leading-relaxed">
               {copyText}
             </pre>

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useTunnelStatus } from "@/hooks/use-tunnel-status";
-import { AlertTriangle, Loader2, Check, Wifi } from "lucide-react";
+import { AlertTriangle, Loader2, Check, Wifi, SkipForward, RefreshCw } from "lucide-react";
+import { SuccessCelebration } from "@/components/onboarding/success-celebration";
 
 interface StepNetworkProps {
   onNext: () => void;
@@ -16,21 +17,10 @@ export function StepNetwork({ onNext }: StepNetworkProps) {
     refresh();
   }, [refresh]);
 
-  // Auto-skip if already accessible
-  useEffect(() => {
-    if (!loading && status.accessible) {
-      const timer = setTimeout(onNext, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, status.accessible, onNext]);
-
   const handleStart = async (type: "tailscale" | "cloudflared") => {
     setStarting(type);
-    const success = await startTunnel(type);
+    await startTunnel(type);
     setStarting(null);
-    if (success) {
-      // Status will be refreshed by startTunnel, auto-skip will trigger
-    }
   };
 
   if (loading) {
@@ -44,22 +34,15 @@ export function StepNetwork({ onNext }: StepNetworkProps) {
 
   if (status.accessible) {
     return (
-      <div className="flex flex-col items-center gap-3 py-8">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-600">
-          <Check className="h-6 w-6 text-white" />
-        </div>
-        <h2 className="font-serif text-lg font-semibold text-foreground">
-          Network is ready
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Your server is publicly accessible
-          {status.publicUrl && (
-            <span className="block mt-1 font-mono text-xs text-green-600">
-              {status.publicUrl}
-            </span>
-          )}
-        </p>
-      </div>
+      <SuccessCelebration
+        label="Network is ready"
+        sublabel={
+          status.publicUrl
+            ? `Your server is publicly accessible at ${status.publicUrl}`
+            : "Your server is publicly accessible"
+        }
+        onContinue={onNext}
+      />
     );
   }
 
@@ -72,9 +55,8 @@ export function StepNetwork({ onNext }: StepNetworkProps) {
         </h2>
       </div>
       <p className="mb-5 text-sm text-muted-foreground">
-        HeySummon needs to be accessible from the internet so experts can receive
-        webhook notifications (e.g., Telegram bots). Choose a tunnel method to enable
-        public access.
+        Your server needs internet access for webhook notifications. Choose a
+        tunnel or set <code className="rounded bg-muted px-1 text-xs">HEYSUMMON_PUBLIC_URL</code> if already public.
       </p>
 
       {error && (
@@ -111,7 +93,7 @@ export function StepNetwork({ onNext }: StepNetworkProps) {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Expose your server via Tailscale&apos;s built-in HTTPS tunnel.
+              HTTPS tunnel via Tailscale.
             </p>
             {status.needsOperatorSetup && (
               <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
@@ -151,7 +133,7 @@ export function StepNetwork({ onNext }: StepNetworkProps) {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Quick tunnel via Cloudflare — no account needed.
+              Quick tunnel, no account needed.
             </p>
           </div>
         )}
@@ -179,9 +161,8 @@ export function StepNetwork({ onNext }: StepNetworkProps) {
                 className="text-orange-400 hover:underline"
               >
                 cloudflared
-              </a>
-              , or set the <code className="rounded bg-muted px-1 text-xs">HEYSUMMON_PUBLIC_URL</code>{" "}
-              environment variable if your server is already publicly accessible.
+              </a>{" "}
+              to get started.
             </p>
           </div>
         )}
@@ -192,13 +173,19 @@ export function StepNetwork({ onNext }: StepNetworkProps) {
           onClick={onNext}
           className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          Skip — I&apos;ll configure later
+          <span className="flex items-center gap-1.5">
+            <SkipForward className="h-3.5 w-3.5" />
+            Skip — I&apos;ll configure later
+          </span>
         </button>
         <button
           onClick={refresh}
           className="rounded-md bg-muted px-3 py-1.5 text-sm text-foreground hover:bg-muted/80"
         >
-          Re-check
+          <span className="flex items-center gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Re-check
+          </span>
         </button>
       </div>
     </div>

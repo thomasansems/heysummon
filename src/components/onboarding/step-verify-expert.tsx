@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, Users, Copy, RefreshCw, SkipForward } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
 import type { ExpertChannelType } from "@/components/shared/channel-selector";
 
@@ -98,18 +98,19 @@ export function StepVerifyExpert({
 
   return (
     <div>
-      <h2 className="mb-1 font-serif text-lg font-semibold text-foreground">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <Users className="h-5 w-5 text-primary shrink-0" />
         Connect Your Expert
       </h2>
 
       {channel === "telegram" ? (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Open your Telegram bot and send{" "}
+            Send{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 text-foreground font-mono text-xs">
               /start
             </code>{" "}
-            to activate it.
+            to your Telegram bot.
           </p>
 
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
@@ -148,7 +149,7 @@ export function StepVerifyExpert({
                     Connection timed out
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Make sure you sent /start to the correct bot
+                    Check you sent /start to the right bot
                   </p>
                 </div>
               </>
@@ -160,15 +161,17 @@ export function StepVerifyExpert({
               onClick={startPolling}
               className="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-500"
             >
-              Try again
+              <span className="flex items-center gap-1.5">
+                <RefreshCw className="h-3.5 w-3.5" />
+                Try again
+              </span>
             </button>
           )}
         </div>
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Install the HeySummon expert skill in your OpenClaw agent and configure
-            it with your expert key.
+            Install the expert skill and configure your key.
           </p>
 
           <div className="rounded-lg border border-border bg-black p-4 space-y-3">
@@ -190,9 +193,9 @@ export function StepVerifyExpert({
                 </code>
                 <button
                   onClick={handleCopy}
-                  className="shrink-0 text-xs text-orange-400 hover:text-orange-300"
+                  className="shrink-0 text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1"
                 >
-                  {copied ? "Copied!" : "Copy"}
+                  {copied ? "Copied!" : <><Copy className="h-3 w-3" /> Copy</>}
                 </button>
               </div>
             </div>
@@ -207,8 +210,7 @@ export function StepVerifyExpert({
                     Waiting for connection... ({elapsed}s)
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Complete the steps above and the connection will be detected
-                    automatically
+                    Complete the steps above to connect
                   </p>
                 </div>
               </>
@@ -233,7 +235,7 @@ export function StepVerifyExpert({
                     Connection timed out
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Check the installation steps and try again
+                    Check installation and try again
                   </p>
                 </div>
               </>
@@ -246,13 +248,19 @@ export function StepVerifyExpert({
                 onClick={startPolling}
                 className="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-500"
               >
-                Try again
+                <span className="flex items-center gap-1.5">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Try again
+                </span>
               </button>
               <button
                 onClick={onVerified}
                 className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
-                Skip verification
+                <span className="flex items-center gap-1.5">
+                  <SkipForward className="h-3.5 w-3.5" />
+                  Skip verification
+                </span>
               </button>
             </div>
           )}

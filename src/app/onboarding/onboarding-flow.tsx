@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
-import { StepWelcome } from "@/components/onboarding/step-welcome";
 import { StepNetwork } from "@/components/onboarding/step-network";
 import { StepExpert } from "@/components/onboarding/step-expert";
 import { StepTestExpert } from "@/components/onboarding/step-test-expert";
@@ -19,7 +18,6 @@ import type {
 } from "@/components/shared/client-channel-selector";
 
 const STEPS = [
-  { label: "Welcome" },
   { label: "Expert" },
   { label: "Network" },
   { label: "Test" },
@@ -44,7 +42,7 @@ interface OnboardingState {
 }
 
 const DEFAULT_STATE: OnboardingState = {
-  step: 0,
+  step: 1,
   expertId: null,
   expertKey: null,
   expertName: null,
@@ -113,9 +111,6 @@ export function OnboardingFlow() {
 
   const renderStep = () => {
     switch (state.step) {
-      case 0:
-        return <StepWelcome onNext={() => setStep(1)} />;
-
       case 1:
         return (
           <StepExpert
@@ -201,7 +196,8 @@ export function OnboardingFlow() {
         );
 
       default:
-        return <StepWelcome onNext={() => setStep(1)} />;
+        setStep(1);
+        return null;
     }
   };
 
@@ -218,7 +214,7 @@ export function OnboardingFlow() {
 
   return (
     <OnboardingShell
-      currentStep={state.step}
+      currentStep={state.step - 1}
       steps={STEPS}
       expertName={state.expertName}
       onSkip={handleSkip}

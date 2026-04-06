@@ -209,7 +209,7 @@ export function OnboardingShell({
 
 
       {/* Right side — canvas or contextual content */}
-      <div className="hidden lg:block lg:flex-1 relative overflow-hidden">
+      <div className="hidden lg:block lg:flex-1 min-h-screen relative overflow-hidden">
         {sideContent ?? <OnboardingStepArt step={currentStep} />}
       </div>
     </div>

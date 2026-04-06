@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SessionProvider, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
@@ -8,36 +8,45 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 const SKIP_ONBOARDING = process.env.NEXT_PUBLIC_SKIP_ONBOARDING === "true";
-const FORCE_ONBOARDING = process.env.NEXT_PUBLIC_FORCE_ONBOARDING === "true";
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-
-  const shouldOnboard =
-    !SKIP_ONBOARDING &&
-    status === "authenticated" &&
-    (FORCE_ONBOARDING || session?.user?.onboardingComplete !== true);
+  const [checkingSetup, setCheckingSetup] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
-    if (shouldOnboard) {
-      router.replace("/onboarding");
-    }
     if (status === "unauthenticated") {
       router.replace("/auth/login?callbackUrl=/dashboard");
+      return;
     }
-  }, [shouldOnboard, status, router]);
+    if (status !== "authenticated" || SKIP_ONBOARDING) {
+      setCheckingSetup(false);
+      return;
+    }
 
-  if (status === "loading" || status === "unauthenticated") {
+    // Check actual DB state: if no expert and no client configured, redirect to onboarding
+    fetch("/api/onboarding/status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.hasExpert && !data.hasClient) {
+          setNeedsOnboarding(true);
+          router.replace("/onboarding");
+        } else {
+          setCheckingSetup(false);
+        }
+      })
+      .catch(() => {
+        setCheckingSetup(false);
+      });
+  }, [status, router]);
+
+  if (status === "loading" || status === "unauthenticated" || checkingSetup || needsOnboarding) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
       </div>
     );
-  }
-
-  if (shouldOnboard) {
-    return null;
   }
 
   return <>{children}</>;

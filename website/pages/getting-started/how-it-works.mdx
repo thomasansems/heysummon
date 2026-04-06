@@ -10,8 +10,12 @@ HeySummon is a relay platform that connects AI agents to human experts in real t
 
 ```
 pending  →  reviewing  →  responded
-    └──────────────────────→  expired  (after TTL, default 72h)
-                         →  closed    (manually via API)
+    │                  →  closed    (manually via API)
+    │
+    └── client timeout (default 15 min)
+           → fallback behavior applies
+           → request stays open for expert
+           → server expires after TTL (default 72h)
 ```
 
 | Status | Meaning |
@@ -19,7 +23,7 @@ pending  →  reviewing  →  responded
 | `pending` | Submitted, waiting for a human to open it |
 | `reviewing` | Human has opened the request in the dashboard |
 | `responded` | Human has replied |
-| `expired` | TTL elapsed (default 72 hours) |
+| `expired` | Server-side TTL elapsed (default 72 hours) — background cleanup |
 | `closed` | Manually closed via `/api/v1/close/:id` |
 
 ---
@@ -41,7 +45,7 @@ App
   ▼
 Expert dashboard / watcher (via polling)
                        │
-                       │  Notification: "🦞 [HS-XXXXXXXX] New request"
+                       │  Notification: [HS-XXXXXXXX] New request
                        │  Human reads, responds
                        ▼
                    Platform
@@ -50,7 +54,35 @@ Expert dashboard / watcher (via polling)
                        ▼
                    AI Agent (via polling)
                        │  GET /api/v1/help/:id → { status: "responded" }
+                       │
+                       │  OR: timeout reached (default 15 min)
+                       │  POST /api/v1/help/:id/timeout
+                       │  → receives fallback instruction
 ```
+
+---
+
+## Timeout and fallback
+
+When a consumer submits a help request, the consumer SDK polls for a response up to a configurable **timeout** (default: **15 minutes**, configurable via the Setup Wizard). If no expert responds within that window, the SDK calls the timeout endpoint and receives a **fallback instruction** that tells the agent what to do next.
+
+### Fallback behaviors
+
+| Fallback | Behavior |
+|----------|----------|
+| **Proceed cautiously** (default) | Pick the safest available option. Document all decisions made without expert input and flag them for review. |
+| **Skip and continue** | Skip the blocked task and continue with other work. Flag the skipped task for expert review later. |
+| **Stop** | Halt all execution immediately. Do not proceed until an expert responds. |
+
+These preferences are configured per client during setup and stored with the API key.
+
+<Callout type="info">
+  A client timeout does **not** close or expire the request. The request stays open on the server so an expert can still respond later. The agent simply moves on according to its fallback behavior. The expert is notified that the client timed out waiting.
+</Callout>
+
+### Server-side expiration
+
+Independently of the client timeout, the server runs a background monitor that expires truly abandoned requests after a configurable TTL (default: **72 hours**, set via `HEYSUMMON_REQUEST_TTL_MS`). This is a cleanup mechanism — not the primary timeout that agents experience.
 
 ---
 

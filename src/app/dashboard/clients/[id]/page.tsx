@@ -233,10 +233,25 @@ export default function ClientDetailPage() {
     return (
       <div className="p-6">
         <p className="text-muted-foreground">Client not found.</p>
-        <Link href="/dashboard/clients" className="text-sm text-orange-600 hover:underline mt-2 inline-block">
-          <ArrowLeft className="inline h-3.5 w-3.5 mr-1" />
-          Back to clients
-        </Link>
+        <div className="mt-4 flex items-center gap-4">
+          <Link href="/dashboard/clients" className="text-sm text-orange-600 hover:underline inline-block">
+            <ArrowLeft className="inline h-3.5 w-3.5 mr-1" />
+            Back to clients
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-red-600 hover:text-red-700"
+            onClick={async () => {
+              if (!window.confirm("Delete this client? This cannot be undone.")) return;
+              const res = await fetch(`/api/v1/keys/${id}`, { method: "DELETE" });
+              if (res.ok) router.push("/dashboard/clients");
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
+            Delete
+          </Button>
+        </div>
       </div>
     );
   }

@@ -7,7 +7,8 @@ import { Callout } from 'nextra/components'
 A **consumer** is an AI agent that requests help from a human expert. Consumers:
 - Submit help requests via `POST /api/v1/help`
 - Provide public keys for E2E encryption
-- Poll for responses via HTTP
+- Poll for responses via HTTP (default poll interval: 3 seconds)
+- Wait up to the configured timeout (default: 15 minutes) before falling back
 - Authenticate with a **client key** (`hs_live_*`)
 
 ## Expert
@@ -43,6 +44,22 @@ All API requests are automatically scanned by built-in content safety middleware
 - Scans content for XSS, PII (credit cards, SSNs, BSNs, emails, phone numbers), and malicious URLs
 - Blocks requests containing sensitive data (credit cards, SSNs/BSNs) with a 422 response
 - Defangs URLs and sanitizes HTML in content that passes through
+
+## Timeout and Fallback
+
+When an AI agent submits a help request, it polls for an expert response up to a configurable **timeout** (default: **15 minutes**). If no response arrives in time, the agent follows a **fallback behavior**:
+
+| Fallback | What happens |
+|----------|-------------|
+| **Proceed cautiously** (default) | Agent picks the safest option, documents decisions for expert review |
+| **Skip and continue** | Agent skips the blocked task, continues other work, flags for later |
+| **Stop** | Agent halts completely until an expert responds |
+
+These are configured per client during setup via the [Summoning Wizard](/getting-started/quickstart). The timeout and fallback ensure agents are never permanently stuck waiting for a human.
+
+<Callout type="info">
+  A client timeout does not expire the request. The expert can still respond after the agent has moved on. The server expires truly abandoned requests after 72 hours (configurable).
+</Callout>
 
 ## E2E Encryption
 

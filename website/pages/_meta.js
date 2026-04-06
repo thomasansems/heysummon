@@ -5,7 +5,7 @@ export default {
   "integrations": "Other Integrations",
   "consumer": "For AI Agents (Consumer)",
   "expert": "For Human Experts",
-  "best-practices": "Best Practice Prompts",
+  "best-practices": "Summoning Guidelines",
   "self-hosting": "Self-Hosting",
   "security": "Security",
   "reference": "Reference",

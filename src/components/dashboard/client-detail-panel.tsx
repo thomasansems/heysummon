@@ -158,7 +158,24 @@ export function ClientDetailPanel({
   };
 
   if (loading) return <div className="flex items-center justify-center py-24"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
-  if (!client) return <p className="p-8 text-sm text-muted-foreground">Client not found.</p>;
+  if (!client) return (
+    <div className="p-8 space-y-4">
+      <p className="text-sm text-muted-foreground">Client not found.</p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-red-600 hover:text-red-700"
+        onClick={async () => {
+          if (!window.confirm("Delete this client? This cannot be undone.")) return;
+          const res = await fetch(`/api/v1/keys/${clientId}`, { method: "DELETE" });
+          if (res.ok) onDeleted();
+        }}
+      >
+        <Trash2 className="h-3.5 w-3.5 mr-1" />
+        Delete
+      </Button>
+    </div>
+  );
 
   const ch = channelLabel(client.clientChannel, client.clientSubChannel);
   const isInGracePeriod = client.previousKeyExpiresAt && new Date(client.previousKeyExpiresAt) > new Date();

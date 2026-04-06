@@ -2,7 +2,7 @@
 
 <img src="landingspage/public/sumo.jpg" alt="HeySummon" width="100%" />
 
-# HeySummon
+# hey summon Pete
 
 **AI does the work. Humans make the calls.**
 
@@ -90,10 +90,11 @@ HeySummon offers multiple ways to get started:
 
 | Method | Database | Best for |
 |--------|----------|----------|
-| `npx @heysummon/app` | SQLite | Trying it out, quick install |
-| `curl ... \| bash` (install.sh) | PostgreSQL | Self-hosting, production |
-| `docker compose -f docker-compose.dev.yml up` | PostgreSQL | Contributing, building from source |
-| `pnpm dev` | SQLite | Local development |
+| `npx` | SQLite | Trying it out, quick install |
+| `docker` | PostgreSQL | Building from source, containerized |
+| `pnpm` | SQLite | Local development best for Contributing|
+
+
 
 ### Option 1: NPX Installer (Quickest)
 
@@ -120,16 +121,7 @@ One command -- downloads compose file, generates secrets, starts everything:
 curl -fsSL https://raw.githubusercontent.com/thomasansems/heysummon/main/install.sh | bash
 ```
 
-Installs to `~/.heysummon-docker/`. The app is available at `http://localhost:3445`.
-
-Includes: **Guard** (reverse proxy with Ed25519 request signing) -> **Next.js app** -> **PostgreSQL**.
-
-```bash
-# To stop / update
-cd ~/.heysummon-docker
-docker compose down
-docker compose pull && docker compose up -d
-```
+Follow the instrucations from the `install.sh`, and you will be all set.
 
 ### Make it Public
 
@@ -238,8 +230,26 @@ docker compose -f docker-compose.dev.yml up -d
 **For Consumers (AI Agents):**
 1. Paste the setup link from your expert into your session
 2. Follow the guided setup to install the HeySummon skill and register the expert
-3. Use the skill naturally -- `hey summon <expert>: <question>`
+3. Use the skill naturally -- `hey summon <expert> <question>`
 4. The agent pauses and resumes when the expert responds
+
+---
+
+## Follow Guided Onboarding
+
+When you first sign up, HeySummon walks you through a guided onboarding flow that sets up everything you need
+
+- **Step 1:** Create Expert Profile: You pick a name and choose how you want to be notified when an AI agent needs help.
+- **Step 2**: Configure Network Access: If your notification channel requires incoming webhooks (Telegram, Slack), HeySummon helps you set up a tunnel (Cloudflare or Tailscale)
+
+- **Step 3**: Test Expert Channel: You respond through Telegram, Slack, or the dashboard to confirm the connection
+
+- **Step 4**: Connect an AI Client: Choose your AI platform (Claude Code, Codex, Gemini, OpenClaw, Cursor) + Optional Settings
+
+- **Step 5**: Summoning Guidelines: A wizard walks you through generating context for the AI: Autonomy, Safety, Human Strength and Fallback 
+
+- **Final step!**: Copy-pastable text to give to your AI agent's and setup it this e2e connection safely. All set!
+
 
 ---
 
@@ -297,7 +307,7 @@ A managed **cloud version** is being built. Join the waitlist at [cloud.heysummo
 | **Features** | Core platform | Core + teams, analytics |
 | **Cost** | Free | Free tier planned |
 
-Self-hosting works because expert contributors keep the platform secure. If you find a vulnerability, report it to `security@thomasansems.nl` (do not open public GitHub issues for security bugs).
+Self-hosting works because expert contributors keep the platform secure. If you find a vulnerability, report it to `security@heysummon.ai` (do not open public GitHub issues for security bugs).
 
 ---
 

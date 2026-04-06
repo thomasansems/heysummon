@@ -41,19 +41,6 @@ function formatAutonomy(level: AutonomyLevel): string {
   return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
-function formatResponseTime(
-  expectation: WizardState["budgetFrequency"]["responseTimeExpectation"],
-): string {
-  switch (expectation) {
-    case "minutes":
-      return "within minutes";
-    case "hours":
-      return "within a few hours";
-    case "async":
-      return "asynchronously (when available)";
-  }
-}
-
 export function generateGuidelines(state: WizardState): string {
   const lines: string[] = [];
 
@@ -78,16 +65,6 @@ export function generateGuidelines(state: WizardState): string {
     }
     lines.push("");
   }
-
-  lines.push("### Frequency");
-  const maxPerDay = state.budgetFrequency.maxSummonsPerDay;
-  lines.push(
-    `- Target: ${maxPerDay ? `up to ${maxPerDay} summons per day` : "no daily limit"}`,
-  );
-  lines.push(`- Budget awareness: ${state.budgetFrequency.budgetAwareness}`);
-  lines.push(
-    `- Expected response time: ${formatResponseTime(state.budgetFrequency.responseTimeExpectation)}`,
-  );
 
   return lines.join("\n");
 }

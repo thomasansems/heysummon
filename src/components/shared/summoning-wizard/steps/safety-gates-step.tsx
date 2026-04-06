@@ -45,7 +45,7 @@ export function SafetyGatesStep({ value, onChange }: SafetyGatesStepProps) {
           Always summon you before these actions, regardless of autonomy level.
         </p>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2 p-1">
         {SAFETY_GATE_OPTIONS.map((option) => {
           const Icon = ICON_MAP[option.icon];
           const isChecked = value.includes(option.value);

@@ -72,7 +72,7 @@ export function StepExpert({ onComplete }: StepExpertProps) {
         const elapsedMs = Date.now() - startTime;
         setElapsed(Math.floor(elapsedMs / 1000));
 
-        if (elapsedMs > 120_000) {
+        if (elapsedMs > 600_000) {
           stopPolling();
           setVerifyStatus("timeout");
           return;
@@ -205,7 +205,7 @@ export function StepExpert({ onComplete }: StepExpertProps) {
       {phase === "form" && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
               Expert name <span className="text-red-400">*</span>
             </label>
             <input

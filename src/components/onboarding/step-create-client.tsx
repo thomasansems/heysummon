@@ -134,7 +134,7 @@ export function StepCreateClient({
       {step === "details" && (
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
               Client name (optional)
             </label>
             <input
@@ -146,7 +146,7 @@ export function StepCreateClient({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
               Expert
             </label>
             <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
@@ -176,7 +176,7 @@ export function StepCreateClient({
             {showAdvanced && (
               <div className="mt-3 space-y-3 rounded-md border border-border bg-muted/20 p-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
                     Request timeout (seconds)
                   </label>
                   <input
@@ -192,7 +192,7 @@ export function StepCreateClient({
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
                     Poll interval (seconds)
                   </label>
                   <input

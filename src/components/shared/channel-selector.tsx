@@ -113,7 +113,7 @@ export function ChannelSelector({
 
       {selected === "telegram" && onBotTokenChange && (
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+          <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
             Bot token <span className="text-red-400">*</span>
           </label>
           <input
@@ -171,7 +171,7 @@ export function ChannelSelector({
             </ol>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
               Bot token <span className="text-red-400">*</span>
             </label>
             <input
@@ -186,7 +186,7 @@ export function ChannelSelector({
             </p>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
               Signing secret <span className="text-red-400">*</span>
             </label>
             <input
@@ -200,7 +200,7 @@ export function ChannelSelector({
             </p>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
               Channel ID <span className="text-red-400">*</span>
             </label>
             <input

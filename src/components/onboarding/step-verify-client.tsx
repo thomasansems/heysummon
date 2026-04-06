@@ -42,7 +42,7 @@ export function StepVerifyClient({
   const isSkillBased = channel !== "openclaw";
   const { status, elapsed, start, retry } = useConnectionVerify({
     keyId,
-    timeoutMs: 120_000,
+    timeoutMs: 600_000,
   });
 
   useEffect(() => {

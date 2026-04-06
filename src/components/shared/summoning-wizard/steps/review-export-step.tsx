@@ -29,9 +29,6 @@ export function ReviewExportStep({
         <h3 className="text-sm font-medium text-foreground">
           Review your guidelines
         </h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          This text will be included when your AI sets up its connection.
-        </p>
       </div>
 
       <div className="rounded-md border border-border bg-black p-4">
@@ -67,6 +64,9 @@ export function ReviewExportStep({
           )}
         </button>
       </div>
+      <p className="text-[11px] text-emerald-500 dark:text-emerald-400">
+        This text will be included when your AI sets up its connection.
+      </p>
     </div>
   );
 }

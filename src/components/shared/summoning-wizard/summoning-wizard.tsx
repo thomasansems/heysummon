@@ -13,14 +13,12 @@ import { generateGuidelines } from "./generate-guidelines";
 import { AutonomyStep } from "./steps/autonomy-step";
 import { SafetyGatesStep } from "./steps/safety-gates-step";
 import { ExpertStrengthsStep } from "./steps/expert-strengths-step";
-import { BudgetFrequencyStep } from "./steps/budget-frequency-step";
 import { ReviewExportStep } from "./steps/review-export-step";
 
 const STEP_LABELS = [
   "Autonomy",
-  "Safety gates",
-  "Expert strengths",
-  "Frequency",
+  "Safety",
+  "Strengths",
   "Review",
 ];
 
@@ -31,6 +29,8 @@ interface SummoningWizardProps {
   onComplete: (text: string, state: WizardState) => void;
   onSkip?: () => void;
   compact?: boolean;
+  completeLabel?: string;
+  completeIcon?: React.ReactNode;
 }
 
 export function SummoningWizard({
@@ -38,6 +38,8 @@ export function SummoningWizard({
   onComplete,
   onSkip,
   compact,
+  completeLabel = "Save",
+  completeIcon,
 }: SummoningWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [state, setState] = useState<WizardState>(
@@ -113,7 +115,9 @@ export function SummoningWizard({
         {currentStep === 0 && (
           <AutonomyStep
             value={state.autonomy}
-            onChange={(autonomy) => setState((s) => ({ ...s, autonomy }))}
+            onChange={(autonomy) => {
+              setState((s) => ({ ...s, autonomy }));
+            }}
           />
         )}
         {currentStep === 1 && (
@@ -131,14 +135,6 @@ export function SummoningWizard({
           />
         )}
         {currentStep === 3 && (
-          <BudgetFrequencyStep
-            value={state.budgetFrequency}
-            onChange={(budgetFrequency) =>
-              setState((s) => ({ ...s, budgetFrequency }))
-            }
-          />
-        )}
-        {currentStep === 4 && (
           <ReviewExportStep
             generatedText={generatedText}
             charLimit={CHAR_LIMIT}
@@ -177,8 +173,8 @@ export function SummoningWizard({
         >
           {isLastStep ? (
             <>
-              <Check className="h-4 w-4" />
-              Save
+              {completeIcon ?? <Check className="h-4 w-4" />}
+              {completeLabel}
             </>
           ) : (
             <>

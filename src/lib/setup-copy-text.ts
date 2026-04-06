@@ -18,7 +18,11 @@ export function buildSetupCopyText(
   lines.push("");
 
   if (summonContext.trim()) {
-    lines.push("Summoning guidelines:");
+    lines.push("IMPORTANT — SUMMONING GUIDELINES (save to memory):");
+    lines.push("The following guidelines define when and how to summon your human expert.");
+    lines.push("You MUST save these to your persistent memory before proceeding with any work.");
+    lines.push("These rules take priority over default autonomy settings.");
+    lines.push("");
     lines.push(summonContext.trim());
     lines.push("");
   }

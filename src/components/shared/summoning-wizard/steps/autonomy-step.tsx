@@ -34,7 +34,7 @@ export function AutonomyStep({ value, onChange }: AutonomyStepProps) {
           This sets the baseline for when your AI summons you.
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-1">
         {AUTONOMY_OPTIONS.map((option) => {
           const Icon = ICON_MAP[option.icon];
           const isSelected = value === option.value;

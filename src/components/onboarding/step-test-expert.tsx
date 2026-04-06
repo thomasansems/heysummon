@@ -55,7 +55,7 @@ export function StepTestExpert({
         const elapsedMs = Date.now() - startTime;
         setElapsed(Math.floor(elapsedMs / 1000));
 
-        if (elapsedMs > 120_000) {
+        if (elapsedMs > 600_000) {
           stop();
           setStatus("timeout");
           return;

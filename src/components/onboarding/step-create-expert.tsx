@@ -110,7 +110,7 @@ export function StepCreateExpert({ onCreated }: StepCreateExpertProps) {
 
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+          <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
             Expert name <span className="text-red-400">*</span>
           </label>
           <input

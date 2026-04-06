@@ -550,13 +550,13 @@ export default function ClientsContent() {
                   </div>
                   <textarea
                     value={wizardSummonContext}
-                    onChange={(e) => setWizardSummonContext(e.target.value.slice(0, 500))}
+                    onChange={(e) => setWizardSummonContext(e.target.value.slice(0, 2000))}
                     placeholder="e.g. Only summon me when you need architecture decisions or production access..."
                     rows={3}
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring resize-none"
                   />
                   <p className="mt-1 text-right text-[11px] text-muted-foreground">
-                    {wizardSummonContext.length}/500
+                    {wizardSummonContext.length}/2000
                   </p>
                 </div>
 

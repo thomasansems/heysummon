@@ -10,9 +10,9 @@ import { buildSetupCopyText } from "@/lib/setup-copy-text";
  * recent context filtering.
  */
 
-/** Mirrors the 500-char cap enforced by the textarea onChange */
+/** Mirrors the 2000-char cap enforced by the textarea onChange */
 function capContextInput(value: string): string {
-  return value.slice(0, 500);
+  return value.slice(0, 2000);
 }
 
 /** Mirrors the recentNonPreset filter in the wizard */
@@ -35,7 +35,7 @@ describe("Dashboard wizard context — preset selection", () => {
     for (const preset of SUMMON_CONTEXT_PRESETS) {
       expect(preset.label).toBeTruthy();
       expect(preset.text).toBeTruthy();
-      expect(preset.text.length).toBeLessThanOrEqual(500);
+      expect(preset.text.length).toBeLessThanOrEqual(2000);
     }
   });
 
@@ -46,12 +46,12 @@ describe("Dashboard wizard context — preset selection", () => {
 });
 
 describe("Dashboard wizard context — input constraints", () => {
-  it("caps text at 500 characters", () => {
-    const long = "a".repeat(600);
-    expect(capContextInput(long)).toHaveLength(500);
+  it("caps text at 2000 characters", () => {
+    const long = "a".repeat(2500);
+    expect(capContextInput(long)).toHaveLength(2000);
   });
 
-  it("passes through text under 500 characters unchanged", () => {
+  it("passes through text under 2000 characters unchanged", () => {
     const short = "Only summon me for critical decisions.";
     expect(capContextInput(short)).toBe(short);
   });

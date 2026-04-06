@@ -7,6 +7,11 @@ export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const fullUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } });
+  if (fullUser?.role !== "admin") {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   const publicUrl = process.env.HEYSUMMON_PUBLIC_URL;
   if (!publicUrl) {
     return NextResponse.json({ error: "No public URL configured. Start Tailscale Funnel first." }, { status: 400 });

@@ -12,6 +12,11 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  const fullUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } });
+  if (fullUser?.role !== "admin") {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   const settings = await prisma.gdprSettings.findUnique({
     where: { id: "singleton" },
   });

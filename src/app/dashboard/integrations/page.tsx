@@ -327,7 +327,7 @@ export default function IntegrationsPage() {
                 <p className="text-xs text-muted-foreground">
                   Need help finding these?{" "}
                   <a
-                    href="/docs/guides/twilio"
+                    href="https://docs.heysummon.ai/integrations/twilio"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline underline-offset-2 hover:text-foreground"

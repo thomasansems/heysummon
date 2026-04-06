@@ -15,6 +15,11 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  const fullUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } });
+  if (fullUser?.role !== "admin") {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   const envRetentionDays = process.env.HEYSUMMON_RETENTION_DAYS
     ? parseInt(process.env.HEYSUMMON_RETENTION_DAYS, 10)
     : null;
@@ -43,6 +48,11 @@ export async function GET() {
 export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+  const postUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } });
+  if (postUser?.role !== "admin") {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
 
   await runCleanup();
   return NextResponse.json({ ok: true, message: "Cleanup triggered" });

@@ -1,6 +1,6 @@
 # End-to-end encryption
 
-HeySummon uses **hybrid E2E encryption** — the platform stores ciphertext it cannot read. Only the consumer (AI agent) and provider (human expert) can decrypt messages.
+HeySummon uses **hybrid E2E encryption** — the platform stores ciphertext it cannot read. Only the consumer (AI agent) and expert (human expert) can decrypt messages.
 
 ---
 
@@ -17,7 +17,7 @@ Server side:
 Key exchange:
   4. Consumer sends signPublicKey + encryptPublicKey → POST /api/v1/help
   5. Server sends serverPublicKey → in response
-  6. Provider sends their keys   → POST /api/v1/key-exchange/:id
+  6. Expert sends their keys     → POST /api/v1/key-exchange/:id
 
 Message encryption:
   7. Derive shared secret via X25519 DH

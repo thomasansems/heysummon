@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, generateApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateDeviceSecret, hashDeviceToken } from "@/lib/api-key-auth";
+import { requireSecret } from "@/lib/env";
 import crypto from "crypto";
 
 const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -35,7 +36,7 @@ export async function POST(
   // HMAC-SHA256: deterministic for DB lookup, but requires server secret to reverse.
   // Using NEXTAUTH_SECRET as HMAC key means an attacker with only DB access cannot
   // brute-force the original key from the stored hash.
-  const hmacSecret = process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret";
+  const hmacSecret = requireSecret("NEXTAUTH_SECRET", "fallback-dev-secret");
   const previousKeyHash = crypto.createHmac("sha256", hmacSecret).update(key.key).digest("hex");
   const previousKeyExpiresAt = new Date(Date.now() + GRACE_PERIOD_MS);
 

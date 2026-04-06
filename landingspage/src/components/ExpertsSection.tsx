@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { Terminal, Users, Share2 } from 'lucide-react';
 import { StepCard } from './StepCard';
 import { TerminalMockup } from './TerminalMockup';
-import { trackProviderCtaClick } from '../lib/analytics';
+import { trackExpertCtaClick } from '../lib/analytics';
 
 const steps = [
   {
@@ -25,9 +25,9 @@ const steps = [
   },
 ];
 
-export function ProvidersSection() {
+export function ExpertsSection() {
   return (
-    <section id="providers" className="py-32 px-4 sm:px-6 lg:px-8">
+    <section id="experts" className="py-32 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -38,7 +38,7 @@ export function ProvidersSection() {
         >
           <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-text-muted mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            For Providers
+            For Experts
           </div>
           <h2 className="font-serif text-4xl md:text-5xl mb-6">
             You have the expertise. Make it available.
@@ -94,7 +94,7 @@ export function ProvidersSection() {
               </div>
               <div className="text-text-muted mt-4"># Summoning context (embedded in the link):</div>
               <div className="text-text-body mt-1">
-                <span className="text-purple-400">provider</span>: Senior DevOps Engineer
+                <span className="text-purple-400">expert</span>: Senior DevOps Engineer
               </div>
               <div className="text-text-body">
                 <span className="text-purple-400">available</span>: Mon-Fri, 9am-6pm CET
@@ -126,7 +126,7 @@ export function ProvidersSection() {
             href="https://docs.heysummon.ai"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackProviderCtaClick('providers_section')}
+            onClick={() => trackExpertCtaClick('experts_section')}
             className="inline-flex items-center gap-2 bg-white text-bg-deep px-6 py-3 rounded-full font-semibold hover:bg-text-heading transition-colors"
           >
             Set Up Your Summon Station

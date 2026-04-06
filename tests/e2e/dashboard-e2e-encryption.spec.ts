@@ -39,20 +39,20 @@ function generateConsumerKeys() {
 
 function encryptAsConsumer(
   plaintext: string,
-  providerEncPubHex: string,
+  expertEncPubHex: string,
   consumerSignPriv: crypto.KeyObject,
   consumerEncPriv: crypto.KeyObject,
   messageId?: string,
 ) {
-  const providerEncPub = crypto.createPublicKey({
-    key: Buffer.from(providerEncPubHex, "hex"),
+  const expertEncPub = crypto.createPublicKey({
+    key: Buffer.from(expertEncPubHex, "hex"),
     format: "der",
     type: "spki",
   });
 
   const sharedSecret = crypto.diffieHellman({
     privateKey: consumerEncPriv,
-    publicKey: providerEncPub,
+    publicKey: expertEncPub,
   });
 
   const msgId = messageId || crypto.randomUUID();
@@ -111,8 +111,8 @@ interface E2EDataResponse {
   status: string;
   consumerSignPubKey: string | null;
   consumerEncryptPubKey: string | null;
-  providerSignPubKey: string | null;
-  providerEncryptPubKey: string | null;
+  expertSignPubKey: string | null;
+  expertEncryptPubKey: string | null;
   messages: Array<{
     id: string;
     from: string;
@@ -128,8 +128,8 @@ interface E2EDataResponse {
 }
 
 /**
- * Poll the E2E API until provider keys appear (key exchange completed).
- * Returns the E2E data with provider keys set.
+ * Poll the E2E API until expert keys appear (key exchange completed).
+ * Returns the E2E data with expert keys set.
  */
 async function waitForKeyExchange(
   requestId: string,
@@ -142,7 +142,7 @@ async function waitForKeyExchange(
       `/api/dashboard/e2e/${requestId}`,
       headers,
     );
-    if (data.providerSignPubKey && data.providerEncryptPubKey) {
+    if (data.expertSignPubKey && data.expertEncryptPubKey) {
       return data;
     }
     await new Promise((r) => setTimeout(r, 500));
@@ -178,7 +178,7 @@ test.describe("Dashboard E2E Encryption", () => {
     await page.goto(`/dashboard/requests/${requestId}`);
 
     // ── Step 3: Verify E2E indicator badge appears ──
-    // The dashboard detects consumer keys, generates provider keys,
+    // The dashboard detects consumer keys, generates expert keys,
     // performs key exchange, and shows the E2E badge
     await expect(
       page.locator("text=End-to-End Encrypted"),
@@ -196,14 +196,14 @@ test.describe("Dashboard E2E Encryption", () => {
     // ── Step 5: Verify key exchange completed via API ──
     const headers = await authHeaders();
     const e2eData = await waitForKeyExchange(requestId, headers);
-    expect(e2eData.providerSignPubKey).toBeTruthy();
-    expect(e2eData.providerEncryptPubKey).toBeTruthy();
+    expect(e2eData.expertSignPubKey).toBeTruthy();
+    expect(e2eData.expertEncryptPubKey).toBeTruthy();
 
     // ── Step 6: Consumer encrypts and sends a message ──
     const testMessage = "Hello from consumer - E2E encrypted test";
     const encrypted = encryptAsConsumer(
       testMessage,
-      e2eData.providerEncryptPubKey!,
+      e2eData.expertEncryptPubKey!,
       consumerKeys.signKeyPair.privateKey,
       consumerKeys.encryptKeyPair.privateKey,
     );
@@ -245,16 +245,16 @@ test.describe("Dashboard E2E Encryption", () => {
       headers,
     );
 
-    const providerMsg = updatedE2E.messages.find(
-      (m) => m.from === "provider",
+    const expertMsg = updatedE2E.messages.find(
+      (m) => m.from === "expert",
     );
-    expect(providerMsg).toBeTruthy();
-    expect(providerMsg!.ciphertext).toBeTruthy();
-    expect(providerMsg!.iv).toBeTruthy();
-    expect(providerMsg!.iv).not.toBe("plaintext");
-    expect(providerMsg!.authTag).toBeTruthy();
-    expect(providerMsg!.signature).toBeTruthy();
-    expect(providerMsg!.messageId).toBeTruthy();
+    expect(expertMsg).toBeTruthy();
+    expect(expertMsg!.ciphertext).toBeTruthy();
+    expect(expertMsg!.iv).toBeTruthy();
+    expect(expertMsg!.iv).not.toBe("plaintext");
+    expect(expertMsg!.authTag).toBeTruthy();
+    expect(expertMsg!.signature).toBeTruthy();
+    expect(expertMsg!.messageId).toBeTruthy();
   });
 
   test("Non-E2E request: no key exchange, no encryption indicators", async ({
@@ -301,13 +301,13 @@ test.describe("Dashboard E2E Encryption", () => {
       page.locator("text=Your message will be end-to-end encrypted"),
     ).not.toBeVisible();
 
-    // Verify via API that no provider keys were exchanged
+    // Verify via API that no expert keys were exchanged
     const headers = await authHeaders();
     const e2eData = await apiGet<E2EDataResponse>(
       `/api/dashboard/e2e/${requestId}`,
       headers,
     );
-    expect(e2eData.providerSignPubKey).toBeNull();
-    expect(e2eData.providerEncryptPubKey).toBeNull();
+    expect(e2eData.expertSignPubKey).toBeNull();
+    expect(e2eData.expertEncryptPubKey).toBeNull();
   });
 });

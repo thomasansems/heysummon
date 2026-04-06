@@ -76,12 +76,12 @@ jobs:
       - name: Run bash E2E tests
         run: |
           SEED='${{ steps.seed.outputs.seed_json }}'
-          export E2E_PROVIDER_ID=$(echo "$SEED" | jq -r .providerId)
-          export E2E_PROVIDER_KEY=$(echo "$SEED" | jq -r .providerKey)
+          export E2E_EXPERT_ID=$(echo "$SEED" | jq -r .expertId)
+          export E2E_EXPERT_KEY=$(echo "$SEED" | jq -r .expertKey)
           export E2E_CLIENT_KEY=$(echo "$SEED" | jq -r .clientKey)
           export E2E_USER_ID=$(echo "$SEED" | jq -r .userId)
-          export E2E_PROVIDER2_KEY=$(echo "$SEED" | jq -r .provider2Key)
-          export E2E_PROVIDER2_CLIENT_KEY=$(echo "$SEED" | jq -r .provider2ClientKey)
+          export E2E_EXPERT2_KEY=$(echo "$SEED" | jq -r .expert2Key)
+          export E2E_EXPERT2_CLIENT_KEY=$(echo "$SEED" | jq -r .expert2ClientKey)
           export E2E_INACTIVE_KEY=$(echo "$SEED" | jq -r .inactiveKey)
           export E2E_DEVICE_KEY=$(echo "$SEED" | jq -r .deviceKey)
           export E2E_DEVICE_TOKEN=$(echo "$SEED" | jq -r .deviceToken)

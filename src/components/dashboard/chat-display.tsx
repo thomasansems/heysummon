@@ -7,7 +7,7 @@ interface LegacyMessage {
 
 interface E2EMessage {
   id: string;
-  from: "consumer" | "provider";
+  from: "consumer" | "expert";
   messageId: string;
   createdAt: string;
   plaintext: string;
@@ -81,7 +81,9 @@ function E2EChatDisplay({ messages }: { messages: E2EMessage[] }) {
                 )}
               </div>
               <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                {msg.plaintext}
+                {msg.decryptError
+                  ? "Message could not be decrypted — it may have been sent before key exchange completed."
+                  : msg.plaintext}
               </p>
               <p className="mt-1 text-[10px] opacity-40">
                 {new Date(msg.createdAt).toLocaleTimeString()}

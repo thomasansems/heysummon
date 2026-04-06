@@ -1,6 +1,6 @@
 # Rate Response
 
-Rate a provider's response quality. Enables feedback signals for provider reliability tracking.
+Rate an expert's response quality. Enables feedback signals for expert reliability tracking.
 
 ## Endpoint
 
@@ -43,9 +43,9 @@ Consumer API key via `x-api-key` header. The consumer must own the request being
 }
 ```
 
-## Provider Metrics
+## Expert Metrics
 
-Each rating triggers an async recalculation of `ProviderMetrics`:
+Each rating triggers an async recalculation of `ExpertMetrics`:
 
 - **avgRating**: Average across all rated requests
 - **avgResponseTimeMs**: Average time from request creation to first response

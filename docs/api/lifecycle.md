@@ -15,10 +15,10 @@ HeySummon uses a formalized state machine to govern all request status transitio
 
 | From | To | Trigger |
 |------|----|---------|
-| pending | active | Provider completes key exchange (`POST /key-exchange`) |
+| pending | active | Expert completes key exchange (`POST /key-exchange`) |
 | pending | expired | TTL exceeded (active monitor) |
 | pending | closed | Either party closes (`POST /close`) |
-| active | responded | Provider sends first message (`POST /message`) or approves (`POST /approve`) |
+| active | responded | Expert sends first message (`POST /message`) or approves (`POST /approve`) |
 | active | expired | TTL exceeded (active monitor) |
 | active | closed | Either party closes |
 | responded | closed | Either party closes |

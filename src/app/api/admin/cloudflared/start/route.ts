@@ -31,6 +31,11 @@ export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const fullUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } });
+  if (fullUser?.role !== "admin") {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   // Kill any existing cloudflared tunnel
   try { execSync("pkill -f 'cloudflared tunnel' 2>/dev/null", { timeout: 3000 }); } catch { /* ignore */ }
 

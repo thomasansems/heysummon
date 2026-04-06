@@ -107,7 +107,7 @@ export const openClawAdapter: ChannelAdapter = {
     const callbackUrl = `${baseUrl}/api/adapters/openclaw/${channelId}/webhook`;
 
     // Update channel with webhook secret and callback URL
-    await prisma.channelProvider.update({
+    await prisma.expertChannel.update({
       where: { id: channelId },
       data: {
         config: JSON.stringify({

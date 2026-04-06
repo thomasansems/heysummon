@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --port 3425",
     "db:studio": "prisma studio",
-    "build": "prisma generate && next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
+    "build": "prisma generate && next build --experimental-build-mode compile && mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
@@ -69,6 +69,7 @@
     "@typescript-eslint/parser": "^8.56.0",
     "@vitest/coverage-v8": "^4.0.18",
     "concurrently": "^9.2.1",
+    "@eslint/js": "^9",
     "eslint": "^9",
     "eslint-config-next": "^16.1.6",
     "eslint-plugin-react": "^7.37.5",

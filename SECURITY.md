@@ -78,7 +78,7 @@ We credit security researchers in our release notes and README unless they prefe
 - Authentication and session management
 - API key validation and rate limiting
 - Encryption and key exchange
-- Provider/consumer message routing
+- Expert/consumer message routing
 
 ### Out of scope
 - Third-party services (Telegram, email providers, etc.)

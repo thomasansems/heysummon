@@ -280,7 +280,7 @@ async function handleBlockActions(
 
   const decision = actionId === "approve_request" ? "approved" : "denied";
 
-  // Find the help request -- must belong to this provider
+  // Find the help request -- must belong to this expert
   const helpRequest = await prisma.helpRequest.findFirst({
     where: {
       id: requestId,
@@ -340,7 +340,7 @@ async function handleBlockActions(
   await prisma.message.create({
     data: {
       requestId: helpRequest.id,
-      from: "provider",
+      from: "expert",
       ciphertext: decision,
       iv: "",
       authTag: "",

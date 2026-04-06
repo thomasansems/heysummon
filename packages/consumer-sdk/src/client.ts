@@ -45,6 +45,7 @@ export class HeySummonClient {
   private readonly apiKey: string;
   private readonly e2e: boolean;
   private readonly keyStore: Map<string, KeyMaterial> = new Map();
+  private readonly providerKeyCache: Map<string, { encPub: string; signPub: string }> = new Map();
 
   constructor(opts: HeySummonClientOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/$/, ""); // trim trailing slash
@@ -129,7 +130,15 @@ export class HeySummonClient {
     );
 
     const keys = this.keyStore.get(requestId);
-    const hasProviderKeys = !!(res.providerEncryptPubKey && res.providerSignPubKey);
+    const hasExpertKeys = !!(res.expertEncryptPubKey && res.expertSignPubKey);
+
+    // Cache expert public keys for sendMessage() to avoid N+1 fetches
+    if (hasExpertKeys) {
+      this.providerKeyCache.set(requestId, {
+        encPub: res.expertEncryptPubKey!,
+        signPub: res.expertSignPubKey!,
+      });
+    }
 
     const messages: DecryptedMessage[] = res.messages.map((msg) => {
       // Plaintext messages: return as-is
@@ -144,7 +153,7 @@ export class HeySummonClient {
       }
 
       // No keys available for decryption: return raw message
-      if (!keys || !hasProviderKeys) {
+      if (!keys || !hasExpertKeys) {
         return {
           id: msg.id,
           from: msg.from,
@@ -159,11 +168,12 @@ export class HeySummonClient {
 
       // Auto-decrypt with stored keys
       try {
-        const senderEncPub = msg.from === "provider"
-          ? publicKeyFromHex(res.providerEncryptPubKey!, "x25519")
-          : publicKeyFromHex(res.consumerEncryptPubKey!, "x25519");
-        const senderSignPub = msg.from === "provider"
-          ? publicKeyFromHex(res.providerSignPubKey!, "ed25519")
+        // Always use expert's key for DH shared secret — DH is symmetric:
+        // DH(consumer_priv, expert_pub) = DH(expert_priv, consumer_pub)
+        const senderEncPub = publicKeyFromHex(res.expertEncryptPubKey!, "x25519");
+        // Only vary the signing key for signature verification
+        const senderSignPub = msg.from === "expert"
+          ? publicKeyFromHex(res.expertSignPubKey!, "ed25519")
           : publicKeyFromHex(res.consumerSignPubKey!, "ed25519");
 
         const plaintext = decryptWithKeys(
@@ -229,7 +239,7 @@ export class HeySummonClient {
     await this.request<unknown>("POST", `/api/v1/help/${requestId}/timeout`, {});
   }
 
-  /** Send an encrypted message to the provider (falls back to plaintext if no keys) */
+  /** Send an encrypted message to the expert (falls back to plaintext if no keys) */
   async sendMessage(
     requestId: string,
     text: string
@@ -244,23 +254,30 @@ export class HeySummonClient {
       });
     }
 
-    // Need provider's public keys to encrypt — fetch them
-    const res = await this.request<MessagesResponse>(
-      "GET",
-      `/api/v1/messages/${requestId}`
-    );
+    // Use cached expert keys to avoid N+1 API calls; fetch only on cache miss
+    let cached = this.providerKeyCache.get(requestId);
+    if (!cached) {
+      const res = await this.request<MessagesResponse>(
+        "GET",
+        `/api/v1/messages/${requestId}`
+      );
+      if (res.expertEncryptPubKey && res.expertSignPubKey) {
+        cached = { encPub: res.expertEncryptPubKey, signPub: res.expertSignPubKey };
+        this.providerKeyCache.set(requestId, cached);
+      }
+    }
 
-    if (!res.providerEncryptPubKey || !res.providerSignPubKey) {
+    if (!cached) {
       throw new Error(
-        "Cannot send encrypted message: provider has not completed key exchange yet"
+        "Cannot send encrypted message: expert has not completed key exchange yet"
       );
     }
 
-    const providerEncPub = publicKeyFromHex(res.providerEncryptPubKey, "x25519");
+    const expertEncPub = publicKeyFromHex(cached.encPub, "x25519");
 
     const payload = encryptWithKeys(
       text,
-      providerEncPub,
+      expertEncPub,
       keys.signKeyPair.privateKey,
       keys.encryptKeyPair.privateKey
     );
@@ -278,6 +295,7 @@ export class HeySummonClient {
   /** Remove keys from the store for a completed/closed request */
   releaseKeys(requestId: string): void {
     this.keyStore.delete(requestId);
+    this.providerKeyCache.delete(requestId);
   }
 
   /** Import persistent keys from PEM files into the key store for a given request */

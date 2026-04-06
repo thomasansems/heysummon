@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       console.log("[POST /api/v1/help] Request received:", {
         question: question,
         requiresApproval,
-        hasApiKey: apiKey ? apiKey.slice(0, 10) + "..." : null,
+        hasApiKey: Boolean(apiKey),
         hasQuestion: Boolean(question),
         hasMessages: Boolean(messages) && Array.isArray(messages) && messages.length > 0,
         messageCount,

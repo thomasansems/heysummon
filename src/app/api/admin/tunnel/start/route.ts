@@ -36,6 +36,11 @@ export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const fullUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } });
+  if (fullUser?.role !== "admin") {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
   try {
     // Expose port 3425 via Tailscale Funnel (full port, HTTPS)
     // NOTE: NEVER use localtunnel — Tailscale Funnel only
@@ -44,7 +49,8 @@ export async function POST() {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (!msg.toLowerCase().includes("already") && !msg.toLowerCase().includes("success")) {
-      return NextResponse.json({ error: `Failed to start funnel: ${msg}` }, { status: 500 });
+      console.error("[tunnel/start] Failed to start funnel:", err);
+      return NextResponse.json({ error: "Failed to start funnel" }, { status: 500 });
     }
   }
 
@@ -84,7 +90,8 @@ export async function POST() {
       });
       results.push({ id: ch.id, ok: true });
     } catch (err) {
-      results.push({ id: ch.id, ok: false, error: String(err) });
+      console.error(`[tunnel/start] Webhook update failed for channel ${ch.id}:`, err);
+      results.push({ id: ch.id, ok: false, error: "Webhook update failed" });
     }
   }
 

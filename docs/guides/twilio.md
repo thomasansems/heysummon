@@ -1,6 +1,6 @@
 # Twilio Integration
 
-HeySummon can call your providers by phone when a new help request comes in. Instead of a Telegram or chat notification, your provider's phone will ring — they hear the request read aloud and can respond verbally. That response is transcribed and delivered back to the consumer.
+HeySummon can call your experts by phone when a new help request comes in. Instead of a Telegram or chat notification, your expert's phone will ring — they hear the request read aloud and can respond verbally. That response is transcribed and delivered back to the consumer.
 
 This is the **phone-first** feature, powered by Twilio Voice.
 
@@ -45,7 +45,7 @@ A free trial gives you a $15 credit and a test phone number. You will need to ve
 
 1. In the Twilio Console, go to **Phone Numbers → Manage → Buy a number**.
 2. Filter by your country and make sure **Voice** is checked. Click **Buy** (free trial credit covers this).
-3. Note the number — it will be in E.164 format, e.g. `+14155551234`. You'll enter it when configuring phone-first on a provider profile.
+3. Note the number — it will be in E.164 format, e.g. `+14155551234`. You'll enter it when configuring phone-first on an expert profile.
 
 ---
 
@@ -65,16 +65,16 @@ A free trial gives you a $15 credit and a test phone number. You will need to ve
 
 ---
 
-## Step 5 — Enable phone-first on a provider
+## Step 5 — Enable phone-first on an expert
 
-Once the integration is saved, you can enable phone calls per provider profile:
+Once the integration is saved, you can enable phone calls per expert profile:
 
-1. Go to **Providers** → open a provider
+1. Go to **Experts** → open an expert
 2. Under **Phone-first**, toggle it on
-3. Select your Twilio integration and enter the provider's phone number
+3. Select your Twilio integration and enter the expert's phone number
 4. Set a **timeout** — how many seconds to wait for an answer before falling back to Telegram
 
-When a new request comes in, HeySummon will call the provider first. If they don't answer within the timeout, the normal Telegram notification fires.
+When a new request comes in, HeySummon will call the expert first. If they don't answer within the timeout, the normal Telegram notification fires.
 
 ---
 
@@ -83,10 +83,10 @@ When a new request comes in, HeySummon will call the provider first. If they don
 **Call doesn't ring**
 - Check that your Twilio number has Voice capability
 - Make sure the Account SID + Auth Token are correct and the integration is **Active**
-- Verify the provider's phone number is in E.164 format (`+countrycode…`)
+- Verify the expert's phone number is in E.164 format (`+countrycode…`)
 
 **Trial account limitations**
-- Twilio free trial can only call verified numbers. [Verify your provider's number](https://console.twilio.com/us1/develop/phone-numbers/manage/verified) in the Twilio Console, or upgrade to a paid account.
+- Twilio free trial can only call verified numbers. [Verify your expert's number](https://console.twilio.com/us1/develop/phone-numbers/manage/verified) in the Twilio Console, or upgrade to a paid account.
 
 **Call connects but no audio**
 - Ensure your HeySummon instance is reachable from the public internet — Twilio needs to reach your webhook URL to get TwiML instructions.

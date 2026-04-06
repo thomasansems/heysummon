@@ -18,7 +18,7 @@ Keys are created from the dashboard under **Clients**. Keys start with `hs_cli_`
 
 IP binding is enforced: first request from a new IP is auto-approved; subsequent new IPs require dashboard approval.
 
-### Session (Dashboard/Provider endpoints)
+### Session (Dashboard/Expert endpoints)
 
 Session-based via NextAuth.js. Pass the cookie returned by `POST /api/auth/signin`. Not applicable for programmatic consumer access.
 
@@ -52,7 +52,7 @@ Submit a help request to a human expert.
   ],
   "signPublicKey": "-----BEGIN PUBLIC KEY-----\n...",
   "encryptPublicKey": "-----BEGIN PUBLIC KEY-----\n...",
-  "providerName": "Alice",
+  "expertName": "Alice",
   "requiresApproval": false
 }
 ```
@@ -63,8 +63,8 @@ Submit a help request to a human expert.
 | `messages` | array | No | Conversation context |
 | `signPublicKey` | string | No | Ed25519 public key for E2E signing |
 | `encryptPublicKey` | string | No | X25519 public key for E2E encryption |
-| `providerName` | string | No | Route to a specific named provider |
-| `requiresApproval` | boolean | No | If true, provider must approve before responding |
+| `expertName` | string | No | Route to a specific named expert |
+| `requiresApproval` | boolean | No | If true, expert must approve before responding |
 
 **Response `200`:**
 ```json
@@ -73,7 +73,7 @@ Submit a help request to a human expert.
   "refCode": "HS-ABCD",
   "status": "pending",
   "expiresAt": "2026-01-01T01:00:00Z",
-  "providerUnavailable": false,
+  "expertUnavailable": false,
   "serverPublicKey": "-----BEGIN PUBLIC KEY-----\n..."
 }
 ```
@@ -106,9 +106,9 @@ Check the status of a submitted request.
 
 | Status | Meaning |
 |--------|---------|
-| `pending` | Submitted, waiting for provider to pick up |
-| `active` | Provider has started working on it |
-| `responded` | Provider has replied |
+| `pending` | Submitted, waiting for expert to pick up |
+| `active` | Expert has started working on it |
+| `responded` | Expert has replied |
 | `closed` | Conversation ended |
 | `expired` | Request expired without a response |
 
@@ -128,7 +128,7 @@ Poll for pending events. Updates `lastPollAt` on the API key (used for connectio
       "type": "new_message",
       "requestId": "cm...",
       "refCode": "HS-ABCD",
-      "from": "provider",
+      "from": "expert",
       "messageCount": 3,
       "latestMessageAt": "2026-01-01T00:05:00Z"
     }
@@ -140,7 +140,7 @@ Poll for pending events. Updates `lastPollAt` on the API key (used for connectio
 
 | Type | Meaning |
 |------|---------|
-| `new_request` | A new help request arrived (provider-side) |
+| `new_request` | A new help request arrived (expert-side) |
 | `new_message` | A new message was added to a request |
 
 ---
@@ -168,7 +168,7 @@ Fetch the full message history for a request.
     {
       "id": "msg...",
       "messageId": "msgid...",
-      "from": "provider",
+      "from": "expert",
       "ciphertext": "base64...",
       "iv": "base64...",
       "authTag": "base64...",
@@ -185,7 +185,7 @@ Fetch the full message history for a request.
 
 ### GET /api/v1/whoami
 
-Identify which provider this API key is linked to.
+Identify which expert this API key is linked to.
 
 **Auth:** `x-api-key`
 
@@ -194,7 +194,7 @@ Identify which provider this API key is linked to.
 {
   "keyId": "cm...",
   "keyName": "My Agent Key",
-  "provider": {
+  "expert": {
     "id": "cm...",
     "name": "Alice's Platform",
     "isActive": true
@@ -208,16 +208,16 @@ Identify which provider this API key is linked to.
 
 ---
 
-### GET /api/v1/providers
+### GET /api/v1/experts
 
-List the provider linked to this API key.
+List the expert linked to this API key.
 
 **Auth:** `x-api-key`
 
 **Response `200`:**
 ```json
 {
-  "providers": [
+  "experts": [
     {
       "id": "cm...",
       "name": "Alice's Platform",
@@ -233,7 +233,7 @@ List the provider linked to this API key.
 
 Check whether a consumer API key has polled recently (used for setup page live verification).
 
-**Auth:** Dashboard session (provider must be logged in)
+**Auth:** Dashboard session (expert must be logged in)
 
 **Request:**
 ```json
@@ -259,7 +259,7 @@ Check whether a consumer API key has polled recently (used for setup page live v
 
 ---
 
-## Provider API (Dashboard)
+## Expert API (Dashboard)
 
 Used by the dashboard UI. Session-authenticated. Not intended for direct programmatic access.
 
@@ -267,12 +267,12 @@ Used by the dashboard UI. Session-authenticated. Not intended for direct program
 
 Send a reply to a consumer's help request.
 
-**Auth:** `x-api-key` (provider key)
+**Auth:** `x-api-key` (expert key)
 
 **Request:**
 ```json
 {
-  "from": "provider",
+  "from": "expert",
   "plaintext": "Here is my response..."
 }
 ```
@@ -338,7 +338,7 @@ pnpm install @heysummon/consumer-sdk
 ```
 
 ```typescript
-import { HeySummonClient, PollingWatcher, ProviderStore } from "@heysummon/consumer-sdk";
+import { HeySummonClient, PollingWatcher, ExpertStore } from "@heysummon/consumer-sdk";
 
 const client = new HeySummonClient({ baseUrl: "https://...", apiKey: "hs_cli_..." });
 

@@ -159,7 +159,7 @@ docker compose --profile tailscale up -d
 
 ```
 
-See the [Self-Hosting Guide](https://docs.heysummon.ai/self-hosting) for per-provider setup.
+See the [Self-Hosting Guide](https://docs.heysummon.ai/self-hosting) for per-expert setup.
 
 ### Managed Cloud
 

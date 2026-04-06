@@ -22,6 +22,11 @@ const snPro = localFont({
   ],
 });
 
+// Force dynamic rendering — next-themes ThemeProvider triggers a useContext
+// null error during static prerendering in Next.js 16.2 + React 19.2.
+// HeySummon pages are auth-gated and data-driven, so SSG offers no benefit.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "HeySummon Expert Portal",
   description: "Human in the Loop as a Service -- Expert Dashboard",

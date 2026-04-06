@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 // Mock Prisma before imports
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    channelProvider: {
+    expertChannel: {
       findUnique: vi.fn(),
       update: vi.fn(),
     },
@@ -184,7 +184,7 @@ describe("OpenClaw Adapter", () => {
   describe("onActivate", () => {
     it("generates webhook secret and updates channel", async () => {
       const { prisma } = await import("@/lib/prisma");
-      const mockUpdate = vi.mocked(prisma.channelProvider.update);
+      const mockUpdate = vi.mocked(prisma.expertChannel.update);
       mockUpdate.mockResolvedValue({} as never);
 
       await openClawAdapter.onActivate!("ch-oc-1", { apiKey: "oc_test" });

@@ -360,7 +360,7 @@ export async function POST(request: Request) {
             ],
           ]);
         } else {
-          const msg = `*New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
+          const msg = `*New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`/reply ${helpRequest.refCode}\` your answer`;
           await sendMessage(cfg.botToken, cfg.expertChatId, msg);
         }
         // Mark as notified

@@ -58,8 +58,7 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
 
   const expertArg = getArg(args, "--expert");
   const contextArg = getArg(args, "--context");
-  const APPROVAL_KEYWORDS = /\b(approve|approval|permission|authorize|go[- ]?ahead|green[- ]?light|sign[- ]?off|proceed)\b/i;
-  const requiresApproval = hasFlag(args, "--requires-approval") || (question ? APPROVAL_KEYWORDS.test(question) : false);
+  const requiresApproval = hasFlag(args, "--requires-approval");
   const baseUrl = requireEnv("HEYSUMMON_BASE_URL");
   const timeout = parseInt(optEnv("HEYSUMMON_TIMEOUT", "900"), 10);
   const pollInterval = parseInt(optEnv("HEYSUMMON_POLL_INTERVAL", "3"), 10);

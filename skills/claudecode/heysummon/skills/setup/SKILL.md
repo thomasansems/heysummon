@@ -1,5 +1,5 @@
 ---
-name: setup
+name: heysummon-setup
 description: Configure HeySummon with a setup link from your expert's dashboard. Use when given a HeySummon setup URL.
 disable-model-invocation: true
 argument-hint: <setup-url>

@@ -19,9 +19,10 @@ import {
   Lightbulb,
   Settings,
   ScrollText,
-  ThumbsUp,
-  ThumbsDown,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useConnectionVerify } from "@/hooks/use-connection-verify";
 import {
@@ -326,33 +327,41 @@ export function StepClient({
             </button>
 
             {showExamples && (
-              <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="rounded-md border border-green-200 dark:border-green-900/40 bg-green-50/50 dark:bg-green-950/10 p-3">
-                  <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-green-600 dark:text-green-400 mb-1">
-                    <ThumbsUp className="h-3 w-3 shrink-0" />
-                    Good request
-                  </p>
-                  <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`I'm implementing the checkout flow.
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <Card size="sm" className="border-green-200 dark:border-green-900/40 bg-green-50/30 dark:bg-green-950/10">
+                  <CardHeader className="pb-0">
+                    <CardTitle className="flex items-center gap-1.5 text-xs font-semibold text-green-600 dark:text-green-400">
+                      <CheckCircle className="h-4 w-4 shrink-0" />
+                      Good request
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`I'm implementing the checkout flow.
 The design shows a discount code field
 but the API spec has no discount endpoint.
 
 Should I:
 A) Skip the discount field for now
 B) Create a /discounts endpoint myself`}</pre>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    Context + options = answerable in seconds.
-                  </p>
-                </div>
-                <div className="rounded-md border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/10 p-3">
-                  <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400 mb-1">
-                    <ThumbsDown className="h-3 w-3 shrink-0" />
-                    Bad request
-                  </p>
-                  <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`What should I do next?`}</pre>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    No context = slow to answer.
-                  </p>
-                </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Context + options = answerable in seconds.
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card size="sm" className="border-red-200 dark:border-red-900/40 bg-red-50/30 dark:bg-red-950/10">
+                  <CardHeader className="pb-0">
+                    <CardTitle className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
+                      <XCircle className="h-4 w-4 shrink-0" />
+                      Bad request
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`What should I do next?`}</pre>
+                    <p className="text-[11px] text-muted-foreground">
+                      No context = slow to answer.
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </div>

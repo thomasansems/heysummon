@@ -29,7 +29,11 @@ echo "  🛡️  Malicious Content Guard Check (ZAP Suite)"
 echo "══════════════════════════════════════════════════"
 
 # Check Guard is up
-HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "${GUARD_URL}/health" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "${GUARD_URL}/api/v1/health" 2>/dev/null || echo "000")
+if [ "$HTTP_CODE" != "200" ]; then
+  # Fallback: try /health for standalone Guard proxy
+  HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "${GUARD_URL}/health" 2>/dev/null || echo "000")
+fi
 if [ "$HTTP_CODE" != "200" ]; then
   echo -e "${RED}❌ Guard not running at ${GUARD_URL} — aborting${NC}"
   exit 1

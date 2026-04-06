@@ -2,6 +2,13 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## Unreleased
+
+### Changed
+- `ask.sh` no longer auto-detects approval intent from keywords in the question. Approval mode now requires the explicit `--requires-approval` flag. This removes false positives where questions like "should I proceed?" silently became Approve/Deny prompts.
+
+---
+
 ## v0.2.7 -- 2026-04-06
 
 ### Fixed

@@ -32,25 +32,13 @@ CLI_ARGS=(submit-and-poll --question "$QUESTION")
 [ -n "$CONTEXT" ] && CLI_ARGS+=(--context "$CONTEXT")
 [ -n "$EXPERT_NAME" ] && CLI_ARGS+=(--expert "$EXPERT_NAME")
 
-# Check for explicit --requires-approval flag (positional or anywhere in args)
-REQUIRES_APPROVAL=false
+# Forward --requires-approval flag if explicitly passed (no auto-detection)
 for arg in "$@"; do
   if [ "$arg" = "--requires-approval" ]; then
-    REQUIRES_APPROVAL=true
+    CLI_ARGS+=(--requires-approval)
     break
   fi
 done
-
-# Auto-detect approval intent from the question text
-if [ "$REQUIRES_APPROVAL" = "false" ]; then
-  if echo "$QUESTION" | grep -qiE '\b(approve|approval|permission|authorize|go[- ]?ahead|green[- ]?light|sign[- ]?off|proceed)\b'; then
-    REQUIRES_APPROVAL=true
-  fi
-fi
-
-if [ "$REQUIRES_APPROVAL" = "true" ]; then
-  CLI_ARGS+=(--requires-approval)
-fi
 
 # Export env vars for the CLI
 export HEYSUMMON_BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3425}"

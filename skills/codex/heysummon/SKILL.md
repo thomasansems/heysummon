@@ -30,15 +30,14 @@ bash $SKILL_DIR/scripts/ask.sh "Your question here"
 bash $SKILL_DIR/scripts/ask.sh "Is this the right approach?" '[{"role":"user","content":"context"}]' "ExpertName"
 
 # Ask for approval (expert gets Approve/Deny buttons)
-bash $SKILL_DIR/scripts/ask.sh "I want to refactor the auth module. Please approve." "" "ExpertName"
+bash $SKILL_DIR/scripts/ask.sh "I want to refactor the auth module." "" "ExpertName" --requires-approval
 ```
 
 The script **blocks and returns the human's answer** on stdout.
 
-**Approval requests**: When your question asks for approval, permission, or authorization
-(e.g. contains words like "approve", "permission", "go ahead", "proceed"),
-the expert receives **Approve / Deny** buttons instead of a free-text prompt.
-The response will be `APPROVED` or `DENIED`. Use this for yes/no decisions.
+**Approval requests**: To request a yes/no decision (Approve/Deny buttons instead of a
+free-text reply), pass `--requires-approval` explicitly. The response will be `APPROVED`
+or `DENIED`. Use this for yes/no decisions.
 
 ## Other commands
 

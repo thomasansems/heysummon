@@ -3,26 +3,18 @@ import { AlertCircle, Send, Bell, MessageSquare, CheckCircle2 } from 'lucide-rea
 
 const flowSteps = [
   {
-    icon: AlertCircle,
-    label: 'AI runs into a hard problem',
-  },
-  {
     icon: Send,
-    label: 'Summons expert via HeySummon',
+    label: 'Summons expert via HeySummon skill',
   },
   {
     icon: Bell,
-    label: 'Expert gets notified',
+    label: 'Expert gets notified and responds',
     sublabel: 'Slack / Telegram / Dashboard / Phone',
   },
   {
     icon: MessageSquare,
-    label: 'Expert responds',
-  },
-  {
-    icon: CheckCircle2,
-    label: 'AI picks up the answer and continues',
-  },
+    label: 'AI agent continues',
+  }
 ];
 
 export function FlowSection() {
@@ -68,11 +60,11 @@ export function FlowSection() {
                 <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
                   <step.icon className="w-6 h-6 text-primary" />
                 </div>
-                <span className="text-sm font-medium text-text-heading leading-snug">
+                <span className="text-md font-medium text-text-heading leading-snug">
                   {step.label}
                 </span>
                 {step.sublabel && (
-                  <span className="text-xs text-text-muted mt-1">{step.sublabel}</span>
+                  <span className="text-sm text-text-muted mt-1">{step.sublabel}</span>
                 )}
               </motion.div>
 

@@ -20,7 +20,7 @@ services:
       - |
         echo 'Running database migration...'
         tries=0
-        until pnpm exec prisma db push --skip-generate --accept-data-loss; do
+        until pnpm exec prisma db push --schema /app/prisma/schema.prisma --skip-generate --accept-data-loss 2>&1; do
           tries=$$((tries + 1))
           if [ $$tries -ge 10 ]; then
             echo 'Migration failed after 10 attempts'

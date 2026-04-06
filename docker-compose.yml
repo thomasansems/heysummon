@@ -20,13 +20,14 @@
 services:
   db-migrate:
     image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
+    user: root
     entrypoint:
       - sh
       - -c
       - |
         echo 'Running database migration...'
         tries=0
-        until prisma db push --skip-generate --accept-data-loss; do
+        until prisma db push --schema /app/prisma/schema.prisma --skip-generate --accept-data-loss 2>&1; do
           tries=$$((tries + 1))
           if [ $$tries -ge 10 ]; then
             echo 'Migration failed after 10 attempts'

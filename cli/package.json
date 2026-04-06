@@ -27,7 +27,7 @@
     "url": "https://github.com/thomasansems/heysummon.git",
     "directory": "cli"
   },
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
     "@clack/prompts": "^0.10.0",
     "picocolors": "^1.1.1"

@@ -99,4 +99,4 @@ Include a description of the vulnerability, steps to reproduce, and any potentia
 
 ## License
 
-By contributing to HeySummon you agree that your contributions will be licensed under the [Summon Use License (SUL)](LICENSE.md).
+By contributing to HeySummon you agree that your contributions will be licensed under the [Sustainable Use License (SUL)](LICENSE.md).

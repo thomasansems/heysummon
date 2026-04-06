@@ -2,6 +2,14 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.2.5 -- 2026-04-06
+
+### Fixed
+- Docker `db-migrate` service now runs as root to avoid permission issues with Prisma engine cache writes -- the `nextjs` user (UID 1001) had no writable home directory, causing `prisma db push` to fail on every attempt
+- Added explicit `--schema` path to `prisma db push` for reliable schema resolution
+
+---
+
 ## Docs -- 2026-04-06
 
 ### Changed

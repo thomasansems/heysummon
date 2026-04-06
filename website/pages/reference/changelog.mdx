@@ -8,6 +8,7 @@ import { Callout } from 'nextra/components'
 - `ask.sh` no longer auto-detects approval intent from keywords in the question. Approval mode now requires the explicit `--requires-approval` flag. This removes false positives where questions like "should I proceed?" silently became Approve/Deny prompts.
 
 ### Docs
+- Replaced "Best Practice Prompts" page with "Summoning Guidelines" -- documents the wizard-based guidelines flow used during onboarding and client setup instead of static copy-paste prompts
 - Rewrote consumer API reference: fixed API key prefix (`hs_cli_*`), corrected whoami response format, added v3/v4 response distinction, documented 6 missing endpoints (by-ref lookup, timeout, rate, events/pending, events/ack, key-exchange), added curl/SDK CLI examples for all endpoints, added request lifecycle diagram, documented phone-first and expert unavailability behaviors
 - Patched reference API docs for parity: fixed API key prefix, whoami response format, and v3/v4 status response distinction
 

@@ -1,149 +1,140 @@
-import { Callout } from 'nextra/components'
+import { Callout, Steps } from 'nextra/components'
 
-# Best Practice Prompts
+# Summoning Guidelines
 
-Copy these snippets into your AI agent's system prompt. They teach the agent
-**when** to use HeySummon — the agent simply writes `hey summon NAME QUESTION`
-in conversation and HeySummon handles the rest.
+HeySummon uses a **Summoning Wizard** to generate personalized guidelines for your AI
+agents. Instead of manually writing system prompts, you configure how and when the agent
+should ask a human for help -- and HeySummon generates the instructions automatically.
 
 <Callout type="info">
-  Replace `NAME` with the expert name configured in your HeySummon instance
-  (e.g. `alice`, `thomas`, `ops-team`).
+  Guidelines are configured during **onboarding** (step 4) or when **adding a new client**
+  from the dashboard. You can also reuse previously created guidelines.
 </Callout>
 
 ---
 
-## 1. Spending money or using a budget
+## How it works
 
-Use when your agent can make purchases, authorize payments, or consume paid resources.
+<Steps>
 
-```
-You have access to tools that can spend money. Your spending limit without
-approval is $[LIMIT].
+### Set autonomy level
 
-Before spending, committing, or authorizing ANY amount above this limit, you MUST
-ask for human approval:
+Choose how independently the AI agent should operate:
 
-  hey summon NAME I need to spend $[AMOUNT] on [REASON]. Here's the context:
-  vendor is [VENDOR], invoice [ID]. Should I proceed?
+| Level | Behavior |
+|-------|----------|
+| **Autonomous** | Operates independently. Only summons the expert when completely stuck. |
+| **Balanced** | Works autonomously on routine tasks. Summons for important decisions or ambiguous requirements. |
+| **Conservative** | Summons before any risky, unclear, or potentially impactful action. Prefers caution over speed. |
+| **Strict** | Summons before most non-trivial actions. Only proceeds autonomously on simple, well-defined, low-risk tasks. |
 
-Wait for the response before taking any action. If no response arrives, do NOT
-proceed — abort and report that the action was not completed.
-```
+### Configure safety gates
 
----
+Safety gates are hard rules -- the agent will **always** summon a human before these
+actions, regardless of autonomy level:
 
-## 2. Zero-spend constraint — never spend without approval
+- **Destructive actions** -- deleting data, dropping tables, removing files
+- **Financial decisions** -- purchases, billing changes, cost-affecting actions
+- **Permission changes** -- modifying access, roles, or security settings
+- **External communications** -- sending emails, messages, or notifications
+- **Deployments** -- deploying to production or staging environments
 
-Use when your agent operates in read-only / zero-spend mode.
+By default, *destructive actions* and *financial decisions* are enabled.
 
-```
-You are NOT authorized to spend any money or commit to any paid resource.
+### Define expert strengths
 
-If completing your task requires spending money, do not guess or work around it.
-Ask for guidance:
+Tell the agent what the human expert is especially good at, so it knows when human
+input adds the most value:
 
-  hey summon NAME I need to spend money to complete this task but I'm not
-  authorized. The task is [TASK], the blocker is [BLOCKER], estimated cost
-  is [AMOUNT]. How should I proceed?
+- **Code review** -- architecture decisions and code quality
+- **Emotional intelligence** -- sensitive situations requiring empathy
+- **Domain expertise** -- industry-specific knowledge and context
+- **Creative decisions** -- design, branding, and creative direction
+- **Research** -- deep research and investigation tasks
+- **Legal & compliance** -- legal review, regulatory matters
 
-Do not continue until you receive a response.
-```
+### Choose timeout fallback
 
----
+Decide what the agent should do if no expert responds within the timeout period:
 
-## 3. Judgment call — uncertain or ambiguous situation
+| Fallback | Behavior |
+|----------|----------|
+| **Proceed cautiously** | Pick the safest available option. Document all decisions made without expert input and flag them for review. |
+| **Skip & continue** | Skip the blocked task, continue with other available work, and flag the skipped task for expert review later. |
+| **Stop entirely** | Halt all execution immediately until an expert responds. |
 
-Use when your agent hits ambiguity, conflicting requirements, or a decision
-where a wrong call has real consequences.
-
-```
-When you are uncertain about the right action and any of the following is true:
-- Your confidence is below 80%
-- A wrong choice would affect real users, data, or money
-- Two or more valid interpretations exist
-
-Do not guess. Ask a human:
-
-  hey summon NAME I need a judgment call. The situation is [DESCRIBE].
-  I see these options: [A] or [B]. I'd recommend [X] because [REASON],
-  but I'm not confident. What should I do?
-
-Summarize the options and your recommendation. Wait for the response.
-```
+</Steps>
 
 ---
 
-## 4. Design and visual review
+## What gets generated
 
-Use when your agent generates, modifies, or is about to publish any visual
-output — UI, images, brand assets, or design changes.
+After completing the wizard, HeySummon generates a set of markdown-formatted instructions
+that get embedded into the AI agent's configuration. Here is an example:
 
+```markdown
+## Summoning Guidelines
+
+### Autonomy Level: Balanced
+Work autonomously on routine tasks. Summon the expert for important
+decisions, ambiguous requirements, or when multiple valid approaches exist.
+
+### Safety Gates (Always Summon)
+- Always summon before destructive actions (deleting data, dropping tables, removing files)
+- Always summon before financial decisions (purchases, billing changes, cost-affecting actions)
+
+### Expert Strengths (Prefer Human Input)
+- Prefer human input for code review, architecture decisions, and code quality
+
+### Timeout Fallback
+If no expert responds within the timeout, proceed with the safest available
+option. Document all decisions made without expert input and flag them for review.
 ```
-Before publishing any visual output to end-users, ask for a human review:
 
-  hey summon NAME Please review this [image/UI change/design] before I
-  publish it. Here's what it looks like: [DESCRIPTION or URL].
-  It will be published to [DESTINATION].
-
-Only proceed after receiving explicit approval. Silence is NOT approval — if
-no response arrives, do not publish.
-```
+The agent receives these guidelines automatically when it is set up via the setup link.
+No manual prompt editing required.
 
 ---
 
-## 5. Irreversible or high-impact action
+## Where guidelines are configured
 
-Use when your agent is about to do something that cannot be undone — deleting
-records, sending emails to real users, deploying to production, publishing content.
+You can create or update guidelines in two places:
 
-```
-Before taking any irreversible action, you MUST ask for confirmation:
+1. **Onboarding** -- when you first connect a client (step 4 of the setup flow)
+2. **Dashboard** -- when adding a new client under *Clients*
 
-  hey summon NAME I'm about to [ACTION]. This affects [COUNT] records/users
-  and cannot be undone. Should I proceed?
-
-If you do not receive confirmation, abort the action. Never assume approval.
-```
+HeySummon remembers your most recent guidelines per expert, so the next time you set up
+a client, your previous configuration is pre-filled.
 
 ---
 
-## How it works under the hood
+## How guidelines reach the agent
 
-When the agent writes `hey summon NAME QUESTION`, HeySummon:
+When you complete the wizard and create a client connection:
 
-1. **Sends an encrypted help request** to the platform
-2. **Notifies the human** via their preferred channel (dashboard, Telegram, Slack, phone)
-3. **Waits for the response** — polling every few seconds, up to 15 minutes
-4. **Returns the answer** directly to the agent, which continues its work
+1. HeySummon generates a **setup link** (valid for 24 hours)
+2. The setup link contains an install command with guidelines embedded
+3. Running the install command configures the AI agent's environment
+4. The agent's HeySummon skill reads the guidelines and follows them during operation
 
-The agent doesn't need to know about API endpoints, keys, or encryption —
-the HeySummon skill handles all of that.
-
----
-
-## For humans: responding to requests
-
-When an agent asks for help, the human expert gets notified. They can respond from:
-
-| Channel | How to respond |
-|---------|---------------|
-| **Dashboard** | Open the request, type your answer, click Respond |
-| **Telegram** | Reply to the notification message |
-| **Slack** | Reply in the thread |
-| **Phone** | Answer the call, speak your response |
-
-Every request has a reference code (e.g. `HS-A1B2C3D4`) for easy tracking.
+The agent does not need to know about API endpoints, keys, or encryption -- the
+HeySummon skill handles all of that.
 
 ---
 
 ## Tips
 
-- **Be specific.** The more context the agent provides, the faster the human can respond.
-- **One question at a time.** Don't ask multiple things in a single request.
-- **Name your expert.** Always use a specific expert name so HeySummon routes the request correctly.
-- **Set expectations.** If no response arrives within the timeout (default 15 min), the agent should abort — not guess.
+- **Start with Balanced.** It is the default for a reason -- most teams want agents that
+  can work independently but check in on important calls.
+- **Enable safety gates for your risk profile.** If your agent handles payments, enable
+  *financial decisions*. If it manages infrastructure, enable *deployments*.
+- **Add expert strengths sparingly.** Only mark strengths where human input genuinely
+  outperforms the AI -- this keeps summon frequency manageable.
+- **Use "Stop entirely" for high-stakes environments.** If a wrong autonomous decision
+  could cause real damage, stopping is safer than proceeding.
+- **Reuse guidelines across clients.** HeySummon saves your recent configurations, so
+  you can quickly apply the same guidelines to new agents.
 
 ---
 
-*Have a use case not covered here? [Open an issue](https://github.com/thomasansems/heysummon/issues) or contribute to the docs.*
+*Have a use case not covered by the wizard? [Open an issue](https://github.com/thomasansems/heysummon/issues) or contribute to the docs.*

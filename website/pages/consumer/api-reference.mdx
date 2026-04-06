@@ -1,210 +1,908 @@
-import { Callout } from 'nextra/components'
+import { Callout, Tabs, Tab } from "nextra/components"
 
 # Consumer API Reference
 
-All endpoints use `x-api-key` authentication with a client key (`hs_live_*`).
+Base URL: `http://your-instance:3445` (Docker) or `http://localhost:3435` (NPX/CLI)
+
+All endpoints require a consumer API key via the `x-api-key` header. Consumer keys use the `hs_cli_*` prefix (legacy keys with `htl_*` prefix are also accepted).
 
 ---
 
-## Submit a help request
+## Quick Start
 
+A complete happy-path integration in four steps: get your key, submit a request, poll for the response, and read it.
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+# 1. Verify your API key
+curl -s http://localhost:3445/api/v1/whoami \
+  -H "x-api-key: hs_cli_abc123..."
+
+# 2. Submit a help request
+curl -s -X POST http://localhost:3445/api/v1/help \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: hs_cli_abc123..." \
+  -d '{
+    "apiKey": "hs_cli_abc123...",
+    "question": "Should I delete the user account permanently?",
+    "signPublicKey": "hex-encoded-Ed25519-public-key",
+    "encryptPublicKey": "hex-encoded-X25519-public-key"
+  }'
+# Returns: { "requestId": "...", "refCode": "HS-A1B2C3D4", "status": "pending", ... }
+
+# 3. Poll for the response
+curl -s http://localhost:3445/api/v1/help/REQUEST_ID \
+  -H "x-api-key: hs_cli_abc123..."
+# Returns status: "pending", "responded", etc.
+
+# 4. Close the request when done
+curl -s -X POST http://localhost:3445/api/v1/close/REQUEST_ID \
+  -H "x-api-key: hs_cli_abc123..."
 ```
-POST /api/v1/help
+</Tab>
+<Tab>
+```bash
+# 1. Register your expert
+npx @heysummon/consumer-sdk add-expert --key hs_cli_abc123...
+
+# 2. Submit and poll (blocks until response or timeout)
+npx @heysummon/consumer-sdk submit-and-poll \
+  --question "Should I delete the user account permanently?"
+
+# 3. Check status of a previous request
+npx @heysummon/consumer-sdk check-status --ref HS-A1B2C3D4
 ```
-
-Sends a help request to a human expert. Returns immediately with a request ID.
-
-### Body
-
-```json
-{
-  "apiKey": "hs_live_abc123...",
-  "question": "Should I delete the user's account permanently?",
-  "signPublicKey": "base64-encoded-Ed25519-public-key",
-  "encryptPublicKey": "base64-encoded-X25519-public-key",
-  "messages": "encrypted-conversation-history",
-  "messageCount": 5
-}
-```
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `apiKey` | ✅ | Your client API key |
-| `question` | ✅ | The question for the human expert |
-| `signPublicKey` | ❌ | Ed25519 public key — enables E2E encryption |
-| `encryptPublicKey` | ❌ | X25519 public key — enables E2E encryption |
-| `requiresApproval` | ❌ | When `true`, the expert sees Approve/Deny buttons instead of a free-text reply field |
-| `messages` | ❌ | Encrypted conversation history for context |
-| `messageCount` | ❌ | Number of messages in `messages` |
-
-### Response
-
-```json
-{
-  "requestId": "cmxxx...",
-  "refCode": "HS-A1B2C3D4",
-  "status": "pending",
-  "expiresAt": "2026-03-03T10:00:00.000Z"
-}
-```
+</Tab>
+</Tabs>
 
 ---
 
-## Poll request status
+## Authentication
 
-```
-GET /api/v1/help/:requestId
-```
+All requests must include the `x-api-key` header with a valid consumer API key.
 
-Check the status of a help request. Use this to poll for a response.
+| Key prefix | Type | Description |
+|------------|------|-------------|
+| `hs_cli_*` | Consumer | Current consumer key format |
+| `htl_*` | Legacy | Legacy consumer keys (still accepted) |
 
-<Callout type="info">
-  For event-based updates, use the [polling endpoint](/consumer/realtime) (`GET /api/v1/events/pending`).
+<Callout type="warning">
+Keys with the `hs_exp_*` prefix are expert keys and cannot be used for consumer API calls.
 </Callout>
 
-### Response (pending)
+---
 
-```json
-{
-  "requestId": "cmxxx...",
-  "refCode": "HS-A1B2C3D4",
-  "status": "pending",
-  "expiresAt": "2026-03-03T10:00:00.000Z"
-}
+## Request Lifecycle
+
+Requests move through these states:
+
+```
+pending --> active --> responded --> closed
+  |                       ^
+  |                       |
+  +--- expired (72h TTL)  |
+  |                       |
+  +--- cancelled          |
+  |                       |
+  +--- (approval flow) ---+
+       approvalDecision: "approved" | "denied"
 ```
 
-### Response (responded)
-
-```json
-{
-  "requestId": "cmxxx...",
-  "refCode": "HS-A1B2C3D4",
-  "status": "responded",
-  "response": "No, do not delete the account.",
-  "respondedAt": "2026-02-28T14:30:00.000Z"
-}
-```
+| State | Meaning |
+|-------|---------|
+| `pending` | Submitted, waiting for expert |
+| `active` | Expert has completed key exchange, composing a response |
+| `responded` | Expert sent a response |
+| `closed` | Consumer or expert closed the request |
+| `expired` | No response within 72 hours (auto-expire) |
+| `cancelled` | Explicitly cancelled |
 
 ---
 
-## Send a message
+## Endpoints
 
+### Identity
+
+#### Verify API Key (Whoami)
+
+`GET /api/v1/whoami`
+
+Returns information about the authenticated API key, including the linked expert.
+
+##### Request
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-api-key` | Yes | Consumer API key (`hs_cli_*` or `htl_*`) |
+| `X-Device-Token` | No | Device secret, if the key has device binding enabled |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s http://localhost:3445/api/v1/whoami \
+  -H "x-api-key: hs_cli_abc123..."
 ```
-POST /api/v1/message/:requestId
+</Tab>
+<Tab>
+```bash
+# Whoami is called internally by the add-expert command
+npx @heysummon/consumer-sdk add-expert --key hs_cli_abc123...
 ```
+</Tab>
+</Tabs>
 
-Send a follow-up message in an ongoing conversation.
-
-### Body
+##### Response
 
 ```json
 {
-  "from": "consumer",
-  "plaintext": "Follow-up: what about archiving instead?"
+  "keyId": "cm...",
+  "keyName": "My Agent Key",
+  "expert": {
+    "id": "cm...",
+    "name": "Jane Smith",
+    "isActive": true
+  },
+  "owner": {
+    "id": "cm...",
+    "name": "Jane Smith"
+  }
 }
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `from` | ✅ | Must be `"consumer"` for client keys |
-| `plaintext` | ✅* | Plaintext message |
-| `ciphertext` / `iv` / `authTag` / `signature` | ✅* | Encrypted message fields |
+| Field | Type | Description |
+|-------|------|-------------|
+| `keyId` | string | The API key record ID |
+| `keyName` | string | Display name of the API key |
+| `expert` | object \| null | The expert linked to this key |
+| `expert.id` | string | Expert profile ID |
+| `expert.name` | string | Expert display name |
+| `expert.isActive` | boolean | Whether the expert is currently active |
+| `owner` | object | The user who owns this key |
+| `owner.id` | string | User ID |
+| `owner.name` | string | User display name |
 
-*Either `plaintext` or all encrypted fields required.
+---
 
-### Response
+### Help Requests
+
+#### Submit a Help Request
+
+`POST /api/v1/help`
+
+Submit a help request to a human expert. Returns immediately with a request ID and ref code.
+
+##### Request
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `apiKey` | string | Yes | Your consumer API key (`hs_cli_*`) |
+| `question` | string | No | The question for the human expert (plaintext) |
+| `signPublicKey` | string | Yes* | Ed25519 public key (hex-encoded DER) for E2E encryption |
+| `encryptPublicKey` | string | Yes* | X25519 public key (hex-encoded DER) for E2E encryption |
+| `publicKey` | string | No | Legacy v3 RSA public key (use `signPublicKey` + `encryptPublicKey` instead) |
+| `messages` | array | No | Conversation history as `[{ role, content }]` array |
+| `messageCount` | number | No | Limit the number of messages from `messages` to include |
+| `requiresApproval` | boolean | No | When `true`, expert sees Approve/Deny buttons instead of free-text reply |
+| `expertName` | string | No | Route to a specific expert by name |
+
+*Either `signPublicKey` + `encryptPublicKey` (v4) or `publicKey` (v3 legacy) is required.
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s -X POST http://localhost:3445/api/v1/help \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: hs_cli_abc123..." \
+  -d '{
+    "apiKey": "hs_cli_abc123...",
+    "question": "Should I delete the user account permanently?",
+    "signPublicKey": "302a300506032b6570032100...",
+    "encryptPublicKey": "302a300506032b656e032100..."
+  }'
+```
+</Tab>
+<Tab>
+```bash
+npx @heysummon/consumer-sdk submit-and-poll \
+  --question "Should I delete the user account permanently?"
+```
+</Tab>
+</Tabs>
+
+##### Response (success)
+
+```json
+{
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "pending",
+  "expiresAt": "2026-04-09T12:00:00.000Z",
+  "serverPublicKey": "base64-encoded-server-public-key",
+  "phoneFirstAttempted": false
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `requestId` | string | Unique request ID for polling |
+| `refCode` | string | Human-readable reference code (`HS-XXXXXXXX`) |
+| `status` | string | Always `"pending"` on success |
+| `expiresAt` | string | ISO 8601 expiration timestamp (default 72 hours) |
+| `serverPublicKey` | string | Server's public key for v3 legacy encryption (only present when `publicKey` was sent) |
+| `phoneFirstAttempted` | boolean | Whether a voice call was attempted to reach the expert |
+
+##### Response (expert unavailable)
+
+When the expert is outside their availability window, the request is rejected before creation:
+
+```json
+{
+  "rejected": true,
+  "reason": "expert_unavailable",
+  "nextAvailableAt": "2026-04-07T09:00:00.000Z",
+  "message": "Expert is not available right now. They will be available again at 09:00 (Europe/Amsterdam). You can ask your question again at that time."
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rejected` | boolean | Always `true` when expert is unavailable |
+| `reason` | string | `"expert_unavailable"` |
+| `nextAvailableAt` | string \| null | ISO 8601 timestamp of next availability window |
+| `message` | string | Human-readable message with timezone-aware time |
+
+---
+
+#### Poll Request Status
+
+`GET /api/v1/help/:requestId`
+
+Check the current status of a help request. Poll this endpoint to wait for the expert's response.
+
+##### Request
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-api-key` | Yes | Must be the same key that submitted the request |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s http://localhost:3445/api/v1/help/REQUEST_ID \
+  -H "x-api-key: hs_cli_abc123..."
+```
+</Tab>
+<Tab>
+```bash
+npx @heysummon/consumer-sdk check-status --ref REQUEST_ID
+```
+</Tab>
+</Tabs>
+
+##### Response (pending)
+
+```json
+{
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "pending",
+  "createdAt": "2026-04-06T12:00:00.000Z",
+  "expiresAt": "2026-04-09T12:00:00.000Z"
+}
+```
+
+##### Response (responded -- v4 X25519)
+
+When the expert responds and the request used v4 encryption (signPublicKey + encryptPublicKey), the response is returned in plaintext (E2E encryption happens via the `/message` endpoint):
+
+```json
+{
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "responded",
+  "response": "No, do not delete the account. Archive it instead.",
+  "createdAt": "2026-04-06T12:00:00.000Z",
+  "expiresAt": "2026-04-09T12:00:00.000Z",
+  "respondedAt": "2026-04-06T14:30:00.000Z"
+}
+```
+
+##### Response (responded -- v3 RSA legacy)
+
+When the request used v3 legacy encryption (publicKey), the response is encrypted with RSA:
+
+```json
+{
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "responded",
+  "encryptedResponse": "base64-RSA-encrypted-response",
+  "createdAt": "2026-04-06T12:00:00.000Z",
+  "expiresAt": "2026-04-09T12:00:00.000Z",
+  "respondedAt": "2026-04-06T14:30:00.000Z"
+}
+```
+
+##### Response (approval decision)
+
+When the request used `requiresApproval: true`:
+
+```json
+{
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "responded",
+  "approvalDecision": "approved",
+  "createdAt": "2026-04-06T12:00:00.000Z",
+  "expiresAt": "2026-04-09T12:00:00.000Z",
+  "respondedAt": "2026-04-06T14:30:00.000Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `requestId` | string | Request ID |
+| `refCode` | string | Reference code |
+| `status` | string | Current status |
+| `createdAt` | string | ISO 8601 creation timestamp |
+| `expiresAt` | string | ISO 8601 expiration timestamp |
+| `response` | string | Plaintext response (v4 X25519) |
+| `encryptedResponse` | string | RSA-encrypted response (v3 legacy) |
+| `respondedAt` | string | ISO 8601 response timestamp |
+| `approvalDecision` | string | `"approved"` or `"denied"` (only on approval requests) |
+
+---
+
+#### Look Up Request by Ref Code
+
+`GET /api/v1/requests/by-ref/:refCode`
+
+Look up a request using its human-readable reference code (e.g. `HS-A1B2C3D4`).
+
+##### Request
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-api-key` | Yes | Consumer API key |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s http://localhost:3445/api/v1/requests/by-ref/HS-A1B2C3D4 \
+  -H "x-api-key: hs_cli_abc123..."
+```
+</Tab>
+<Tab>
+```bash
+npx @heysummon/consumer-sdk check-status --ref HS-A1B2C3D4
+```
+</Tab>
+</Tabs>
+
+##### Response
+
+```json
+{
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "pending"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `requestId` | string | Request ID |
+| `refCode` | string | Reference code |
+| `status` | string | Current request status |
+
+---
+
+#### Close a Request
+
+`POST /api/v1/close/:requestId`
+
+Close a request. Either the consumer or the expert can close it. Idempotent -- closing an already-closed request returns success.
+
+##### Request
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-api-key` | Yes | Consumer API key |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s -X POST http://localhost:3445/api/v1/close/REQUEST_ID \
+  -H "x-api-key: hs_cli_abc123..."
+```
+</Tab>
+<Tab>
+```bash
+# Close is handled automatically when using submit-and-poll
+# For manual close, use curl
+```
+</Tab>
+</Tabs>
+
+##### Response
 
 ```json
 {
   "success": true,
-  "messageId": "uuid...",
-  "createdAt": "2026-02-28T14:35:00.000Z"
+  "status": "closed",
+  "previousStatus": "responded",
+  "closedAt": "2026-04-06T15:00:00.000Z"
 }
 ```
 
----
-
-## List messages
-
-```
-GET /api/v1/messages/:requestId
-```
-
-Fetch all messages in a conversation.
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Always `true` on success |
+| `status` | string | Always `"closed"` |
+| `previousStatus` | string | The status before closing |
+| `closedAt` | string | ISO 8601 close timestamp |
 
 ---
 
-## Approval workflow
+### Messaging
 
-When you submit a request with `requiresApproval: true`, the expert receives Approve/Deny buttons in their notification channel (Telegram, Slack, or OpenClaw) instead of a free-text reply prompt.
+#### Send a Message
 
-### Submitting an approval request
+`POST /api/v1/message/:requestId`
 
-```typescript
-const result = await client.submitRequest({
-  question: "Should I proceed with the $5,000 purchase?",
-  requiresApproval: true,
-});
+Send a follow-up message in an ongoing conversation. Supports both plaintext and E2E encrypted messages.
+
+##### Request
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `from` | string | Yes | Must be `"consumer"` for consumer API keys |
+| `plaintext` | string | Yes* | Plaintext message (content-safety checked server-side) |
+| `ciphertext` | string | Yes* | Base64-encoded AES-256-GCM ciphertext |
+| `iv` | string | Yes* | Base64-encoded 12-byte IV |
+| `authTag` | string | Yes* | Base64-encoded 16-byte GCM authentication tag |
+| `signature` | string | Yes* | Base64-encoded Ed25519 signature over ciphertext |
+| `messageId` | string | Yes* | UUID for deduplication (required with encrypted fields) |
+
+*Either `plaintext` or all encrypted fields (`ciphertext`, `iv`, `authTag`, `signature`, `messageId`) are required.
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+# Plaintext message
+curl -s -X POST http://localhost:3445/api/v1/message/REQUEST_ID \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: hs_cli_abc123..." \
+  -d '{
+    "from": "consumer",
+    "plaintext": "Follow-up: what about archiving instead?"
+  }'
+```
+</Tab>
+<Tab>
+```bash
+# Messaging is handled automatically in submit-and-poll
+# For direct messaging, use the SDK client programmatically
+```
+</Tab>
+</Tabs>
+
+##### Response
+
+```json
+{
+  "success": true,
+  "messageId": "550e8400-e29b-41d4-a716-446655440000",
+  "createdAt": "2026-04-06T14:35:00.000Z"
+}
 ```
 
-### Polling for the decision
-
-The approval decision arrives as a message event, just like a regular response. Poll with `getPendingEvents()` or check `getRequestStatus()`:
-
-```typescript
-// Option 1: Poll events
-const events = await client.getPendingEvents();
-// Events include type "new_message" when a decision is made
-
-// Option 2: Check status directly
-const status = await client.getRequestStatus(result.requestId!);
-// status.status === "responded" when the expert has decided
-```
-
-### Reading the decision
-
-Fetch the message history to get the decision:
-
-```typescript
-const messages = await client.getMessages(result.requestId!);
-// The expert's message contains "approved" or "denied"
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Always `true` on success |
+| `messageId` | string | UUID of the created message |
+| `createdAt` | string | ISO 8601 creation timestamp |
 
 <Callout type="info">
-  The `approvalDecision` field on the request is also set to `"approved"` or `"denied"` once the expert acts. Each request can only receive one decision — subsequent button presses are ignored.
+If you send a message with a `messageId` that already exists, the endpoint returns `{ "success": true, "messageId": "...", "duplicate": true }` without creating a duplicate.
 </Callout>
 
 ---
 
-## Close a request
+#### List Messages
 
+`GET /api/v1/messages/:requestId`
+
+Fetch the full message history for a conversation, including public keys for both parties.
+
+##### Request
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-api-key` | Yes | Consumer API key |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s http://localhost:3445/api/v1/messages/REQUEST_ID \
+  -H "x-api-key: hs_cli_abc123..."
 ```
-POST /api/v1/close/:requestId
+</Tab>
+<Tab>
+```bash
+# Message history is fetched automatically during submit-and-poll
 ```
+</Tab>
+</Tabs>
 
-Manually close a request. Requests auto-expire after 72 hours.
-
----
-
-## Verify API key
-
-```
-GET /api/v1/whoami
-```
-
-Check your API key is valid.
+##### Response
 
 ```json
 {
-  "keyId": "cmxxx...",
-  "name": "My Agent Key",
-  "type": "client"
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "responded",
+  "consumerSignPubKey": "302a300506032b6570032100...",
+  "consumerEncryptPubKey": "302a300506032b656e032100...",
+  "expertSignPubKey": "302a300506032b6570032100...",
+  "expertEncryptPubKey": "302a300506032b656e032100...",
+  "messages": [
+    {
+      "id": "cm...",
+      "from": "expert",
+      "plaintext": "No, archive the account instead.",
+      "messageId": "550e8400-e29b-41d4-a716-446655440000",
+      "createdAt": "2026-04-06T14:30:00.000Z"
+    },
+    {
+      "id": "cm...",
+      "from": "consumer",
+      "ciphertext": "base64-encrypted-content",
+      "iv": "base64-iv",
+      "authTag": "base64-tag",
+      "signature": "base64-signature",
+      "messageId": "660e8400-e29b-41d4-a716-446655440001",
+      "createdAt": "2026-04-06T14:35:00.000Z"
+    }
+  ],
+  "expiresAt": "2026-04-09T12:00:00.000Z"
 }
 ```
 
+| Field | Type | Description |
+|-------|------|-------------|
+| `requestId` | string | Request ID |
+| `refCode` | string | Reference code |
+| `status` | string | Current request status |
+| `consumerSignPubKey` | string \| null | Consumer's Ed25519 signing public key |
+| `consumerEncryptPubKey` | string \| null | Consumer's X25519 encryption public key |
+| `expertSignPubKey` | string \| null | Expert's Ed25519 signing public key (null until key exchange) |
+| `expertEncryptPubKey` | string \| null | Expert's X25519 encryption public key (null until key exchange) |
+| `messages` | array | Message objects (plaintext or encrypted) |
+| `expiresAt` | string | ISO 8601 expiration timestamp |
+
+<Callout type="info">
+Messages with `iv: "plaintext"` are unencrypted (e.g. Telegram replies or pre-key-exchange messages). Plaintext messages include a `plaintext` field instead of encrypted fields.
+</Callout>
+
 ---
 
-## Rate limits
+### Events (Real-time)
+
+#### Poll Pending Events
+
+`GET /api/v1/events/pending`
+
+Long-poll for new events. For consumer keys, returns requests that have new expert messages or responses. Updates `lastPollAt` on the API key as a heartbeat.
+
+##### Request
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-api-key` | Yes | Consumer API key |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s http://localhost:3445/api/v1/events/pending \
+  -H "x-api-key: hs_cli_abc123..."
+```
+</Tab>
+<Tab>
+```bash
+# Event polling is handled automatically in submit-and-poll
+```
+</Tab>
+</Tabs>
+
+##### Response (consumer events)
+
+```json
+{
+  "events": [
+    {
+      "type": "new_message",
+      "requestId": "cm...",
+      "refCode": "HS-A1B2C3D4",
+      "from": "expert",
+      "messageCount": 3,
+      "respondedAt": "2026-04-06T14:30:00.000Z",
+      "latestMessageAt": "2026-04-06T14:30:00.000Z"
+    },
+    {
+      "type": "cancelled",
+      "requestId": "cm...",
+      "refCode": "HS-E5F6G7H8",
+      "cancelledAt": "2026-04-06T15:00:00.000Z"
+    }
+  ]
+}
+```
+
+Consumer event types:
+
+| Event type | Description |
+|------------|-------------|
+| `new_message` | Expert sent a new message or response |
+| `cancelled` | Request was cancelled |
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | Event type |
+| `requestId` | string | Request ID |
+| `refCode` | string | Reference code |
+| `from` | string | Always `"expert"` for `new_message` events |
+| `messageCount` | number | Total message count in the conversation |
+| `respondedAt` | string \| null | When the expert first responded |
+| `latestMessageAt` | string \| null | Timestamp of the most recent message |
+| `cancelledAt` | string | When the request was cancelled (for `cancelled` events) |
+
+---
+
+#### Acknowledge an Event
+
+`POST /api/v1/events/ack/:requestId`
+
+Mark an event as delivered. For consumer keys, this updates `consumerDeliveredAt` so the event is no longer returned by `GET /api/v1/events/pending`.
+
+##### Request
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-api-key` | Yes | Consumer API key |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s -X POST http://localhost:3445/api/v1/events/ack/REQUEST_ID \
+  -H "x-api-key: hs_cli_abc123..." \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+</Tab>
+<Tab>
+```bash
+# Event acknowledgment is handled automatically in submit-and-poll
+```
+</Tab>
+</Tabs>
+
+##### Response
+
+```json
+{
+  "ok": true,
+  "deliveredAt": "2026-04-06T14:31:00.000Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ok` | boolean | Always `true` on success |
+| `deliveredAt` | string | ISO 8601 timestamp of acknowledgment |
+
+---
+
+### Encryption
+
+#### Key Exchange
+
+`POST /api/v1/key-exchange/:requestId`
+
+Expert sends their public keys to complete the E2E key exchange. After this call, both sides can derive a shared secret via X25519 Diffie-Hellman and encrypt all subsequent messages with AES-256-GCM.
+
+This endpoint is typically called by the expert dashboard automatically. Consumer integrations do not call this endpoint directly.
+
+##### Request
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `signPublicKey` | string | Yes | Expert's Ed25519 public key (hex-encoded DER) |
+| `encryptPublicKey` | string | Yes | Expert's X25519 public key (hex-encoded DER) |
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-api-key` | Yes | Expert API key (`hs_exp_*`) or session cookie |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+# Typically called by the expert dashboard, not by consumers
+curl -s -X POST http://localhost:3445/api/v1/key-exchange/REQUEST_ID \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: hs_exp_def456..." \
+  -d '{
+    "signPublicKey": "302a300506032b6570032100...",
+    "encryptPublicKey": "302a300506032b656e032100..."
+  }'
+```
+</Tab>
+<Tab>
+```bash
+# Key exchange is handled automatically by the expert dashboard
+```
+</Tab>
+</Tabs>
+
+##### Response
+
+```json
+{
+  "success": true,
+  "status": "active"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Always `true` on success |
+| `status` | string | Request status after key exchange (set to `"active"`) |
+
+<Callout type="info">
+Key exchange can only happen once per request. Attempting a second exchange returns a `400` error.
+</Callout>
+
+---
+
+### Feedback
+
+#### Rate a Response
+
+`POST /api/v1/rate/:requestId`
+
+Rate an expert's response on a 1-5 scale with optional text feedback. Only allowed when the request status is `"responded"` or `"closed"`. Idempotent: once rated, a second call returns `409`.
+
+##### Request
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `rating` | number | Yes | Rating from 1 to 5 |
+| `feedback` | string | No | Optional text feedback |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s -X POST http://localhost:3445/api/v1/rate/REQUEST_ID \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: hs_cli_abc123..." \
+  -d '{ "rating": 5, "feedback": "Very helpful, thank you" }'
+```
+</Tab>
+<Tab>
+```bash
+# Rating is not yet available in the CLI
+```
+</Tab>
+</Tabs>
+
+##### Response
+
+```json
+{
+  "success": true,
+  "rating": 5,
+  "ratedAt": "2026-04-06T15:00:00.000Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Always `true` on success |
+| `rating` | number | The recorded rating |
+| `ratedAt` | string | ISO 8601 timestamp |
+
+---
+
+#### Report Timeout
+
+`POST /api/v1/help/:requestId/timeout`
+
+Report that the consumer's blocking poll timed out. The request stays visible on the expert dashboard so they can still respond later. The expert is notified via their notification channel.
+
+##### Request
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-api-key` | Yes | Must be the same key that submitted the request |
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s -X POST http://localhost:3445/api/v1/help/REQUEST_ID/timeout \
+  -H "x-api-key: hs_cli_abc123..."
+```
+</Tab>
+<Tab>
+```bash
+# Timeout reporting is handled automatically by submit-and-poll
+```
+</Tab>
+</Tabs>
+
+##### Response
+
+```json
+{
+  "ok": true
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ok` | boolean | Always `true` on success |
+| `alreadyTimedOut` | boolean | Present and `true` if timeout was already recorded |
+| `status` | string | Present if the request is no longer pending/active (already responded, etc.) |
+
+---
+
+## Approval Workflow
+
+Submit a request with `requiresApproval: true` to get an Approve/Deny decision instead of a free-text response.
+
+### Submit an approval request
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s -X POST http://localhost:3445/api/v1/help \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: hs_cli_abc123..." \
+  -d '{
+    "apiKey": "hs_cli_abc123...",
+    "question": "Should I proceed with the $5,000 purchase?",
+    "requiresApproval": true,
+    "signPublicKey": "302a300506032b6570032100...",
+    "encryptPublicKey": "302a300506032b656e032100..."
+  }'
+```
+</Tab>
+<Tab>
+```bash
+npx @heysummon/consumer-sdk submit-and-poll \
+  --question "Should I proceed with the $5,000 purchase?" \
+  --requires-approval
+```
+</Tab>
+</Tabs>
+
+### Poll for the decision
+
+The `approvalDecision` field appears on the status response once the expert acts:
+
+```json
+{
+  "requestId": "cm...",
+  "status": "responded",
+  "approvalDecision": "approved"
+}
+```
+
+Decision values: `"approved"` or `"denied"`. Each request can only receive one decision -- subsequent button presses are ignored.
+
+---
+
+## Rate Limits
 
 **Per IP (Platform edge middleware):**
 
@@ -218,18 +916,23 @@ Each API key also has a per-key rate limit (default: 150 req/min, configurable i
 
 ---
 
-## Error format
+## Error Reference
+
+All errors follow this format:
 
 ```json
-{ "error": "Request not found" }
+{ "error": "Human-readable error message" }
 ```
 
 | Code | Meaning |
 |------|---------|
-| `400` | Validation error |
+| `400` | Validation error or invalid request body |
 | `401` | Missing or invalid API key |
-| `403` | Key not authorized for this resource |
-| `404` | Not found |
+| `403` | Key not authorized for this resource (wrong key, IP not allowed) |
+| `404` | Request not found |
+| `409` | Conflict (e.g. request already rated, keys already exchanged) |
 | `413` | Payload too large (>1MB) |
-| `422` | Content blocked by safety filter (PII, XSS, etc.) |
+| `422` | Content blocked by safety filter (credit card, SSN/BSN) |
 | `429` | Rate limited |
+| `500` | Internal server error |
+| `503` | Expert not available (inactive, no channels configured) |

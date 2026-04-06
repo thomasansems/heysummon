@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Loader2, Check, Zap, Copy, ExternalLink } from "lucide-react";
+import { Loader2, Check, Zap, Copy, ExternalLink, RefreshCw, SkipForward } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
+import { SuccessCelebration } from "@/components/onboarding/success-celebration";
 
 interface StepTestE2eProps {
   apiKeyId: string;
@@ -41,27 +42,27 @@ interface StageInfo {
 const STAGES: StageInfo[] = [
   {
     key: "received",
-    label: "Request received from client",
-    activeLabel: "Waiting for request from your AI client...",
-    docHint: "Make sure the skill is installed and the API key is valid.",
+    label: "Request received",
+    activeLabel: "Waiting for request from client...",
+    docHint: "Check skill installation and API key.",
   },
   {
     key: "notified",
     label: "Expert notified",
-    activeLabel: "Request received -- notifying expert channel...",
-    docHint: "Check that your notification channel is connected.",
+    activeLabel: "Notifying expert...",
+    docHint: "Check channel connection.",
   },
   {
     key: "responded",
     label: "Expert responded",
-    activeLabel: "Notification sent -- waiting for your response...",
-    docHint: "Open your channel and tap Approve or Deny on the message.",
+    activeLabel: "Waiting for your response...",
+    docHint: "Tap Approve or Deny in your channel.",
   },
   {
     key: "delivered",
-    label: "Response delivered to client",
-    activeLabel: "Response sent -- waiting for client acknowledgment...",
-    docHint: "The client should automatically receive the response.",
+    label: "Response delivered",
+    activeLabel: "Delivering response to client...",
+    docHint: "Client receives the response automatically.",
   },
 ];
 
@@ -190,12 +191,6 @@ export function StepTestE2e({
     }
   }, [status, stop, setStatus]);
 
-  useEffect(() => {
-    if (status === "complete") {
-      const timer = setTimeout(onSuccess, 2500);
-      return () => clearTimeout(timer);
-    }
-  }, [status, onSuccess]);
 
   const handleCopy = () => {
     copyToClipboard(suggestedPrompt);
@@ -218,12 +213,12 @@ export function StepTestE2e({
 
   return (
     <div>
-      <h2 className="mb-1 font-serif text-lg font-semibold text-foreground">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <Zap className="h-5 w-5 text-primary shrink-0" />
         End-to-End Test
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        Send a real request from your AI client and verify the full round-trip
-        through your {channelLabel} channel.
+        Verify the full round-trip: AI client to {channelLabel} and back.
       </p>
 
       {/* Ready state -- show instructions */}
@@ -250,9 +245,8 @@ export function StepTestE2e({
               </button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              This triggers an approval request with Approve / Deny buttons in{" "}
-              {channelLabel}. You respond there, and the answer flows back to
-              your AI client.
+              Triggers an approval request in {channelLabel}. Respond there and
+              watch it flow back.
             </p>
           </div>
 
@@ -368,25 +362,30 @@ export function StepTestE2e({
 
       {/* Complete state */}
       {status === "complete" && (
-        <div className="space-y-3">
-          {STAGES.map((stage) => (
-            <div
-              key={stage.key}
-              className="flex items-center gap-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 p-3"
-            >
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 shrink-0">
-                <Check className="h-3 w-3 text-white" />
+        <div className="space-y-4">
+          <div className="space-y-3">
+            {STAGES.map((stage) => (
+              <div
+                key={stage.key}
+                className="flex items-center gap-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 p-3"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 shrink-0">
+                  <Check className="h-3 w-3 text-white" />
+                </div>
+                <span className="text-sm text-green-700 dark:text-green-400">
+                  {stage.key === "responded" && approvalDecision
+                    ? `Expert ${approvalDecision === "approved" ? "approved" : "denied"} the request`
+                    : stage.label}
+                </span>
               </div>
-              <span className="text-sm text-green-700 dark:text-green-400">
-                {stage.key === "responded" && approvalDecision
-                  ? `Expert ${approvalDecision === "approved" ? "approved" : "denied"} the request`
-                  : stage.label}
-              </span>
-            </div>
-          ))}
-          <p className="text-sm font-medium text-green-700 dark:text-green-400 text-center">
-            Full round-trip verified -- your setup is working!
-          </p>
+            ))}
+          </div>
+          <SuccessCelebration
+            label="Full round-trip verified!"
+            sublabel="Your setup is working -- you're ready to go."
+            onContinue={onSuccess}
+            continueLabel="Finish setup"
+          />
         </div>
       )}
 
@@ -399,7 +398,7 @@ export function StepTestE2e({
             </p>
             <p className="text-xs text-muted-foreground mb-2">
               {currentStageIdx < 0
-                ? "No request was received from your AI client."
+                ? "No request received."
                 : `Stuck at: ${STAGES[currentStageIdx]?.activeLabel}`}
             </p>
             {STAGE_DOCS[currentStage] && (
@@ -419,13 +418,19 @@ export function StepTestE2e({
               onClick={handleRetry}
               className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
             >
-              Try again
+              <span className="flex items-center gap-1.5">
+                <RefreshCw className="h-3.5 w-3.5" />
+                Try again
+              </span>
             </button>
             <button
               onClick={onSuccess}
               className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
             >
-              Skip to dashboard
+              <span className="flex items-center gap-1.5">
+                <SkipForward className="h-3.5 w-3.5" />
+                Skip to dashboard
+              </span>
             </button>
           </div>
         </div>

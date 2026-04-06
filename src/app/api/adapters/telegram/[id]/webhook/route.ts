@@ -168,14 +168,14 @@ export async function POST(
     });
 
     // Acknowledge the button press
-    const label = decision === "approved" ? "Approved" : "Denied";
+    const label = decision === "approved" ? "\u2713 Approved" : "\u2717 Denied";
     await answerCallbackQuery(config.botToken, cbq.id, label);
 
     // Edit the original message to show the decision and remove buttons
     if (cbq.message) {
       const statusLine = decision === "approved"
-        ? `\n\n*Decision:* Approved`
-        : `\n\n*Decision:* Denied`;
+        ? `\n\n*Decision:* \u2713 Approved`
+        : `\n\n*Decision:* \u2717 Denied`;
       const originalText = `Request \`${helpRequest.refCode}\`${statusLine}`;
       await editMessageText(
         config.botToken,
@@ -233,7 +233,18 @@ export async function POST(
     await sendMessage(
       config.botToken,
       chatId,
-      `*HeySummon connected!*\n\nYou'll receive new help requests here. Reply with:\n\`/reply HS-XXXX your answer\`\n\nOr view all open requests in your dashboard.`
+      [
+        `*HeySummon -- Expert Channel Connected*`,
+        ``,
+        `This is your expert channel. When AI clients need human input, their help requests will appear here.`,
+        ``,
+        `*How it works:*`,
+        `1. A client sends a help request`,
+        `2. You see the question in this chat`,
+        `3. Reply with \`/reply HS-XXXX your answer\``,
+        ``,
+        `You can connect multiple clients from your dashboard. Each request has a unique reference code (HS-...) so you can respond to the right one.`,
+      ].join("\n")
     );
 
     return NextResponse.json({ ok: true });
@@ -256,7 +267,7 @@ export async function POST(
 
     // Validate: must come from the registered expertChatId
     if (!config.expertChatId) {
-      await sendMessage(config.botToken, chatId, `❌ Bot not set up yet. Send /start first.`);
+      await sendMessage(config.botToken, chatId, `Bot not set up yet. Send /start first.`);
       return NextResponse.json({ ok: true });
     }
     if (chatId !== config.expertChatId) {
@@ -277,7 +288,7 @@ export async function POST(
       await sendMessage(
         config.botToken,
         chatId,
-        `❌ Request \`${refCode}\` not found or already closed.`
+        `Request \`${refCode}\` not found or already closed.`
       );
       return NextResponse.json({ ok: true });
     }
@@ -313,7 +324,7 @@ export async function POST(
     await sendMessage(
       config.botToken,
       chatId,
-      `✅ Reply sent for \`${refCode}\`.`
+      `Reply sent for \`${refCode}\`.`
     );
 
     return NextResponse.json({ ok: true });
@@ -324,7 +335,7 @@ export async function POST(
     await sendMessage(
       config.botToken,
       chatId,
-      `ℹ️ To reply to a request, use:\n\`/reply HS-XXXX your answer\`\n\nCheck your dashboard for open requests.`
+      `To reply to a request, use:\n\`/reply HS-XXXX your answer\`\n\nCheck your dashboard for open requests.`
     );
     return NextResponse.json({ ok: true });
   }

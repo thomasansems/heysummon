@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Building2, ArrowRight, ArrowLeft, Plus, Settings } from "lucide-react";
 import {
   ClientChannelSelector,
   type ClientChannelType,
@@ -96,12 +96,12 @@ export function StepCreateClient({
 
   return (
     <div>
-      <h2 className="mb-1 font-serif text-lg font-semibold text-foreground">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <Building2 className="h-5 w-5 text-primary shrink-0" />
         Create a Client
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        A client is the AI assistant that sends questions to your expert. Choose which
-        platform to connect.
+        Choose which AI platform to connect to your expert.
       </p>
 
       {step === "channel" && (
@@ -122,7 +122,10 @@ export function StepCreateClient({
               disabled={!channel || (channel === "openclaw" && !subChannel)}
               className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-500 disabled:opacity-40 transition-colors"
             >
-              Next
+              <span className="flex items-center gap-1.5">
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </span>
             </button>
           </div>
         </>
@@ -166,6 +169,7 @@ export function StepCreateClient({
               ) : (
                 <ChevronRight className="h-3.5 w-3.5" />
               )}
+              <Settings className="h-3.5 w-3.5" />
               Advanced settings
             </button>
 
@@ -184,7 +188,7 @@ export function StepCreateClient({
                     className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    How long the client waits for an expert response before timing out.
+                    Max wait time for an expert response.
                   </p>
                 </div>
                 <div>
@@ -200,7 +204,7 @@ export function StepCreateClient({
                     className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    How often the client checks for new messages from the server.
+                    Lower = faster delivery, more API calls.
                   </p>
                 </div>
               </div>
@@ -214,14 +218,20 @@ export function StepCreateClient({
               onClick={() => setStep("channel")}
               className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
             >
-              Back
+              <span className="flex items-center gap-1.5">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Back
+              </span>
             </button>
             <button
               onClick={handleCreate}
               disabled={creating}
               className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-500 disabled:opacity-40 transition-colors"
             >
-              {creating ? "Creating..." : "Create Client"}
+              <span className="flex items-center gap-1.5">
+                {!creating && <Plus className="h-4 w-4" />}
+                {creating ? "Creating..." : "Create Client"}
+              </span>
             </button>
           </div>
         </div>

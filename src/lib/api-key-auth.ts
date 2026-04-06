@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { requireSecret } from "@/lib/env";
+import { sendClientConnectedNotification } from "@/lib/notifications/client-connected";
 
 const AUTO_BLACKLIST_THRESHOLD = 20;
 
@@ -200,6 +201,11 @@ export async function validateApiKeyRequest(
       // First ever request for this key — bind this IP as allowed
       await prisma.ipEvent.create({
         data: { apiKeyId: keyRecord.id, ip: clientIp, status: "allowed" },
+      });
+
+      // Notify expert that a client connected (fire-and-forget)
+      sendClientConnectedNotification(keyRecord).catch((err) => {
+        console.error("[api-key-auth] client-connected notification failed:", err);
       });
     } else {
       const matchingEvent = existingEvents.find((e) => e.ip === clientIp);

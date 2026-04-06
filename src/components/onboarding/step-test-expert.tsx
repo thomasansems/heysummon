@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Loader2, Check, MessageSquare } from "lucide-react";
+import { Loader2, Check, MessageSquare, RefreshCw, SkipForward } from "lucide-react";
 import type { ExpertChannelType } from "@/components/shared/channel-selector";
+import { SuccessCelebration } from "@/components/onboarding/success-celebration";
 
 interface StepTestExpertProps {
   expertId: string;
@@ -80,35 +81,24 @@ export function StepTestExpert({
     }
   };
 
-  useEffect(() => {
-    if (status === "received") {
-      const timer = setTimeout(onSuccess, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [status, onSuccess]);
-
   return (
     <div>
-      <h2 className="mb-1 font-serif text-lg font-semibold text-foreground">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <MessageSquare className="h-5 w-5 text-primary shrink-0" />
         Test Expert
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        Send a test message to verify your expert receives notifications and can
-        respond.
+        Verify your expert receives and can respond to notifications.
       </p>
 
       {status === "idle" && (
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <p className="text-sm text-foreground mb-2">What will happen:</p>
-            <ol className="space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
-              <li>
-                A test message will be sent to your{" "}
-                {channel === "telegram" ? "Telegram bot" : "OpenClaw agent"}
-              </li>
-              <li>You respond to it from {channel === "telegram" ? "Telegram" : "your agent"}</li>
-              <li>We verify the response was received</li>
-            </ol>
+            <p className="text-xs text-muted-foreground">
+              We&apos;ll send a test notification to your{" "}
+              {channel === "telegram" ? "Telegram bot" : "OpenClaw agent"}.
+              Reply to it and we&apos;ll confirm it worked.
+            </p>
           </div>
           <button
             onClick={sendTest}
@@ -139,8 +129,8 @@ export function StepTestExpert({
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {channel === "telegram"
-                  ? "Check your Telegram bot — reply to the test message"
-                  : "Check your OpenClaw agent — respond to the test notification"}
+                  ? "Reply to the test message in Telegram"
+                  : "Respond in your OpenClaw agent"}
               </p>
             </div>
           </div>
@@ -148,19 +138,11 @@ export function StepTestExpert({
       )}
 
       {status === "received" && (
-        <div className="flex items-center gap-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 p-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 shrink-0">
-            <Check className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-green-700 dark:text-green-400">
-              Test passed! Response received.
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Your expert is working correctly.
-            </p>
-          </div>
-        </div>
+        <SuccessCelebration
+          label="Test passed! Response received."
+          sublabel="Your expert is working correctly."
+          onContinue={onSuccess}
+        />
       )}
 
       {status === "timeout" && (
@@ -170,8 +152,7 @@ export function StepTestExpert({
               No response received
             </p>
             <p className="text-xs text-muted-foreground">
-              The test timed out after 120 seconds. Make sure your expert channel is
-              active and try again.
+              Timed out. Check that your expert channel is active and try again.
             </p>
           </div>
           <div className="flex gap-2">
@@ -179,13 +160,19 @@ export function StepTestExpert({
               onClick={sendTest}
               className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
             >
-              Try again
+              <span className="flex items-center gap-1.5">
+                <RefreshCw className="h-3.5 w-3.5" />
+                Try again
+              </span>
             </button>
             <button
               onClick={onSuccess}
               className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
             >
-              Skip test
+              <span className="flex items-center gap-1.5">
+                <SkipForward className="h-3.5 w-3.5" />
+                Skip test
+              </span>
             </button>
           </div>
         </div>

@@ -15,22 +15,21 @@ export const telegramAdapter: ChannelAdapter = {
   maxMessageLength: 4096,
 
   formatNotification(event: HelpRequestEvent): FormattedMessage {
+    const from = event.consumerLabel
+      ? ` from ${escapeHtml(event.consumerLabel)}`
+      : "";
     const lines = [
-      `<b>New help request</b>`,
-      ``,
-      `<b>Ref:</b> <code>${escapeHtml(event.refCode)}</code>`,
-      `<b>Expert:</b> ${escapeHtml(event.expertName)}`,
+      `<b>New help request</b>${from}`,
     ];
 
-    if (event.consumerLabel) {
-      lines.push(`<b>From:</b> ${escapeHtml(event.consumerLabel)}`);
-    }
-
     if (event.question) {
-      lines.push(``, `<b>Question:</b>`, escapeHtml(event.question));
+      lines.push(``, `"${escapeHtml(event.question)}"`);
     }
 
-    lines.push(``, `Reply with <code>/reply ${escapeHtml(event.refCode)} your answer</code>`);
+    lines.push(
+      ``,
+      `Reply with <code>/reply ${escapeHtml(event.refCode)} your answer</code>`,
+    );
 
     return { text: lines.join("\n"), parseMode: "HTML" };
   },

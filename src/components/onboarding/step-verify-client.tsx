@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, Building2, Copy, RefreshCw, SkipForward } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useState } from "react";
 import { useConnectionVerify } from "@/hooks/use-connection-verify";
@@ -86,13 +86,14 @@ echo "Connected and device bound successfully."`
 
   return (
     <div>
-      <h2 className="mb-1 font-serif text-lg font-semibold text-foreground">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <Building2 className="h-5 w-5 text-primary shrink-0" />
         Connect Your Client
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
         {isSkillBased
-          ? `Install the HeySummon skill for ${meta.label} and run the setup command.`
-          : "Follow the setup link to connect your OpenClaw agent."}
+          ? `Run the setup command for ${meta.label}.`
+          : "Open the setup link to connect."}
       </p>
 
       {isSkillBased ? (
@@ -107,9 +108,9 @@ echo "Connected and device bound successfully."`
               </pre>
               <button
                 onClick={() => handleCopy(installCmd)}
-                className="absolute right-2 top-1 text-xs text-orange-400 hover:text-orange-300"
+                className="absolute right-2 top-1 text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1"
               >
-                {copied === installCmd ? "Copied!" : "Copy"}
+                {copied === installCmd ? "Copied!" : <><Copy className="h-3 w-3" /> Copy</>}
               </button>
             </div>
           </div>
@@ -124,15 +125,14 @@ echo "Connected and device bound successfully."`
               </code>
               <button
                 onClick={() => handleCopy(setupUrl)}
-                className="shrink-0 text-xs text-orange-400 hover:text-orange-300"
+                className="shrink-0 text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1"
               >
-                {copied === setupUrl ? "Copied!" : "Copy"}
+                {copied === setupUrl ? "Copied!" : <><Copy className="h-3 w-3" /> Copy</>}
               </button>
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Open this link and follow the setup instructions. The connection will be
-            detected automatically.
+            Open this link to connect. Detection is automatic.
           </p>
         </div>
       )}
@@ -147,7 +147,7 @@ echo "Connected and device bound successfully."`
                 Waiting for connection... ({elapsed}s)
               </p>
               <p className="text-xs text-muted-foreground">
-                Run the command above and the connection will be detected
+                Run the command above to connect
               </p>
             </div>
           </>
@@ -172,7 +172,7 @@ echo "Connected and device bound successfully."`
                 Connection timed out
               </p>
               <p className="text-xs text-muted-foreground">
-                Make sure the install command completed successfully
+                Check that the install command completed
               </p>
             </div>
           </>
@@ -185,13 +185,19 @@ echo "Connected and device bound successfully."`
             onClick={retry}
             className="rounded-md bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-500"
           >
-            Try again
+            <span className="flex items-center gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Try again
+            </span>
           </button>
           <button
             onClick={onVerified}
             className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
           >
-            Skip verification
+            <span className="flex items-center gap-1.5">
+              <SkipForward className="h-3.5 w-3.5" />
+              Skip verification
+            </span>
           </button>
         </div>
       )}

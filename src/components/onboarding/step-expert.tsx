@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, Users, Plus, RefreshCw, SkipForward, Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
   ChannelSelector,
   type ExpertChannelType,
 } from "@/components/shared/channel-selector";
+import { SuccessCelebration } from "@/components/onboarding/success-celebration";
 
 type Phase = "form" | "creating" | "verifying" | "connected";
 
@@ -113,18 +114,10 @@ export function StepExpert({ onComplete }: StepExpertProps) {
     if (verifyStatus === "connected" && expertId && expertKey && expertChannel) {
       const timer = setTimeout(() => {
         setPhase("connected");
-        setTimeout(() => {
-          onComplete({
-            expertId,
-            expertKey,
-            expertName: name.trim(),
-            channel: expertChannel,
-          });
-        }, 1000);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [verifyStatus, expertId, expertKey, expertChannel, name, onComplete]);
+  }, [verifyStatus, expertId, expertKey, expertChannel]);
 
   const handleCreate = async () => {
     if (!name.trim() || !channel) return;
@@ -200,11 +193,12 @@ export function StepExpert({ onComplete }: StepExpertProps) {
 
   return (
     <div>
-      <h2 className="mb-1 font-serif text-lg font-semibold text-foreground">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <Users className="h-5 w-5 text-primary shrink-0" />
         Set Up Your Expert
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        Create an expert and connect it to start receiving help requests.
+        Create an expert profile and choose how to receive notifications.
       </p>
 
       {/* Phase: Form */}
@@ -242,7 +236,10 @@ export function StepExpert({ onComplete }: StepExpertProps) {
               }
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40 transition-colors"
             >
-              Create & Connect
+              <span className="flex items-center gap-1.5">
+                <Plus className="h-4 w-4" />
+                Create & Connect
+              </span>
             </button>
           </div>
         </div>
@@ -256,8 +253,24 @@ export function StepExpert({ onComplete }: StepExpertProps) {
         </div>
       )}
 
+      {/* Phase: Connected — success celebration */}
+      {phase === "connected" && (
+        <SuccessCelebration
+          label="Expert connected!"
+          sublabel="Your expert is ready to receive help requests."
+          onContinue={() =>
+            onComplete({
+              expertId,
+              expertKey,
+              expertName: name.trim(),
+              channel: expertChannel!,
+            })
+          }
+        />
+      )}
+
       {/* Phase: Verifying */}
-      {(phase === "verifying" || phase === "connected") && (
+      {phase === "verifying" && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Show instructions based on channel */}
           {expertChannel === "telegram" ? (
@@ -265,7 +278,7 @@ export function StepExpert({ onComplete }: StepExpertProps) {
               {telegramDeepLink ? (
                 <>
                   <p className="text-sm text-foreground mb-2">
-                    Click the link below to connect your Telegram bot:
+                    Connect your Telegram bot:
                   </p>
                   <a
                     href={telegramDeepLink}
@@ -276,7 +289,7 @@ export function StepExpert({ onComplete }: StepExpertProps) {
                     Open in Telegram
                   </a>
                   <p className="text-xs text-muted-foreground mt-2">
-                    This sends a secure /start command to link your chat.
+                    Sends /start to link your chat.
                   </p>
                 </>
               ) : (
@@ -288,7 +301,7 @@ export function StepExpert({ onComplete }: StepExpertProps) {
                     </code>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    This activates the bot so it can receive help requests.
+                    Activates your bot to receive help requests.
                   </p>
                 </>
               )}
@@ -313,9 +326,9 @@ export function StepExpert({ onComplete }: StepExpertProps) {
                   </code>
                   <button
                     onClick={handleCopy}
-                    className="shrink-0 text-xs text-primary hover:text-primary/80"
+                    className="shrink-0 text-xs text-primary hover:text-primary/80 flex items-center gap-1"
                   >
-                    {copied ? "Copied!" : "Copy"}
+                    {copied ? "Copied!" : <><Copy className="h-3 w-3" /> Copy</>}
                   </button>
                 </div>
               </div>
@@ -333,23 +346,13 @@ export function StepExpert({ onComplete }: StepExpertProps) {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {expertChannel === "telegram"
-                      ? "Send /start to your bot on Telegram"
+                      ? "Send /start in Telegram"
                       : "Complete the steps above"}
                   </p>
                 </div>
               </>
             )}
-            {(verifyStatus === "connected" || phase === "connected") && (
-              <>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 shrink-0 animate-in zoom-in duration-300">
-                  <Check className="h-4 w-4 text-white" />
-                </div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                  Expert connected!
-                </p>
-              </>
-            )}
-            {verifyStatus === "timeout" && phase !== "connected" && (
+            {verifyStatus === "timeout" && (
               <>
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-600 shrink-0">
                   <span className="text-white text-sm">!</span>
@@ -366,13 +369,16 @@ export function StepExpert({ onComplete }: StepExpertProps) {
             )}
           </div>
 
-          {verifyStatus === "timeout" && phase !== "connected" && (
+          {verifyStatus === "timeout" && (
             <div className="flex gap-2">
               <button
                 onClick={() => startVerification(expertId, expertChannel!)}
                 className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
               >
-                Retry
+                <span className="flex items-center gap-1.5">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry
+                </span>
               </button>
               <button
                 onClick={() =>
@@ -385,7 +391,10 @@ export function StepExpert({ onComplete }: StepExpertProps) {
                 }
                 className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
-                Skip verification
+                <span className="flex items-center gap-1.5">
+                  <SkipForward className="h-3.5 w-3.5" />
+                  Skip verification
+                </span>
               </button>
             </div>
           )}

@@ -1,7 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Check, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Loader2,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Building2,
+  ArrowRight,
+  ArrowLeft,
+  Plus,
+  Copy,
+  ExternalLink,
+  RefreshCw,
+  SkipForward,
+  RotateCcw,
+  Clock,
+  Lightbulb,
+  Settings,
+  ScrollText,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useConnectionVerify } from "@/hooks/use-connection-verify";
 import {
@@ -11,6 +32,7 @@ import {
 } from "@/components/shared/client-channel-selector";
 import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
 import { buildSetupCopyText } from "@/lib/setup-copy-text";
+import { SuccessCelebration } from "@/components/onboarding/success-celebration";
 
 const DEFAULT_TIMEOUT = 900;
 const DEFAULT_POLL_INTERVAL = 3;
@@ -92,21 +114,6 @@ export function StepClient({
     }
   }, [phase, keyId, start]);
 
-  // Auto-advance when connected
-  useEffect(() => {
-    if (phase === "connecting" && verifyStatus === "connected" && keyId) {
-      const timer = setTimeout(() => {
-        onComplete({
-          keyId,
-          apiKey,
-          channel: channel!,
-          subChannel,
-          clientName: name,
-        });
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [phase, verifyStatus, keyId, apiKey, channel, subChannel, name, onComplete]);
 
   const handleCreate = async () => {
     if (!channel) return;
@@ -180,11 +187,12 @@ export function StepClient({
 
   return (
     <div>
-      <h2 className="mb-1 font-serif text-lg font-semibold text-foreground">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <Building2 className="h-5 w-5 text-primary shrink-0" />
         Connect a Client
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        Choose an AI assistant platform and connect it to your expert.
+        Choose your AI platform and link it to your expert.
       </p>
 
       {/* Phase: Channel selection */}
@@ -205,7 +213,10 @@ export function StepClient({
               disabled={!channel || (channel === "openclaw" && !subChannel)}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-40 transition-colors"
             >
-              Next
+              <span className="flex items-center gap-1.5">
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </span>
             </button>
           </div>
         </div>
@@ -240,8 +251,9 @@ export function StepClient({
 
           {/* Response time -- preset selector */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              How fast will you typically respond?
+            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              Response timeout
             </label>
             <div className="grid grid-cols-2 gap-2">
               {TIMEOUT_PRESETS.map((preset) => {
@@ -310,51 +322,58 @@ export function StepClient({
               ) : (
                 <ChevronRight className="h-3.5 w-3.5" />
               )}
+              <Lightbulb className="h-3.5 w-3.5" />
               What makes a good help request?
             </button>
 
             {showExamples && (
-              <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="rounded-md border border-green-200 dark:border-green-900/40 bg-green-50/50 dark:bg-green-950/10 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-green-600 dark:text-green-400 mb-1">
-                    Good request
-                  </p>
-                  <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`I'm implementing the checkout flow.
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <Card size="sm" className="border-green-200 dark:border-green-900/40 bg-green-50/30 dark:bg-green-950/10">
+                  <CardHeader className="pb-0">
+                    <CardTitle className="flex items-center gap-1.5 text-xs font-semibold text-green-600 dark:text-green-400">
+                      <CheckCircle className="h-4 w-4 shrink-0" />
+                      Good request
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`I'm implementing the checkout flow.
 The design shows a discount code field
 but the API spec has no discount endpoint.
 
 Should I:
 A) Skip the discount field for now
 B) Create a /discounts endpoint myself`}</pre>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    Specific context, clear options -- answerable in seconds.
-                  </p>
-                </div>
-                <div className="rounded-md border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/10 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400 mb-1">
-                    Bad request
-                  </p>
-                  <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`What should I do next?`}</pre>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    No context, no options -- takes minutes to understand.
-                  </p>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Tip: configure your agent&apos;s system prompt to include project
-                  context and suggest options when asking for help.
-                </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Context + options = answerable in seconds.
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card size="sm" className="border-red-200 dark:border-red-900/40 bg-red-50/30 dark:bg-red-950/10">
+                  <CardHeader className="pb-0">
+                    <CardTitle className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
+                      <XCircle className="h-4 w-4 shrink-0" />
+                      Bad request
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">{`What should I do next?`}</pre>
+                    <p className="text-[11px] text-muted-foreground">
+                      No context = slow to answer.
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </div>
 
           {/* Summoning context */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Summoning guidelines for this client (optional)
+            <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <ScrollText className="h-3.5 w-3.5" />
+              Summoning guidelines (optional)
             </label>
             <p className="mb-2 text-[11px] text-muted-foreground">
-              Tell the AI when it should and shouldn&apos;t summon you. This context
-              is included in the consumer&apos;s environment.
+              Tell the AI when to summon you.
             </p>
 
             {/* Recently used contexts */}
@@ -423,6 +442,7 @@ B) Create a /discounts endpoint myself`}</pre>
               ) : (
                 <ChevronRight className="h-3.5 w-3.5" />
               )}
+              <Settings className="h-3.5 w-3.5" />
               Advanced settings
             </button>
 
@@ -445,8 +465,7 @@ B) Create a /discounts endpoint myself`}</pre>
                     className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    How often the client checks for a response. Lower = faster
-                    delivery, more API calls.
+                    Lower = faster delivery, more API calls.
                   </p>
                 </div>
               </div>
@@ -460,13 +479,19 @@ B) Create a /discounts endpoint myself`}</pre>
               onClick={() => setPhase("channel")}
               className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
             >
-              Back
+              <span className="flex items-center gap-1.5">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Back
+              </span>
             </button>
             <button
               onClick={handleCreate}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
             >
-              Create & Connect
+              <span className="flex items-center gap-1.5">
+                <Plus className="h-4 w-4" />
+                Create & Connect
+              </span>
             </button>
           </div>
         </div>
@@ -484,8 +509,7 @@ B) Create a /discounts endpoint myself`}</pre>
       {phase === "connecting" && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <p className="text-sm text-muted-foreground">
-            Copy these instructions and paste them into your AI client, or send
-            them to your customer.
+            Paste these instructions into your AI client.
           </p>
 
           {/* Setup instructions as copyable text */}
@@ -500,56 +524,65 @@ B) Create a /discounts endpoint myself`}</pre>
               onClick={() => handleCopy(copyText)}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
             >
-              {copied === copyText ? "Copied!" : "Copy instructions"}
+              <span className="flex items-center gap-1.5">
+                <Copy className="h-4 w-4" />
+                {copied === copyText ? "Copied!" : "Copy instructions"}
+              </span>
             </button>
             <a
               href={setupUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
+              <ExternalLink className="h-3.5 w-3.5" />
               Preview setup page
             </a>
           </div>
 
           {/* Connection status */}
-          <div className="flex items-center gap-3 rounded-lg border border-border p-4">
-            {verifyStatus === "checking" && (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
-                <div>
-                  <p className="text-sm text-foreground">
-                    Waiting for connection... ({elapsed}s)
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    The client will connect automatically when the setup is complete
-                  </p>
-                </div>
-              </>
-            )}
-            {verifyStatus === "connected" && (
-              <>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 shrink-0 animate-in zoom-in duration-300">
-                  <Check className="h-4 w-4 text-white" />
-                </div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                  Client connected!
+          {verifyStatus === "checking" && (
+            <div className="flex items-center gap-3 rounded-lg border border-border p-4">
+              <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
+              <div>
+                <p className="text-sm text-foreground">
+                  Waiting for connection... ({elapsed}s)
                 </p>
-              </>
-            )}
-            {verifyStatus === "timeout" && (
-              <>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-600 shrink-0">
-                  <span className="text-white text-sm">!</span>
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                    Connection timed out
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
+                <p className="text-xs text-muted-foreground">
+                  Connects automatically when setup is complete
+                </p>
+              </div>
+            </div>
+          )}
+
+          {verifyStatus === "connected" && (
+            <SuccessCelebration
+              label="Client connected!"
+              sublabel="Your AI client is linked and ready to send help requests."
+              onContinue={() =>
+                onComplete({
+                  keyId,
+                  apiKey,
+                  channel: channel!,
+                  subChannel,
+                  clientName: name,
+                })
+              }
+            />
+          )}
+
+          {verifyStatus === "timeout" && (
+            <div className="flex items-center gap-3 rounded-lg border border-border p-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-600 shrink-0">
+                <span className="text-white text-sm">!</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                  Connection timed out
+                </p>
+              </div>
+            </div>
+          )}
 
           {verifyStatus === "timeout" && (
             <div className="flex gap-2">
@@ -557,7 +590,10 @@ B) Create a /discounts endpoint myself`}</pre>
                 onClick={retry}
                 className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
               >
-                Retry connection
+                <span className="flex items-center gap-1.5">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry connection
+                </span>
               </button>
               <button
                 onClick={() => {
@@ -568,7 +604,10 @@ B) Create a /discounts endpoint myself`}</pre>
                 }}
                 className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
-                Start over
+                <span className="flex items-center gap-1.5">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Start over
+                </span>
               </button>
               <button
                 onClick={() =>
@@ -582,7 +621,10 @@ B) Create a /discounts endpoint myself`}</pre>
                 }
                 className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
-                Skip
+                <span className="flex items-center gap-1.5">
+                  <SkipForward className="h-3.5 w-3.5" />
+                  Skip
+                </span>
               </button>
             </div>
           )}

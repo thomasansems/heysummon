@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Users, Plus } from "lucide-react";
 import {
   ChannelSelector,
   type ExpertChannelType,
@@ -84,12 +85,12 @@ export function StepCreateExpert({ onCreated }: StepCreateExpertProps) {
 
   return (
     <div>
-      <h2 className="mb-1 font-serif text-lg font-semibold text-foreground">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <Users className="h-5 w-5 text-primary shrink-0" />
         Create Your Expert
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        An expert is the human who answers help requests. Choose how you want to
-        receive notifications.
+        Choose how you want to receive help requests.
       </p>
 
       <div className="space-y-4">
@@ -127,7 +128,10 @@ export function StepCreateExpert({ onCreated }: StepCreateExpertProps) {
           }
           className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-500 disabled:opacity-40 transition-colors"
         >
-          {creating ? "Creating..." : "Create Expert"}
+          <span className="flex items-center gap-1.5">
+            {!creating && <Plus className="h-4 w-4" />}
+            {creating ? "Creating..." : "Create Expert"}
+          </span>
         </button>
       </div>
     </div>

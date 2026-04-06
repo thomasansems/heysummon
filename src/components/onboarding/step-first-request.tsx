@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Check, ArrowRight, Copy } from "lucide-react";
+import { Check, ArrowRight, Copy, Rocket, Radio } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
 
 interface StepFirstRequestProps {
@@ -9,12 +9,7 @@ interface StepFirstRequestProps {
   onNext: () => void;
 }
 
-const PROMPT_TIP = `When you're unsure about a requirement, architecture decision,
-or need human judgment — use the HeySummon skill to ask your
-expert instead of guessing.
-
-Example: "I need to implement auth but the spec is ambiguous.
-Let me ask the human expert via HeySummon."`;
+const PROMPT_TIP = `When unsure about a requirement or decision, use the HeySummon skill to ask your expert instead of guessing.`;
 
 export function StepFirstRequest({
   clientChannel,
@@ -84,33 +79,22 @@ export function StepFirstRequest({
 
   return (
     <div>
-      <h2 className="mb-1 font-serif text-lg font-semibold text-foreground">
+      <h2 className="mb-1 flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+        <Rocket className="h-5 w-5 text-primary shrink-0" />
         Try it for real
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        The test worked. Now trigger a real help request from {platformName} to
-        experience the full flow in your own project.
+        Trigger a real help request from {platformName} in your own project.
       </p>
 
       {!found ? (
         <div className="space-y-4">
           {/* Instructions */}
           <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <p className="text-sm font-medium text-foreground mb-2">
-              How to trigger your first request:
-            </p>
-            <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
-              <li>
-                Open a project where you installed the HeySummon skill
-              </li>
-              <li>
-                Start {platformName} and give it a task with an intentionally
-                ambiguous requirement
-              </li>
-              <li>
-                The agent will use HeySummon to ask you for clarification
-              </li>
-              <li>Answer via your expert channel and watch it continue</li>
+            <ol className="space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
+              <li>Open a project with the HeySummon skill installed</li>
+              <li>Give {platformName} a task with an ambiguous requirement</li>
+              <li>Answer via your expert channel when it asks</li>
             </ol>
           </div>
 
@@ -153,6 +137,7 @@ export function StepFirstRequest({
               className="w-full rounded-md border border-primary/40 bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
             >
               <span className="flex items-center justify-center gap-2">
+                <Radio className="h-4 w-4" />
                 Start listening for requests
               </span>
             </button>

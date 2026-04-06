@@ -191,7 +191,7 @@ export function StepClient({
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const copyText = buildSetupCopyText(setupUrl, summonContext);
+  const copyText = buildSetupCopyText(setupUrl, summonContext, channel ?? "claudecode");
 
   const PHASE_TITLES: Record<string, { icon: React.ReactNode; title: string; subtitle: string }> = {
     channel: { icon: <Building2 className="h-5 w-5 shrink-0" />, title: "Connect a Client", subtitle: "Choose your AI platform and link it to your expert." },

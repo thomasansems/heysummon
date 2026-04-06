@@ -1,12 +1,11 @@
 "use client";
 
 import { copyToClipboard } from "@/lib/clipboard";
-import { SUMMON_CONTEXT_PRESETS } from "@/lib/summon-context-presets";
 import { buildSetupCopyText } from "@/lib/setup-copy-text";
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Check, ChevronDown, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -15,6 +14,12 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { ClientDetailPanel } from "@/components/dashboard/client-detail-panel";
+import {
+  SummoningWizard,
+  type WizardState,
+  DEFAULT_WIZARD_STATE,
+  generateGuidelines,
+} from "@/components/shared/summoning-wizard";
 
 interface ExpertChannel {
   id: string;
@@ -132,7 +137,7 @@ const OPENCLAW_PLATFORMS = [
   { id: "whatsapp" as const, label: "WhatsApp", icon: "/icons/whatsapp.svg" },
 ];
 
-type WizardStep = 0 | 1 | 2 | 3; // 0=closed, 1=channel, 2=details, 3=done
+type WizardStep = 0 | 1 | 2 | 3 | 4; // 0=closed, 1=channel, 2=details, 3=guidelines, 4=done
 
 const SCOPE_OPTIONS = ["full", "read", "write", "admin"] as const;
 
@@ -182,6 +187,7 @@ export default function ClientsContent() {
   // Summoning context
   const [wizardSummonContext, setWizardSummonContext] = useState("");
   const [wizardRecentContexts, setWizardRecentContexts] = useState<string[]>([]);
+  const [wizardMeta, setWizardMeta] = useState<WizardState | null>(null);
 
   const loadKeys = () =>
     fetch("/api/v1/keys")
@@ -227,7 +233,19 @@ export default function ClientsContent() {
         if (raw) {
           try {
             const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) setWizardRecentContexts(parsed);
+            if (Array.isArray(parsed)) {
+              // Items can be plain strings or {text, meta} objects
+              const texts = parsed
+                .map((item: unknown) => {
+                  if (typeof item === "string") return item;
+                  if (typeof item === "object" && item !== null && "text" in item) {
+                    return (item as { text: string }).text;
+                  }
+                  return null;
+                })
+                .filter((t): t is string => typeof t === "string" && t.trim().length > 0);
+              setWizardRecentContexts(texts);
+            }
           } catch {
             // ignore invalid JSON
           }
@@ -250,12 +268,14 @@ export default function ClientsContent() {
     setWizardGlobalInstall(true);
     setWizardSummonContext("");
     setWizardRecentContexts([]);
+    setWizardMeta(null);
   };
 
   const closeWizard = () => {
     setWizardStep(0);
     setWizardResult(null);
     setWizardSummonContext("");
+    setWizardMeta(null);
   };
 
   const wizardNext = () => {
@@ -265,15 +285,23 @@ export default function ClientsContent() {
       if (wizardChannel === "openclaw" && !wizardSubChannel) return;
       setWizardStep(2);
     } else if (wizardStep === 2) {
-      createWizardKey();
+      // Go to guidelines step
+      if (!wizardExpertId) return;
+      setWizardStep(3);
     }
   };
 
   const DEFAULT_RATE_LIMIT = parseInt(process.env.NEXT_PUBLIC_DEFAULT_RATE_LIMIT ?? "150");
 
-  const createWizardKey = async () => {
+  const createWizardKey = async (
+    summonContextOverride?: string,
+    metaOverride?: WizardState,
+  ) => {
     if (!wizardExpertId) return;
     setWizardCreating(true);
+
+    const ctxToUse = summonContextOverride ?? wizardSummonContext;
+    const metaToUse = metaOverride ?? wizardMeta;
 
     // Create the key (rate limit defaults to env var or 150)
     const keyRes = await fetch("/api/v1/keys", {
@@ -314,7 +342,8 @@ export default function ClientsContent() {
         keyId,
         channel: wizardChannel,
         subChannel: wizardSubChannel,
-        ...(wizardSummonContext.trim() && { summonContext: wizardSummonContext.trim() }),
+        ...(ctxToUse.trim() && { summonContext: ctxToUse.trim() }),
+        ...(metaToUse && { summonContextMeta: metaToUse }),
         ...(wizardTimeout !== 900 && { timeout: wizardTimeout }),
         ...(wizardPollInterval !== 3 && { pollInterval: wizardPollInterval }),
         ...(wizardGlobalInstall === false && { globalInstall: false }),
@@ -324,7 +353,7 @@ export default function ClientsContent() {
     if (!linkRes.ok) {
       setWizardError("Key created, but failed to generate setup link. Use 'Share' from the client menu.");
       setWizardCreating(false);
-      setWizardStep(3);
+      setWizardStep(4);
       loadKeys();
       return;
     }
@@ -338,13 +367,13 @@ export default function ClientsContent() {
       expiresAt: linkData.expiresAt,
     });
     setWizardCreating(false);
-    setWizardStep(3);
+    setWizardStep(4);
     loadKeys();
   };
 
 
 
-  const wizardCopyText = buildSetupCopyText(wizardResult?.setupUrl ?? "", wizardSummonContext);
+  const wizardCopyText = buildSetupCopyText(wizardResult?.setupUrl ?? "", wizardSummonContext, wizardChannel ?? "claudecode");
 
   const copyKey = (key: string) => {
     copyToClipboard(key);
@@ -490,76 +519,6 @@ export default function ClientsContent() {
                   )}
                 </div>
 
-                {/* Summoning context */}
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Summoning guidelines for this client (optional)
-                  </label>
-                  <p className="mb-2 text-[11px] text-muted-foreground">
-                    Tell the AI when it should and shouldn&apos;t summon you. This context
-                    is included in the consumer&apos;s environment.
-                  </p>
-
-                  {/* Recently used contexts */}
-                  {(() => {
-                    const presetTexts = SUMMON_CONTEXT_PRESETS.map((p) => p.text);
-                    const recentNonPreset = wizardRecentContexts
-                      .filter((c) => !presetTexts.includes(c))
-                      .slice(0, 5);
-                    return recentNonPreset.length > 0 ? (
-                      <div className="mb-2">
-                        <p className="mb-1 text-[11px] font-medium text-muted-foreground">
-                          Recently used
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {recentNonPreset.map((ctx, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              onClick={() => setWizardSummonContext(ctx)}
-                              className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors max-w-[200px] truncate ${
-                                wizardSummonContext === ctx
-                                  ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
-                                  : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                              }`}
-                              title={ctx}
-                            >
-                              {ctx.length > 40 ? ctx.slice(0, 40) + "..." : ctx}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null;
-                  })()}
-
-                  <div className="mb-2 flex flex-wrap gap-1.5">
-                    {SUMMON_CONTEXT_PRESETS.map((preset) => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => setWizardSummonContext(preset.text)}
-                        className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                          wizardSummonContext === preset.text
-                            ? "border-primary bg-primary/5 text-primary dark:bg-primary/10"
-                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                        }`}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                  <textarea
-                    value={wizardSummonContext}
-                    onChange={(e) => setWizardSummonContext(e.target.value.slice(0, 2000))}
-                    placeholder="e.g. Only summon me when you need architecture decisions or production access..."
-                    rows={3}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring resize-none"
-                  />
-                  <p className="mt-1 text-right text-[11px] text-muted-foreground">
-                    {wizardSummonContext.length}/2000
-                  </p>
-                </div>
-
                 {/* Advanced settings */}
                 <div>
                   <button
@@ -634,21 +593,54 @@ export default function ClientsContent() {
                   </button>
                   <button
                     onClick={wizardNext}
-                    disabled={wizardCreating || !wizardExpertId}
+                    disabled={!wizardExpertId}
                     className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
                   >
-                    {wizardCreating ? "Creating..." : "Create Client"}
+                    Next →
                   </button>
                 </div>
-                {wizardError && (
-                  <p className="mt-2 text-xs text-red-500">{wizardError}</p>
-                )}
               </div>
+              {wizardError && (
+                <p className="mt-2 text-xs text-red-500">{wizardError}</p>
+              )}
             </div>
           )}
 
-          {/* Step 3 — Done / Setup URL */}
-          {wizardStep === 3 && wizardResult && (
+          {/* Step 3 — Summoning Guidelines */}
+          {wizardStep === 3 && (
+            <div>
+              <h2 className="mb-1 text-lg font-semibold text-foreground">Summoning Guidelines</h2>
+              <p className="mb-5 text-sm text-muted-foreground">
+                Tell the AI when and how to summon your expert.
+              </p>
+
+              <SummoningWizard
+                initialState={wizardMeta ?? DEFAULT_WIZARD_STATE}
+                completeLabel="Create & Connect"
+                completeIcon={<Plus className="h-4 w-4" />}
+                onComplete={(text, state) => {
+                  setWizardSummonContext(text);
+                  setWizardMeta(state);
+                  createWizardKey(text, state);
+                }}
+                onSkip={() => {
+                  const defaultText = generateGuidelines(DEFAULT_WIZARD_STATE);
+                  setWizardSummonContext(defaultText);
+                  setWizardMeta(DEFAULT_WIZARD_STATE);
+                  createWizardKey(defaultText, DEFAULT_WIZARD_STATE);
+                }}
+              />
+              {wizardCreating && (
+                <p className="mt-3 text-sm text-muted-foreground animate-pulse">Creating client...</p>
+              )}
+              {wizardError && (
+                <p className="mt-2 text-xs text-red-500">{wizardError}</p>
+              )}
+            </div>
+          )}
+
+          {/* Step 4 — Done / Setup URL */}
+          {wizardStep === 4 && wizardResult && (
             <div>
               <div className="mb-4 flex items-center gap-2">
                 <Check className="h-6 w-6 text-green-600" />
@@ -700,9 +692,9 @@ export default function ClientsContent() {
           )}
 
           {/* Step indicator */}
-          {wizardStep < 3 && (
+          {wizardStep < 4 && (
             <div className="mt-6 flex justify-center gap-2">
-              {[1, 2].map((s) => (
+              {[1, 2, 3].map((s) => (
                 <div
                   key={s}
                   className={`h-1.5 w-8 rounded-full transition-colors ${

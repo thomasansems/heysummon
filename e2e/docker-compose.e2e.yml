@@ -15,10 +15,10 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U heysummon"]
+      test: ["CMD-SHELL", "pg_isready -U heysummon -d heysummon_e2e && psql -U heysummon -d heysummon_e2e -c 'SELECT 1' > /dev/null 2>&1"]
       interval: 2s
       timeout: 2s
-      retries: 10
+      retries: 15
 
   app:
     build:

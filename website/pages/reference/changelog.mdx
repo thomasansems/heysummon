@@ -2,6 +2,14 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.2.1 -- 2026-04-06
+
+### Fixed
+- Docker installation: `db-migrate` service no longer fails on first startup due to database readiness race condition
+- Database healthcheck now verifies the database is fully ready for queries (not just accepting connections)
+- Migration command retries automatically (up to 10 attempts) instead of failing immediately
+
+---
 ## v0.2.0 -- 2026-04-03
 
 ### Changed

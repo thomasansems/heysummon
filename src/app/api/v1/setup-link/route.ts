@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { keyId, channel, subChannel, summonContext, summonContextMeta, timeout, pollInterval, globalInstall } = body as {
+  const { keyId, channel, subChannel, summonContext, summonContextMeta, timeout, pollInterval, globalInstall, timeoutFallback } = body as {
     keyId: string;
     channel: "openclaw" | "claudecode" | "codex" | "gemini" | "cursor";
     subChannel?: "telegram" | "whatsapp";
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
     timeout?: number;
     pollInterval?: number;
     globalInstall?: boolean;
+    timeoutFallback?: string;
   };
 
   if (!keyId || !channel) {
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
       summonContext: trimmedContext,
       timeout: timeout ?? 900,
       pollInterval: pollInterval ?? 3,
+      timeoutFallback: timeoutFallback ?? "proceed_cautiously",
       globalInstall: globalInstall ?? true,
       expiresAt,
     },

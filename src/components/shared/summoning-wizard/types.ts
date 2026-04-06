@@ -21,11 +21,14 @@ export interface BudgetFrequency {
   responseTimeExpectation: "minutes" | "hours" | "async";
 }
 
+export type TimeoutFallback = "proceed_cautiously" | "skip_continue" | "stop";
+
 export interface WizardState {
   autonomy: AutonomyLevel;
   safetyGates: SafetyGate[];
   expertStrengths: ExpertStrength[];
   budgetFrequency: BudgetFrequency;
+  timeoutFallback: TimeoutFallback;
 }
 
 export const DEFAULT_WIZARD_STATE: WizardState = {
@@ -37,6 +40,7 @@ export const DEFAULT_WIZARD_STATE: WizardState = {
     budgetAwareness: "medium",
     responseTimeExpectation: "minutes",
   },
+  timeoutFallback: "proceed_cautiously",
 };
 
 export const AUTONOMY_OPTIONS: {
@@ -194,5 +198,31 @@ export const RESPONSE_TIME_OPTIONS: {
     value: "async",
     label: "Async",
     description: "Expert responds when available",
+  },
+];
+
+export const TIMEOUT_FALLBACK_OPTIONS: {
+  value: TimeoutFallback;
+  label: string;
+  description: string;
+  icon: string;
+}[] = [
+  {
+    value: "proceed_cautiously",
+    label: "Proceed cautiously",
+    description: "Pick the safest option, log decisions for expert review",
+    icon: "ShieldCheck",
+  },
+  {
+    value: "skip_continue",
+    label: "Skip & continue",
+    description: "Skip the blocked task, continue with other work, flag for later",
+    icon: "SkipForward",
+  },
+  {
+    value: "stop",
+    label: "Stop entirely",
+    description: "Halt all execution until an expert responds",
+    icon: "OctagonX",
   },
 ];

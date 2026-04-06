@@ -344,6 +344,7 @@ export default function ClientsContent() {
         subChannel: wizardSubChannel,
         ...(ctxToUse.trim() && { summonContext: ctxToUse.trim() }),
         ...(metaToUse && { summonContextMeta: metaToUse }),
+        ...(metaToUse?.timeoutFallback && metaToUse.timeoutFallback !== "proceed_cautiously" && { timeoutFallback: metaToUse.timeoutFallback }),
         ...(wizardTimeout !== 900 && { timeout: wizardTimeout }),
         ...(wizardPollInterval !== 3 && { pollInterval: wizardPollInterval }),
         ...(wizardGlobalInstall === false && { globalInstall: false }),

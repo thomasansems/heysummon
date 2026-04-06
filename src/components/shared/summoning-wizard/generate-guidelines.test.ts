@@ -11,9 +11,8 @@ describe("generateGuidelines", () => {
     expect(text).toContain("### Safety Gates (Always Summon)");
     expect(text).toContain("destructive actions");
     expect(text).toContain("financial decisions");
-    expect(text).toContain("### Frequency");
-    expect(text).toContain("no daily limit");
-    expect(text).toContain("Budget awareness: medium");
+    expect(text).toContain("### Timeout Fallback");
+    expect(text).toContain("proceed with the safest available option");
   });
 
   it("generates correct text for autonomous level", () => {
@@ -97,42 +96,19 @@ describe("generateGuidelines", () => {
   it("handles specific max summons per day", () => {
     const state: WizardState = {
       ...DEFAULT_WIZARD_STATE,
-      budgetFrequency: {
-        maxSummonsPerDay: 5,
-        budgetAwareness: "high",
-        responseTimeExpectation: "hours",
-      },
+      timeoutFallback: "stop",
     };
     const text = generateGuidelines(state);
-    expect(text).toContain("up to 5 summons per day");
-    expect(text).toContain("Budget awareness: high");
-    expect(text).toContain("within a few hours");
+    expect(text).toContain("stop all execution immediately");
   });
 
-  it("handles unlimited summons", () => {
+  it("handles skip_continue fallback", () => {
     const state: WizardState = {
       ...DEFAULT_WIZARD_STATE,
-      budgetFrequency: {
-        maxSummonsPerDay: null,
-        budgetAwareness: "low",
-        responseTimeExpectation: "minutes",
-      },
+      timeoutFallback: "skip_continue",
     };
     const text = generateGuidelines(state);
-    expect(text).toContain("no daily limit");
-    expect(text).toContain("within minutes");
-  });
-
-  it("handles async response time", () => {
-    const state: WizardState = {
-      ...DEFAULT_WIZARD_STATE,
-      budgetFrequency: {
-        ...DEFAULT_WIZARD_STATE.budgetFrequency,
-        responseTimeExpectation: "async",
-      },
-    };
-    const text = generateGuidelines(state);
-    expect(text).toContain("asynchronously (when available)");
+    expect(text).toContain("skip the blocked task");
   });
 
   it("stays under 2000 chars with maximum selections", () => {
@@ -158,6 +134,7 @@ describe("generateGuidelines", () => {
         budgetAwareness: "high",
         responseTimeExpectation: "async",
       },
+      timeoutFallback: "stop",
     };
     const text = generateGuidelines(state);
     expect(text.length).toBeLessThanOrEqual(2000);

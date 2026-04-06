@@ -169,6 +169,7 @@ export function StepClient({
           subChannel,
           ...(ctxToUse.trim() && { summonContext: ctxToUse.trim() }),
           ...(metaToUse && { summonContextMeta: metaToUse }),
+          ...(metaToUse?.timeoutFallback && metaToUse.timeoutFallback !== "proceed_cautiously" && { timeoutFallback: metaToUse.timeoutFallback }),
           ...(timeout !== DEFAULT_TIMEOUT && { timeout }),
           ...(pollInterval !== DEFAULT_POLL_INTERVAL && { pollInterval }),
         }),

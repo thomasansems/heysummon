@@ -153,9 +153,10 @@ model SetupToken {
   channel       String                      // "openclaw" | "claudecode" | "codex" | "gemini" | "cursor"
   subChannel    String?                     // "telegram" | "whatsapp"
   expertName    String?
-  summonContext String?              // Copied from expert profile at link-creation time
-  timeout       Int      @default(900)
-  pollInterval  Int      @default(3)
+  summonContext    String?              // Copied from expert profile at link-creation time
+  timeout          Int      @default(900)
+  pollInterval     Int      @default(3)
+  timeoutFallback  String   @default("proceed_cautiously")
   globalInstall Boolean  @default(true)
   expiresAt     DateTime
   createdAt     DateTime @default(now())

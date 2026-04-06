@@ -76,7 +76,7 @@ describe("Dashboard wizard context — copy text building", () => {
     const context = "Only summon for architecture decisions.";
     const text = buildSetupCopyText(testUrl, context);
     expect(text).toContain("HeySummon Setup");
-    expect(text).toContain("Summoning guidelines:");
+    expect(text).toContain("SUMMONING GUIDELINES");
     expect(text).toContain(context);
     expect(text).toContain(testUrl);
   });

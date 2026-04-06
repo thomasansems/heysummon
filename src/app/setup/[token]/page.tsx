@@ -38,6 +38,7 @@ export default async function SetupPage({
     apiKey: record.apiKey.key,
     timeout: record.timeout,
     pollInterval: record.pollInterval,
+    timeoutFallback: record.timeoutFallback,
     globalInstall: record.globalInstall,
     expertName,
     summonContext: record.summonContext,

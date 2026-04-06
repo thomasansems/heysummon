@@ -1,4 +1,4 @@
-import type { AutonomyLevel, ExpertStrength, SafetyGate, WizardState } from "./types";
+import type { AutonomyLevel, ExpertStrength, SafetyGate, TimeoutFallback, WizardState } from "./types";
 
 const AUTONOMY_DESCRIPTIONS: Record<AutonomyLevel, string> = {
   autonomous:
@@ -41,6 +41,15 @@ function formatAutonomy(level: AutonomyLevel): string {
   return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
+const TIMEOUT_FALLBACK_DESCRIPTIONS: Record<TimeoutFallback, string> = {
+  proceed_cautiously:
+    "If no expert responds within the timeout, proceed with the safest available option. Document all decisions made without expert input and flag them for review.",
+  skip_continue:
+    "If no expert responds within the timeout, skip the blocked task and continue with other available work. Flag the skipped task for expert review later.",
+  stop:
+    "If no expert responds within the timeout, stop all execution immediately. Do not proceed with any tasks until an expert responds.",
+};
+
 export function generateGuidelines(state: WizardState): string {
   const lines: string[] = [];
 
@@ -65,6 +74,9 @@ export function generateGuidelines(state: WizardState): string {
     }
     lines.push("");
   }
+
+  lines.push("### Timeout Fallback");
+  lines.push(TIMEOUT_FALLBACK_DESCRIPTIONS[state.timeoutFallback]);
 
   return lines.join("\n");
 }

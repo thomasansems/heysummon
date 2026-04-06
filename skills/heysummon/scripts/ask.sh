@@ -45,6 +45,7 @@ export HEYSUMMON_BASE_URL="${HEYSUMMON_BASE_URL:-http://localhost:3425}"
 export HEYSUMMON_API_KEY
 export HEYSUMMON_TIMEOUT="${HEYSUMMON_TIMEOUT:-900}"
 export HEYSUMMON_POLL_INTERVAL="${HEYSUMMON_POLL_INTERVAL:-3}"
+export HEYSUMMON_TIMEOUT_FALLBACK="${HEYSUMMON_TIMEOUT_FALLBACK:-proceed_cautiously}"
 export HEYSUMMON_EXPERTS_FILE="${HEYSUMMON_EXPERTS_FILE:-}"
 
 # Run blocking poll — the CLI handles timeout reporting to the server

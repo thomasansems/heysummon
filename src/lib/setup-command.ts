@@ -20,11 +20,12 @@ export function buildInstallCommand(opts: {
   apiKey: string;
   timeout: number;
   pollInterval: number;
+  timeoutFallback?: string;
   globalInstall: boolean;
   expertName: string;
   summonContext?: string | null;
 }): string {
-  const { channel, skillDir, baseUrl, apiKey, timeout, pollInterval, globalInstall, expertName, summonContext } = opts;
+  const { channel, skillDir, baseUrl, apiKey, timeout, pollInterval, timeoutFallback, globalInstall, expertName, summonContext } = opts;
   const safeName = shellEscape(expertName);
 
   if (channel === "openclaw") {
@@ -48,7 +49,8 @@ cat > ${skillDir}/.env << 'EOF'
 HEYSUMMON_BASE_URL=${baseUrl}
 HEYSUMMON_API_KEY=${apiKey}
 HEYSUMMON_TIMEOUT=${timeout}
-HEYSUMMON_POLL_INTERVAL=${pollInterval}${contextLine}
+HEYSUMMON_POLL_INTERVAL=${pollInterval}
+HEYSUMMON_TIMEOUT_FALLBACK=${timeoutFallback || "proceed_cautiously"}${contextLine}
 EOF
 echo "Verifying connection..." && \\
 curl -sf "${baseUrl}/api/v1/whoami" \\

@@ -13,12 +13,14 @@ import { generateGuidelines } from "./generate-guidelines";
 import { AutonomyStep } from "./steps/autonomy-step";
 import { SafetyGatesStep } from "./steps/safety-gates-step";
 import { ExpertStrengthsStep } from "./steps/expert-strengths-step";
+import { TimeoutFallbackStep } from "./steps/timeout-fallback-step";
 import { ReviewExportStep } from "./steps/review-export-step";
 
 const STEP_LABELS = [
   "Autonomy",
   "Safety",
   "Strengths",
+  "Timeout",
   "Review",
 ];
 
@@ -135,6 +137,14 @@ export function SummoningWizard({
           />
         )}
         {currentStep === 3 && (
+          <TimeoutFallbackStep
+            value={state.timeoutFallback}
+            onChange={(timeoutFallback) =>
+              setState((s) => ({ ...s, timeoutFallback }))
+            }
+          />
+        )}
+        {currentStep === 4 && (
           <ReviewExportStep
             generatedText={generatedText}
             charLimit={CHAR_LIMIT}

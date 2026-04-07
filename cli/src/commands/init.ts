@@ -53,11 +53,11 @@ export async function init(opts?: { yes?: boolean }): Promise<void> {
   ensureDir(getHeysummonDir());
   ensureDir(getAppDir());
 
-  // ── Download ────────────────────────────────────────────────────────
+  // ── Step 1: Download ─────────────────────────────────────────────────
   const dlSpinner = p.spinner();
-  dlSpinner.start("Downloading latest release from GitHub...");
+  dlSpinner.start("[Step 1/6] Downloading latest release from GitHub...");
   const version = await downloadAndExtract();
-  dlSpinner.stop(`Downloaded HeySummon ${version}`);
+  dlSpinner.stop(`[Step 1/6] Downloaded HeySummon ${version}`);
 
   // ── Configuration ───────────────────────────────────────────────────
   let port = 3435;
@@ -95,9 +95,9 @@ export async function init(opts?: { yes?: boolean }): Promise<void> {
     );
   }
 
-  // ── Secrets ─────────────────────────────────────────────────────────
+  // ── Step 2: Secrets ──────────────────────────────────────────────────
   const secretsSpinner = p.spinner();
-  secretsSpinner.start("Generating secure random secrets...");
+  secretsSpinner.start("[Step 2/6] Generating secure random secrets...");
   const secrets = generateSecrets();
 
   const config: HeysummonConfig = {
@@ -110,20 +110,25 @@ export async function init(opts?: { yes?: boolean }): Promise<void> {
 
   const envContent = generateEnv(config, secrets);
   writeEnv(envContent);
-  secretsSpinner.stop("Secrets generated and saved");
+  secretsSpinner.stop("[Step 2/6] Secrets generated and saved");
 
-  // ── Database ────────────────────────────────────────────────────────
-  const dbSpinner = p.spinner();
-  dbSpinner.start("Setting up SQLite database and running migrations...");
-  installDependencies();
-  runMigrations();
-  dbSpinner.stop("Database ready");
+  // ── Step 3: Install dependencies ─────────────────────────────────────
+  const installSpinner = p.spinner();
+  installSpinner.start("[Step 3/6] Installing dependencies...");
+  await installDependencies();
+  installSpinner.stop("[Step 3/6] Dependencies installed");
 
-  // ── Build ───────────────────────────────────────────────────────────
+  // ── Step 4: Database migrations ─────────────────────────────────────
+  const migrateSpinner = p.spinner();
+  migrateSpinner.start("[Step 4/6] Running database migrations...");
+  await runMigrations();
+  migrateSpinner.stop("[Step 4/6] Database ready");
+
+  // ── Step 5: Build ───────────────────────────────────────────────────
   const buildSpinner = p.spinner();
-  buildSpinner.start("Building application (this takes ~30 seconds)...");
-  buildApp();
-  buildSpinner.stop("Build complete");
+  buildSpinner.start("[Step 5/6] Building application (this may take ~30s)...");
+  await buildApp();
+  buildSpinner.stop("[Step 5/6] Build complete");
 
   // ── Configuration summary ───────────────────────────────────────────
   p.note(
@@ -137,13 +142,13 @@ export async function init(opts?: { yes?: boolean }): Promise<void> {
     "Configuration"
   );
 
-  // ── Start daemon ────────────────────────────────────────────────────
+  // ── Step 6: Start daemon ─────────────────────────────────────────────
   const startSpinner = p.spinner();
-  startSpinner.start("Starting HeySummon in the background...");
+  startSpinner.start("[Step 6/6] Starting HeySummon...");
 
   try {
     await startDaemon(port);
-    startSpinner.stop("HeySummon is running!");
+    startSpinner.stop("[Step 6/6] HeySummon is running!");
 
     p.log.info(`Dashboard: ${color.cyan(publicUrl)}`);
     p.log.info(`Docs:      ${color.cyan("https://docs.heysummon.ai/getting-started/quickstart")}`);

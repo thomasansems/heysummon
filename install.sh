@@ -13,21 +13,111 @@ set -euo pipefail
 #   bash install.sh
 
 BLUE='\033[0;34m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'
-BOLD='\033[1m'; NC='\033[0m'
+BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
 
-info() { echo -e "${BLUE}ℹ${NC}  $*"; }
-ok()   { echo -e "${GREEN}✓${NC}  $*"; }
-warn() { echo -e "${YELLOW}⚠${NC}  $*"; }
-die()  { echo -e "${RED}✗${NC}  $*" >&2; exit 1; }
+info() { echo -e "  ${DIM}.${NC} $*"; }
+ok()   { echo -e "  ${GREEN}.${NC} $*"; }
+warn() { echo -e "  ${YELLOW}.${NC} $*"; }
+die()  { echo -e "  ${RED}.${NC} $*" >&2; exit 1; }
+step() { echo -e "  ${GREEN}>${NC} ${BOLD}$*${NC}"; }
 
 REPO_RAW="https://raw.githubusercontent.com/thomasansems/heysummon/main"
 INSTALL_DIR="${HEYSUMMON_DIR:-$HOME/.heysummon-docker}"
 
-echo ""
-echo -e "${BOLD}╔══════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║         HeySummon Installer              ║${NC}"
-echo -e "${BOLD}╚══════════════════════════════════════════╝${NC}"
-echo ""
+# ── Branded banner ──────────────────────────────────
+
+SUMMON_LINES=(
+  "Thomas|About to delete 847 prod records. You sure about that?"
+  "Sarah|Found a \$200 cheaper flight. It leaves at 4:47 AM though."
+  "Mark|Email draft says 'As per my last email'. Send it like that?"
+  "Lisa|New vendor invoice: \$2,400. Never seen this account before."
+  "James|Ad budget is gone. Pause everything or throw in another \$500?"
+  "Anna|That PR has 6 major issues. Post the honest review or sugarcoat it?"
+  "Thomas|You said 'update the homepage'. I have 4 interpretations of that."
+  "Lisa|'Make it faster' -- load time, response time, or vibes?"
+)
+
+print_banner() {
+  echo ""
+  echo -e "${BOLD}${YELLOW}  _                                                          ${NC}"
+  echo -e "${BOLD}${YELLOW} | |__   ___ _   _   ___ _   _ _ __ ___  _ __ ___   ___  _ __${NC}"
+  echo -e "${BOLD}${YELLOW} |  _ \\ / _ \\ | | | / __| | | | '_ \` _ \\| '_ \` _ \\ / _ \\| '_ \\${NC}"
+  echo -e "${BOLD}${YELLOW} | | | |  __/ |_| | \\__ \\ |_| | | | | | | | | | | | (_) | | | |${NC}"
+  echo -e "${BOLD}${YELLOW} |_| |_|\\___|\\__, | |___/\\__,_|_| |_| |_|_| |_| |_|\\___/|_| |_|${NC}"
+  echo -e "${BOLD}${YELLOW}             |___/                                            ${NC}"
+  echo ""
+  echo -e "  ${DIM}AI does the work. Humans make the calls. Self-Hosted Human-in-the-loop${NC}"
+  echo ""
+}
+
+# Typewriter animation -- 2 cycles, pure bash
+animate_taglines() {
+  # Skip animation in non-interactive or CI environments
+  if [[ ! -t 1 ]] || [[ "${CI:-}" == "true" ]]; then
+    local entry="${SUMMON_LINES[0]}"
+    local name="${entry%%|*}"
+    local question="${entry#*|}"
+    printf "  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC} ${DIM}%s${NC}\n" "$name" "$question"
+    echo ""
+    return
+  fi
+
+  local cycles=2
+  local shuffled=()
+  local indices=()
+  for i in "${!SUMMON_LINES[@]}"; do indices+=("$i"); done
+  # Fisher-Yates shuffle
+  for ((i=${#indices[@]}-1; i>0; i--)); do
+    j=$((RANDOM % (i+1)))
+    tmp="${indices[$i]}"; indices[$i]="${indices[$j]}"; indices[$j]="$tmp"
+  done
+  for i in "${indices[@]}"; do shuffled+=("${SUMMON_LINES[$i]}"); done
+
+  for ((c=0; c<cycles; c++)); do
+    local entry="${shuffled[$c]}"
+    local name="${entry%%|*}"
+    local question="${entry#*|}"
+    local full="${name} ${question}"
+    local len=${#full}
+
+    # Type forward
+    for ((i=1; i<=len; i++)); do
+      local typed="${full:0:$i}"
+      local name_len=${#name}
+      if ((i <= name_len)); then
+        printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC}" "$typed"
+      else
+        printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC} ${DIM}%s${NC}" "$name" "${typed:$((name_len+1))}"
+      fi
+      sleep 0.02
+    done
+
+    sleep 1.2
+
+    # Erase backwards (skip on last cycle)
+    if ((c < cycles - 1)); then
+      for ((i=len; i>0; i--)); do
+        local typed="${full:0:$((i-1))}"
+        local name_len=${#name}
+        if ((i-1 <= 0)); then
+          printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} "
+        elif ((i-1 <= name_len)); then
+          printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC}" "$typed"
+        else
+          printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC} ${DIM}%s${NC}" "$name" "${typed:$((name_len+1))}"
+        fi
+        sleep 0.01
+      done
+      sleep 0.3
+    fi
+  done
+
+  echo ""
+  echo ""
+}
+
+print_banner
+animate_taglines
 
 # ── Checks ───────────────────────────────────────────
 
@@ -88,7 +178,7 @@ wizard() {
     return
   fi
 
-  echo -e "${BOLD}Setup Wizard${NC}"
+  step "Setup Wizard"
   echo ""
 
   # 1. Public URL
@@ -174,7 +264,9 @@ else
 NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 
 # ─── Database ───────────────────────────────────────
+DB_USER=heysummon
 DB_PASSWORD=${DB_PASSWORD}
+DB_NAME=heysummon
 
 # ─── URLs ───────────────────────────────────────────
 # Public URL (optional). Leave empty for auto-detection via AUTH_TRUST_HOST.
@@ -200,7 +292,7 @@ fi
 # ── Start ────────────────────────────────────────────
 
 echo ""
-info "Starting HeySummon..."
+step "Starting HeySummon"
 if [[ "$CONFIGURED_PROFILE" == "cloudflare" ]]; then
   docker compose --profile cloudflare up -d
 elif [[ "$CONFIGURED_PROFILE" == "tailscale" ]]; then
@@ -223,18 +315,21 @@ if [[ -n "$CONFIGURED_URL" ]]; then
 fi
 
 echo ""
-echo -e "${GREEN}${BOLD}HeySummon is running!${NC}"
+echo -e "  ${GREEN}${BOLD}HeySummon is running!${NC}"
 echo ""
-echo -e "  Dashboard:  ${BOLD}${CONFIGURED_URL:-http://<your-server-ip>:${CONFIGURED_PORT:-3445}}${NC}"
-echo -e "  .env:       ${BOLD}${INSTALL_DIR}/.env${NC}"
-echo ""
-echo -e "${BLUE}Tip:${NC} The first user to sign up becomes the admin."
+echo -e "  ${DIM}|${NC}"
+echo -e "  ${DIM}|${NC}  Dashboard:  ${BOLD}${CONFIGURED_URL:-http://<your-server-ip>:${CONFIGURED_PORT:-3445}}${NC}"
+echo -e "  ${DIM}|${NC}  .env:       ${BOLD}${INSTALL_DIR}/.env${NC}"
+echo -e "  ${DIM}|${NC}"
+echo -e "  ${DIM}|${NC}  ${DIM}The first user to sign up becomes the admin.${NC}"
 if [[ "$CONFIGURED_PROFILE" == "direct" ]]; then
-  echo -e "${BLUE}Tip:${NC} To expose publicly, edit .env and run:"
-  echo -e "     ${BOLD}docker compose --profile cloudflare up -d${NC} (production)"
-  echo -e "     ${BOLD}docker compose --profile tailscale up -d${NC}  (teams)"
+  echo -e "  ${DIM}|${NC}"
+  echo -e "  ${DIM}|${NC}  ${DIM}To expose publicly, edit .env and run:${NC}"
+  echo -e "  ${DIM}|${NC}    ${BOLD}docker compose --profile cloudflare up -d${NC}  ${DIM}(production)${NC}"
+  echo -e "  ${DIM}|${NC}    ${BOLD}docker compose --profile tailscale up -d${NC}   ${DIM}(teams)${NC}"
 fi
-echo ""
-echo -e "To stop:   ${BOLD}docker compose down${NC}"
-echo -e "To update: ${BOLD}docker compose pull && docker compose up -d${NC}"
+echo -e "  ${DIM}|${NC}"
+echo -e "  ${DIM}|${NC}  Stop:   ${BOLD}docker compose down${NC}"
+echo -e "  ${DIM}|${NC}  Update: ${BOLD}docker compose pull && docker compose up -d${NC}"
+echo -e "  ${DIM}|${NC}"
 echo ""

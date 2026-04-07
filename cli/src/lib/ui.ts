@@ -49,7 +49,7 @@ const SUMMON_LINES = [
   "hey summon Anna Code comment says 'DO NOT CHANGE'. But you just asked me to change it.",
 ];
 
-const ANIMATION_CYCLES = 6;
+const ANIMATION_CYCLES = 2;
 const TYPE_DELAY_MS = 22;
 const ERASE_DELAY_MS = 10;
 const PAUSE_AFTER_LINE_MS = 1400;

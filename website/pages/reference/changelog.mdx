@@ -4,8 +4,14 @@ import { Callout } from 'nextra/components'
 
 ## Unreleased
 
+### Fixed
+- NPX installer: fixed 404 error when downloading releases -- the GitHub API repo constant was set to `@heysummon/app` (npm package name) instead of `thomasansems/heysummon` (GitHub owner/repo format)
+- CLI: reduced tagline animation from 6 cycles (~22s) to 2 cycles (~7s) so the init wizard starts faster
+- Docker: all DB credentials (`DB_USER`, `DB_PASSWORD`, `DB_NAME`) are now parameterized via `.env` -- eliminates credential mismatch between `db` and `db-migrate` services on fresh deploys
+
 ### Changed
 - `ask.sh` no longer auto-detects approval intent from keywords in the question. Approval mode now requires the explicit `--requires-approval` flag. This removes false positives where questions like "should I proceed?" silently became Approve/Deny prompts.
+- Bash installers (`install.sh`, `install-local-dev.sh`) now display the branded HeySummon ASCII art banner, tagline, and typewriter animation matching the NPX installer experience
 
 ### Docs
 - Replaced "Best Practice Prompts" page with "Summoning Guidelines" -- documents the wizard-based guidelines flow used during onboarding and client setup instead of static copy-paste prompts

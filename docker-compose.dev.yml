@@ -30,7 +30,7 @@ services:
           sleep 3
         done
     environment:
-      DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
+      DATABASE_URL: postgresql://${DB_USER:-heysummon}:${DB_PASSWORD:-heysummon_dev}@db:5432/${DB_NAME:-heysummon}
     networks:
       - backend
     depends_on:
@@ -43,13 +43,13 @@ services:
     networks:
       - backend
     environment:
-      POSTGRES_USER: heysummon
+      POSTGRES_USER: ${DB_USER:-heysummon}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-heysummon_dev}
-      POSTGRES_DB: heysummon
+      POSTGRES_DB: ${DB_NAME:-heysummon}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U heysummon -d heysummon && psql -U heysummon -d heysummon -c 'SELECT 1' > /dev/null 2>&1"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-heysummon} -d ${DB_NAME:-heysummon} && psql -U ${DB_USER:-heysummon} -d ${DB_NAME:-heysummon} -c 'SELECT 1' > /dev/null 2>&1"]
       interval: 3s
       timeout: 3s
       retries: 10
@@ -68,7 +68,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
+      DATABASE_URL: postgresql://${DB_USER:-heysummon}:${DB_PASSWORD:-heysummon_dev}@db:5432/${DB_NAME:-heysummon}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3445}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET}
       AUTH_TRUST_HOST: "true"
@@ -117,7 +117,7 @@ services:
       - backend
       - frontend
     environment:
-      DATABASE_URL: postgresql://heysummon:${DB_PASSWORD:-heysummon_dev}@db:5432/heysummon
+      DATABASE_URL: postgresql://${DB_USER:-heysummon}:${DB_PASSWORD:-heysummon_dev}@db:5432/${DB_NAME:-heysummon}
     depends_on:
       db:
         condition: service_healthy

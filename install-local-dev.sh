@@ -13,16 +13,97 @@ set -euo pipefail
 BLUE='\033[0;34m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'
 BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'
 
-info() { echo -e "${BLUE}i${NC}  $*"; }
-ok()   { echo -e "${GREEN}✓${NC}  $*"; }
-warn() { echo -e "${YELLOW}!${NC}  $*"; }
-die()  { echo -e "${RED}x${NC}  $*" >&2; exit 1; }
+info() { echo -e "  ${DIM}.${NC} $*"; }
+ok()   { echo -e "  ${GREEN}.${NC} $*"; }
+warn() { echo -e "  ${YELLOW}.${NC} $*"; }
+die()  { echo -e "  ${RED}.${NC} $*" >&2; exit 1; }
+step() { echo -e "  ${GREEN}>${NC} ${BOLD}$*${NC}"; }
 
-echo ""
-echo -e "${BOLD}╔══════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║      HeySummon — Local Dev Setup         ║${NC}"
-echo -e "${BOLD}╚══════════════════════════════════════════╝${NC}"
-echo ""
+SUMMON_LINES=(
+  "Thomas|About to delete 847 prod records. You sure about that?"
+  "Sarah|Found a \$200 cheaper flight. It leaves at 4:47 AM though."
+  "Mark|Email draft says 'As per my last email'. Send it like that?"
+  "Lisa|New vendor invoice: \$2,400. Never seen this account before."
+  "James|Ad budget is gone. Pause everything or throw in another \$500?"
+  "Anna|That PR has 6 major issues. Post the honest review or sugarcoat it?"
+)
+
+print_banner() {
+  echo ""
+  echo -e "${BOLD}${YELLOW}  _                                                          ${NC}"
+  echo -e "${BOLD}${YELLOW} | |__   ___ _   _   ___ _   _ _ __ ___  _ __ ___   ___  _ __${NC}"
+  echo -e "${BOLD}${YELLOW} |  _ \\ / _ \\ | | | / __| | | | '_ \` _ \\| '_ \` _ \\ / _ \\| '_ \\${NC}"
+  echo -e "${BOLD}${YELLOW} | | | |  __/ |_| | \\__ \\ |_| | | | | | | | | | | | (_) | | | |${NC}"
+  echo -e "${BOLD}${YELLOW} |_| |_|\\___|\\__, | |___/\\__,_|_| |_| |_|_| |_| |_|\\___/|_| |_|${NC}"
+  echo -e "${BOLD}${YELLOW}             |___/                                            ${NC}"
+  echo ""
+  echo -e "  ${DIM}AI does the work. Humans make the calls. Local Development Setup${NC}"
+  echo ""
+}
+
+animate_taglines() {
+  if [[ ! -t 1 ]] || [[ "${CI:-}" == "true" ]]; then
+    local entry="${SUMMON_LINES[0]}"
+    local name="${entry%%|*}"
+    local question="${entry#*|}"
+    printf "  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC} ${DIM}%s${NC}\n" "$name" "$question"
+    echo ""
+    return
+  fi
+
+  local cycles=2
+  local shuffled=()
+  local indices=()
+  for i in "${!SUMMON_LINES[@]}"; do indices+=("$i"); done
+  for ((i=${#indices[@]}-1; i>0; i--)); do
+    j=$((RANDOM % (i+1)))
+    tmp="${indices[$i]}"; indices[$i]="${indices[$j]}"; indices[$j]="$tmp"
+  done
+  for i in "${indices[@]}"; do shuffled+=("${SUMMON_LINES[$i]}"); done
+
+  for ((c=0; c<cycles; c++)); do
+    local entry="${shuffled[$c]}"
+    local name="${entry%%|*}"
+    local question="${entry#*|}"
+    local full="${name} ${question}"
+    local len=${#full}
+
+    for ((i=1; i<=len; i++)); do
+      local typed="${full:0:$i}"
+      local name_len=${#name}
+      if ((i <= name_len)); then
+        printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC}" "$typed"
+      else
+        printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC} ${DIM}%s${NC}" "$name" "${typed:$((name_len+1))}"
+      fi
+      sleep 0.02
+    done
+
+    sleep 1.2
+
+    if ((c < cycles - 1)); then
+      for ((i=len; i>0; i--)); do
+        local typed="${full:0:$((i-1))}"
+        local name_len=${#name}
+        if ((i-1 <= 0)); then
+          printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} "
+        elif ((i-1 <= name_len)); then
+          printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC}" "$typed"
+        else
+          printf "\r\033[K  ${DIM}>${NC} ${BOLD}${YELLOW}hey summon${NC} ${BOLD}%s${NC} ${DIM}%s${NC}" "$name" "${typed:$((name_len+1))}"
+        fi
+        sleep 0.01
+      done
+      sleep 0.3
+    fi
+  done
+
+  echo ""
+  echo ""
+}
+
+print_banner
+animate_taglines
 
 # ── Checks ───────────────────────────────────────────
 
@@ -53,7 +134,7 @@ CONFIGURED_URL=""
 if [[ -f .env.local ]]; then
   warn ".env.local already exists -- skipping setup wizard (delete it to re-run)"
 else
-  echo -e "${BOLD}Setup Wizard${NC}"
+  step "Setup Wizard"
   echo ""
 
   # ── Step 1: Port ──────────────────────────────────
@@ -284,26 +365,27 @@ ok "Database ready"
 # ── Done ─────────────────────────────────────────────
 
 echo ""
-echo -e "${GREEN}${BOLD}Setup complete!${NC}"
+echo -e "  ${GREEN}${BOLD}Setup complete!${NC}"
 echo ""
-echo -e "  Start the dev server:  ${BOLD}pnpm dev${NC}"
+echo -e "  ${DIM}|${NC}"
+echo -e "  ${DIM}|${NC}  Start the dev server:  ${BOLD}pnpm dev${NC}"
 
 # Show the right URL based on connectivity profile
 if [[ -n "${CONFIGURED_URL:-}" && "${CONFIGURED_URL:-}" != "http://localhost:"* ]]; then
-  echo -e "  Dashboard:             ${BOLD}${CONFIGURED_URL}${NC}"
-  echo -e "  Local URL:             http://localhost:${CONFIGURED_PORT:-3425}"
+  echo -e "  ${DIM}|${NC}  Dashboard:             ${BOLD}${CONFIGURED_URL}${NC}"
+  echo -e "  ${DIM}|${NC}  Local URL:             http://localhost:${CONFIGURED_PORT:-3425}"
 else
-  echo -e "  Dashboard:             ${BOLD}http://localhost:${CONFIGURED_PORT:-3425}${NC}"
+  echo -e "  ${DIM}|${NC}  Dashboard:             ${BOLD}http://localhost:${CONFIGURED_PORT:-3425}${NC}"
 fi
 
-echo ""
-echo -e "${BLUE}Tip:${NC} The first user to sign up becomes the admin."
+echo -e "  ${DIM}|${NC}"
+echo -e "  ${DIM}|${NC}  ${DIM}The first user to sign up becomes the admin.${NC}"
 
 if [[ "${CONFIGURED_PROFILE:-direct}" == "direct" ]]; then
-  echo ""
-  echo -e "${BLUE}Note:${NC} You chose local-only mode. If you later want to use Telegram or Slack"
-  echo -e "      as an expert channel, enable a tunnel from the dashboard (Settings > Public Access)"
-  echo -e "      or re-run this installer."
+  echo -e "  ${DIM}|${NC}"
+  echo -e "  ${DIM}|${NC}  ${DIM}You chose local-only mode. To use Telegram or Slack later,${NC}"
+  echo -e "  ${DIM}|${NC}  ${DIM}enable a tunnel from the dashboard or re-run this installer.${NC}"
 fi
 
+echo -e "  ${DIM}|${NC}"
 echo ""

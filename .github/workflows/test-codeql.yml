@@ -1,4 +1,4 @@
-name: CodeQL
+name: TEST - CodeQL
 
 on:
   push:

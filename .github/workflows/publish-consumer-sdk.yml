@@ -1,4 +1,4 @@
-name: Publish @heysummon/consumer-sdk to npm
+name: PUBLISH - Consumer SDK
 
 on:
   release:
@@ -16,7 +16,14 @@ on:
         type: boolean
 
 jobs:
+  gate:
+    name: Run CI tests
+    uses: ./.github/workflows/test-ci.yml
+    permissions:
+      contents: read
+
   publish:
+    needs: [gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read

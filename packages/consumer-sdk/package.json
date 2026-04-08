@@ -1,6 +1,6 @@
 {
   "name": "@heysummon/consumer-sdk",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "description": "TypeScript SDK for HeySummon consumers (AI agents)",
   "type": "module",
   "main": "./dist/index.js",

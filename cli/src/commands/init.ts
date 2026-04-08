@@ -17,6 +17,7 @@ import { installDependencies, runMigrations, buildApp, waitForHealthy } from "..
 import { askYesNo } from "../lib/prompts";
 import { startDaemon } from "./start";
 import { printAnimatedBanner, color } from "../lib/ui";
+import { checkSystem, formatSystemSummary } from "../lib/system-check";
 
 function copyFromSourceDir(sourceDir: string, destDir: string): void {
   const absSource = path.resolve(sourceDir);
@@ -43,6 +44,33 @@ export async function init(opts?: { yes?: boolean; fromSource?: string }): Promi
   const heysummonDir = getHeysummonDir();
 
   p.log.info(`Home: ${color.cyan(heysummonDir)}`);
+
+  // ── System check ──────────────────────────────────────────────────
+  const sysCheck = checkSystem(heysummonDir);
+  p.note(formatSystemSummary(sysCheck), "System");
+
+  if (sysCheck.warnings.length > 0) {
+    for (const warning of sysCheck.warnings) {
+      p.log.warn(warning);
+    }
+  }
+
+  if (!sysCheck.canInstall) {
+    p.log.error("Your system does not meet the minimum requirements.");
+    if (!quickstart) {
+      const forceContinue = await askYesNo(
+        "Continue anyway? (installation may fail)",
+        false
+      );
+      if (!forceContinue) {
+        p.outro("Resolve the issues above and try again.");
+        process.exit(1);
+      }
+    } else {
+      p.outro("Resolve the issues above and try again.");
+      process.exit(1);
+    }
+  }
 
   // Check existing installation
   if (isInitialized()) {
@@ -152,8 +180,12 @@ export async function init(opts?: { yes?: boolean; fromSource?: string }): Promi
   dbSpinner.stop("Database ready");
 
   // ── Build ───────────────────────────────────────────────────────────
+  const { min, max } = sysCheck.estimatedMinutes;
+  p.log.info(
+    `Building the app — estimated ${color.cyan(`${min}–${max} minutes`)} for your machine.`
+  );
   const buildSpinner = p.spinner();
-  buildSpinner.start("Building application (this may take a minute or two)...");
+  buildSpinner.start("Building application... 0s elapsed");
   await buildApp((elapsed) => {
     buildSpinner.message(`Building application... ${elapsed}s elapsed`);
   });

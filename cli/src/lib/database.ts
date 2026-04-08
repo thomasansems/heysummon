@@ -37,7 +37,7 @@ export function installDependencies(onProgress?: (elapsedSec: number) => void): 
       ? setInterval(() => {
           const elapsed = Math.round((Date.now() - startTime) / 1000);
           onProgress(elapsed);
-        }, 5000)
+        }, 3000)
       : null;
 
     child.on("close", (code) => {
@@ -81,7 +81,7 @@ export function runMigrations(onProgress?: (elapsedSec: number) => void): Promis
       ? setInterval(() => {
           const elapsed = Math.round((Date.now() - startTime) / 1000);
           onProgress(elapsed);
-        }, 5000)
+        }, 3000)
       : null;
 
     child.on("close", (code) => {
@@ -127,7 +127,7 @@ export function buildApp(onProgress?: (elapsedSec: number) => void): Promise<voi
       ? setInterval(() => {
           const elapsed = Math.round((Date.now() - startTime) / 1000);
           onProgress(elapsed);
-        }, 5000)
+        }, 3000)
       : null;
 
     child.on("close", (code) => {

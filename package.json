@@ -15,7 +15,8 @@
     "test:coverage:report": "vitest run --coverage --reporter=verbose",
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "version": "bash scripts/version-sync.sh"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

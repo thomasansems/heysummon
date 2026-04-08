@@ -12,13 +12,22 @@
 # No further configuration needed.
 
 {$DOMAIN} {
-	reverse_proxy app:3000
+	reverse_proxy app:3000 {
+		# Trust only the Docker network — client-supplied X-Forwarded-For
+		# is stripped and replaced with the real client IP.
+		trusted_proxies private_ranges
+	}
 
 	encode zstd gzip
 
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Remove server identification headers
+		-Server
+		-X-Powered-By
 	}
 }

@@ -13,6 +13,7 @@ const RATE_LIMIT_MAX_REQUESTS = 120; // 120 req/min per IP (pages)
 const RATE_LIMIT_API_MAX = 60; // 60 req/min for /api/v1/*
 const RATE_LIMIT_POLLING_MAX = 30; // 30 req/min for /api/v1/help/* polling
 const RATE_LIMIT_EVENTS_POLLING_MAX = 300; // 300 req/min for /api/v1/events/pending + ack (watcher polls every 5s)
+const RATE_LIMIT_AUTH_MAX = 10; // 10 req/min for /api/auth/* (brute-force protection)
 
 function getClientIp(req: NextRequest): string {
   return (
@@ -69,20 +70,33 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ip = getClientIp(request);
+  const isLocalhost = ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
 
   // --- Rate Limiting ---
-  // Skip rate limiting for NextAuth internals
+  // Auth endpoints: strict rate limiting to prevent brute-force attacks
   if (pathname.startsWith("/api/auth/")) {
+    // Allow CSRF token fetches and session checks without strict limits
+    const isReadOnly = pathname === "/api/auth/session" || pathname === "/api/auth/csrf";
+    if (!isReadOnly && !isLocalhost) {
+      if (isRateLimited(`auth:${ip}`, RATE_LIMIT_AUTH_MAX)) {
+        return NextResponse.json(
+          { error: "Too many requests. Please try again later." },
+          { status: 429, headers: { "Retry-After": "60" } }
+        );
+      }
+    }
     return applySecurityHeaders(NextResponse.next());
   }
 
-  // Skip rate limiting for E2E test runs (secret bypass header)
-  const e2eSecret = process.env.E2E_RATE_LIMIT_BYPASS_SECRET;
-  if (
-    e2eSecret &&
-    request.headers.get("x-e2e-bypass") === e2eSecret
-  ) {
-    return applySecurityHeaders(NextResponse.next());
+  // Skip rate limiting for E2E test runs (secret bypass header, non-production only)
+  if (process.env.NODE_ENV !== "production") {
+    const e2eSecret = process.env.E2E_RATE_LIMIT_BYPASS_SECRET;
+    if (
+      e2eSecret &&
+      request.headers.get("x-e2e-bypass") === e2eSecret
+    ) {
+      return applySecurityHeaders(NextResponse.next());
+    }
   }
 
   const isPolling = pathname.startsWith("/api/v1/help/") && request.method === "GET";
@@ -113,9 +127,6 @@ export function middleware(request: NextRequest) {
       );
     }
   }
-
-  // Skip rate limiting for localhost (development + test runners)
-  const isLocalhost = ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
 
   if (!isLocalhost) {
     const limitKey = isApiV1 ? `api:${ip}` : `page:${ip}`;
@@ -170,18 +181,19 @@ export function middleware(request: NextRequest) {
       "https://heysummon.ai",
     ];
 
-    if (allowedOrigins.includes(origin)) {
+    const isAllowedOrigin = allowedOrigins.includes(origin);
+    if (isAllowedOrigin) {
       response.headers.set("Access-Control-Allow-Origin", origin);
+      response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+      response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key, x-device-token, x-machine-id");
+      response.headers.set("Access-Control-Max-Age", "86400");
     }
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key, x-device-token, x-machine-id");
-    response.headers.set("Access-Control-Max-Age", "86400");
 
     // Handle preflight
     if (request.method === "OPTIONS") {
       return applySecurityHeaders(
         new NextResponse(null, {
-          status: 204,
+          status: isAllowedOrigin ? 204 : 403,
           headers: response.headers,
         })
       );

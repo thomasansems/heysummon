@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  poweredByHeader: false,
   allowedDevOrigins: ["thomas-pc.tail38a1e7.ts.net", "thomas-pc"],
   headers: async () => [
     {

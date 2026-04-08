@@ -5,6 +5,20 @@ import crypto from "node:crypto";
 
 const TELEGRAM_API = "https://api.telegram.org";
 
+/**
+ * Escape special characters for Telegram Markdown parse mode.
+ * Prevents user-supplied content from being rendered as formatting
+ * (mitigates Lies-in-the-Loop / HITL dialog forging attacks).
+ */
+export function escapeTelegramMarkdown(str: string): string {
+  return str
+    .replace(/\\/g, "\\\\")
+    .replace(/\*/g, "\\*")
+    .replace(/_/g, "\\_")
+    .replace(/`/g, "\\`")
+    .replace(/\[/g, "\\[");
+}
+
 function botUrl(token: string, method: string): string {
   return `${TELEGRAM_API}/bot${token}/${method}`;
 }

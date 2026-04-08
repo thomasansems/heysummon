@@ -217,7 +217,7 @@ export async function validateApiKeyRequest(
             response: NextResponse.json(
               {
                 error: "IP address is blacklisted for this API key",
-                hint: "To unblock this IP, go to your HeySummon dashboard → Clients → select the key → IP Security and remove or allow this IP address.",
+                hint: "To unblock this IP, go to your HeySummon dashboard -> Clients -> select the key -> IP Security and remove or allow this IP address.",
               },
               { status: 403 }
             ),
@@ -241,8 +241,7 @@ export async function validateApiKeyRequest(
             response: NextResponse.json(
               {
                 error: "IP address not authorized for this API key",
-                hint: `This IP (${clientIp}) is pending approval. Go to your HeySummon dashboard → Clients → select the key → IP Security to allow it.`,
-                ip: clientIp,
+                hint: "This IP is pending approval. Go to your HeySummon dashboard -> Clients -> select the key -> IP Security to allow it.",
               },
               { status: 403 }
             ),
@@ -270,8 +269,7 @@ export async function validateApiKeyRequest(
           response: NextResponse.json(
             {
               error: "IP address not authorized for this API key",
-              hint: `New IP detected (${clientIp}). Go to your HeySummon dashboard → Clients → select the key → IP Security to allow it.`,
-              ip: clientIp,
+              hint: "New IP detected. Go to your HeySummon dashboard -> Clients -> select the key -> IP Security to allow it.",
             },
             { status: 403 }
           ),
@@ -286,7 +284,7 @@ export async function validateApiKeyRequest(
     return {
       ok: false,
       response: NextResponse.json(
-        { error: `Scope "${keyRecord.scope}" does not allow ${method} requests` },
+        { error: "Insufficient permissions for this operation" },
         { status: 403 }
       ),
     };

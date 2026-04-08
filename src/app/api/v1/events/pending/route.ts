@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { validateExpertKey } from "@/lib/expert-key-auth";
 import { decryptMessage } from "@/lib/crypto";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
-import { sendMessage } from "@/lib/adapters/telegram";
+import { sendMessage, escapeTelegramMarkdown } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
 
 const DEBUG = process.env.DEBUG === "true";
@@ -242,9 +242,9 @@ async function sendDeferredNotifications(
   if (!cfg.expertChatId || !cfg.botToken) return;
 
   for (const req of unnotified) {
-    const clientName = req.apiKey?.name || "Unknown client";
+    const clientName = escapeTelegramMarkdown(req.apiKey?.name || "Unknown client");
     const questionLine = req.questionPreview
-      ? `\n"${req.questionPreview.slice(0, 500)}${req.questionPreview.length > 500 ? "..." : ""}"\n`
+      ? `\n"${escapeTelegramMarkdown(req.questionPreview.slice(0, 500))}${req.questionPreview.length > 500 ? "..." : ""}"\n`
       : "\n";
     const msg = [
       `*New help request* from ${clientName}`,

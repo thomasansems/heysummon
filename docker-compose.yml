@@ -55,7 +55,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${DB_USER} -d $${DB_NAME} && psql -U $${DB_USER} -d $${DB_NAME} -c 'SELECT 1' > /dev/null 2>&1"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} && psql -U $${POSTGRES_USER} -d $${POSTGRES_DB} -c 'SELECT 1' > /dev/null 2>&1"]
       interval: 5s
       timeout: 3s
       retries: 10

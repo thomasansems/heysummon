@@ -135,11 +135,20 @@ export async function init(opts?: { yes?: boolean; fromSource?: string }): Promi
   writeEnv(envContent);
   secretsSpinner.stop("Secrets generated and saved");
 
+  // ── Dependencies ────────────────────────────────────────────────────
+  const depSpinner = p.spinner();
+  depSpinner.start("Installing dependencies...");
+  await installDependencies((elapsed) => {
+    depSpinner.message(`Installing dependencies... ${elapsed}s elapsed`);
+  });
+  depSpinner.stop("Dependencies installed");
+
   // ── Database ────────────────────────────────────────────────────────
   const dbSpinner = p.spinner();
-  dbSpinner.start("Setting up SQLite database and running migrations...");
-  installDependencies();
-  runMigrations();
+  dbSpinner.start("Running database migrations...");
+  await runMigrations((elapsed) => {
+    dbSpinner.message(`Running database migrations... ${elapsed}s elapsed`);
+  });
   dbSpinner.stop("Database ready");
 
   // ── Build ───────────────────────────────────────────────────────────

@@ -28,9 +28,12 @@ export async function update(): Promise<void> {
   const version = await downloadAndExtract();
   console.log(`  Downloaded ${version}`);
 
-  installDependencies();
-  runMigrations();
-  buildApp();
+  console.log("\n  Installing dependencies...");
+  await installDependencies();
+  console.log("  Running migrations...");
+  await runMigrations();
+  console.log("  Building application...");
+  await buildApp();
 
   console.log(`\n  Updated to ${version}`);
 

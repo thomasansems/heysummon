@@ -1,4 +1,4 @@
-import { execSync, spawn as nodeSpawn } from "child_process";
+import { spawn as nodeSpawn } from "child_process";
 import { getAppDir, getEnvFile } from "./config";
 import * as fs from "fs";
 import * as path from "path";
@@ -12,28 +12,92 @@ function ensureAppEnv(): void {
   }
 }
 
-function runInAppDir(command: string, opts: { silent?: boolean; production?: boolean } = {}): void {
-  const { silent = true, production = true } = opts;
+export function installDependencies(onProgress?: (elapsedSec: number) => void): Promise<void> {
   ensureAppEnv();
 
-  const env = { ...process.env };
-  if (production) {
-    env.NODE_ENV = "production";
-  }
+  return new Promise((resolve, reject) => {
+    const child = nodeSpawn(
+      "npm",
+      ["install", "--legacy-peer-deps"],
+      {
+        cwd: getAppDir(),
+        stdio: "pipe",
+        env: { ...process.env },
+        shell: true,
+      }
+    );
 
-  execSync(command, {
-    cwd: getAppDir(),
-    stdio: silent ? "pipe" : "inherit",
-    env,
+    let stderr = "";
+    child.stderr?.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+
+    const startTime = Date.now();
+    const timer = onProgress
+      ? setInterval(() => {
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+          onProgress(elapsed);
+        }, 5000)
+      : null;
+
+    child.on("close", (code) => {
+      if (timer) clearInterval(timer);
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`npm install failed (exit ${code}):\n${stderr.slice(-2000)}`));
+      }
+    });
+
+    child.on("error", (err) => {
+      if (timer) clearInterval(timer);
+      reject(err);
+    });
   });
 }
 
-export function installDependencies(): void {
-  runInAppDir("npm install --legacy-peer-deps --silent 2>/dev/null || npm install --legacy-peer-deps", { production: false });
-}
+export function runMigrations(onProgress?: (elapsedSec: number) => void): Promise<void> {
+  ensureAppEnv();
 
-export function runMigrations(): void {
-  runInAppDir("npx prisma migrate deploy");
+  return new Promise((resolve, reject) => {
+    const child = nodeSpawn(
+      "npx",
+      ["prisma", "migrate", "deploy"],
+      {
+        cwd: getAppDir(),
+        stdio: "pipe",
+        env: { ...process.env, NODE_ENV: "production" },
+        shell: true,
+      }
+    );
+
+    let stderr = "";
+    child.stderr?.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+
+    const startTime = Date.now();
+    const timer = onProgress
+      ? setInterval(() => {
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+          onProgress(elapsed);
+        }, 5000)
+      : null;
+
+    child.on("close", (code) => {
+      if (timer) clearInterval(timer);
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Prisma migrate failed (exit ${code}):\n${stderr.slice(-2000)}`));
+      }
+    });
+
+    child.on("error", (err) => {
+      if (timer) clearInterval(timer);
+      reject(err);
+    });
+  });
 }
 
 /**

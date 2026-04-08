@@ -20,7 +20,6 @@
 services:
   db-migrate:
     image: ghcr.io/thomasansems/heysummon:${HEYSUMMON_VERSION:-latest}
-    user: root
     entrypoint:
       - sh
       - -c
@@ -37,7 +36,7 @@ services:
           sleep 3
         done
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-heysummon}:${DB_PASSWORD:-heysummon_dev}@db:5432/${DB_NAME:-heysummon}
+      DATABASE_URL: postgresql://${DB_USER:?DB_USER must be set}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:?DB_NAME must be set}
     networks:
       - backend
     depends_on:
@@ -50,13 +49,13 @@ services:
     networks:
       - backend
     environment:
-      POSTGRES_USER: ${DB_USER:-heysummon}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-heysummon_dev}
-      POSTGRES_DB: ${DB_NAME:-heysummon}
+      POSTGRES_USER: ${DB_USER:?DB_USER must be set}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      POSTGRES_DB: ${DB_NAME:?DB_NAME must be set}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-heysummon} -d ${DB_NAME:-heysummon} && psql -U ${DB_USER:-heysummon} -d ${DB_NAME:-heysummon} -c 'SELECT 1' > /dev/null 2>&1"]
+      test: ["CMD-SHELL", "pg_isready -U $${DB_USER} -d $${DB_NAME} && psql -U $${DB_USER} -d $${DB_NAME} -c 'SELECT 1' > /dev/null 2>&1"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -76,7 +75,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-heysummon}:${DB_PASSWORD:-heysummon_dev}@db:5432/${DB_NAME:-heysummon}
+      DATABASE_URL: postgresql://${DB_USER:?DB_USER must be set}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:?DB_NAME must be set}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET}
       AUTH_TRUST_HOST: "true"

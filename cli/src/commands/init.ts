@@ -1,4 +1,6 @@
 import * as fs from "fs";
+import * as path from "path";
+import { execSync } from "child_process";
 import * as p from "@clack/prompts";
 import {
   getHeysummonDir,
@@ -16,8 +18,23 @@ import { askYesNo } from "../lib/prompts";
 import { startDaemon } from "./start";
 import { printAnimatedBanner, color } from "../lib/ui";
 
-export async function init(opts?: { yes?: boolean }): Promise<void> {
+function copyFromSourceDir(sourceDir: string, destDir: string): void {
+  const absSource = path.resolve(sourceDir);
+  if (!fs.existsSync(absSource)) {
+    throw new Error(`Source directory not found: ${absSource}`);
+  }
+  if (!fs.existsSync(path.join(absSource, "package.json"))) {
+    throw new Error(`No package.json in source directory: ${absSource}`);
+  }
+  execSync(
+    `rsync -a --exclude=node_modules --exclude=.next --exclude=.git "${absSource}/" "${destDir}/"`,
+    { stdio: "pipe" }
+  );
+}
+
+export async function init(opts?: { yes?: boolean; fromSource?: string }): Promise<void> {
   const quickstart = opts?.yes ?? false;
+  const fromSource = opts?.fromSource;
 
   await printAnimatedBanner();
 
@@ -53,11 +70,17 @@ export async function init(opts?: { yes?: boolean }): Promise<void> {
   ensureDir(getHeysummonDir());
   ensureDir(getAppDir());
 
-  // ── Download ────────────────────────────────────────────────────────
+  // ── Source ──────────────────────────────────────────────────────────
   const dlSpinner = p.spinner();
-  dlSpinner.start("Downloading latest release from GitHub...");
-  const version = await downloadAndExtract();
-  dlSpinner.stop(`Downloaded HeySummon ${version}`);
+  if (fromSource) {
+    dlSpinner.start(`Copying from local source: ${fromSource}...`);
+    copyFromSourceDir(fromSource, getAppDir());
+    dlSpinner.stop("Copied from local source");
+  } else {
+    dlSpinner.start("Downloading latest release from GitHub...");
+    const version = await downloadAndExtract();
+    dlSpinner.stop(`Downloaded HeySummon ${version}`);
+  }
 
   // ── Configuration ───────────────────────────────────────────────────
   let port = 3435;

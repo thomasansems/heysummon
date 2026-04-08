@@ -4,6 +4,15 @@ import { Callout } from 'nextra/components'
 
 ## Unreleased
 
+### Security
+- **CRITICAL:** Activated Next.js security middleware -- rate limiting, CSP, CORS, and request size limits were defined in `src/proxy.ts` but never loaded by Next.js. Renamed to `src/middleware.ts` with correct export name so all protections are now active (resolves C1, C2, H1, H2, H3)
+- **CRITICAL:** Removed hardcoded fallback database credentials from production `docker-compose.yml` -- now requires explicit `DB_USER`, `DB_PASSWORD`, `DB_NAME` via environment (resolves C3)
+- Hardened CSP: removed `unsafe-eval` from `script-src` directive (resolves H4)
+- Removed `user: root` from `db-migrate` Docker service to enforce least privilege (resolves H5)
+- Moved E2E rate-limit bypass secrets from hardcoded CI workflow values to GitHub Actions secrets (resolves H6)
+- Updated `vite` minimum to `>=6.4.2` in `landingspage` to fix arbitrary file read vulnerability (GHSA-p9ff-h696-f583, resolves H7)
+- Replaced hardcoded `NEXTAUTH_SECRET` in E2E Docker Compose with required environment variable (resolves H8)
+
 ### Fixed
 - NPX installer: fixed 404 error when downloading releases -- the GitHub API repo constant was set to `@heysummon/app` (npm package name) instead of `thomasansems/heysummon` (GitHub owner/repo format)
 - CLI: reduced tagline animation from 6 cycles (~22s) to 2 cycles (~7s) so the init wizard starts faster

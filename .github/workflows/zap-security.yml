@@ -82,7 +82,7 @@ jobs:
           NEXTAUTH_URL: http://localhost:${{ env.APP_PORT }}
           NEXTAUTH_SECRET: e2e-secret
           PORT: ${{ env.APP_PORT }}
-          E2E_RATE_LIMIT_BYPASS_SECRET: zap-bypass-secret-do-not-use-in-prod
+          E2E_RATE_LIMIT_BYPASS_SECRET: ${{ secrets.E2E_RATE_LIMIT_BYPASS_SECRET }}
 
       # ── Generate OpenAPI spec for ZAP ─────────────────────────────────────
       - name: Generate OpenAPI spec
@@ -115,7 +115,7 @@ jobs:
         env:
           # ZAP sends this header with every request -> bypasses rate limiter
           ZAP_AUTH_HEADER: x-e2e-bypass
-          ZAP_AUTH_HEADER_VALUE: zap-bypass-secret-do-not-use-in-prod
+          ZAP_AUTH_HEADER_VALUE: ${{ secrets.E2E_RATE_LIMIT_BYPASS_SECRET }}
         with:
           target: heysummon-openapi.json
           format: openapi

@@ -71,7 +71,7 @@ jobs:
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: e2e-secret
           PORT: 3000
-          E2E_RATE_LIMIT_BYPASS_SECRET: e2e-bypass-secret-do-not-use-in-prod
+          E2E_RATE_LIMIT_BYPASS_SECRET: ${{ secrets.E2E_RATE_LIMIT_BYPASS_SECRET }}
 
       - name: Run bash E2E tests
         run: |
@@ -86,7 +86,7 @@ jobs:
           export E2E_DEVICE_KEY=$(echo "$SEED" | jq -r .deviceKey)
           export E2E_DEVICE_TOKEN=$(echo "$SEED" | jq -r .deviceToken)
           export E2E_BASE_URL=http://localhost:3000
-          export E2E_RATE_LIMIT_BYPASS_SECRET=e2e-bypass-secret-do-not-use-in-prod
+          export E2E_RATE_LIMIT_BYPASS_SECRET=${{ secrets.E2E_RATE_LIMIT_BYPASS_SECRET }}
           bash e2e/e2e-test.sh
 
       - name: Install Playwright browsers

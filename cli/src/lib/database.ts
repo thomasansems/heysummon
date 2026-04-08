@@ -3,7 +3,8 @@ import { getAppDir, getEnvFile } from "./config";
 import * as fs from "fs";
 import * as path from "path";
 
-function runInAppDir(command: string, silent = true): void {
+function runInAppDir(command: string, opts: { silent?: boolean; production?: boolean } = {}): void {
+  const { silent = true, production = true } = opts;
   const appDir = getAppDir();
   const envFile = getEnvFile();
 
@@ -12,15 +13,20 @@ function runInAppDir(command: string, silent = true): void {
     fs.copyFileSync(envFile, appEnv);
   }
 
+  const env = { ...process.env };
+  if (production) {
+    env.NODE_ENV = "production";
+  }
+
   execSync(command, {
     cwd: appDir,
     stdio: silent ? "pipe" : "inherit",
-    env: { ...process.env, NODE_ENV: "production" },
+    env,
   });
 }
 
 export function installDependencies(): void {
-  runInAppDir("npm install --production --silent 2>/dev/null || npm install --production");
+  runInAppDir("npm install --legacy-peer-deps --silent 2>/dev/null || npm install --legacy-peer-deps", { production: false });
 }
 
 export function runMigrations(): void {
@@ -33,7 +39,7 @@ export function buildApp(): void {
     runInAppDir("npm run build");
   } catch (err) {
     // Re-run with output on failure so user sees what went wrong
-    runInAppDir("npm run build", false);
+    runInAppDir("npm run build", { silent: false });
     throw err;
   }
 }

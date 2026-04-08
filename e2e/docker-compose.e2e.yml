@@ -27,7 +27,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://heysummon:heysummon_e2e@db:5432/heysummon_e2e"
       NEXTAUTH_URL: "http://localhost:3000"
-      NEXTAUTH_SECRET: "e2e-secret"
+      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:?NEXTAUTH_SECRET must be set}"
       PORT: "3000"
     ports:
       - "3000:3000"

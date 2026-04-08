@@ -50,7 +50,7 @@ setInterval(() => {
  */
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-inline/eval needed for Next.js
+  "script-src 'self' 'unsafe-inline'", // unsafe-inline still needed for Next.js inline scripts
   "style-src 'self' 'unsafe-inline'", // Next.js injects inline styles
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
@@ -66,7 +66,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ip = getClientIp(request);
 

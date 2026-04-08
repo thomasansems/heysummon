@@ -79,5 +79,10 @@
     "typescript": "^5",
     "vitest": "^4.0.18"
   },
+  "overrides": {
+    "next-auth": {
+      "nodemailer": "$nodemailer"
+    }
+  },
   "license": "SEE LICENSE IN LICENSE.md"
 }

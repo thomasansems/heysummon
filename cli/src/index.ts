@@ -30,7 +30,8 @@ function printHelp(): void {
     --version, -v Show version number
 
   Init options:
-    --yes, -y     Use defaults, skip prompts (quickstart)
+    --yes, -y              Use defaults, skip prompts (quickstart)
+    --from-source <dir>    Copy from local directory instead of downloading
 
   Start options:
     --daemon, -d  Run server in background
@@ -45,7 +46,8 @@ function printHelp(): void {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const command = args[0] || "init";
+  // If first arg is a flag (starts with -), default to "init"
+  const command = (!args[0] || args[0].startsWith("-")) ? "init" : args[0];
 
   if (command === "--help" || command === "-h") {
     printHelp();
@@ -59,10 +61,12 @@ async function main(): Promise<void> {
 
   try {
     const yes = args.includes("--yes") || args.includes("-y");
+    const fromSourceIdx = args.indexOf("--from-source");
+    const fromSource = fromSourceIdx !== -1 ? args[fromSourceIdx + 1] : undefined;
 
     switch (command) {
       case "init":
-        await init({ yes });
+        await init({ yes, fromSource });
         break;
       case "start":
         await start(args.slice(1));

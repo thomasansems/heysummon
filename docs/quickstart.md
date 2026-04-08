@@ -4,7 +4,7 @@ Get HeySummon running and send your first help request in under 5 minutes.
 
 ---
 
-## Option 1: NPX (fastest)
+## Option 1: NPX (fastest, recommended for testing or with tailscale/cloudflared)
 
 ```bash
 npx @heysummon/app
@@ -23,15 +23,13 @@ Jump to [step 4](#4-create-an-api-key) once it's running.
 
 ---
 
-## Option 2: Docker (recommended for self-hosting)
+## Option 2: Docker (recommended for VPS)
 
 One command — downloads compose file, generates secrets, starts everything:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/thomasansems/heysummon/main/install.sh | bash
 ```
-
-Installs to `~/.heysummon-docker/`. HeySummon is available at `http://localhost:3445`.
 
 ---
 
@@ -46,8 +44,6 @@ pnpm exec prisma migrate dev
 pnpm run dev
 ```
 
-Open `http://localhost:3425`.
-
 > **Docker-based dev (builds from source):**
 > ```bash
 > git clone https://github.com/thomasansems/heysummon.git && cd heysummon
@@ -57,72 +53,65 @@ Open `http://localhost:3425`.
 
 ---
 
-## 4. Create an API key
+## 4. Open the dashboard and sign up
 
-1. Open the dashboard at `http://localhost:3425` (or `:3445` for Docker)
-2. **Sign up** — the first user becomes admin; registration closes after that
-3. Go to **API Keys** → **Create Key**
-4. Copy the key — it's only shown once
+Once HeySummon is running, open the dashboard in your browser:
 
-Keys follow this format:
-```
-hs_live_abc123...    # client key (for AI agents)
-hs_exp_abc123...     # expert key (for watchers/integrations)
-```
+| Install method | Default URL |
+|----------------|-------------|
+| NPX (`npx @heysummon/app`) | `http://localhost:3435` |
+| Docker (`install.sh`) | `http://localhost:3445` |
+| Local dev (`pnpm dev`) | `http://localhost:3425` |
+| Caddy + custom domain | `https://your-domain.com` |
 
----
+The **first user to sign up becomes the admin**. After that, registration is closed by default — set `ALLOW_REGISTRATION=true` in your `.env` if you want to invite more people later.
 
-## 5. Send your first request
-
-```bash
-curl -X POST http://localhost:3425/api/v1/help \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -d '{
-    "question": "Should I proceed with deleting the production database?",
-    "apiKey": "YOUR_API_KEY"
-  }'
-```
-
-Response:
-
-```json
-{
-  "requestId": "cmxxx...",
-  "refCode": "HS-A1B2C3D4",
-  "status": "pending"
-}
-```
+| Scenario | Behavior |
+|----------|----------|
+| First visit (0 users) | Signup screen, first user becomes **admin** |
+| After first user | Signup hidden, registration blocked |
+| `ALLOW_REGISTRATION=true` | Anyone can register (multi-user mode) |
 
 ---
 
-## 6. Respond in the dashboard
+## 5. Complete the onboarding flow
 
-1. Open the dashboard — you'll see the request with reference code `HS-A1B2C3D4`
-2. Click it, read the decrypted message, type your response
-3. Click **Respond**
+After signing up you'll be taken through a 6-step onboarding wizard. The whole thing takes about two minutes and sets up everything you need to receive your first help request.
+
+| Step | What happens |
+|------|--------------|
+| **1. Expert** | Create your expert profile — your name, expertise, and notification preferences |
+| **2. Network** | Pick how you want to be notified — Dashboard only, Telegram, or Slack |
+| **3. Test** | Send yourself a test notification to confirm the channel works |
+| **4. Client** | Create your first client (the AI agent that will summon you) and pick a platform: Claude Code, Codex, Gemini, OpenClaw, or Custom |
+| **5. E2E** | Watch a live end-to-end test: a request flows from a simulated agent to you and back, fully encrypted |
+| **6. Done** | You're ready — you'll get a setup link to give to your AI client |
+
+At the end of the wizard you'll see a **setup link** for your client. This is a JWT-signed URL that expires in 10 minutes and contains everything your AI agent needs to connect.
 
 ---
 
-## 7. Poll for the response
+## 6. Connect your AI agent
 
-```bash
-curl http://localhost:3425/api/v1/help/cmxxx... \
-  -H "x-api-key: YOUR_API_KEY"
-```
+Paste the setup link from step 5 into your AI client's session. The client follows its own setup flow:
 
-```json
-{
-  "status": "responded",
-  "response": "No, do not delete the production database."
-}
-```
+- **[Claude Code](https://docs.heysummon.ai/clients/claude-code)** — installs the HeySummon skill and registers you as the expert
+- **[Codex CLI](https://docs.heysummon.ai/clients/codex)** — same flow, OpenAI-side
+- **[Gemini CLI](https://docs.heysummon.ai/clients/gemini)** — same flow, Google-side
+- **[OpenClaw](https://docs.heysummon.ai/clients/openclaw)** — same flow, with the OpenClaw runtime
+- **Other / HTTP** — see the [Consumer SDK](https://docs.heysummon.ai/consumer/sdk) for direct API integration
+
+Once installed, the agent uses HeySummon naturally:
+
+> `hey summon <expert> <question>`
+
+The agent pauses, you receive the request in the dashboard (and on your chosen notification channel), respond, and the agent picks up your answer and continues its workflow.
 
 ---
 
 ## Next steps
 
-- [API Reference](./api/overview.md) — All endpoints
-- [E2E Encryption](./guides/encryption.md) — How keys and ciphertext work
-- [Real-time SSE](./guides/sse.md) — Stream responses instead of polling
-- [Expert Conversations](./guides/expert-conversations.md) — Reply via Telegram
+- [Self-Hosting](https://docs.heysummon.ai/self-hosting/overview) — Production deployment options including Caddy + automatic HTTPS
+- [Expert Dashboard](https://docs.heysummon.ai/expert/dashboard) — Tour of the dashboard features
+- [Client Integrations](https://docs.heysummon.ai/clients/) — Setup guides for every supported AI agent
+- [Security](https://docs.heysummon.ai/security/) — How E2E encryption, signing, and content safety work

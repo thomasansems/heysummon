@@ -88,6 +88,43 @@ services:
       timeout: 5s
       retries: 3
 
+  # ── Reverse Proxy (activate with --profile) ──
+
+  # Caddy: automatic HTTPS via Let's Encrypt
+  #
+  # What it does:
+  #   Runs as a tiny reverse proxy in front of HeySummon and automatically
+  #   obtains + renews a real Let's Encrypt certificate for your domain.
+  #   No certbot, no cron jobs, no manual renewal.
+  #
+  # Requirements:
+  #   1. A domain name (e.g. heysummon.example.com) you control
+  #   2. A DNS A-record pointing that domain to this server's public IP
+  #   3. Inbound TCP ports 80 + 443 open on your firewall / security group
+  #   4. DOMAIN set in your .env file
+  #
+  # Usage:
+  #   docker compose --profile caddy up -d
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: ["caddy"]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    networks:
+      - frontend
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN must be set in .env (e.g. heysummon.example.com)}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
   # ── Tunnel Services (activate with --profile) ──
 
   # Cloudflare Tunnel: docker compose --profile cloudflare up -d
@@ -145,3 +182,5 @@ networks:
 volumes:
   pgdata:
   tailscale-state:
+  caddy-data:
+  caddy-config:

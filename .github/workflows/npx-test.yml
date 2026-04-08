@@ -56,8 +56,6 @@ jobs:
 
       - name: Run init from source
         run: node cli/bin/cli.js --yes --from-source .
-        env:
-          NODE_ENV: production
 
       - name: Wait for healthy app
         run: |

@@ -1,4 +1,4 @@
-name: Publish @heysummon/app to npm
+name: PUBLISH - CLI
 
 on:
   release:

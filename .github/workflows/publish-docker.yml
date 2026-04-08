@@ -1,4 +1,4 @@
-name: Build & Push Docker Images
+name: PUBLISH - Docker Image
 
 on:
   push:
@@ -15,7 +15,14 @@ env:
   IMAGE_APP: ghcr.io/${{ github.repository }}
 
 jobs:
+  gate:
+    name: Run Docker tests
+    uses: ./.github/workflows/test-docker.yml
+    permissions:
+      contents: read
+
   build-and-push:
+    needs: [gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read

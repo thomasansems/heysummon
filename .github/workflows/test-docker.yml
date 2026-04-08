@@ -1,4 +1,4 @@
-name: Docker Test
+name: TEST - Docker
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
       - "prisma/migrations/**"
       - "package.json"
       - "package-lock.json"
-      - ".github/workflows/docker-test.yml"
+      - ".github/workflows/test-docker.yml"
   pull_request:
     branches: [main]
     paths:
@@ -26,7 +26,8 @@ on:
       - "prisma/migrations/**"
       - "package.json"
       - "package-lock.json"
-      - ".github/workflows/docker-test.yml"
+      - ".github/workflows/test-docker.yml"
+  workflow_call:
 
 concurrency:
   group: docker-test-${{ github.ref }}

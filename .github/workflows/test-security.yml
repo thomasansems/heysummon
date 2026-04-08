@@ -1,4 +1,4 @@
-name: OWASP ZAP Security Scan
+name: TEST - Security (ZAP)
 
 on:
   push:

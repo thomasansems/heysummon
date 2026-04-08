@@ -13,7 +13,7 @@ import {
 } from "../lib/config";
 import { generateSecrets } from "../lib/secrets";
 import { downloadAndExtract } from "../lib/download";
-import { installDependencies, runMigrations, buildApp } from "../lib/database";
+import { installDependencies, runMigrations, buildApp, waitForHealthy } from "../lib/database";
 import { askYesNo } from "../lib/prompts";
 import { startDaemon } from "./start";
 import { printAnimatedBanner, color } from "../lib/ui";
@@ -144,8 +144,10 @@ export async function init(opts?: { yes?: boolean; fromSource?: string }): Promi
 
   // ── Build ───────────────────────────────────────────────────────────
   const buildSpinner = p.spinner();
-  buildSpinner.start("Building application (this takes ~30 seconds)...");
-  buildApp();
+  buildSpinner.start("Building application (this may take a minute or two)...");
+  await buildApp((elapsed) => {
+    buildSpinner.message(`Building application... ${elapsed}s elapsed`);
+  });
   buildSpinner.stop("Build complete");
 
   // ── Configuration summary ───────────────────────────────────────────
@@ -166,7 +168,16 @@ export async function init(opts?: { yes?: boolean; fromSource?: string }): Promi
 
   try {
     await startDaemon(port);
-    startSpinner.stop("HeySummon is running!");
+    startSpinner.message("Waiting for server to become healthy...");
+
+    const healthy = await waitForHealthy(port, 30);
+
+    if (healthy) {
+      startSpinner.stop("HeySummon is running!");
+    } else {
+      startSpinner.stop("Server started but not yet responding. It may need more time to initialize.");
+      p.log.warn(`Check status with: ${color.cyan("heysummon status")}`);
+    }
 
     p.log.info(`Dashboard: ${color.cyan(publicUrl)}`);
     p.log.info(`Docs:      ${color.cyan("https://docs.heysummon.ai/getting-started/quickstart")}`);

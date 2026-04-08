@@ -97,6 +97,17 @@ export function startForeground(port?: number): void {
   process.on("SIGTERM", () => child.kill("SIGTERM"));
 }
 
+function readPortFromEnv(): number {
+  const envFile = getEnvFile();
+  try {
+    const content = fs.readFileSync(envFile, "utf-8");
+    const match = content.match(/^PORT=(\d+)/m);
+    return match ? parseInt(match[1], 10) : 3435;
+  } catch {
+    return 3435;
+  }
+}
+
 export async function start(args: string[]): Promise<void> {
   if (!isInitialized()) {
     console.log(`\n  HeySummon is not installed. Run ${color.cyan("npm install -g heysummon")} first.\n`);
@@ -110,10 +121,11 @@ export async function start(args: string[]): Promise<void> {
   }
 
   const daemon = args.includes("--daemon") || args.includes("-d");
+  const port = readPortFromEnv();
 
   if (daemon) {
-    await startDaemon();
+    await startDaemon(port);
   } else {
-    startForeground();
+    startForeground(port);
   }
 }

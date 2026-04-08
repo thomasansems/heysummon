@@ -73,6 +73,29 @@ export async function sendMessage(token: string, chatId: string, text: string): 
   }
 }
 
+/** Send a photo via Telegram bot API */
+export async function sendPhoto(
+  token: string,
+  chatId: string,
+  photoUrl: string,
+  caption?: string
+): Promise<void> {
+  const res = await fetch(botUrl(token, "sendPhoto"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      photo: photoUrl,
+      caption,
+      parse_mode: "Markdown",
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Failed to send Telegram photo: ${body}`);
+  }
+}
+
 /** Send a message with InlineKeyboardMarkup buttons */
 export async function sendMessageWithButtons(
   token: string,

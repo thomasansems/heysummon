@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         config.botToken,
         config.expertChatId,
         [
-          `*HeySummon Setup -- Step 4 of 7*`,
+          `*HeySummon Setup -- Connection Test*`,
           ``,
           `Testing your Telegram connection.`,
           `If you see this message, your bot is correctly linked to this chat.`,

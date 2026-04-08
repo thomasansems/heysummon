@@ -26,10 +26,14 @@ HeySummon is designed to be self-hosted. Your data never leaves your infrastruct
 
 ## Making it public
 
-To expose HeySummon to the internet, use a tunnel or reverse proxy:
+To expose HeySummon to the internet, choose one of:
 
-- **Cloudflare Tunnel** — recommended, free
-- **Tailscale Funnel** — good for team setups
-- **Nginx / Caddy** — for VPS deployments
+| Option | Best for | What you need |
+|--------|----------|---------------|
+| **Caddy + HTTPS** *(recommended)* | Production on a VPS / EC2 | A domain you control |
+| **Cloudflare Tunnel** | You already use Cloudflare DNS | A Cloudflare account |
+| **Tailscale Funnel** | Free public URL, no domain | A Tailscale account |
 
-See [Docker](/self-hosting/docker#making-it-public) for tunnel configuration.
+The Docker installer ([install.sh](https://raw.githubusercontent.com/thomasansems/heysummon/main/install.sh)) walks you through the setup interactively, including DNS instructions for the Caddy option.
+
+See [Docker → Making it public](/self-hosting/docker#making-it-public) for the full guide.

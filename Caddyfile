@@ -1,0 +1,24 @@
+# HeySummon — Caddy reverse proxy with automatic HTTPS
+#
+# Caddy reads {$DOMAIN} from the environment at startup. It is set by
+# docker-compose from your .env file (DOMAIN=heysummon.example.com).
+#
+# On first start Caddy will:
+#   1. Solve a Let's Encrypt HTTP-01 challenge on port 80
+#   2. Obtain a real TLS certificate for your domain
+#   3. Serve HTTPS on port 443 and auto-redirect HTTP -> HTTPS
+#   4. Renew the certificate automatically before it expires
+#
+# No further configuration needed.
+
+{$DOMAIN} {
+	reverse_proxy app:3000
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}

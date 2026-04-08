@@ -125,13 +125,58 @@ Follow the instrucations from the `install.sh`, and you will be all set.
 
 ### Make it Public
 
-Add a tunnel to expose your instance to the internet. From your install directory (`~/.heysummon-docker` by default):
+The installer asks how you want to expose HeySummon. You can change your mind later by editing `.env` and re-running `docker compose --profile <name> up -d` from your install directory (`~/.heysummon-docker` by default).
+
+| Option | Best for | What you need |
+|--------|----------|---------------|
+| **Direct port** | Quick LAN / VPN testing | Just an open port |
+| **Caddy + HTTPS** *(recommended)* | Production on a VPS / EC2 | A domain you control |
+| **Cloudflare Tunnel** | You already use Cloudflare DNS | A Cloudflare account |
+| **Tailscale Funnel** | Free public URL, no domain | A Tailscale account |
+
+#### Caddy + automatic HTTPS (recommended for production)
+
+Caddy is a tiny reverse proxy that runs alongside HeySummon and **automatically obtains and renews a real Let's Encrypt certificate** for your domain. No certbot, no cron jobs, no renewal headaches.
+
+**Requirements:**
+1. A domain name you control (e.g. `heysummon.example.com`)
+2. A DNS **A-record** pointing that domain to your server's public IP
+3. Inbound TCP ports **80** and **443** open on your firewall / security group
+
+**DNS record to add at your registrar:**
+
+| Type | Name / Host | Value | TTL |
+|------|-------------|-------|-----|
+| `A` | `heysummon` *(or your subdomain)* | `<your server IP>` | `300` |
+
+**Then on your server:**
 
 ```bash
-# Cloudflare Tunnel (recommended for production)
+cd ~/.heysummon-docker
+
+# 1. Set your domain in .env
+echo 'DOMAIN=heysummon.example.com' >> .env
+sed -i 's|NEXTAUTH_URL=.*|NEXTAUTH_URL=https://heysummon.example.com|' .env
+sed -i 's|HEYSUMMON_PUBLIC_URL=.*|HEYSUMMON_PUBLIC_URL=https://heysummon.example.com|' .env
+
+# 2. Start with the caddy profile
+docker compose --profile caddy up -d
+
+# 3. Watch Caddy obtain the certificate (~10-30 seconds)
+docker compose --profile caddy logs -f caddy
+```
+
+You should see `certificate obtained successfully` in the logs, then `https://heysummon.example.com` works with a real certificate, no warnings, no manual setup.
+
+> **AWS EC2 tip:** Allocate an **Elastic IP** to your instance before setting up DNS. Without one, your public IP changes every time the instance restarts and your DNS record will be wrong.
+
+#### Tunnels (no domain needed)
+
+```bash
+# Cloudflare Tunnel
 docker compose --profile cloudflare up -d
 
-# Tailscale Funnel (great for teams)
+# Tailscale Funnel
 docker compose --profile tailscale up -d
 ```
 

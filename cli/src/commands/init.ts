@@ -130,10 +130,12 @@ export async function init(opts?: { yes?: boolean; fromSource?: string }): Promi
       `HeySummon will be available at: ${color.cyan(`http://localhost:${port}`)}`
     );
 
+    const defaultPublicUrl = `http://localhost:${port}`;
+
     const urlInput = await p.text({
-      message: "Public URL (for internet access, or keep default)",
-      defaultValue: `http://localhost:${port}`,
-      placeholder: `http://localhost:${port}`,
+      message: "Public URL (e.g. https://YOUR_DOMAIN, or keep default for local)",
+      defaultValue: defaultPublicUrl,
+      placeholder: defaultPublicUrl,
     });
     if (p.isCancel(urlInput)) {
       p.cancel("Setup cancelled.");

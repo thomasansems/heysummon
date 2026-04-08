@@ -2,6 +2,23 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.2.19 -- 2026-04-09
+
+### Added
+- **Docker installer: Caddy + automatic HTTPS option.** A new `--profile caddy` runs Caddy as a reverse proxy in front of HeySummon and obtains a real Let's Encrypt certificate for your domain on first start. No certbot, no cron jobs, certificates renew automatically. The interactive `install.sh` wizard now offers it as a top-level option, asks for your domain, and prints the exact DNS A-record to add at your registrar (with your detected public IP filled in)
+- **`Caddyfile`** at the repo root — a minimal default config with HSTS, gzip/zstd compression, and standard security headers. Mounted read-only into the Caddy container
+- **`DOMAIN` env var** in `.env.example` and the generated `.env` for Caddy configuration
+
+### Changed
+- **NPX installer:** removed cloud-metadata public IP autodetection from the `init` wizard. The default URL is now plain `http://localhost:<port>` and the prompt explicitly mentions `https://YOUR_DOMAIN` as the format for public deployments. Users on real servers should configure their domain explicitly
+- **Docker installer wizard:** reordered the connectivity menu to lead with Caddy as the recommended production option, followed by Cloudflare Tunnel and Tailscale Funnel. Direct port exposure is still the default
+- **README + self-hosting docs:** new "Caddy + automatic HTTPS" section with step-by-step DNS instructions, EC2 Elastic IP guidance, and a troubleshooting table for common Let's Encrypt failures
+
+### Fixed
+- **`install.sh` health check:** the post-install verification step was hitting `/api/health` which returns 404. Now correctly hits `/api/v1/health`
+
+---
+
 ## v0.2.18 -- 2026-04-08
 
 ### Fixed

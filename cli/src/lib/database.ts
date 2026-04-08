@@ -3,13 +3,16 @@ import { getAppDir, getEnvFile } from "./config";
 import * as fs from "fs";
 import * as path from "path";
 
+/**
+ * Sync the canonical ~/.heysummon/.env into the app directory so Next.js
+ * picks it up at build/runtime. Always overwrites — we used to skip when the
+ * file existed, which caused user edits to silently never propagate.
+ */
 function ensureAppEnv(): void {
-  const appDir = getAppDir();
   const envFile = getEnvFile();
-  const appEnv = path.join(appDir, ".env");
-  if (!fs.existsSync(appEnv)) {
-    fs.copyFileSync(envFile, appEnv);
-  }
+  if (!fs.existsSync(envFile)) return;
+  const appEnv = path.join(getAppDir(), ".env");
+  fs.copyFileSync(envFile, appEnv);
 }
 
 export function installDependencies(onProgress?: (elapsedSec: number) => void): Promise<void> {

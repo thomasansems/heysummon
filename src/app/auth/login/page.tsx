@@ -19,6 +19,7 @@ type AuthFlags = {
   github: boolean;
   hasUsers?: boolean;
   registrationOpen?: boolean;
+  dbError?: boolean;
 };
 
 export default function LoginPage() {
@@ -145,6 +146,27 @@ function LoginForm() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (flags.dbError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md rounded-lg border border-red-500/30 bg-red-950/20 p-6 text-sm">
+          <h1 className="mb-2 text-base font-semibold text-foreground">
+            Database not reachable
+          </h1>
+          <p className="mb-3 text-muted-foreground">
+            HeySummon could not connect to its database. This usually means the
+            install has not finished migrating, or DATABASE_URL is misconfigured.
+          </p>
+          <p className="text-muted-foreground">
+            Check the server logs and verify <code className="rounded bg-muted px-1 py-0.5 text-xs">DATABASE_URL</code> in your{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">.env</code>{" "}
+            file.
+          </p>
+        </div>
       </div>
     );
   }

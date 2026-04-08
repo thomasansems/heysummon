@@ -2,6 +2,18 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.2.18 -- 2026-04-08
+
+### Fixed
+- **NPX installer:** generated `.env` had `DATABASE_URL="file:./prisma/heysummon.db"`, which Prisma resolves relative to `schema.prisma` and ended up creating the SQLite file at `~/.heysummon/app/prisma/prisma/heysummon.db`. Migrations wrote there, but the runtime looked at the correct location and silently 500'd. Fresh installs effectively had no working database, leaving users stuck on the login page instead of the first-time signup screen
+- **NPX installer:** `ensureAppEnv` now always overwrites `~/.heysummon/app/.env` from the canonical `~/.heysummon/.env`, so config edits actually take effect (previously the copy was skipped if the destination existed)
+- **Auth flags endpoint:** `GET /api/auth/flags` now catches database errors and returns `dbError: true` instead of throwing a 500. The login page renders a clear "Database not reachable" message so a misconfigured install no longer silently degrades into an inert login form
+
+### Breaking
+- **NPX installer:** existing broken installs from earlier 0.2.x are not auto-migrated. Beta users with a nested `~/.heysummon/app/prisma/prisma/heysummon.db` should either reinstall (`rm -rf ~/.heysummon && npx @heysummon/app`) or manually move the file
+
+---
+
 ## Unreleased
 
 ### Security

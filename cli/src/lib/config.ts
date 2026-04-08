@@ -51,7 +51,9 @@ export function generateEnv(
     "# HeySummon Configuration",
     `# Generated on ${new Date().toISOString()}`,
     "",
-    `DATABASE_URL="file:./prisma/heysummon.db"`,
+    // Prisma resolves relative SQLite paths from the schema.prisma directory,
+    // so this points to ~/.heysummon/app/prisma/heysummon.db at runtime.
+    `DATABASE_URL="file:./heysummon.db"`,
     "",
     "# Server",
     `PORT=${config.port}`,

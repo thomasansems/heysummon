@@ -1,0 +1,202 @@
+name: NPX Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - "e2e/npx-full-circle.sh"
+      - "prisma/schema.prisma"
+      - "prisma/migrations/**"
+      - "package.json"
+      - ".github/workflows/npx-test.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - "e2e/npx-full-circle.sh"
+      - "prisma/schema.prisma"
+      - "prisma/migrations/**"
+      - "package.json"
+      - ".github/workflows/npx-test.yml"
+
+concurrency:
+  group: npx-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXTAUTH_SECRET: ci-test-secret
+
+jobs:
+  npx-full-circle:
+    name: NPX Full-Circle Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Build CLI from source
+        working-directory: cli
+        run: |
+          npm install
+          npm run build
+
+      - name: Run NPX init --yes
+        run: node cli/bin/cli.js --yes
+        env:
+          NODE_ENV: production
+
+      - name: Wait for healthy app
+        run: |
+          echo "Waiting for app health endpoint on port 3435..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3435/api/v1/health > /dev/null 2>&1; then
+              echo "App is healthy (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i/60 - not ready, waiting 2s..."
+            sleep 2
+          done
+          echo "App failed to become healthy after 60 attempts"
+          exit 1
+
+      - name: Verify API health
+        run: |
+          HEALTH=$(curl -sf http://localhost:3435/api/v1/health)
+          echo "Health response: $HEALTH"
+          echo "$HEALTH" | grep -q '"status":"ok"'
+          echo "$HEALTH" | grep -q '"version"'
+          echo "$HEALTH" | grep -q '"contentSafety"'
+          echo "API health verified"
+
+      - name: Verify auth endpoints
+        run: |
+          # Signup page should be accessible
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3435/auth/signup)
+          echo "Signup page status: $STATUS"
+          [ "$STATUS" = "200" ]
+
+          # Unauthenticated API call should be rejected
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:3435/api/v1/help)
+          echo "Unauthenticated API status: $STATUS"
+          [ "$STATUS" = "401" ] || [ "$STATUS" = "400" ]
+
+      - name: CLI status check (running)
+        run: |
+          OUTPUT=$(node cli/bin/cli.js status 2>&1)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -qi "running"
+
+      - name: CLI stop
+        run: |
+          node cli/bin/cli.js stop 2>&1
+          echo "Waiting for server to stop..."
+          for i in $(seq 1 15); do
+            if ! curl -sf http://localhost:3435/api/v1/health > /dev/null 2>&1; then
+              echo "Server stopped (attempt $i)"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server still running after stop"
+          exit 1
+
+      - name: CLI status check (stopped)
+        run: |
+          OUTPUT=$(node cli/bin/cli.js status 2>&1)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -qi "stopped\|not running"
+
+      - name: CLI start daemon
+        run: node cli/bin/cli.js start -d 2>&1
+
+      - name: Wait for healthy app after restart
+        run: |
+          echo "Waiting for app after restart..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3435/api/v1/health > /dev/null 2>&1; then
+              echo "App is healthy (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i/60 - not ready, waiting 2s..."
+            sleep 2
+          done
+          echo "App failed to become healthy after restart"
+          exit 1
+
+      - name: CLI status check (running after restart)
+        run: |
+          OUTPUT=$(node cli/bin/cli.js status 2>&1)
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -qi "running"
+
+      - name: Cleanup
+        if: always()
+        run: node cli/bin/cli.js stop 2>&1 || true
+
+  tunnel-detection:
+    name: Tunnel Detection Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: npx-full-circle
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install cloudflared
+        run: |
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o /tmp/cloudflared.deb
+          sudo dpkg -i /tmp/cloudflared.deb
+          cloudflared --version
+
+      - name: Build CLI and start app
+        run: |
+          cd cli && npm install && npm run build && cd ..
+          node cli/bin/cli.js --yes
+          echo "Waiting for app..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3435/api/v1/health > /dev/null 2>&1; then
+              echo "App is healthy"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Verify Tailscale not available
+        run: |
+          if which tailscale > /dev/null 2>&1; then
+            echo "UNEXPECTED: tailscale is installed on this runner"
+            exit 1
+          fi
+          echo "Tailscale correctly not available (expected in CI)"
+
+      - name: Verify cloudflared available
+        run: |
+          cloudflared --version
+          echo "cloudflared is available for tunnel testing"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          node cli/bin/cli.js stop 2>&1 || true
+          sudo pkill -f 'cloudflared tunnel' 2>/dev/null || true

@@ -20,7 +20,7 @@ function runInAppDir(command: string, silent = true): void {
 }
 
 export function installDependencies(): void {
-  runInAppDir("npm install --production --silent 2>/dev/null || npm install --production");
+  runInAppDir("npm install --production --legacy-peer-deps --silent 2>/dev/null || npm install --production --legacy-peer-deps");
 }
 
 export function runMigrations(): void {

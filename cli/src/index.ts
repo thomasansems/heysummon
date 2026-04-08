@@ -46,7 +46,8 @@ function printHelp(): void {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const command = args[0] || "init";
+  // If first arg is a flag (starts with -), default to "init"
+  const command = (!args[0] || args[0].startsWith("-")) ? "init" : args[0];
 
   if (command === "--help" || command === "-h") {
     printHelp();

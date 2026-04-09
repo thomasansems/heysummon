@@ -5,7 +5,7 @@ import {
   BookOpen,
   Rocket,
   Puzzle,
-  Link,
+  Link as LinkIcon,
   Bot,
   Users,
   Sparkles,
@@ -20,18 +20,24 @@ const DEFAULT_TITLE = 'HeySummon Docs'
 const DEFAULT_DESCRIPTION =
   'Documentation for HeySummon — Human in the Loop as a Service'
 
-const SIDEBAR_ICONS: Record<string, React.ReactNode> = {
-  Introduction: <BookOpen size={16} />,
-  'Getting Started': <Rocket size={16} />,
-  'Client Integrations': <Puzzle size={16} />,
-  'Other Integrations': <Link size={16} />,
-  'For AI Agents (Consumer)': <Bot size={16} />,
-  'For Human Experts': <Users size={16} />,
-  'Summoning Guidelines': <Sparkles size={16} />,
-  'Self-Hosting': <Server size={16} />,
-  Security: <Shield size={16} />,
-  Reference: <FileText size={16} />,
-  Contributing: <Heart size={16} />,
+// Cast lucide icons through `unknown` to a permissive component type.
+// lucide-react's hoisted typings resolve to a different @types/react version
+// in this monorepo, which would otherwise produce a JSX element-type mismatch.
+type IconComponent = React.ComponentType<{ size?: number }>
+const asIcon = (Icon: unknown): IconComponent => Icon as IconComponent
+
+const SIDEBAR_ICONS: Record<string, IconComponent> = {
+  Introduction: asIcon(BookOpen),
+  'Getting Started': asIcon(Rocket),
+  'Client Integrations': asIcon(Puzzle),
+  'Other Integrations': asIcon(LinkIcon),
+  'For AI Agents (Consumer)': asIcon(Bot),
+  'For Human Experts': asIcon(Users),
+  'Summoning Guidelines': asIcon(Sparkles),
+  'Self-Hosting': asIcon(Server),
+  Security: asIcon(Shield),
+  Reference: asIcon(FileText),
+  Contributing: asIcon(Heart),
 }
 
 const config: DocsThemeConfig = {
@@ -45,17 +51,24 @@ const config: DocsThemeConfig = {
   ),
   sidebar: {
     titleComponent({ title, type }) {
-      const icon = SIDEBAR_ICONS[title]
-      if (type === 'separator' || !icon) {
+      const Icon = SIDEBAR_ICONS[title]
+      if (type === 'separator' || !Icon) {
         return <>{title}</>
       }
       return (
         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {icon}
+          <Icon size={16} />
           {title}
         </span>
       )
     },
+  },
+  useNextSeoProps() {
+    const { asPath } = useRouter()
+    if (asPath === '/') {
+      return { titleTemplate: DEFAULT_TITLE }
+    }
+    return { titleTemplate: `%s — ${DEFAULT_TITLE}` }
   },
   project: {
     link: 'https://github.com/thomasansems/heysummon',

@@ -25,11 +25,11 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Check actual DB state: if no expert and no client configured, redirect to onboarding
+    // Check actual DB state: if onboarding not yet complete and no expert/client configured, redirect
     fetch("/api/onboarding/status")
       .then((r) => r.json())
       .then((data) => {
-        if (!data.hasExpert && !data.hasClient) {
+        if (!data.onboardingComplete && !data.hasExpert && !data.hasClient) {
           setNeedsOnboarding(true);
           router.replace("/onboarding");
         } else {

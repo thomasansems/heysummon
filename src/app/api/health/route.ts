@@ -19,20 +19,13 @@ export async function GET() {
 
     return NextResponse.json({
       status: "ok",
-      database: "connected",
       timestamp: new Date().toISOString(),
-      notes: {
-        rateLimiting: "in-memory (resets on restart — by design)",
-        sessions: "JWT-based (persists in client cookie — unaffected by restart)",
-        data: "SQLite (persists on disk — unaffected by restart)",
-      },
     });
   } catch (err) {
     console.error("[Health] Database check failed:", err);
     return NextResponse.json(
       {
         status: "error",
-        database: "disconnected",
         timestamp: new Date().toISOString(),
       },
       { status: 503 }

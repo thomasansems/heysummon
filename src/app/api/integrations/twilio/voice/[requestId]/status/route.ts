@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendMessage } from "@/lib/adapters/telegram";
+import { sendMessage, escapeTelegramMarkdown } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
 import { validateTwilioWebhook, parseFormParams } from "@/lib/adapters/twilio-voice";
 
@@ -122,8 +122,8 @@ async function triggerChatFallback(requestId: string) {
   const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
   if (!cfg.expertChatId || !cfg.botToken) return;
 
-  const questionText = helpRequest.questionPreview || "A help request is waiting for you.";
-  const msg = `📞 *Phone call was not answered* — falling back to chat.\n\n🦞 *Help request* \`${helpRequest.refCode}\`\n\n*Question:* ${questionText.slice(0, 500)}${questionText.length > 500 ? "…" : ""}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
+  const questionText = escapeTelegramMarkdown(helpRequest.questionPreview || "A help request is waiting for you.");
+  const msg = `*Phone call was not answered* -- falling back to chat.\n\n*Help request* \`${helpRequest.refCode}\`\n\n*Question:* ${questionText.slice(0, 500)}${questionText.length > 500 ? "..." : ""}\n\nReply with:\n\`/reply ${helpRequest.refCode} your answer\``;
 
   try {
     await sendMessage(cfg.botToken, cfg.expertChatId, msg);

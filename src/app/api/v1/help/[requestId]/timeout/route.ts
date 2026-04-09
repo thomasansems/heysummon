@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateApiKeyRequest } from "@/lib/api-key-auth";
-import { sendMessage } from "@/lib/adapters/telegram";
+import { sendMessage, escapeTelegramMarkdown } from "@/lib/adapters/telegram";
 import { dispatchWebhookToExpert } from "@/lib/webhook";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import type { TelegramConfig } from "@/lib/adapters/types";
@@ -139,7 +139,7 @@ async function notifyExpertTimeout(
 
   const ref = refCode ? `\`${refCode}\`` : "a request";
   const preview = questionPreview
-    ? `\n\n*Question:* ${questionPreview.slice(0, 300)}${questionPreview.length > 300 ? "..." : ""}`
+    ? `\n\n*Question:* ${escapeTelegramMarkdown(questionPreview.slice(0, 300))}${questionPreview.length > 300 ? "..." : ""}`
     : "";
 
   const msg = `*Client timed out* waiting for your response on ${ref}.${preview}`;

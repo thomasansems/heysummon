@@ -19,15 +19,20 @@ export function validateBody<T>(schema: z.ZodSchema<T>, data: unknown):
   { success: true; data: T } | { success: false; response: NextResponse } {
   const result = schema.safeParse(data);
   if (!result.success) {
+    const isDev = process.env.NODE_ENV !== "production";
     return {
       success: false,
       response: NextResponse.json(
         {
           error: "Validation failed",
-          details: result.error.issues.map((i) => ({
-            path: i.path.join("."),
-            message: i.message,
-          })),
+          ...(isDev
+            ? {
+                details: result.error.issues.map((i) => ({
+                  path: i.path.join("."),
+                  message: i.message,
+                })),
+              }
+            : {}),
         },
         { status: 400 }
       ),

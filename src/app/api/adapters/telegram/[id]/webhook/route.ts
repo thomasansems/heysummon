@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { sendMessage, answerCallbackQuery, editMessageText } from "@/lib/adapters/telegram";
+import { sendMessage, sendPhoto, answerCallbackQuery, editMessageText } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
 
 /** Max length for an expert reply via Telegram */
@@ -230,20 +230,33 @@ export async function POST(
       },
     });
 
+    // Send mascot image first (non-blocking -- don't let image failure break the flow)
+    try {
+      await sendPhoto(
+        config.botToken,
+        chatId,
+        "https://www.heysummon.ai/sumo.jpg",
+        "Welcome to HeySummon!"
+      );
+    } catch (err) {
+      console.error("[telegram/start] Failed to send mascot image:", err);
+    }
+
     await sendMessage(
       config.botToken,
       chatId,
       [
         `*HeySummon -- Expert Channel Connected*`,
         ``,
-        `This is your expert channel. When AI clients need human input, their help requests will appear here.`,
+        `You're all set! This chat is now your expert channel.`,
+        `When AI agents need a human in the loop, their requests land right here.`,
         ``,
         `*How it works:*`,
-        `1. A client sends a help request`,
-        `2. You see the question in this chat`,
+        `1. An AI agent sends a help request`,
+        `2. You see it in this chat`,
         `3. Reply with \`/reply HS-XXXX your answer\``,
         ``,
-        `You can connect multiple clients from your dashboard. Each request has a unique reference code (HS-...) so you can respond to the right one.`,
+        `You can connect multiple clients from your dashboard. Each request has a unique code (HS-...) so replies go to the right place.`,
       ].join("\n")
     );
 

@@ -5,6 +5,20 @@ import crypto from "node:crypto";
 
 const TELEGRAM_API = "https://api.telegram.org";
 
+/**
+ * Escape special characters for Telegram Markdown parse mode.
+ * Prevents user-supplied content from being rendered as formatting
+ * (mitigates Lies-in-the-Loop / HITL dialog forging attacks).
+ */
+export function escapeTelegramMarkdown(str: string): string {
+  return str
+    .replace(/\\/g, "\\\\")
+    .replace(/\*/g, "\\*")
+    .replace(/_/g, "\\_")
+    .replace(/`/g, "\\`")
+    .replace(/\[/g, "\\[");
+}
+
 function botUrl(token: string, method: string): string {
   return `${TELEGRAM_API}/bot${token}/${method}`;
 }
@@ -70,6 +84,29 @@ export async function sendMessage(token: string, chatId: string, text: string): 
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Failed to send Telegram message: ${body}`);
+  }
+}
+
+/** Send a photo via Telegram bot API */
+export async function sendPhoto(
+  token: string,
+  chatId: string,
+  photoUrl: string,
+  caption?: string
+): Promise<void> {
+  const res = await fetch(botUrl(token, "sendPhoto"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      photo: photoUrl,
+      caption,
+      parse_mode: "Markdown",
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Failed to send Telegram photo: ${body}`);
   }
 }
 

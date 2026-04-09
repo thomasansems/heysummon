@@ -9,7 +9,7 @@ import { checkContentSafety, applySanitizedContent } from "@/lib/content-safety-
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
-import { sendMessage, sendMessageWithButtons } from "@/lib/adapters/telegram";
+import { sendMessage, sendMessageWithButtons, escapeTelegramMarkdown } from "@/lib/adapters/telegram";
 import { sendMessage as sendSlackMessage, sendMessageWithBlocks as sendSlackBlocks } from "@/lib/adapters/slack";
 import { sendNotification, sendNotificationWithActions } from "@/lib/adapters/openclaw";
 import { getPublicBaseUrl } from "@/lib/public-url";
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: "apiKey is required" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     if (!signPublicKey || !encryptPublicKey) {
       if (!publicKey) {
         return NextResponse.json(
-          { error: "signPublicKey and encryptPublicKey are required (or publicKey for legacy v3)" },
+          { error: "Missing required encryption keys" },
           { status: 400 }
         );
       }
@@ -349,9 +349,9 @@ export async function POST(request: Request) {
         const cfg = JSON.parse(telegramChannel.config) as TelegramConfig;
         if (!cfg.expertChatId || !cfg.botToken) return;
 
-        const clientName = key.name || "Unknown client";
+        const clientName = escapeTelegramMarkdown(key.name || "Unknown client");
         const questionLine = question
-          ? `\n"${question.slice(0, 500)}${question.length > 500 ? "..." : ""}"\n`
+          ? `\n"${escapeTelegramMarkdown(question.slice(0, 500))}${question.length > 500 ? "..." : ""}"\n`
           : "\n";
 
         if (helpRequest.requiresApproval) {

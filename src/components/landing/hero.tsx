@@ -45,9 +45,9 @@ export function HeroSection() {
             </h1>
 
             <p className="mb-8 max-w-lg text-lg text-muted-foreground">
-              The self-hosted, encrypted human-in-the-loop API for AI agents.
-              One API call to get human input during agent execution — secure,
-              private, and under your control.
+              The self-hosted, platform-agnostic human-in-the-loop API for AI
+              agents. One API call to get human input during agent execution —
+              works with any framework, any model, any channel.
             </p>
 
             <div className="flex flex-wrap gap-3">

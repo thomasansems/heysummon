@@ -102,11 +102,11 @@ export function FrameworksSection() {
         >
           <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-text-muted mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-            Integrations
+            Platform Agnostic
           </div>
-          <h2 className="font-serif text-4xl md:text-5xl mb-6">Works where you work.</h2>
+          <h2 className="font-serif text-4xl md:text-5xl mb-6">Works with every agent, every channel.</h2>
           <p className="text-lg text-text-body">
-            Connect your AI agents and human experts through the channels they already use. Install once, work everywhere.
+            HeySummon is platform agnostic by design. Plug it into any framework, any model, any notification channel — no SDK lock-in, no rewrites. Install once, work everywhere.
           </p>
         </motion.div>
 

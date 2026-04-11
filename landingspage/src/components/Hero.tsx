@@ -50,7 +50,7 @@ export function Hero() {
           <span className="w-1 h-1 rounded-full bg-white/50"></span>
           <span>Self-Hosted</span>
           <span className="w-1 h-1 rounded-full bg-white/50"></span>
-          <span>End-to-End Encrypted</span>
+          <span>Platform Agnostic</span>
         </motion.div>
 
         <h1 className="font-serif text-3xl sm:text-5xl md:text-7xl leading-tight tracking-tight mb-6">
@@ -66,7 +66,7 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-base sm:text-lg md:text-xl text-text-body max-w-2xl mx-auto mb-10"
         >
-          The self-hosted, encrypted human-in-the-loop API for AI agents. Your agent asks, a human responds, and the workflow continues — end-to-end encrypted, fully self-hosted. Your data never leaves your infrastructure.
+          The self-hosted, platform-agnostic human-in-the-loop API for AI agents. Your agent asks, a human responds, and the workflow continues — works with any framework, any channel, any model. No lock-in, fully self-hosted.
         </motion.p>
 
         <motion.div

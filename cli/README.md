@@ -16,11 +16,11 @@
 
 ## What is HeySummon?
 
-HeySummon is an open-source **Human-in-the-Loop platform for AI agents**. When an AI agent gets stuck, needs approval, or requires human context, it sends an encrypted help request to a human expert — in real time, end-to-end encrypted, via a clean dashboard.
+HeySummon is an open-source **Human-in-the-Loop platform for AI agents**. When an AI agent gets stuck, needs approval, or requires human context, it sends a help request to a human expert — in real time, via a clean dashboard.
 
 Think of it as **a pager for your AI agents**: they summon a human when they hit a wall, get a response, and continue their workflow — all without breaking the loop.
 
-- **E2E encrypted** — RSA-OAEP + AES-256-GCM. The server never reads your messages.
+- **Platform agnostic** — works with any agent framework, any model, and any notification channel. No SDK lock-in.
 - **Real-time** — SSE-powered push updates, no polling needed.
 - **Self-hostable** — full control, runs on a single machine with SQLite.
 - **Or use the cloud** — [cloud.heysummon.ai](https://cloud.heysummon.ai) if you'd rather not host anything.

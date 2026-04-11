@@ -16,7 +16,7 @@ const steps = [
     step: "02",
     title: "HeySummon routes to the right expert",
     description:
-      "The request is instantly routed to the right person via Slack, CLI, or other channels. End-to-end encrypted, with full context attached.",
+      "The request is instantly routed to the right person via Slack, Telegram, CLI, or any supported channel — full context attached, no matter which framework the agent runs on.",
   },
   {
     icon: UserCheck,

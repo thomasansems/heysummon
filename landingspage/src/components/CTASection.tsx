@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { trackWaitlistClick, trackGithubClick } from '../lib/analytics';
 
 const needs = [
-  "Security auditors to harden our E2E encryption",
+  "Adapters for more agent frameworks and channels",
   "Testers across different AI clients and channels",
   "Contributors to build new integrations",
   "Ideas for features we haven't thought of yet",

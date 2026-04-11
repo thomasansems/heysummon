@@ -5,7 +5,7 @@ import {
   Server,
   MessageSquare,
   Code2,
-  Lock,
+  Plug,
   Users,
   ClipboardList,
 } from "lucide-react";
@@ -19,10 +19,10 @@ const features = [
       "Self-host on your infrastructure with one Docker command. Nothing phones home, nothing leaves your network.",
   },
   {
-    icon: Lock,
-    title: "Encrypted End-to-End",
+    icon: Plug,
+    title: "Platform Agnostic",
     description:
-      "Messages encrypted from agent to human with X25519 + AES-256-GCM. The server stores only ciphertext it cannot read.",
+      "No SDK lock-in, no vendor tie. Works with any agent framework, any model, and any notification channel — swap pieces without rewriting your stack.",
   },
   {
     icon: Code2,

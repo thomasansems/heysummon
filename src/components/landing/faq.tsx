@@ -23,7 +23,7 @@ const faqs = [
   {
     question: "What AI agents does it work with?",
     answer:
-      "HeySummon works with any AI agent that can make HTTP requests. It is agent-agnostic by design. Whether you are building with Claude, GPT, custom agents, or any other AI platform, HeySummon provides the human-in-the-loop layer.",
+      "HeySummon is platform agnostic by design. It works with any AI agent, any model, and any framework that can make HTTP requests — Claude, GPT, Gemini, LangChain, custom agents, or anything else. No SDK lock-in, no vendor tie, no rewrites when you change stacks.",
   },
   {
     question: "What notification channels are supported?",

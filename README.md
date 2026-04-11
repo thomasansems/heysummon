@@ -6,7 +6,7 @@
 
 **AI does the work. Humans make the calls.**
 
-The self-hosted, end-to-end encrypted human-in-the-loop platform for AI agents.
+The self-hosted, platform-agnostic human-in-the-loop platform for AI agents.
 Your agent asks, a human expert responds, and the workflow continues.
 
 [![CI](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml/badge.svg)](https://github.com/thomasansems/heysummon/actions/workflows/ci.yml)
@@ -30,7 +30,7 @@ Think of it as **a pager for your AI agents** -- when they hit a wall, they summ
 ### Why HeySummon?
 
 - **AI agents aren't perfect.** They get stuck on ambiguous tasks, need approvals, or lack context. HeySummon gives them a structured way to ask for help without breaking their workflow.
-- **End-to-end encrypted.** X25519 + AES-256-GCM encryption with Ed25519 signatures -- the platform never reads your messages.
+- **Platform agnostic.** Works with any AI agent, any model, and any framework that can make an HTTP request -- Claude, GPT, Gemini, LangChain, or custom. No SDK lock-in, no vendor tie. Experts respond through Telegram, Slack, the dashboard, or any supported channel.
 - **Self-hosted.** Run it on your own infrastructure with full control. Your data never leaves your servers.
 
 ---

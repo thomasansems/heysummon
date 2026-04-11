@@ -1,13 +1,13 @@
 ---
 title: HeySummon
-description: Self-hosted, encrypted human-in-the-loop API for AI agents. Your agent asks a human for help and waits for the answer.
+description: Self-hosted, platform-agnostic human-in-the-loop API for AI agents. Your agent asks a human for help and waits for the answer.
 ---
 
 import { Callout } from 'nextra/components'
 
 # HeySummon
 
-**The self-hosted, encrypted human-in-the-loop API for AI agents.**
+**The self-hosted, platform-agnostic human-in-the-loop API for AI agents.**
 
 Your AI agent asks a human for help — and waits for the answer.
 
@@ -57,8 +57,7 @@ See [Summoning Guidelines](/best-practices) to learn how guidelines are configur
 ## What makes it different
 
 - **Your data stays yours** — self-host on your infrastructure with one Docker command. Nothing phones home.
-- **Encrypted end-to-end** — messages are encrypted from agent to human with X25519 + AES-256-GCM. The server stores only ciphertext it cannot read.
-- **Works with any agent** — not tied to one framework. Claude Code, Codex, n8n, or any HTTP client.
+- **Platform agnostic** — no SDK lock-in, no vendor tie. Works with any agent framework (Claude Code, Codex, Gemini, LangChain, n8n, custom), any model, and any HTTP client. Swap pieces of your stack without rewriting integrations.
 - **Humans respond where they are** — dashboard, Telegram, Slack, WhatsApp, or phone. No context-switching.
 - **Every request is signed and scanned** — the Guard proxy validates, rate-limits, and content-scans before anything reaches a human.
 - **No infrastructure overhead** — simple HTTP polling, no WebSockets, no persistent connections. `npx heysummon` and you're running.

@@ -22,7 +22,6 @@ export default function App() {
         <Navbar />
         <main>
           <Hero />
-          <VideoSection />
           <ExpertsSection />
           <ClientsSection />
           <FlowSection />

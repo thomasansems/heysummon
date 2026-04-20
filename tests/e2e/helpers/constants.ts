@@ -3,6 +3,10 @@ export const PW = {
   EMAIL: "playwright@heysummon.test",
   PASSWORD: "PlaywrightTest123!",
 
+  /** Second user seeded with onboardingComplete=false to reproduce HEY-226 */
+  SECOND_EMAIL: "playwright-second@heysummon.test",
+  SECOND_PASSWORD: "PlaywrightTest123!",
+
   EXPERT_KEY: "hs_exp_playwright00000000000000000001",
 
   /** Base lifecycle test key */

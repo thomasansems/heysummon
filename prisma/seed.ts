@@ -386,8 +386,28 @@ async function main() {
     console.log("✅ Playwright OpenClaw channel exists");
   }
 
+  // Secondary Playwright user — represents a second user added AFTER the admin
+  // finished onboarding. `onboardingComplete: false` reproduces HEY-226: the
+  // dashboard's OnboardingGuard should see the platform already configured
+  // (globally) and let them through without a wizard redirect.
+  const pwSecondPassword = await bcrypt.hash("PlaywrightTest123!", 12);
+  await prisma.user.upsert({
+    where: { email: "playwright-second@heysummon.test" },
+    update: {},
+    create: {
+      email: "playwright-second@heysummon.test",
+      name: "Playwright Second User",
+      password: pwSecondPassword,
+      role: "expert",
+      onboardingComplete: false,
+      notificationPref: "email",
+    },
+  });
+  console.log(`✅ Playwright second user: playwright-second@heysummon.test (onboardingComplete=false)`);
+
   console.log("\n📋 Playwright test constants:");
   console.log(`   User:          playwright@heysummon.test / PlaywrightTest123!`);
+  console.log(`   Second user:   playwright-second@heysummon.test / PlaywrightTest123!`);
   console.log(`   Expert key:    hs_exp_playwright00000000000000000001`);
   console.log(`   Base key:      hs_cli_playwright00000000000000000001`);
   console.log(`   OC→Telegram:   hs_cli_pw_openclaw_telegram_00000001`);

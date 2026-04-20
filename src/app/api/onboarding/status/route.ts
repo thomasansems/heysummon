@@ -7,9 +7,20 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const [expertCount, clientCount] = await Promise.all([
-    prisma.userProfile.count({ where: { userId: user.id } }),
-    prisma.apiKey.count({ where: { userId: user.id } }),
+    prisma.userProfile.count(),
+    prisma.apiKey.count(),
   ]);
+
+  const platformConfigured = expertCount > 0 && clientCount > 0;
+
+  let onboardingComplete = user.onboardingComplete;
+  if (!onboardingComplete && platformConfigured) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { onboardingComplete: true },
+    });
+    onboardingComplete = true;
+  }
 
   let tunnelActive = false;
   try {
@@ -23,7 +34,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    onboardingComplete: user.onboardingComplete,
+    onboardingComplete,
     hasExpert: expertCount > 0,
     hasClient: clientCount > 0,
     tunnelActive,

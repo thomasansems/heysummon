@@ -87,16 +87,6 @@ export class HeySummon implements INodeType {
         description: "Surface the request as an Approve/Deny prompt in the dashboard.",
       },
       {
-        displayName: "Summoning Guidelines",
-        name: "summoningGuidelines",
-        type: "string",
-        typeOptions: { rows: 3 },
-        default: "",
-        displayOptions: { show: { operation: ["summon"] } },
-        description:
-          "Per-call override of the HEYSUMMON_SUMMON_CONTEXT rules.",
-      },
-      {
         displayName: "Timeout (Ms)",
         name: "timeoutMs",
         type: "number",
@@ -158,11 +148,6 @@ export class HeySummon implements INodeType {
               i,
               false
             ) as boolean,
-            summoningGuidelines: this.getNodeParameter(
-              "summoningGuidelines",
-              i,
-              ""
-            ) as string,
             timeoutMs: this.getNodeParameter("timeoutMs", i, 900_000) as number,
             pollIntervalMs: this.getNodeParameter(
               "pollIntervalMs",

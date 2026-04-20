@@ -44,7 +44,6 @@ Blocks the workflow and waits for a human expert to answer.
 | Context | no | — | Optional background sent as the first message. |
 | Expert Name | no | — | Route to a specific expert. |
 | Requires Approval | no | `false` | Surface an Approve/Deny prompt. |
-| Summoning Guidelines | no | — | Per-call override of the `HEYSUMMON_SUMMON_CONTEXT` rules. |
 | Timeout (ms) | yes | `900000` | Local timeout (default 15 min). |
 | Poll Interval (ms) | yes | `2000` | How often to poll for the answer. |
 

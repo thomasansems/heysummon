@@ -3,7 +3,6 @@ export interface SummonInput {
   context?: string;
   expertName?: string;
   requiresApproval?: boolean;
-  summoningGuidelines?: string;
   timeoutMs: number;
   pollIntervalMs: number;
 }
@@ -59,8 +58,6 @@ export function validateSummon(raw: Partial<SummonInput>): {
       context: raw.context?.toString().trim() || undefined,
       expertName: raw.expertName?.toString().trim() || undefined,
       requiresApproval: !!raw.requiresApproval,
-      summoningGuidelines:
-        raw.summoningGuidelines?.toString().trim() || undefined,
       timeoutMs,
       pollIntervalMs,
     },

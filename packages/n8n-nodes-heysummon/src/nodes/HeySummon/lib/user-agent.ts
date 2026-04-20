@@ -1,9 +1,11 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+const FALLBACK_USER_AGENT = "n8n-nodes-heysummon/unknown (n8n; node)";
+
 let cached: string | null = null;
 
-function findPackageJson(start: string): string {
+function findPackageJson(start: string): string | null {
   let dir = start;
   for (let i = 0; i < 8; i++) {
     try {
@@ -20,18 +22,29 @@ function findPackageJson(start: string): string {
     if (parent === dir) break;
     dir = parent;
   }
-  throw new Error("n8n-nodes-heysummon package.json not found from " + start);
+  return null;
 }
 
 /**
  * Build the User-Agent string for outbound HeySummon API calls from this node.
  * Version is read from the node package's own package.json at runtime per PRD §4.8.
+ * Falls back to "n8n-nodes-heysummon/unknown" if the package.json cannot be located,
+ * so a misconfigured install never crashes outbound requests.
  */
 export function getUserAgent(): string {
   if (cached) return cached;
   const pkgPath = findPackageJson(__dirname);
-  const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { version: string };
-  cached = `n8n-nodes-heysummon/${pkg.version} (n8n; node)`;
+  if (!pkgPath) {
+    cached = FALLBACK_USER_AGENT;
+    return cached;
+  }
+  try {
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { version?: string };
+    const version = pkg.version?.trim() || "unknown";
+    cached = `n8n-nodes-heysummon/${version} (n8n; node)`;
+  } catch {
+    cached = FALLBACK_USER_AGENT;
+  }
   return cached;
 }
 

@@ -15,7 +15,6 @@ interface ParamMap {
   context?: string;
   expertName?: string;
   requiresApproval?: boolean;
-  summoningGuidelines?: string;
   timeoutMs?: number;
   pollIntervalMs?: number;
   requestId?: string;

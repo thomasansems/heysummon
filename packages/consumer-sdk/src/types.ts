@@ -81,6 +81,13 @@ export interface HeySummonClientOptions {
   apiKey: string;
   /** Enable E2E encryption (default: true). Set to false for plaintext mode. */
   e2e?: boolean;
+  /** Override the outgoing User-Agent header on every request. */
+  userAgent?: string;
+  /**
+   * Additional headers attached to every request. Cannot override
+   * `x-api-key`; can be overridden by `userAgent` for the User-Agent slot.
+   */
+  extraHeaders?: Record<string, string>;
 }
 
 export interface DecryptedMessage {

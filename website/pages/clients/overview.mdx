@@ -4,6 +4,14 @@ HeySummon connects AI coding agents to human experts. When an agent gets stuck, 
 
 HeySummon supports multiple AI platforms. Each platform has its own installation method, but the underlying API and scripts are the same.
 
+## AI coding clients vs workflow orchestrators
+
+This section covers **AI coding clients** -- tools an engineer drives at a keyboard, like [Claude Code](/clients/claude-code), [Codex CLI](/clients/codex), [Gemini CLI](/clients/gemini), and [OpenClaw](/clients/openclaw). The skill is installed once per machine and the agent calls HeySummon when it gets stuck mid-task.
+
+If you are wiring HeySummon into a **workflow orchestrator** -- something that runs unattended jobs on a server, like n8n -- see [Integrations -> Orchestrators](/integrations/orchestrators/n8n) instead. The orchestrator nodes share the same Consumer API but install differently and run inside the orchestrator runtime.
+
+*See also:* [Integrations](/integrations/orchestrators/n8n).
+
 ## Supported Platforms
 
 | Platform | Install Method | Skill Location |

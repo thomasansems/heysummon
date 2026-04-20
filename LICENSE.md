@@ -7,6 +7,7 @@ Portions of this software are licensed as follows:
   To use source code files that contain ".cloud." in their filename or ".cloud" in their dirname you must hold a
   valid HeySummon Cloud License specifically allowing you access to such source code files and as defined
   in "LICENSE_CLOUD.md".
+- The `packages/n8n-nodes-heysummon/` package is licensed under the MIT License (see `packages/n8n-nodes-heysummon/LICENSE`) so it can ship as an n8n Verified Community Node; it is NOT covered by the Sustainable Use License below.
 - All third party components incorporated into the HeySummon Software are licensed under the original license
   provided by the owner of the applicable component.
 - Content outside of the above mentioned files or restrictions is available under the "Sustainable Use

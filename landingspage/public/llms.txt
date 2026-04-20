@@ -1,0 +1,69 @@
+# HeySummon
+
+> HeySummon is the open-source, self-hosted, platform-agnostic human-in-the-loop (HITL) platform for AI agents. When an AI agent gets stuck, needs approval, or lacks context, it sends an encrypted help request to a human expert who responds through the dashboard, Telegram, Slack, or another channel. The agent picks up the response and continues its workflow.
+
+HeySummon works with any AI agent that can make HTTP requests -- Claude Code, Codex, Gemini, OpenClaw, LangChain, n8n, or custom agents. Experts respond through a web dashboard, Telegram, Slack, or other supported channels. All communication is end-to-end encrypted using X25519 key exchange and AES-256-GCM.
+
+The platform is self-hosted: run it on your infrastructure with `npx @heysummon/app`, Docker Compose, or from source. Your data never leaves your servers.
+
+## Docs
+
+- [Getting Started / Quickstart](https://docs.heysummon.ai/getting-started/quickstart): Install and run HeySummon in under 5 minutes using NPX, Docker, or from source
+- [How It Works](https://docs.heysummon.ai/getting-started/how-it-works): The full request lifecycle from agent question to expert answer
+- [Concepts](https://docs.heysummon.ai/getting-started/concepts): Key terminology -- Consumer, Expert, HelpRequest, Channel, Guard
+- [Best Practices](https://docs.heysummon.ai/best-practices): Guidelines for when and how agents should summon human help
+
+## Consumer (AI Agent) Integration
+
+- [Consumer Overview](https://docs.heysummon.ai/consumer/overview): How AI agents connect to and use HeySummon
+- [Consumer API Reference](https://docs.heysummon.ai/consumer/api-reference): HTTP API endpoints for submitting and polling help requests
+- [Real-time Events](https://docs.heysummon.ai/consumer/realtime): Polling and real-time event handling for agent integrations
+- [Consumer Encryption](https://docs.heysummon.ai/consumer/encryption): End-to-end encryption implementation for consumer requests
+
+## Client Platform Guides
+
+- [Claude Code](https://docs.heysummon.ai/clients/claude-code): Set up HeySummon as a skill in Claude Code
+- [Codex CLI](https://docs.heysummon.ai/clients/codex): Integrate with OpenAI Codex CLI
+- [Gemini CLI](https://docs.heysummon.ai/clients/gemini): Integrate with Google Gemini CLI
+- [OpenClaw](https://docs.heysummon.ai/clients/openclaw): Integrate with OpenClaw agents
+
+## Orchestrator Integrations
+
+- [n8n](https://docs.heysummon.ai/integrations/orchestrators/n8n): Add a human-in-the-loop step to any n8n workflow with the n8n-nodes-heysummon community node
+
+## Expert (Human) Dashboard
+
+- [Expert Overview](https://docs.heysummon.ai/expert/overview): The expert role and how to get started responding to agent requests
+- [Dashboard Guide](https://docs.heysummon.ai/expert/dashboard): Using the web dashboard to review and respond to help requests
+- [Conversations](https://docs.heysummon.ai/expert/conversations): Managing multi-turn conversations with agents
+- [API Keys](https://docs.heysummon.ai/expert/api-keys): Creating and managing API keys for agent authentication
+
+## Security
+
+- [Security Overview](https://docs.heysummon.ai/security/overview): Security architecture including Guard proxy, E2E encryption, and defense layers
+- [API Security](https://docs.heysummon.ai/security/api-security): API authentication, rate limiting, and access control
+- [Encryption](https://docs.heysummon.ai/security/encryption): X25519 key exchange and AES-256-GCM encryption details
+- [Content Safety](https://docs.heysummon.ai/security/content-safety-guard): Content safety middleware, XSS prevention, and PII filtering
+
+## Self-Hosting
+
+- [Self-Hosting Overview](https://docs.heysummon.ai/self-hosting/overview): Deployment options -- NPX, Docker Compose, or from source
+- [Docker Setup](https://docs.heysummon.ai/self-hosting/docker): Docker Compose deployment with Caddy, Cloudflare, or Tailscale
+- [NPX Installer](https://docs.heysummon.ai/self-hosting/npx): One-command install with npx @heysummon/app
+- [Environment Variables](https://docs.heysummon.ai/self-hosting/environment-variables): All configuration options and environment variables
+- [Architecture](https://docs.heysummon.ai/self-hosting/architecture): System architecture diagram and component overview
+- [Database](https://docs.heysummon.ai/self-hosting/database): SQLite and PostgreSQL setup
+
+## Reference
+
+- [Full API Reference](https://docs.heysummon.ai/reference/api): Complete API endpoint documentation with request/response examples
+- [Message Flow](https://docs.heysummon.ai/reference/message-flow): Detailed encrypted message flow diagrams
+- [Changelog](https://docs.heysummon.ai/reference/changelog): Release notes and version history
+
+## Optional
+
+Other integrations -- including orchestrators -- live in the dedicated section above.
+
+- [Contributing](https://docs.heysummon.ai/contributing): How to contribute to HeySummon
+- [Twilio Voice Integration](https://docs.heysummon.ai/integrations/twilio): Set up voice-based expert responses via Twilio
+- [Source Code](https://github.com/thomasansems/heysummon): GitHub repository

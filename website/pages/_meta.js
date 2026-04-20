@@ -2,7 +2,7 @@ export default {
   "index": "Introduction",
   "getting-started": "Getting Started",
   "clients": "Client Integrations",
-  "integrations": "Other Integrations",
+  "integrations": "Integrations",
   "consumer": "For AI Agents (Consumer)",
   "expert": "For Human Experts",
   "best-practices": "Summoning Guidelines",

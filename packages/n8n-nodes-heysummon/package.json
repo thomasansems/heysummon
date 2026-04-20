@@ -1,0 +1,56 @@
+{
+  "name": "n8n-nodes-heysummon",
+  "version": "0.1.0",
+  "description": "n8n community node for HeySummon — pause workflows for human-in-the-loop input from a self-hosted HeySummon instance.",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "n8n",
+    "n8n-community-node-package",
+    "hitl",
+    "human-in-the-loop",
+    "heysummon"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/HeySummonApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/HeySummon/HeySummon.node.js"
+    ]
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "dependencies": {
+    "@heysummon/consumer-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "n8n-workflow": "^1.0.0",
+    "typescript": "^5",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "^1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomasansems/heysummon.git",
+    "directory": "packages/n8n-nodes-heysummon"
+  }
+}

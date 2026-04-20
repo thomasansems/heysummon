@@ -4,8 +4,14 @@ import { Callout } from 'nextra/components'
 
 ## Unreleased
 
+### Added
+- **n8n community node:** new `n8n-nodes-heysummon` package adds a HeySummon node to any n8n workflow. Two operations -- `Summon` (blocking ask with timeout) and `Get Status` (poll an existing request). Auth via a `HeySummon API` n8n credential type. Self-hosted base URL is a first-class input. End-to-end encryption is on by default; the lifecycle constraint between `Summon` and `Get Status` is documented on the integration page. The package ships under MIT to qualify for n8n's Verified Community Nodes program
+
 ### Changed
 - **Messaging:** headline USP updated from "end-to-end encrypted" to "platform agnostic" across the landing page, marketing site, READMEs, and docs home. Encryption remains a core security feature and is still documented in `/security/` and `/consumer/encryption`, but the primary positioning now emphasizes that HeySummon works with any agent framework, any model, and any notification channel — no SDK lock-in, no vendor tie
+- **Integrations IA:** `website/pages/integrations/` reorganised into **Channels** (Twilio) and **Orchestrators** (n8n now; LangGraph, CrewAI, Make, Zapier reserved as coming-soon). Top nav label updated from "Other Integrations" to "Integrations"
+- **`clients/overview.mdx`:** adds a short clarifier distinguishing AI coding clients (Claude Code, Codex, Gemini, OpenClaw) from workflow orchestrators (n8n), with a link forward to the orchestrators section
+- **Consumer SDK:** `HeySummonClientOptions` now accepts optional `userAgent` and `extraHeaders` fields, threaded through every outbound request. Existing callers are unaffected. Used by the n8n node to attribute outbound traffic per PRD §4.8
 
 ---
 

@@ -1,0 +1,143 @@
+import { Callout } from 'nextra/components'
+
+# n8n
+
+HeySummon plugs into [n8n](https://n8n.io) as a community node. Drop the **HeySummon** node into any workflow to pause execution, summon a human expert, and resume on the answer -- with the same end-to-end encryption, lifecycle, and audit trail that HeySummon gives every other client.
+
+## Why HeySummon for n8n
+
+n8n already has well-loved channel nodes -- Discord, Gmail, Outlook -- that can post a message and wait for a reply. They notify a human, but they don't *structure* the request: there is no encrypted thread, no expert routing, no lifecycle (pending -> active -> closed/expired), and no audit trail beyond the channel's own message history.
+
+HeySummon adds that structure on top. The node sends a typed help request to your self-hosted instance over an encrypted channel, the expert responds in the HeySummon dashboard (or over Telegram, Slack, or any wired channel), and the node resumes with a typed response payload. The expert never has to context-switch back into the n8n UI.
+
+## Install
+
+In your self-hosted n8n instance:
+
+1. Open **Settings -> Community Nodes**.
+2. Click **Install**.
+3. Enter `n8n-nodes-heysummon` and confirm.
+4. Restart n8n if prompted.
+
+Or install manually inside your n8n container:
+
+```bash
+npm install n8n-nodes-heysummon
+```
+
+<Callout type="info">
+The package follows n8n's `n8n-nodes-*` naming convention and is tagged with the `n8n-community-node-package` keyword required by the community installer filter.
+</Callout>
+
+## Set up the credential
+
+Create a new credential of type **HeySummon API**:
+
+| Field | Value |
+| --- | --- |
+| API Key | A client API key (`hs_cli_*`) from your HeySummon dashboard. |
+| Base URL | The URL of your self-hosted HeySummon instance, e.g. `https://heysummon.example.com`. |
+| End-to-End Encryption | Leave on (default). See [E2E and Get Status](#e2e-and-get-status) below if you need to disable it. |
+
+Hit **Test** -- n8n calls `GET /api/v1/health` on your instance. A green tick means you're wired up.
+
+## Operations
+
+The HeySummon node exposes one resource with two operations.
+
+### Summon
+
+Blocks the workflow execution and waits for a human expert to answer.
+
+| Parameter | Required | Default | Description |
+| --- | --- | --- | --- |
+| Question | yes | -- | The plaintext question for the expert. Supports n8n expression syntax. |
+| Context | no | -- | Optional background sent as the first encrypted message after key exchange. |
+| Expert Name | no | -- | Route the request to a specific expert by name. |
+| Requires Approval | no | `false` | Surface as an Approve/Deny prompt in the dashboard. |
+| Timeout (ms) | yes | `900000` | Local timeout in milliseconds (default 15 minutes). |
+| Poll Interval (ms) | yes | `2000` | How often the node polls for the answer. |
+
+On success, returns:
+
+```json
+{
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "responded",
+  "response": "Plaintext answer (decrypted in process when E2E is on).",
+  "responder": "expert-name-or-null",
+  "respondedAt": "2026-04-20T18:30:00.000Z",
+  "latencyMs": 87412,
+  "messageCount": 3
+}
+```
+
+### Get Status
+
+A single non-blocking poll for an existing request.
+
+| Parameter | Required | Default | Description |
+| --- | --- | --- | --- |
+| Request ID | yes | -- | The `requestId` returned by a previous Summon call. |
+
+Returns metadata only when E2E is on (the default). See [E2E and Get Status](#e2e-and-get-status).
+
+## Errors
+
+Both operations return a structured error envelope on failure:
+
+```json
+{
+  "error": {
+    "kind": "timeout | expired | network | http | guard_rejected | validation",
+    "message": "Human readable explanation",
+    "requestId": "cm... or null",
+    "refCode": "HS-... or null",
+    "httpStatus": 504,
+    "retriable": false
+  }
+}
+```
+
+When **Continue On Fail** is enabled on the node, errors are emitted on the second output port instead of throwing.
+
+## Example workflow
+
+A minimal approval flow:
+
+```
+Webhook (POST /deploy)
+  -> AI Agent (drafts changes)
+  -> HeySummon (Summon)        question = "Approve this deploy?", requiresApproval = true
+  -> If
+       approved -> Continue: kick off the deploy job
+       denied   -> End: post the reason back to the requester
+```
+
+Larger templates (with sample workflow JSON exports) ship separately as part of the launch announcement -- watch [the changelog](/reference/changelog) for the link.
+
+## Self-hosted base URL
+
+HeySummon is currently self-hosted only. The Base URL on the credential **must** point at your own instance -- there is no managed cloud endpoint to leave the field blank for. If you have not stood up an instance yet, see [Self-Hosting](/self-hosting/overview).
+
+## E2E and Get Status
+
+End-to-end encryption is on by default. The HeySummon node generates an ephemeral X25519 keypair *for each Summon execution* and decrypts the expert's response in process. Those keys live only in memory and are dropped when the execution finishes.
+
+That has one important consequence: a `Get Status` call in a *different* execution cannot decrypt the response, because the keypair from the original Summon is gone. With the default E2E setting, `Get Status` returns metadata only -- `response` is always `null`.
+
+If you need cross-execution access to the decrypted response (e.g. a separate "follow up" workflow that polls a long-running ticket), set **End-to-End Encryption** to off on the credential. The credential test result will show a yellow "E2E disabled" badge so you don't ship that setting to production by accident.
+
+## Limits and roadmap
+
+- Single-vendor scope. The node implements one resource with two operations -- no Discord/Gmail/Outlook channel selectors. HeySummon channels are configured on the HeySummon side instead.
+- Cross-execution decrypted polling requires E2E off (see above).
+- Polling-trigger and webhook-trigger nodes are on the roadmap, not in this release.
+- Other orchestrators ([LangGraph](/integrations/orchestrators/langgraph), [CrewAI](/integrations/orchestrators/crewai), [Make](/integrations/orchestrators/make), [Zapier](/integrations/orchestrators/zapier)) are reserved as nav slots and ship later.
+
+## Links
+
+- npm package: [`n8n-nodes-heysummon`](https://www.npmjs.com/package/n8n-nodes-heysummon)
+- Source: [`packages/n8n-nodes-heysummon/`](https://github.com/thomasansems/heysummon/tree/main/packages/n8n-nodes-heysummon)
+- Issues / feedback: [GitHub issues](https://github.com/thomasansems/heysummon/issues)

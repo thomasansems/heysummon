@@ -44,6 +44,8 @@ export class HeySummonClient {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly e2e: boolean;
+  private readonly userAgent?: string;
+  private readonly extraHeaders?: Record<string, string>;
   private readonly keyStore: Map<string, KeyMaterial> = new Map();
   private readonly providerKeyCache: Map<string, { encPub: string; signPub: string }> = new Map();
 
@@ -51,6 +53,8 @@ export class HeySummonClient {
     this.baseUrl = opts.baseUrl.replace(/\/$/, ""); // trim trailing slash
     this.apiKey = opts.apiKey;
     this.e2e = opts.e2e !== false; // default true
+    this.userAgent = opts.userAgent;
+    this.extraHeaders = opts.extraHeaders;
   }
 
   private async request<T>(
@@ -58,12 +62,23 @@ export class HeySummonClient {
     path: string,
     body?: unknown
   ): Promise<T> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (this.extraHeaders) {
+      for (const [k, v] of Object.entries(this.extraHeaders)) {
+        headers[k] = v;
+      }
+    }
+    if (this.userAgent) {
+      headers["User-Agent"] = this.userAgent;
+    }
+    // x-api-key is set last so callers cannot override authentication via extraHeaders.
+    headers["x-api-key"] = this.apiKey;
+
     const res = await fetch(`${this.baseUrl}${path}`, {
       method,
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": this.apiKey,
-      },
+      headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 

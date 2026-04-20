@@ -201,6 +201,57 @@ describe("HeySummonClient", () => {
     await trailingClient.whoami();
     expect(called).toBe(true);
   });
+
+  it("attaches userAgent and extraHeaders to outgoing requests", async () => {
+    let receivedUA: string | null = null;
+    let receivedExtra: string | null = null;
+    let receivedKey: string | null = null;
+    server.use(
+      http.get(`${BASE}/api/v1/whoami`, ({ request }) => {
+        receivedUA = request.headers.get("user-agent");
+        receivedExtra = request.headers.get("x-trace-id");
+        receivedKey = request.headers.get("x-api-key");
+        return HttpResponse.json({
+          keyId: "kid1",
+          keyName: null,
+          expert: { id: "e1", name: "P", isActive: true },
+        });
+      })
+    );
+
+    const taggedClient = new HeySummonClient({
+      baseUrl: BASE,
+      apiKey: API_KEY,
+      userAgent: "my-orchestrator/9.9.9 (test)",
+      extraHeaders: { "x-trace-id": "trace-xyz" },
+    });
+    await taggedClient.whoami();
+    expect(receivedUA).toBe("my-orchestrator/9.9.9 (test)");
+    expect(receivedExtra).toBe("trace-xyz");
+    expect(receivedKey).toBe(API_KEY);
+  });
+
+  it("does not let extraHeaders override x-api-key", async () => {
+    let receivedKey: string | null = null;
+    server.use(
+      http.get(`${BASE}/api/v1/whoami`, ({ request }) => {
+        receivedKey = request.headers.get("x-api-key");
+        return HttpResponse.json({
+          keyId: "kid1",
+          keyName: null,
+          expert: { id: "e1", name: "P", isActive: true },
+        });
+      })
+    );
+
+    const c = new HeySummonClient({
+      baseUrl: BASE,
+      apiKey: API_KEY,
+      extraHeaders: { "x-api-key": "stolen-key" },
+    });
+    await c.whoami();
+    expect(receivedKey).toBe(API_KEY);
+  });
 });
 
 /* -------------------------------------------------------------------------- */

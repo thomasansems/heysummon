@@ -22,8 +22,14 @@ if [ -z "$QUESTION" ]; then
   exit 1
 fi
 
-if [ -z "$HEYSUMMON_API_KEY" ]; then
-  echo "HEYSUMMON_API_KEY not set. Run: bash $SCRIPT_DIR/setup.sh" >&2
+# API key can come from .env (HEYSUMMON_API_KEY) OR from the registered experts
+# file (HEYSUMMON_EXPERTS_FILE). The platform-managed install persists the key
+# in experts.json rather than .env, so only fail if neither source is available.
+_EXPERTS_FILE="${HEYSUMMON_EXPERTS_FILE:-$HOME/.heysummon/experts.json}"
+if [ -z "$HEYSUMMON_API_KEY" ] && [ ! -s "$_EXPERTS_FILE" ]; then
+  echo "No API key available. Either set HEYSUMMON_API_KEY or register an expert via:" >&2
+  echo "  bash $SCRIPT_DIR/setup.sh" >&2
+  echo "  bash $SCRIPT_DIR/add-expert.sh <api-key> [alias]" >&2
   exit 1
 fi
 

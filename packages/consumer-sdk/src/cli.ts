@@ -313,6 +313,47 @@ async function cmdListExperts(): Promise<void> {
   }
 }
 
+async function cmdWhoami(args: string[]): Promise<void> {
+  const keyArg = getArg(args, "--key");
+  const expertArg = getArg(args, "--expert");
+  const expertsFile = optEnv("HEYSUMMON_EXPERTS_FILE", "");
+  const baseUrl = requireEnv("HEYSUMMON_BASE_URL");
+
+  // Resolve API key: explicit --key > expert from store > HEYSUMMON_API_KEY env
+  let apiKey = keyArg || "";
+  if (!apiKey && expertArg && expertsFile && existsSync(expertsFile)) {
+    const store = new ExpertStore(expertsFile);
+    const match = store.findByName(expertArg);
+    if (!match) {
+      process.stderr.write(`Expert '${expertArg}' not found.\n`);
+      process.exit(1);
+    }
+    apiKey = match.apiKey;
+  }
+  if (!apiKey) apiKey = process.env.HEYSUMMON_API_KEY || "";
+  if (!apiKey) {
+    process.stderr.write(
+      "No API key. Pass --key <api-key>, --expert <name>, or set HEYSUMMON_API_KEY.\n"
+    );
+    process.exit(1);
+  }
+
+  const client = new HeySummonClient({ baseUrl, apiKey });
+  try {
+    const r = await client.whoami();
+    process.stdout.write(JSON.stringify(r) + "\n");
+  } catch (err) {
+    if (err instanceof HeySummonHttpError) {
+      process.stderr.write(`whoami failed (HTTP ${err.status}): ${err.body}\n`);
+    } else {
+      process.stderr.write(
+        `whoami failed: ${err instanceof Error ? err.message : String(err)}\n`
+      );
+    }
+    process.exit(1);
+  }
+}
+
 async function cmdCheckStatus(args: string[]): Promise<void> {
   const ref = getArg(args, "--ref") || args[args.indexOf("check-status") + 1];
 
@@ -378,6 +419,7 @@ const commands: Record<string, (args: string[]) => Promise<void>> = {
   "add-expert": cmdAddExpert,
   "list-experts": cmdListExperts,
   "check-status": cmdCheckStatus,
+  whoami: cmdWhoami,
   keygen: cmdKeygen,
 };
 

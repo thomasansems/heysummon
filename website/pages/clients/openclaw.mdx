@@ -19,14 +19,22 @@ cd ~/clawd && HEYSUMMON_BASE_URL="https://your-instance.com" \
   bash skills/heysummon/scripts/add-expert.sh hs_cli_your_key_here 'ExpertName'
 ```
 
-### Via Setup Link
+### Via Setup Link (Recommended end-to-end)
 
-Your expert provides a setup link from the HeySummon dashboard. Visit the link in your browser for platform-specific instructions, or use the API directly:
+Your expert provides a setup link from the HeySummon dashboard. The two-step install pulls the skill from ClaWhub and then runs the platform-emitted one-liner:
 
 ```bash
+npx clawhub@latest install heysummon
 curl -sf "https://your-instance.com/api/v1/setup/st_your_token_here/command" \
   | jq -r '.installCommand' | bash
 ```
+
+The one-liner sets `HEYSUMMON_BASE_URL` and `HEYSUMMON_SUMMON_CONTEXT` as env-prefix values and calls `add-expert.sh`. Both values -- plus the registered expert key -- are persisted:
+
+- `HEYSUMMON_BASE_URL` and `HEYSUMMON_SUMMON_CONTEXT` go to `~/clawd/skills/heysummon/.env` so `ask.sh` in fresh shells picks them up.
+- The client API key is registered in `experts.json` via the consumer SDK.
+
+`HEYSUMMON_SUMMON_CONTEXT` is the markdown guidance your expert configured for the agent. Because it can span multiple lines, it is persisted as a single-quoted shell string -- `set -a; source .env; set +a` round-trips it cleanly.
 
 ### OpenClaw Sub-Channels
 
@@ -101,6 +109,9 @@ bash scripts/add-expert.sh "hs_cli_key" "ExpertName"
 
 # List experts
 bash scripts/list-experts.sh
+
+# Identify the expert(s) bound to this skill (base URL, key, owner, active)
+bash scripts/whoami.sh
 
 # Check request status
 bash scripts/check-status.sh HS-ABCD

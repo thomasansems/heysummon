@@ -9,7 +9,20 @@ license: SEE LICENSE IN LICENSE.md
 
 When you need human input, approval, or are stuck on something that requires human judgment -- use HeySummon to ask a human expert and **wait for their response** before continuing.
 
-## Setup
+## Setup (platform-managed / OpenClaw)
+
+If your expert set you up through the HeySummon dashboard, paste the two-step install they give you:
+
+```bash
+npx clawhub@latest install heysummon
+curl -sf "<setup-url>/command" | jq -r '.installCommand' | bash
+```
+
+The second line reads a non-interactive one-liner from the dashboard, sets `HEYSUMMON_BASE_URL` and `HEYSUMMON_SUMMON_CONTEXT` as env-prefix values, and calls `add-expert.sh` with the API key. Those values are persisted to `$SKILL_DIR/.env` so future `ask.sh` calls in fresh shells pick them up automatically.
+
+## Setup (interactive / manual)
+
+When you don't have a setup URL from the dashboard, run the interactive setup:
 
 ```bash
 bash $SKILL_DIR/scripts/setup.sh
@@ -47,6 +60,9 @@ bash $SKILL_DIR/scripts/add-expert.sh "hs_cli_key" "FriendlyName"
 
 # List registered experts
 bash $SKILL_DIR/scripts/list-experts.sh
+
+# Identify the expert(s) bound to this skill (base URL, key, owner, active)
+bash $SKILL_DIR/scripts/whoami.sh
 
 # Check request status
 bash $SKILL_DIR/scripts/check-status.sh <refCode|requestId>

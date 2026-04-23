@@ -30,7 +30,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
     "@clack/prompts": "^0.10.0",
-    "@heysummon/consumer-sdk": "^0.2.21",
+    "@heysummon/consumer-sdk": "workspace:^",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {

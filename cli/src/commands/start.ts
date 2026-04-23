@@ -9,6 +9,8 @@ import {
   writePid,
   readPid,
   isProcessRunning,
+  readEnvFile,
+  readPortFromEnv,
 } from "../lib/config";
 import { printSuccess, printInfo, printWarning, printError, color } from "../lib/ui";
 
@@ -64,15 +66,27 @@ function readLogTail(logPath: string, maxBytes = DAEMON_LOG_TAIL_BYTES): string 
   }
 }
 
+function buildChildEnv(port?: number): NodeJS.ProcessEnv {
+  // Next.js standalone does not auto-load .env files at runtime, so every
+  // value the server needs (PORT, DATABASE_URL, NEXTAUTH_*, OAuth secrets)
+  // must be injected via process.env here. Init passes PORT explicitly;
+  // `start -d` falls back to whatever is in ~/.heysummon/.env so the
+  // restart lands on the same port/database as the initial boot.
+  const fileEnv = readEnvFile();
+  const resolvedPort = port ?? readPortFromEnv() ?? undefined;
+  return {
+    ...process.env,
+    ...fileEnv,
+    NODE_ENV: "production",
+    ...(resolvedPort ? { PORT: String(resolvedPort) } : {}),
+  };
+}
+
 export async function startDaemon(port?: number): Promise<void> {
   const appDir = getAppDir();
   copyEnvToApp();
 
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    NODE_ENV: "production",
-    ...(port ? { PORT: String(port) } : {}),
-  };
+  const env = buildChildEnv(port);
 
   if (hasPm2()) {
     const { cmd, args } = getServerScript(appDir);
@@ -148,11 +162,7 @@ export function startForeground(port?: number): void {
   const appDir = getAppDir();
   copyEnvToApp();
 
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    NODE_ENV: "production",
-    ...(port ? { PORT: String(port) } : {}),
-  };
+  const env = buildChildEnv(port);
 
   const { cmd, args } = getServerScript(appDir);
   printInfo(`Starting ${color.cyan(`${cmd} ${args.join(" ")}`)}`);

@@ -91,6 +91,39 @@ export function writeEnv(content: string): void {
   fs.writeFileSync(ENV_FILE, content, "utf-8");
 }
 
+export function readEnvFile(): Record<string, string> {
+  const result: Record<string, string> = {};
+  let content: string;
+  try {
+    content = fs.readFileSync(ENV_FILE, "utf-8");
+  } catch {
+    return result;
+  }
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    result[key] = value;
+  }
+  return result;
+}
+
+export function readPortFromEnv(): number | null {
+  const env = readEnvFile();
+  if (!env.PORT) return null;
+  const port = parseInt(env.PORT, 10);
+  return isNaN(port) ? null : port;
+}
+
 export function readPid(): number | null {
   try {
     const pid = parseInt(fs.readFileSync(PID_FILE, "utf-8").trim(), 10);

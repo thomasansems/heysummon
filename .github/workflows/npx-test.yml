@@ -48,6 +48,19 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Resolve workspace dependencies for npm
+        working-directory: cli
+        run: |
+          # Convert workspace:^ references to actual versions for npm (which doesn't understand workspace protocol)
+          CONSUMER_SDK_VERSION=$(node -p "require('../packages/consumer-sdk/package.json').version")
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.dependencies['@heysummon/consumer-sdk'] = '^$CONSUMER_SDK_VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "Updated cli/package.json: @heysummon/consumer-sdk -> ^$CONSUMER_SDK_VERSION"
+
       - name: Build CLI from source
         working-directory: cli
         run: |

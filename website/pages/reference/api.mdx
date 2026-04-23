@@ -177,6 +177,31 @@ Messages with `iv: "plaintext"` are unencrypted (e.g. Telegram replies or pre-ke
 
 Closes the request. Expert key required.
 
+For notification-mode requests (`responseRequired: false`), close returns `409`
+with code `NOT_APPLICABLE` — use `/acknowledge` instead. Calls against
+already-`acknowledged` or `expired` notifications remain idempotent (`200`).
+
+---
+
+### Acknowledge a notification
+`POST /api/v1/acknowledge/:requestId`
+
+**Auth:** session cookie (dashboard) OR `x-api-key` (expert key or consumer key
+scoped to the request).
+
+Marks a notification-mode request (`responseRequired: false`) as seen. Idempotent
+— re-acking returns the original timestamp.
+
+**Response `200`:**
+```json
+{ "success": true, "status": "acknowledged", "acknowledgedAt": "2026-04-23T10:00:00.000Z" }
+```
+
+**Errors:**
+- `404` — request not found or not owned by the caller
+- `409` — code `NOT_APPLICABLE` when the request expects a reply (use `/close`)
+- `401` — missing/invalid auth
+
 ---
 
 ### Rate a response

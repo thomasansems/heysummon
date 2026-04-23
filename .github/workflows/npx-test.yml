@@ -48,23 +48,32 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Build consumer-sdk sibling for local resolution
+        working-directory: packages/consumer-sdk
+        run: |
+          # NPX test uses npm (not pnpm), so the workspace:^ reference in cli/package.json
+          # cannot be resolved from the public registry until both packages are published in
+          # lockstep. Build the sibling here and swap the dependency to a file: reference below.
+          npm install --no-audit --no-fund
+          npm run build
+
       - name: Resolve workspace dependencies for npm
         working-directory: cli
         run: |
-          # Convert workspace:^ references to actual versions for npm (which doesn't understand workspace protocol)
-          CONSUMER_SDK_VERSION=$(node -p "require('../packages/consumer-sdk/package.json').version")
+          # Rewrite workspace:^ to a file: reference pointing at the sibling package we just built.
+          # This matches what pnpm does via workspace linking and keeps the NPX flow hermetic.
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.dependencies['@heysummon/consumer-sdk'] = '^$CONSUMER_SDK_VERSION';
+            pkg.dependencies['@heysummon/consumer-sdk'] = 'file:../packages/consumer-sdk';
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
-          echo "Updated cli/package.json: @heysummon/consumer-sdk -> ^$CONSUMER_SDK_VERSION"
+          echo "Updated cli/package.json: @heysummon/consumer-sdk -> file:../packages/consumer-sdk"
 
       - name: Build CLI from source
         working-directory: cli
         run: |
-          npm install
+          npm install --no-audit --no-fund
           npm run build
 
       - name: Run init from source

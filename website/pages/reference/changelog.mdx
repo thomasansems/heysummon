@@ -2,6 +2,12 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.2.23 -- 2026-04-23
+
+### Security
+- **Cross-tenant message read closed.** `GET /api/v1/messages/:requestId` now verifies that the caller's API key created the help request before returning encrypted message blobs. Previously any valid API key could fetch the message history of any request whose id it knew. The endpoint returns the same generic `404 Request not found` for both unknown and not-yours ids so request id existence is not leaked across tenants (HEY-403)
+- **OpenClaw approve/deny URL forgery closed.** OpenClaw notification action URLs (`?action=approve|deny&requestId=...`) now require an HMAC-SHA256 `sig=` query parameter signed with the channel's webhook secret. The webhook handler verifies the signature in constant time before accepting the action. Previously the query-param fallback executed without verifying the secret, so anyone who learned a channel id and request id could approve or deny pending help requests for that expert. Existing channels keep working because the action URLs are generated server-side from the stored secret (HEY-403)
+
 ## v0.2.22 -- 2026-04-23
 
 ### Fixed

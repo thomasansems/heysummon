@@ -19,13 +19,24 @@ Keys are validated using timing-safe comparison (resistant to timing attacks).
 |-----------|-----------------|
 | Submit help request | Client key (`hs_live_*`) |
 | Poll request status | Client key — only the submitting key |
+| Poll request messages | Client key — only the submitting key |
 | Send consumer message | Client key — only the submitting key |
 | Poll pending events | Client or expert key |
 | Send expert response | Expert key (`hs_exp_*`) |
 | Close a request | Expert key — only assigned expert |
 | Key management | Dashboard session only |
 
-**IDOR protection** — Clients can only access their own requests. Experts can only respond to requests assigned to their profile.
+**IDOR protection** — Every consumer endpoint that loads a `HelpRequest` by id verifies that the request was created by the API key on the call. Mismatches return a generic `404 Request not found` so the platform never confirms or denies the existence of another tenant's request id. This applies to `GET /api/v1/help/:requestId`, `GET /api/v1/messages/:requestId`, and the message send / event ack routes. Experts can only respond to requests routed to their profile.
+
+## Webhook adapters
+
+Webhook callbacks (`/api/adapters/{telegram|slack|openclaw}/{channelId}/webhook`) receive untrusted input. Each adapter authenticates the sender:
+
+- **Slack** — full HMAC-SHA256 signature (`x-slack-request-timestamp` + `x-slack-signature`) on every request.
+- **Telegram** — `x-telegram-bot-api-secret-token` shared with Telegram via `setWebhook`. The secret is rotated whenever the public URL changes.
+- **OpenClaw** — `X-OpenClaw-Signature` HMAC over the raw body for POST callbacks. Approve / deny **action URLs** included in notifications carry an additional `sig=` query parameter — an HMAC of `action:requestId` signed with the same channel secret. Action URLs without a valid `sig` are rejected with `403`.
+
+The OpenClaw query-action signature scheme means that even if an attacker learns a channel id and a request id from a leaked log or screenshot, they cannot forge an approve/deny call without the per-channel webhook secret.
 
 ## Rate limiting
 

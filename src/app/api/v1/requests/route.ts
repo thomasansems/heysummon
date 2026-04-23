@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sweepExpiredNotifications } from "@/services/notifications/expire";
 
 export async function GET(request: NextRequest) {
+  // Sweep stale notification-mode requests before reading.
+  await sweepExpiredNotifications().catch((err) => {
+    console.error("[/api/v1/requests] notification sweep failed:", err);
+  });
+
   const statusFilter = request.nextUrl.searchParams.get("status") ?? undefined;
 
   // Support API key auth for expert polling

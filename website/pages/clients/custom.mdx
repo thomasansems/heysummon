@@ -1,0 +1,60 @@
+# Custom Client
+
+The **Custom** client option is a catch-all for any runtime HeySummon does not ship a dedicated skill for — n8n, MCP hosts, Paperclip-style control planes, homegrown agent runners, anything that can speak HTTP.
+
+There is no skill install, no npm package to pull (unless you choose to), and no per-runtime template. You get an API key, a base URL, and the generic HTTP recipe below.
+
+## When to use this
+
+Use the Custom channel if your runtime is **not** one of:
+
+- [Claude Code](/clients/claude-code)
+- [Codex CLI](/clients/codex)
+- [Gemini CLI](/clients/gemini)
+- [OpenClaw](/clients/openclaw)
+
+If you are wiring HeySummon into a workflow orchestrator like n8n, see [Integrations → Orchestrators](/integrations/orchestrators/n8n) first — those nodes are maintained and handle encryption for you.
+
+## Create a Custom client
+
+1. Open the HeySummon dashboard → **Clients** → **Create New Client**.
+2. Select the **Custom** tile (API-only — any runtime).
+3. Enter a free-text **Client label** (e.g. `n8n`, `MyPaperclipAgent`, `homegrown-cli`). The label appears in the clients table so you can tell custom integrations apart.
+4. Pick the expert, tune advanced settings, set summoning guidelines, and finish the wizard.
+5. The final step gives you a setup link valid for 24 hours that renders the recipe below.
+
+## Generic HTTP recipe
+
+The setup page shows a bash recipe like this (credentials pre-filled):
+
+```bash
+# HeySummon — generic HTTP recipe (works with any runtime)
+export HEYSUMMON_BASE_URL="https://your-instance.com"
+export HEYSUMMON_API_KEY="hs_cli_xxx"
+
+# Submit a help request. End-to-end encryption keys (signPublicKey / encryptPublicKey)
+# are required — the @heysummon/consumer-sdk handles key generation, encryption, and
+# polling for you. For raw HTTP, see the full payload shape in the API reference.
+curl -sS -X POST "$HEYSUMMON_BASE_URL/api/v1/help" \
+  -H "Content-Type: application/json" \
+  -d "{\"apiKey\":\"$HEYSUMMON_API_KEY\",\"question\":\"Ask your expert something\"}"
+```
+
+## TypeScript / JavaScript runtimes
+
+For any TS/JS runtime, install the SDK instead of hand-rolling HTTP:
+
+```bash
+npm install @heysummon/consumer-sdk
+```
+
+The SDK handles key generation, end-to-end encryption, request submission, and polling for the response. See the [API reference](/reference/api) for the full HTTP payload shape if you must call the API directly.
+
+## What doesn't ship with Custom
+
+- No skill scripts (`ask.sh`, `setup.sh`, `add-expert.sh`).
+- No runtime-specific templates.
+- No auto-discovery in `~/clawd/` or `.claude/`.
+- No IP-binding verification step — the first real `/api/v1/help` call binds your device IP.
+
+If you build a reusable adapter for your runtime (e.g. a community package), let us know — a good candidate for a dedicated client entry.

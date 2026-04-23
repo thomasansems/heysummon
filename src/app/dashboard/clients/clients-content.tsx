@@ -5,7 +5,8 @@ import { buildSetupCopyText } from "@/lib/setup-copy-text";
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Check, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Plus, Terminal } from "lucide-react";
+import type { ComponentType } from "react";
 import {
   Sheet,
   SheetContent,
@@ -67,6 +68,10 @@ const channelLabel = (channel: string | null, sub: string | null) => {
   if (channel === "openclaw") return { label: "OpenClaw · Telegram", color: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" };
   if (channel === "codex") return { label: "Codex CLI", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" };
   if (channel === "gemini") return { label: "Gemini CLI", color: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300" };
+  if (channel === "custom") {
+    const label = sub && sub.trim().length > 0 ? `Custom · ${sub}` : "Custom";
+    return { label, color: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300" };
+  }
   return null;
 };
 
@@ -77,29 +82,58 @@ function expertStatus(expert: ExpertProfile | null): { label: string; warning: s
   return { label: expert.name, warning: null };
 }
 
-type WizardChannel = "openclaw" | "claudecode" | "codex" | "gemini" | null;
+type WizardChannel = "openclaw" | "claudecode" | "codex" | "gemini" | "custom" | null;
 type WizardSubChannel = "telegram" | "whatsapp" | null;
 
-const CLIENT_CHANNELS = [
+const CUSTOM_LABEL_MAX = 64;
+// eslint-disable-next-line no-control-regex -- intentionally rejecting control chars in the label
+const CUSTOM_LABEL_DISALLOWED = /[\x00-\x1f\x7f<>]/;
+
+function validateCustomLabel(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "Client label is required.";
+  if (trimmed.length > CUSTOM_LABEL_MAX) return `Keep it under ${CUSTOM_LABEL_MAX} characters.`;
+  if (CUSTOM_LABEL_DISALLOWED.test(trimmed)) return "No control characters or angle brackets.";
+  return null;
+}
+
+type ClientChannelTile = {
+  id: WizardChannel;
+  label: string;
+  icon: string | null;
+  Icon?: ComponentType<{ className?: string }>;
+  description: string;
+  disabled: boolean;
+};
+
+const CLIENT_CHANNELS: ClientChannelTile[] = [
   {
-    id: "openclaw" as const,
+    id: "openclaw",
     label: "OpenClaw",
     icon: "/icons/openclaw.svg",
     description: "AI agent via Telegram or WhatsApp",
     disabled: false,
   },
   {
-    id: "claudecode" as const,
+    id: "claudecode",
     label: "Claude Code",
     icon: "/icons/claudecode.svg",
     description: "Anthropic — skill in editor",
     disabled: false,
   },
   {
-    id: "codex" as const,
+    id: "codex",
     label: "Codex CLI",
     icon: "/icons/codex.svg",
     description: "OpenAI — terminal agent",
+    disabled: false,
+  },
+  {
+    id: "custom",
+    label: "Custom",
+    icon: null,
+    Icon: Terminal,
+    description: "API-only — any runtime",
     disabled: false,
   },
   {
@@ -172,6 +206,7 @@ export default function ClientsContent() {
   const [wizardStep, setWizardStep] = useState<WizardStep>(0);
   const [wizardChannel, setWizardChannel] = useState<WizardChannel>(null);
   const [wizardSubChannel, setWizardSubChannel] = useState<WizardSubChannel>(null);
+  const [wizardCustomLabel, setWizardCustomLabel] = useState("");
   const [wizardName, setWizardName] = useState("");
   const [wizardExpertId, setWizardExpertId] = useState("");
   const [wizardCreating, setWizardCreating] = useState(false);
@@ -258,6 +293,7 @@ export default function ClientsContent() {
     setWizardStep(1);
     setWizardChannel(null);
     setWizardSubChannel(null);
+    setWizardCustomLabel("");
     setWizardName("");
     setWizardExpertId("");
     setWizardError(null);
@@ -278,6 +314,8 @@ export default function ClientsContent() {
     setWizardMeta(null);
   };
 
+  const customLabelError = wizardChannel === "custom" ? validateCustomLabel(wizardCustomLabel) : null;
+
   const wizardNext = () => {
     if (wizardStep === 1) {
       // Validate channel selected
@@ -287,6 +325,7 @@ export default function ClientsContent() {
     } else if (wizardStep === 2) {
       // Go to guidelines step
       if (!wizardExpertId) return;
+      if (wizardChannel === "custom" && customLabelError) return;
       setWizardStep(3);
     }
   };
@@ -303,6 +342,11 @@ export default function ClientsContent() {
     const ctxToUse = summonContextOverride ?? wizardSummonContext;
     const metaToUse = metaOverride ?? wizardMeta;
 
+    const subChannelPayload =
+      wizardChannel === "custom"
+        ? wizardCustomLabel.trim()
+        : wizardSubChannel ?? undefined;
+
     // Create the key (rate limit defaults to env var or 150)
     const keyRes = await fetch("/api/v1/keys", {
       method: "POST",
@@ -313,7 +357,7 @@ export default function ClientsContent() {
         scope: "full",
         rateLimitPerMinute: DEFAULT_RATE_LIMIT,
         clientChannel: wizardChannel,
-        clientSubChannel: wizardSubChannel ?? undefined,
+        clientSubChannel: subChannelPayload,
       }),
     });
 
@@ -430,7 +474,11 @@ export default function ClientsContent() {
                       <span className="absolute right-2 top-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Soon</span>
                     )}
                     <div className="mb-2 flex items-center gap-2">
-                      <img src={ch.icon} alt={ch.label} className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      {ch.Icon ? (
+                        <ch.Icon className="h-7 w-7 rounded p-1 text-foreground" />
+                      ) : (
+                        <img src={ch.icon ?? ""} alt={ch.label} className="h-7 w-7 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      )}
                       <span className="text-sm font-medium text-foreground">{ch.label}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">{ch.description}</p>
@@ -487,6 +535,28 @@ export default function ClientsContent() {
               </p>
 
               <div className="mb-4 space-y-3">
+                {/* Custom client label */}
+                {wizardChannel === "custom" && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Client label <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      value={wizardCustomLabel}
+                      onChange={(e) => setWizardCustomLabel(e.target.value)}
+                      placeholder="e.g. n8n, MyPaperclipAgent, homegrown-cli"
+                      maxLength={CUSTOM_LABEL_MAX}
+                      className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-ring"
+                    />
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Shown in the clients table so you can tell custom integrations apart. Max {CUSTOM_LABEL_MAX} characters.
+                    </p>
+                    {customLabelError && wizardCustomLabel.length > 0 && (
+                      <p className="mt-1 text-[11px] text-red-500">{customLabelError}</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Name */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">Client name</label>
@@ -565,7 +635,7 @@ export default function ClientsContent() {
                         />
                         <p className="mt-0.5 text-[11px] text-muted-foreground">How often the client checks for new messages (default: 3)</p>
                       </div>
-                      {wizardChannel !== "openclaw" && (
+                      {wizardChannel !== "openclaw" && wizardChannel !== "custom" && (
                         <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
@@ -594,7 +664,7 @@ export default function ClientsContent() {
                   </button>
                   <button
                     onClick={wizardNext}
-                    disabled={!wizardExpertId}
+                    disabled={!wizardExpertId || (wizardChannel === "custom" && !!customLabelError)}
                     className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
                   >
                     Next →
@@ -856,13 +926,14 @@ export default function ClientsContent() {
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {[
-            { label: "OpenClaw", icon: "/icons/openclaw.svg", active: true },
-            { label: "Claude Code", icon: "/icons/claudecode.svg", active: true },
-            { label: "Codex CLI", icon: "/icons/codex.svg", active: true },
-            { label: "Gemini CLI", icon: "/icons/gemini.svg", active: false },
-            { label: "OpenAI", icon: "/icons/openai.svg", active: false },
-            { label: "NanoClaw", icon: "/icons/docker.svg", active: false },
-            { label: "NemoClaw", icon: "/icons/nvidia.svg", active: false },
+            { label: "OpenClaw", icon: "/icons/openclaw.svg", active: true, Icon: null as ComponentType<{ className?: string }> | null },
+            { label: "Claude Code", icon: "/icons/claudecode.svg", active: true, Icon: null as ComponentType<{ className?: string }> | null },
+            { label: "Codex CLI", icon: "/icons/codex.svg", active: true, Icon: null as ComponentType<{ className?: string }> | null },
+            { label: "Custom", icon: null, active: true, Icon: Terminal as ComponentType<{ className?: string }> },
+            { label: "Gemini CLI", icon: "/icons/gemini.svg", active: false, Icon: null as ComponentType<{ className?: string }> | null },
+            { label: "OpenAI", icon: "/icons/openai.svg", active: false, Icon: null as ComponentType<{ className?: string }> | null },
+            { label: "NanoClaw", icon: "/icons/docker.svg", active: false, Icon: null as ComponentType<{ className?: string }> | null },
+            { label: "NemoClaw", icon: "/icons/nvidia.svg", active: false, Icon: null as ComponentType<{ className?: string }> | null },
           ].map((ch) => (
             <div
               key={ch.label}
@@ -870,7 +941,11 @@ export default function ClientsContent() {
                 ch.active ? "" : "opacity-50"
               }`}
             >
-              <img src={ch.icon} alt={ch.label} className="h-7 w-7 rounded" />
+              {ch.Icon ? (
+                <ch.Icon className="h-7 w-7 rounded p-1 text-foreground" />
+              ) : (
+                <img src={ch.icon ?? ""} alt={ch.label} className="h-7 w-7 rounded" />
+              )}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-foreground">{ch.label}</span>
                 {ch.active ? (

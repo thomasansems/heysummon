@@ -1,0 +1,12 @@
+{
+  "name": "heysummon",
+  "version": "0.1.0",
+  "description": "Human-in-the-loop summon tool for Claude Code. Ask a human expert for help when stuck, need approval, or lack context.",
+  "author": {
+    "name": "HeySummon"
+  },
+  "homepage": "https://github.com/heysummon/claude-code",
+  "repository": "https://github.com/heysummon/claude-code",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "skills": ["./skills/summon"]
+}

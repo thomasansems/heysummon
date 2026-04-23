@@ -1,0 +1,18 @@
+{
+  "name": "heysummon-claude-code",
+  "owner": {
+    "name": "HeySummon"
+  },
+  "metadata": {
+    "description": "Human-in-the-loop plugin for Claude Code. When an agent needs approval, is stuck, or lacks context, summon a human expert and wait for their reply before continuing."
+  },
+  "plugins": [
+    {
+      "name": "heysummon",
+      "source": "./",
+      "description": "Ask a human expert for help when stuck, need approval, or lack context.",
+      "category": "productivity",
+      "tags": ["human-in-the-loop", "hitl", "expert", "approval", "heysummon"]
+    }
+  ]
+}

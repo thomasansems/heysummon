@@ -218,7 +218,9 @@ model HelpRequest {
   contentFlags           String?   // JSON array of safety flags from guard
   guardVerified          Boolean   @default(false) // true if content was validated by guard sidecar
 
-  status                 String    @default("pending") // pending | active | closed | expired
+  status                 String    @default("pending") // pending | active | closed | expired | acknowledged
+  responseRequired       Boolean   @default(true)
+  acknowledgedAt         DateTime?
   deliveredAt            DateTime? // When expert watcher acknowledged receipt
   consumerDeliveredAt    DateTime? // When consumer watcher last acknowledged messages
   expiresAt              DateTime  // createdAt + 72 hours
@@ -262,6 +264,8 @@ model HelpRequest {
 
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
+
+  @@index([responseRequired, status, expiresAt])
 }
 
 model Message {

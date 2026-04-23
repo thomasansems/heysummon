@@ -18,6 +18,9 @@ import { checkContentSafety } from "@/lib/content-safety-middleware";
  *
  * Required: from ("consumer"|"expert"), + either plaintext or encrypted fields
  * Returns: { success: true, messageId }
+ *
+ * 409 with code "NO_RESPONSE_REQUIRED" if the request is notification-mode
+ * (responseRequired=false) — notifications do not accept messages.
  */
 export async function POST(
   request: NextRequest,
@@ -139,6 +142,16 @@ export async function POST(
       return NextResponse.json(
         { error: "Request not found" },
         { status: 404 }
+      );
+    }
+
+    if (helpRequest.responseRequired === false) {
+      return NextResponse.json(
+        {
+          error: "This request is notification-mode; messages are not accepted",
+          code: "NO_RESPONSE_REQUIRED",
+        },
+        { status: 409 }
       );
     }
 

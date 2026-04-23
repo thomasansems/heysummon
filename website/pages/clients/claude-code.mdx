@@ -63,6 +63,21 @@ hey summon Thomas I want to drop the users table and recreate it. Please approve
 
 Approval requests automatically show **Approve / Deny** buttons to the expert.
 
+### Notify mode (one-way, non-blocking)
+
+If the agent just wants to alert a human without waiting for a reply -- deploy
+finished, scheduled job ran, long build is done -- use `notify` instead:
+
+```
+notify Thomas deploy finished: build 42 is live on prod
+```
+
+The expert receives a notification with a single **Acknowledge** button
+(Telegram, Slack, OpenClaw, or the dashboard). No reply is expected and the
+agent keeps working. Notifications expire after 7 days if nobody acks. See
+[Consumer API Reference -> Notification Mode](/consumer/api-reference#notification-mode-notify)
+for the full contract.
+
 ## Skill Location
 
 When installed via the marketplace, the plugin lives in Claude Code's plugin cache. When installed manually, the skill files are at:

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendMessage, updateMessage, verifySlackSignature } from "@/lib/adapters/slack";
 import type { SlackConfig } from "@/lib/adapters/types";
+import { acknowledgeNotification } from "@/services/notifications/acknowledge";
 
 /** Max length for an expert reply via Slack */
 const MAX_REPLY_LENGTH = 10_000;
@@ -274,7 +275,15 @@ async function handleBlockActions(
   const actionId = action.action_id;
   const requestId = action.value;
 
-  if (!requestId || (actionId !== "approve_request" && actionId !== "deny_request")) {
+  if (!requestId) {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (actionId === "ack_notification") {
+    return handleAckNotification(requestId, interactive, channel, config);
+  }
+
+  if (actionId !== "approve_request" && actionId !== "deny_request") {
     return NextResponse.json({ ok: true });
   }
 
@@ -359,6 +368,49 @@ async function handleBlockActions(
       channelId,
       messageTs,
       `Request \`${helpRequest.refCode}\` -- *Decision:* ${label}`,
+    ).catch(() => {});
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+async function handleAckNotification(
+  requestId: string,
+  interactive: z.infer<typeof slackInteractiveSchema>,
+  channel: { id: string; profile: { userId: string } },
+  config: SlackConfig,
+): Promise<NextResponse> {
+  const result = await acknowledgeNotification({
+    requestId,
+    expertUserId: channel.profile.userId,
+    source: "slack",
+  });
+
+  const messageTs = interactive.message?.ts ?? interactive.container?.message_ts;
+  const channelId = interactive.channel?.id ?? interactive.container?.channel_id;
+
+  if (!result.ok) {
+    if (messageTs && channelId) {
+      const text =
+        result.code === "NOT_APPLICABLE"
+          ? "Notification not applicable -- this request expects a reply."
+          : "Notification not found.";
+      await updateMessage(config.botToken, channelId, messageTs, text).catch(
+        () => {},
+      );
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (messageTs && channelId) {
+    const label = result.alreadyAcknowledged
+      ? "Already acknowledged"
+      : "Acknowledged";
+    await updateMessage(
+      config.botToken,
+      channelId,
+      messageTs,
+      `Notification -- ${label}`,
     ).catch(() => {});
   }
 

@@ -11,6 +11,74 @@ Get HeySummon running and send your first help request in under 5 minutes.
 
 ---
 
+## The one-liner
+
+Once you have a HeySummon instance and a client API key, you can gate any shell command on a human decision:
+
+```bash
+heysummon "Proceed with production deploy?" && ./deploy.sh prod
+```
+
+The CLI blocks until a human expert approves, denies, or the request times out. Exit code signals the outcome:
+
+| Exit | Meaning |
+|---|---|
+| `0` | Approved (or expert replied) |
+| `1` | Denied |
+| `2` | Timeout (no decision before the window closes) |
+| `3` | Config / auth error (missing creds, bad flag, invalid key) |
+| `4` | Network / server error |
+
+### Install the CLI
+
+```bash
+npm install -g @heysummon/app
+```
+
+### Configure credentials
+
+The `ask` command reads two env vars:
+
+| Var | Required | Example |
+|---|---|---|
+| `HEYSUMMON_API_KEY` | yes | `hs_cli_…` — create one at `<base-url>/dashboard/keys` |
+| `HEYSUMMON_BASE_URL` | yes | `https://hs.your-domain.com` (or `http://localhost:3435` for a local NPX install) |
+
+Set them in your shell, or add them to `~/.heysummon/.env` so every session picks them up automatically:
+
+```bash
+HEYSUMMON_API_KEY=hs_cli_...
+HEYSUMMON_BASE_URL=https://hs.your-domain.com
+```
+
+### Examples
+
+```bash
+# Gate a destructive command on a human
+heysummon "About to DROP TABLE users — approve?" && psql -c "DROP TABLE users"
+
+# Gate a deploy
+heysummon "Ship build #1423 to production?" && ./deploy.sh prod
+
+# Capture the expert's reply and use it in a follow-up command
+reply=$(heysummon -q "What channel should I post to?") && slack-post "$reply" "done"
+```
+
+### Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--timeout <duration>` | `5m` | How long to wait. Accepts `30s`, `10m`, `1h`. |
+| `--channel <name>` | unset | Route to a specific named expert. |
+| `-q`, `--quiet` | off | Suppress progress output on stderr (stdout is unchanged). |
+| `--require approve` | on | Require explicit approve/deny (default behaviour, the flag is reserved). |
+
+<Callout type="warning">
+  **Trust boundary.** The expert's plaintext reply is printed on stdout. If a compromised expert account replies with shell metacharacters, `$(heysummon -q …)` will interpolate that string into your command. Quote or sanitise the reply before passing it to shells or interpreters.
+</Callout>
+
+---
+
 ## Option 1: NPX (fastest)
 
 ```bash

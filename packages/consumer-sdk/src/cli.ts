@@ -52,13 +52,22 @@ function hasFlag(args: string[], flag: string): boolean {
 async function cmdSubmitAndPoll(args: string[]): Promise<void> {
   const question = getArg(args, "--question");
   if (!question) {
-    process.stderr.write("Usage: cli submit-and-poll --question <q> [--expert <name>] [--context <json>] [--requires-approval]\n");
+    process.stderr.write("Usage: cli submit-and-poll --question <q> [--expert <name>] [--context <json>] [--requires-approval] [--ask-mode] [--quiet]\n");
     process.exit(1);
   }
 
   const expertArg = getArg(args, "--expert");
   const contextArg = getArg(args, "--context");
   const requiresApproval = hasFlag(args, "--requires-approval");
+  // ask-mode: remap exit codes (0 approved, 1 denied, 2 timeout, 3 config/auth,
+  // 4 network/server) and suppress APPROVED/DENIED stdout so the expert's text
+  // reply (if any) is the only thing that lands on stdout.
+  const askMode = hasFlag(args, "--ask-mode");
+  // quiet: suppress all stderr progress/status writes. Stdout is unchanged.
+  const quiet = hasFlag(args, "--quiet") || hasFlag(args, "-q");
+  const writeErr = (msg: string): void => {
+    if (!quiet) process.stderr.write(msg);
+  };
   const baseUrl = requireEnv("HEYSUMMON_BASE_URL");
   const timeout = parseInt(optEnv("HEYSUMMON_TIMEOUT", "900"), 10);
   const pollInterval = parseInt(optEnv("HEYSUMMON_POLL_INTERVAL", "3"), 10);
@@ -75,8 +84,8 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
       if (match) {
         apiKey = match.apiKey;
       } else {
-        process.stderr.write(`Expert '${expertArg}' not found.\n`);
-        process.exit(1);
+        writeErr(`Expert '${expertArg}' not found.\n`);
+        process.exit(askMode ? 3 : 1);
       }
     } else if (!apiKey) {
       const def = store.getDefault();
@@ -87,15 +96,15 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
   }
 
   if (!apiKey) {
-    process.stderr.write("No API key. Set HEYSUMMON_API_KEY or register an expert.\n");
-    process.exit(1);
+    writeErr("No API key. Set HEYSUMMON_API_KEY or register an expert.\n");
+    process.exit(askMode ? 3 : 1);
   }
 
   // Generate ephemeral keys (Claude Code style -- no persistence needed)
   const keys = generateEphemeralKeys();
   const client = new HeySummonClient({ baseUrl, apiKey });
 
-  process.stderr.write("HeySummon: Submitting request to human...\n");
+  writeErr("HeySummon: Submitting request to human...\n");
 
   // Parse context
   let messages: Array<{ role: string; content: string }> = [];
@@ -124,21 +133,32 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
 
       const ip = parsed.ip || "unknown";
       const hint = parsed.hint || "";
-      process.stderr.write(
+      writeErr(
         `IP address ${ip} is not authorized for this API key.\n` +
         `${hint ? hint + "\n" : ""}` +
         `Your expert needs to allow this IP address in the HeySummon dashboard under Clients > IP Security.\n` +
         `Once allowed, re-run this command.\n`
       );
+      if (askMode) {
+        process.exit(3);
+      }
       process.stdout.write(`IP_NOT_ALLOWED: IP address ${ip} is not authorized. Ask your expert to allow it in their HeySummon dashboard.\n`);
       return;
+    }
+    if (askMode) {
+      if (err instanceof HeySummonHttpError && (err.status === 401 || err.status === 404)) {
+        writeErr(`Auth error: ${err.message}\n`);
+        process.exit(3);
+      }
+      writeErr(`Network/server error: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.exit(4);
     }
     throw err;
   }
 
   if (!result.requestId) {
-    process.stderr.write(`Failed to submit request: ${JSON.stringify(result)}\n`);
-    process.exit(1);
+    writeErr(`Failed to submit request: ${JSON.stringify(result)}\n`);
+    process.exit(askMode ? 4 : 1);
   }
 
   const ref = result.refCode || result.requestId;
@@ -146,17 +166,21 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
   // When expert is unavailable, the platform rejects the request
   if (result.rejected) {
     const msg = result.message || "Expert is not available right now.";
-    process.stderr.write(`${msg}\n`);
+    writeErr(`${msg}\n`);
+    if (askMode) {
+      // Rejection is an expert-unavailable server condition → treat as network/server error
+      process.exit(4);
+    }
     process.stdout.write(
       `EXPERT_UNAVAILABLE: ${msg}${result.nextAvailableAt ? ` Next available: ${result.nextAvailableAt}` : ""}\n`
     );
     return;
   }
 
-  process.stderr.write(
+  writeErr(
     `Request submitted [${ref}] -- waiting for human response...\n`
   );
-  process.stderr.write(
+  writeErr(
     `   (timeout: ${timeout}s, polling every ${pollInterval}s)\n`
   );
 
@@ -175,9 +199,16 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
         (status.status === "responded" || status.status === "closed") &&
         status.approvalDecision
       ) {
-        process.stderr.write(`\nHuman responded [${ref}] -- decision: ${status.approvalDecision}\n`);
-        process.stdout.write(`${status.approvalDecision.toUpperCase()}\n`);
+        writeErr(`\nHuman responded [${ref}] -- decision: ${status.approvalDecision}\n`);
         await client.ackEvent(result.requestId).catch(() => {});
+        if (askMode) {
+          // Also forward the expert's free-text reply on stdout, if any
+          if (status.response) {
+            process.stdout.write(status.response + "\n");
+          }
+          process.exit(status.approvalDecision === "denied" ? 1 : 0);
+        }
+        process.stdout.write(`${status.approvalDecision.toUpperCase()}\n`);
         return;
       }
 
@@ -185,8 +216,9 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
         (status.status === "responded" || status.status === "closed") &&
         status.response
       ) {
-        process.stderr.write(`\nHuman responded [${ref}]\n`);
+        writeErr(`\nHuman responded [${ref}]\n`);
         process.stdout.write(status.response + "\n");
+        if (askMode) process.exit(0);
         return;
       }
 
@@ -195,33 +227,46 @@ async function cmdSubmitAndPoll(args: string[]): Promise<void> {
       const expertMsg = msgs.filter((m: DecryptedMessage) => m.from === "expert").pop();
       if (expertMsg) {
         if (expertMsg.plaintext) {
-          process.stderr.write(`\nHuman responded [${ref}]\n`);
+          writeErr(`\nHuman responded [${ref}]\n`);
           process.stdout.write(expertMsg.plaintext + "\n");
           await client.ackEvent(result.requestId).catch(() => {});
+          if (askMode) process.exit(0);
           return;
         }
         if (expertMsg.ciphertext) {
-          process.stderr.write(`\nHuman responded [${ref}]\n`);
-          process.stdout.write("(encrypted response received)\n");
+          writeErr(`\nHuman responded [${ref}]\n`);
           await client.ackEvent(result.requestId).catch(() => {});
+          if (askMode) {
+            // Stdout is reserved for the expert's plaintext reply
+            process.exit(0);
+          }
+          process.stdout.write("(encrypted response received)\n");
           return;
         }
       }
-    } catch {
-      // polling error, continue
+    } catch (err) {
+      // polling error, continue silently (surfaced as timeout if it persists)
+      if (askMode && err instanceof HeySummonHttpError && (err.status === 401 || err.status === 403)) {
+        writeErr(`Auth error during poll: ${err.message}\n`);
+        process.exit(3);
+      }
     }
 
     // Progress indicator
     if (elapsed % 30 === 0) {
-      process.stderr.write(`   Still waiting... (${elapsed}s elapsed)\n`);
+      writeErr(`   Still waiting... (${elapsed}s elapsed)\n`);
     }
   }
 
   // Report timeout to server (notifies expert, records timestamp)
   await client.reportTimeout(result.requestId).catch(() => {});
 
-  process.stderr.write(`\nTimeout after ${timeout}s -- no response received.\n`);
-  process.stderr.write(`   Request ref: ${ref}\n`);
+  writeErr(`\nTimeout after ${timeout}s -- no response received.\n`);
+  writeErr(`   Request ref: ${ref}\n`);
+
+  if (askMode) {
+    process.exit(2);
+  }
 
   const fallbackInstructions: Record<string, string> = {
     proceed_cautiously:

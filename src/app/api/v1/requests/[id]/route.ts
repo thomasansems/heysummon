@@ -26,8 +26,9 @@ export async function GET(
     return NextResponse.json({ error: "Request not found" }, { status: 404 });
   }
 
-  // Auto-mark as reviewing when expert opens it
-  if (helpRequest.status === "pending") {
+  // Auto-mark as reviewing when expert opens a help request.
+  // Notification-mode requests stay `pending` until explicitly acknowledged.
+  if (helpRequest.status === "pending" && helpRequest.responseRequired) {
     await prisma.helpRequest.update({
       where: { id },
       data: { status: "reviewing" },
@@ -69,6 +70,8 @@ export async function GET(
       questionPreview: helpRequest.questionPreview || null,
       requiresApproval: helpRequest.requiresApproval,
       approvalDecision: helpRequest.approvalDecision || null,
+      responseRequired: helpRequest.responseRequired,
+      acknowledgedAt: helpRequest.acknowledgedAt,
       response: helpRequest.response,
       createdAt: helpRequest.createdAt,
       updatedAt: helpRequest.updatedAt,

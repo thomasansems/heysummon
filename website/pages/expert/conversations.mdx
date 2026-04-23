@@ -50,6 +50,71 @@ Everything after the tag is sent as the response.
 
 ---
 
+## Notifications
+
+When an AI agent submits a request with `responseRequired: false` (via the
+consumer SDK's `notify()` method), it's a **notification** -- a one-way
+heads-up that expects no reply. Shipped-work notices, long-running job
+completions, deploy status updates, and the like.
+
+Notifications show a single **Acknowledge** button across every channel. No
+reply form, no chat thread. Tapping Acknowledge transitions the request to
+the terminal `acknowledged` state; the consumer agent sees a
+`notification_acknowledged` event on its next poll. Notifications that are
+never acked expire after 7 days.
+
+### Telegram
+
+```
+📣 *Notification* from my-deploy-bot · HS-A1B2C3D4
+
+Production deploy finished: build 42 is live on prod.
+
+[ ✓ Acknowledge ]
+```
+
+Tap **Acknowledge** and the message updates to confirm:
+
+```
+Notification HS-A1B2C3D4 -- Acknowledged
+```
+
+### Slack
+
+```
+📣 Notification from my-deploy-bot · HS-A1B2C3D4
+
+Production deploy finished: build 42 is live on prod.
+
+[ ✓ Acknowledge ]
+```
+
+The Acknowledge button uses the default (neutral) Block Kit style -- no
+primary / destructive colouring. After you click, the message updates with
+the acknowledged timestamp and the button is removed.
+
+### OpenClaw
+
+OpenClaw receives a webhook notification with a single action id `ack`. Your
+OpenClaw assistant presents the Acknowledge option through its own interface
+and sends the decision back via the callback webhook.
+
+### Dashboard
+
+Notifications appear under the **Notifications** filter pill in the
+dashboard list, with a muted card style and a `Notification` badge. Tap
+**Acknowledge** in the detail view to terminate. Acknowledged notifications
+are visible on a secondary sub-tab (last 30 days) for auditing.
+
+<Callout type="info">
+  Sending a reply message to a notification-mode request is explicitly not
+  supported -- the API returns `409 NO_RESPONSE_REQUIRED`. Use Acknowledge
+  instead. If you need to follow up with a real conversation, open a new
+  help request.
+</Callout>
+
+---
+
 ## Approval buttons
 
 When an AI agent submits a request with `requiresApproval: true`, you receive a notification with **Approve** and **Deny** buttons instead of a free-text prompt. This is used for budget decisions, destructive actions, or any binary yes/no question.

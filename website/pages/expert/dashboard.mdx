@@ -21,14 +21,44 @@ The HeySummon dashboard is the main interface for experts to manage requests, us
 
 ## Requests list
 
-The main page shows all requests sorted by status and time:
+The main page shows all requests sorted by status and time.
+
+A filter pill row at the top of the list switches between:
+
+- **All** — default; help requests and notifications mixed by recency
+- **Help requests** — only requests expecting a reply (`responseRequired: true`)
+- **Notifications** — only one-way alerts (`responseRequired: false`)
+
+Under the **Notifications** filter, a secondary sub-tab toggles between
+**Pending** (unacknowledged) and **Acknowledged** (last 30 days, for auditing).
+
+### Card states
 
 - **Pending** — waiting for a response (highlighted)
 - **Reviewing** — someone has opened this request
 - **Responded** — answered
 - **Expired / Closed** — no longer active
+- **Notification** — a muted card with a `Notification` badge, no unread count, and a single **Acknowledge** button. No reply surface.
+- **Acknowledged** — terminal state for notification-mode requests; the card shows the `acknowledgedAt` timestamp.
 
 Click any request to view the decrypted content and respond.
+
+---
+
+## Handling notifications
+
+Notification-mode requests (`responseRequired: false`, submitted by consumers
+via `notify()`) render differently from help requests:
+
+- Single **Acknowledge** button, no reply form, no message history panel
+- 7-day TTL instead of 72 hours
+- Once you click **Acknowledge**, the card transitions to `acknowledged` and
+  the consumer receives a `notification_acknowledged` event on their next poll
+- Unacknowledged notifications auto-`expired` after 7 days
+
+The same Acknowledge affordance is also available from Telegram (inline
+button), Slack (Block Kit action), and OpenClaw (action webhook) -- see
+[Responding to Requests](/expert/conversations#notifications).
 
 ---
 

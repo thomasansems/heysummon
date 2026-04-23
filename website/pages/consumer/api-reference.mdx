@@ -75,7 +75,7 @@ Keys with the `hs_exp_*` prefix are expert keys and cannot be used for consumer 
 
 ## Request Lifecycle
 
-Requests move through these states:
+Help requests (`responseRequired: true`, the default) move through these states:
 
 ```
 pending --> active --> responded --> closed
@@ -89,13 +89,22 @@ pending --> active --> responded --> closed
        approvalDecision: "approved" | "denied"
 ```
 
+Notification-mode requests (`responseRequired: false`, see [Notification mode](#notification-mode-notify))
+use a simpler lifecycle:
+
+```
+pending --> acknowledged    (expert clicked Acknowledge)
+pending --> expired         (7-day TTL)
+```
+
 | State | Meaning |
 |-------|---------|
 | `pending` | Submitted, waiting for expert |
 | `active` | Expert has completed key exchange, composing a response |
 | `responded` | Expert sent a response |
 | `closed` | Consumer or expert closed the request |
-| `expired` | No response within 72 hours (auto-expire) |
+| `acknowledged` | Expert acknowledged a notification (terminal, notification-mode only) |
+| `expired` | Help: no response in 72h. Notifications: no ack in 7 days. |
 | `cancelled` | Explicitly cancelled |
 
 ---
@@ -184,6 +193,7 @@ Submit a help request to a human expert. Returns immediately with a request ID a
 | `messages` | array | No | Conversation history as `[{ role, content }]` array |
 | `messageCount` | number | No | Limit the number of messages from `messages` to include |
 | `requiresApproval` | boolean | No | When `true`, expert sees Approve/Deny buttons instead of free-text reply |
+| `responseRequired` | boolean | No | When `false`, creates a notification-mode request (expert is alerted, no reply expected). Defaults to `true`. See [Notification mode](#notification-mode-notify). |
 | `expertName` | string | No | Route to a specific expert by name |
 
 *Either `signPublicKey` + `encryptPublicKey` (v4) or `publicKey` (v3 legacy) is required.
@@ -231,6 +241,25 @@ npx @heysummon/consumer-sdk submit-and-poll \
 | `expiresAt` | string | ISO 8601 expiration timestamp (default 72 hours) |
 | `serverPublicKey` | string | Server's public key for v3 legacy encryption (only present when `publicKey` was sent) |
 | `phoneFirstAttempted` | boolean | Whether a voice call was attempted to reach the expert |
+
+##### Response (notification mode — `responseRequired: false`)
+
+```json
+{
+  "requestId": "cm...",
+  "refCode": "HS-A1B2C3D4",
+  "status": "pending",
+  "responseRequired": false,
+  "expiresAt": "2026-04-13T12:00:00.000Z"
+}
+```
+
+Notification-mode requests skip phone-first / Twilio escalation and use a
+7-day TTL. `serverPublicKey` and `phoneFirstAttempted` are omitted. Terminates
+when the expert clicks Acknowledge (surfaces as `notification_acknowledged` on
+the consumer event poll) or when the 7-day TTL elapses (surfaces as
+`notification_expired`). Sending a message to a notification-mode request
+returns `409 NO_RESPONSE_REQUIRED`.
 
 ##### Response (expert unavailable)
 
@@ -404,6 +433,11 @@ npx @heysummon/consumer-sdk check-status --ref HS-A1B2C3D4
 
 Close a request. Either the consumer or the expert can close it. Idempotent -- closing an already-closed request returns success.
 
+For notification-mode requests (`responseRequired: false`), close returns `409`
+with code `NOT_APPLICABLE` — use [`/api/v1/acknowledge/:requestId`](#acknowledge-a-notification)
+instead. Already-`acknowledged` or `expired` notifications remain idempotent
+(`200`).
+
 ##### Request
 
 | Header | Required | Description |
@@ -452,6 +486,10 @@ curl -s -X POST http://localhost:3445/api/v1/close/REQUEST_ID \
 `POST /api/v1/message/:requestId`
 
 Send a follow-up message in an ongoing conversation. Supports both plaintext and E2E encrypted messages.
+
+Not allowed on notification-mode requests (`responseRequired: false`) — returns
+`409` with code `NO_RESPONSE_REQUIRED`. Notifications are one-way; use
+`/acknowledge` to finalize them.
 
 ##### Request
 
@@ -646,6 +684,8 @@ Consumer event types:
 |------------|-------------|
 | `new_message` | Expert sent a new message or response |
 | `cancelled` | Request was cancelled |
+| `notification_acknowledged` | Expert acknowledged a notification-mode request |
+| `notification_expired` | Notification-mode request passed its 7-day TTL without ack |
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -656,7 +696,9 @@ Consumer event types:
 | `messageCount` | number | Total message count in the conversation |
 | `respondedAt` | string \| null | When the expert first responded |
 | `latestMessageAt` | string \| null | Timestamp of the most recent message |
-| `cancelledAt` | string | When the request was cancelled (for `cancelled` events) |
+| `cancelledAt` | string | When the request was cancelled (`cancelled` events) |
+| `acknowledgedAt` | string | When the expert acknowledged (`notification_acknowledged` events) |
+| `expiredAt` | string | When the notification expired (`notification_expired` events) |
 
 ---
 
@@ -899,6 +941,136 @@ The `approvalDecision` field appears on the status response once the expert acts
 ```
 
 Decision values: `"approved"` or `"denied"`. Each request can only receive one decision -- subsequent button presses are ignored.
+
+---
+
+## Notification Mode (`notify`)
+
+Submit a request with `responseRequired: false` to alert a human expert without
+expecting a reply. Useful for one-way notices: deploys, scheduled jobs, status
+updates, anything where the agent isn't blocked waiting for a human decision.
+
+The notification has a **7-day TTL** (vs 72h for help requests), skips
+phone-first / Twilio escalation, and renders as a single "Acknowledge" button
+in the dashboard and across all notification channels (Telegram inline button,
+Slack Block Kit action, OpenClaw action).
+
+### `notify()` — SDK sugar
+
+The consumer SDK ships a `notify()` method that wraps `submitRequest()` with
+`responseRequired: false` and returns a narrower result type.
+
+```ts
+import { HeySummonClient } from "@heysummon/consumer-sdk"
+
+const client = new HeySummonClient({
+  baseUrl: "http://localhost:3445",
+  apiKey: process.env.HEYSUMMON_API_KEY!,
+})
+
+const result = await client.notify({
+  question: "Production deploy finished: build 42 is live.",
+  expertName: "alice",
+})
+
+// result: {
+//   requestId: "cm...",
+//   refCode: "HS-A1B2C3D4",
+//   status: "pending",
+//   expiresAt: "2026-04-30T10:00:00.000Z",
+//   mode: "notification",
+// }
+```
+
+`notify()` returns as soon as the notification is queued — it does **not**
+poll for the acknowledgement. If you want to know when the expert ack'd,
+subscribe via `getPendingEvents()` and watch for a
+`notification_acknowledged` event with a matching `requestId`.
+
+### Submit via HTTP
+
+<Tabs items={["curl", "SDK CLI"]}>
+<Tab>
+```bash
+curl -s -X POST http://localhost:3445/api/v1/help \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: hs_cli_abc123..." \
+  -d '{
+    "apiKey": "hs_cli_abc123...",
+    "question": "Production deploy finished: build 42 is live.",
+    "responseRequired": false
+  }'
+```
+</Tab>
+<Tab>
+```ts
+import { HeySummonClient } from "@heysummon/consumer-sdk"
+
+await new HeySummonClient({ baseUrl, apiKey }).notify({
+  question: "Production deploy finished: build 42 is live.",
+})
+```
+</Tab>
+</Tabs>
+
+### Acknowledge a Notification
+
+`POST /api/v1/acknowledge/:requestId`
+
+Marks a notification-mode request as seen. Idempotent — re-acking returns the
+original `acknowledgedAt` timestamp.
+
+##### Authentication
+
+| Auth | Accepted |
+|------|----------|
+| Dashboard session cookie | ✅ (used by the dashboard ack button) |
+| `x-api-key` | ✅ expert key (`hs_exp_*`) OR consumer key scoped to the request |
+
+##### Response
+
+```json
+{
+  "success": true,
+  "status": "acknowledged",
+  "acknowledgedAt": "2026-04-23T10:00:00.000Z"
+}
+```
+
+##### Errors
+
+| Code | Meaning |
+|------|---------|
+| `401` | Missing / invalid auth |
+| `404` | Request not found or not owned by the caller |
+| `409` | `NOT_APPLICABLE` — request expects a reply (use `/close` instead) |
+
+### Lifecycle
+
+```
+pending → acknowledged     (expert clicked Acknowledge)
+pending → expired          (7-day TTL elapsed)
+```
+
+### Distinguishing notifications on the event poll
+
+Notifications surface on `GET /api/v1/events/pending` with three dedicated
+types so consumers never confuse them with help requests:
+
+| Event | When | Who receives it |
+|-------|------|-----------------|
+| `new_notification` | Notification created | Expert |
+| `notification_acknowledged` | Expert ack'd | Consumer |
+| `notification_expired` | 7-day TTL passed | Consumer |
+
+### When to use `notify()` vs `help()`
+
+| Use `notify()` when | Use `help()` when |
+|---------------------|-------------------|
+| Human doesn't need to act | Agent is stuck |
+| Shipped-work notices, status heads-ups | Needs approval before continuing |
+| Low-urgency signals | Needs human judgment |
+| Agent continues regardless | Agent blocks on the response |
 
 ---
 

@@ -87,6 +87,38 @@ export async function sendMessage(token: string, chatId: string, text: string): 
   }
 }
 
+const TELEGRAM_MAX_MESSAGE_LENGTH = 4096;
+// Leave headroom so the splitter can break on a newline without overshooting.
+const TELEGRAM_CHUNK_LIMIT = 3900;
+
+function splitForTelegram(text: string, limit = TELEGRAM_CHUNK_LIMIT): string[] {
+  if (text.length <= limit) return [text];
+  const chunks: string[] = [];
+  let remaining = text;
+  while (remaining.length > limit) {
+    let cut = remaining.lastIndexOf("\n", limit);
+    if (cut < limit / 2) cut = remaining.lastIndexOf(" ", limit);
+    if (cut < limit / 2) cut = limit;
+    chunks.push(remaining.slice(0, cut));
+    remaining = remaining.slice(cut).replace(/^\s+/, "");
+  }
+  if (remaining.length > 0) chunks.push(remaining);
+  return chunks;
+}
+
+/**
+ * Send a possibly-long message, splitting into multiple Telegram messages
+ * if it exceeds the 4096 char per-message limit.
+ */
+export async function sendLongMessage(token: string, chatId: string, text: string): Promise<void> {
+  const parts = splitForTelegram(text);
+  for (const part of parts) {
+    await sendMessage(token, chatId, part);
+  }
+}
+
+export { TELEGRAM_MAX_MESSAGE_LENGTH, TELEGRAM_CHUNK_LIMIT };
+
 /** Send a photo via Telegram bot API */
 export async function sendPhoto(
   token: string,

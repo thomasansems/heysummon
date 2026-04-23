@@ -7,6 +7,7 @@ import { decryptMessage } from "@/lib/crypto";
 import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import { sendMessage, escapeTelegramMarkdown } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
+import { sweepExpiredNotifications } from "@/services/notifications/expire";
 
 const DEBUG = process.env.DEBUG === "true";
 
@@ -118,6 +119,11 @@ function isUnavailable(
 
 /** Expert: return undelivered pending requests */
 async function handleExpertPending(expert: { id: string; userId: string }) {
+  // Sweep stale notifications before reading. Cheap on the composite index.
+  await sweepExpiredNotifications().catch((err) => {
+    console.error("[events/pending] notification sweep failed:", err);
+  });
+
   // Check availability window
   const profile = await prisma.userProfile.findUnique({
     where: { id: expert.id },
@@ -139,6 +145,8 @@ async function handleExpertPending(expert: { id: string; userId: string }) {
       deliveredAt: null,
       status: { in: ["pending", "active"] },
       expiresAt: { gt: new Date() },
+      // Notification-mode rows are emitted separately as `new_notification`.
+      responseRequired: true,
     },
     select: {
       id: true,
@@ -193,20 +201,64 @@ async function handleExpertPending(expert: { id: string; userId: string }) {
     console.error("[events/pending] Deferred notification failed:", err);
   });
 
+  // Notification-mode rows are surfaced separately as `new_notification`.
+  const notifications = await prisma.helpRequest.findMany({
+    where: {
+      expertId: expert.userId,
+      apiKey: { expertId: expert.id },
+      responseRequired: false,
+      status: "pending",
+      expiresAt: { gt: new Date() },
+    },
+    select: {
+      id: true,
+      refCode: true,
+      question: true,
+      questionPreview: true,
+      serverPrivateKey: true,
+      createdAt: true,
+      expiresAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+
+  const notificationEvents = notifications.map((r) => {
+    let questionPlaintext: string | null = r.questionPreview || null;
+    if (!questionPlaintext && r.question && r.serverPrivateKey) {
+      try {
+        questionPlaintext = decryptMessage(r.question, r.serverPrivateKey);
+      } catch {
+        // Decryption failed — leave null
+      }
+    }
+
+    return {
+      type: "new_notification" as const,
+      requestId: r.id,
+      refCode: r.refCode,
+      question: questionPlaintext,
+      messageCount: 0,
+      createdAt: r.createdAt.toISOString(),
+      expiresAt: r.expiresAt.toISOString(),
+    };
+  });
+
+  const allEvents = [...mapped, ...notificationEvents];
+
   if (DEBUG) {
     console.log("[GET /api/v1/events/pending] Expert poll:", {
       expertId: expert.id,
-      eventCount: mapped.length,
-      events: mapped.map((e) => ({
+      eventCount: allEvents.length,
+      events: allEvents.map((e) => ({
         requestId: e.requestId,
         refCode: e.refCode,
-        requiresApproval: e.requiresApproval,
-        question: e.question || null,
+        type: e.type,
       })),
     });
   }
 
-  return NextResponse.json({ events: mapped });
+  return NextResponse.json({ events: allEvents });
 }
 
 /** Send Telegram notifications for requests that were deferred during expert unavailability */
@@ -363,7 +415,65 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
       cancelledAt: r.closedAt!.toISOString(),
     }));
 
-  const allEvents = [...mapped, ...cancelledMapped];
+  // Notification-mode events for the consumer: ack + expired.
+  // Status filter is intentionally omitted — `acknowledgedAt` is only ever set
+  // on rows the ack service has flipped to `acknowledged`, and `expired` rows
+  // are picked up via the `status: "expired"` branch.
+  const notificationRequests = await prisma.helpRequest.findMany({
+    where: {
+      apiKeyId: clientKey.id,
+      responseRequired: false,
+      OR: [
+        { acknowledgedAt: { not: null } },
+        { status: "expired" },
+      ],
+    },
+    select: {
+      id: true,
+      refCode: true,
+      status: true,
+      acknowledgedAt: true,
+      expiresAt: true,
+      consumerDeliveredAt: true,
+    },
+    orderBy: [{ acknowledgedAt: "desc" }, { expiresAt: "desc" }],
+    take: 50,
+  });
+
+  const notificationEvents = notificationRequests.flatMap((r) => {
+    const events: Array<
+      | { type: "notification_acknowledged"; requestId: string; refCode: string | null; acknowledgedAt: string }
+      | { type: "notification_expired"; requestId: string; refCode: string | null; expiredAt: string }
+    > = [];
+
+    if (r.acknowledgedAt) {
+      const newSinceAck =
+        !r.consumerDeliveredAt || r.acknowledgedAt > r.consumerDeliveredAt;
+      if (newSinceAck) {
+        events.push({
+          type: "notification_acknowledged",
+          requestId: r.id,
+          refCode: r.refCode,
+          acknowledgedAt: r.acknowledgedAt.toISOString(),
+        });
+      }
+    } else if (r.status === "expired") {
+      const newSinceAck =
+        !r.consumerDeliveredAt || r.expiresAt > r.consumerDeliveredAt;
+      if (newSinceAck) {
+        events.push({
+          type: "notification_expired",
+          requestId: r.id,
+          refCode: r.refCode,
+          expiredAt: r.expiresAt.toISOString(),
+        });
+      }
+    }
+
+    return events;
+  });
+
+  const allEvents = [...mapped, ...cancelledMapped, ...notificationEvents];
 
   if (DEBUG) {
     console.log("[GET /api/v1/events/pending] Consumer poll:", {

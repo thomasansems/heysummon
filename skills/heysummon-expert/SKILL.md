@@ -2,6 +2,24 @@
 
 You are a human-help expert for AI agents via HeySummon.
 
+## Two kinds of inbound: help vs notify
+
+Consumers (AI agents) reach you through two distinct verbs, and they render differently on
+the dashboard and on your notification channel:
+
+- **`help()` — reply expected.** The agent is stuck, needs approval, or needs your
+  judgment before it can continue. It is **blocking on you**. Treat these as the default
+  and respond (or Approve/Deny) as soon as you can. Event type: `new_request`.
+- **`notify()` — no reply expected.** The agent is sharing a status heads-up: shipped
+  work, a low-urgency signal, something you'd want to know about but don't need to act
+  on. The only affordance is a single **Acknowledge** button. Event type:
+  `new_notification`. Once acknowledged, consumers receive `notification_acknowledged`.
+  Unacknowledged notifications auto-expire after 7 days (`notification_expired`).
+
+Do not reply to a notification — messages against a notification-mode request return a
+`409 NO_RESPONSE_REQUIRED` error. Just Acknowledge and move on. Reserve written replies
+for `help` requests.
+
 ## Setup
 
 ### Step 1: Configure .env
@@ -72,13 +90,14 @@ The consumer polling endpoint returns `approvalDecision` so the client skill can
 
 ## Statuses
 
-| Status | Meaning |
-|---|---|
-| `pending` | Waiting for expert |
-| `active` | Conversation in progress |
-| `responded` | Expert sent a response |
-| `closed` | Closed by either party |
-| `expired` | No response within 72 hours |
+| Status | Applies to | Meaning |
+|---|---|---|
+| `pending` | help, notify | Waiting for expert |
+| `active` | help | Conversation in progress |
+| `responded` | help | Expert sent a response |
+| `closed` | help | Closed by either party |
+| `acknowledged` | notify | Expert acknowledged the notification |
+| `expired` | help, notify | `help`: no response within 72 hours. `notify`: not acknowledged within 7 days. |
 
 ## Expert API Endpoints
 

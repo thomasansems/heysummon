@@ -2,8 +2,25 @@
 
 import { copyToClipboard } from "@/lib/clipboard";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
-import { X, ArrowDownLeft, ArrowUpRight, Phone, Clock } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { X, ArrowDownLeft, ArrowUpRight, Phone, Clock, CheckCircle2 } from "lucide-react";
+import { NotificationBadge } from "@/components/dashboard/notification-badge";
+
+const ACK_AUDIT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+type PrimaryTab = "all" | "help" | "notifications";
+type NotificationSubTab = "pending" | "acknowledged";
+
+const primaryTabs: { value: PrimaryTab; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "help", label: "Help requests" },
+  { value: "notifications", label: "Notifications" },
+];
+
+const notificationSubTabs: { value: NotificationSubTab; label: string }[] = [
+  { value: "pending", label: "Pending" },
+  { value: "acknowledged", label: "Acknowledged" },
+];
 
 function CopyableRefCode({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
@@ -43,6 +60,9 @@ interface HelpRequest {
   phoneCallStatus: string | null;
   phoneCallAt: string | null;
   clientTimedOutAt: string | null;
+  responseRequired: boolean;
+  acknowledgedAt: string | null;
+  expiresAt: string;
   apiKey: { name: string | null; expert: { name: string } | null };
 }
 
@@ -180,11 +200,15 @@ interface MissedRequest {
 }
 
 export default function RequestsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [missedRequests, setMissedRequests] = useState<MissedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [missedLoading, setMissedLoading] = useState(false);
+  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>("all");
+  const [notificationSubTab, setNotificationSubTab] =
+    useState<NotificationSubTab>("pending");
   const [filter, setFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string | null>(searchParams.get("client"));
   const [expertFilter, setExpertFilter] = useState<string | null>(null);
@@ -249,7 +273,21 @@ export default function RequestsContent() {
   }, [requests]);
 
   const filtered = requests.filter((r) => {
-    if (filter !== "all" && r.status !== filter) return false;
+    if (primaryTab === "help") {
+      if (!r.responseRequired) return false;
+    } else if (primaryTab === "notifications") {
+      if (r.responseRequired) return false;
+      if (notificationSubTab === "pending") {
+        if (r.acknowledgedAt) return false;
+        if (r.status === "expired") return false;
+      } else {
+        if (!r.acknowledgedAt) return false;
+        const ackMs = new Date(r.acknowledgedAt).getTime();
+        if (Date.now() - ackMs > ACK_AUDIT_WINDOW_MS) return false;
+      }
+    }
+    // Existing status chips apply to "all" and "help" only.
+    if (primaryTab !== "notifications" && filter !== "all" && r.status !== filter) return false;
     if (clientFilter && (r.apiKey.name || "Unnamed") !== clientFilter && r.apiKey.name !== clientFilter) return false;
     if (expertFilter && r.apiKey.expert?.name !== expertFilter) return false;
     if (timeFilter !== "all") {
@@ -268,7 +306,48 @@ export default function RequestsContent() {
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-foreground">Requests</h1>
 
+      {/* Primary tab: All · Help requests · Notifications */}
+      <div className="mb-3 flex gap-2">
+        {primaryTabs.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setPrimaryTab(tab.value)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              primaryTab === tab.value
+                ? "bg-orange-600 text-white"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {primaryTab === "notifications" && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {notificationSubTabs.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setNotificationSubTab(opt.value)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                notificationSubTab === opt.value
+                  ? "bg-zinc-700 text-white"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+              {opt.value === "acknowledged" && (
+                <span className="ml-1 text-[10px] text-muted-foreground">
+                  · last 30 days
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Filter tabs + dropdowns */}
+      {primaryTab !== "notifications" && (
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex gap-1 rounded-lg border border-border bg-card p-1 w-fit">
           {FILTERS.map((f) => (
@@ -321,9 +400,10 @@ export default function RequestsContent() {
           <option value="30d">Last 30 days</option>
         </select>
       </div>
+      )}
 
       {/* Missed requests view */}
-      {filter === "missed" ? (
+      {filter === "missed" && primaryTab !== "notifications" ? (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           {missedLoading ? (
             <div className="p-8 text-center text-sm text-muted-foreground">Loading missed requests...</div>
@@ -470,17 +550,31 @@ export default function RequestsContent() {
             <div className="md:hidden">
               {filtered.map((req) => {
                 const display = getDisplayStatus(req);
+                const isNotification = !req.responseRequired;
                 const canCancel =
-                  req.status === "pending" || req.status === "active";
+                  !isNotification &&
+                  (req.status === "pending" || req.status === "active");
                 const isLoading = actionLoading === req.id;
+                const rowClick = isNotification
+                  ? () => router.push(`/dashboard/requests/${req.id}`)
+                  : undefined;
 
                 return (
-                  <div key={req.id} className="border-b border-border p-4 space-y-3 last:border-0">
+                  <div
+                    key={req.id}
+                    onClick={rowClick}
+                    className={`border-b border-border p-4 space-y-3 last:border-0 ${
+                      isNotification ? "bg-muted/30 opacity-90 cursor-pointer" : ""
+                    }`}
+                  >
                     <div className="flex items-center justify-between">
-                      <CopyableRefCode code={req.refCode} />
+                      <div className="flex items-center gap-2">
+                        <CopyableRefCode code={req.refCode} />
+                        {isNotification && <NotificationBadge />}
+                      </div>
                       <div className="flex items-center gap-1">
                         {canCancel && (
-                          <button onClick={() => handleCancel(req.id)} disabled={isLoading} title="Cancel"
+                          <button onClick={(e) => { e.stopPropagation(); handleCancel(req.id); }} disabled={isLoading} title="Cancel"
                             className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors">
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -490,6 +584,23 @@ export default function RequestsContent() {
                     <div>
                       <span className="text-xs text-muted-foreground">Status</span>
                       <div className="flex items-center gap-1.5">
+                        {isNotification ? (
+                          <>
+                            {req.acknowledgedAt && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Acknowledged {new Date(req.acknowledgedAt).toLocaleString()}
+                              </span>
+                            )}
+                            {!req.acknowledgedAt && req.status === "expired" && (
+                              <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles.expired}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${dotStyles.expired}`} />
+                                Expired
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
                             statusStyles[display] || ""
@@ -514,6 +625,8 @@ export default function RequestsContent() {
                         )}
                         <PhoneCallBadge status={req.phoneCallStatus} />
                         <ClientTimeoutBadge timedOutAt={req.clientTimedOutAt} />
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -556,19 +669,48 @@ export default function RequestsContent() {
               <tbody>
                 {filtered.map((req) => {
                   const display = getDisplayStatus(req);
+                  const isNotification = !req.responseRequired;
                   const canCancel =
-                    req.status === "pending" || req.status === "active";
+                    !isNotification &&
+                    (req.status === "pending" || req.status === "active");
                   const isLoading = actionLoading === req.id;
+                  const rowClick = isNotification
+                    ? () => router.push(`/dashboard/requests/${req.id}`)
+                    : undefined;
 
                   return (
                     <tr
                       key={req.id}
-                      className="border-b border-border last:border-0"
+                      onClick={rowClick}
+                      className={`border-b border-border last:border-0 ${
+                        isNotification ? "bg-muted/30 opacity-90 cursor-pointer" : ""
+                      }`}
                     >
                       <td className="px-4 py-2.5">
-                        <CopyableRefCode code={req.refCode} />
+                        <div className="flex items-center gap-2">
+                          <CopyableRefCode code={req.refCode} />
+                          {isNotification && <NotificationBadge />}
+                        </div>
                       </td>
                       <td className="px-4 py-2.5">
+                        {isNotification ? (
+                          <div className="flex items-center gap-1.5">
+                            {req.acknowledgedAt ? (
+                              <span
+                                className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-400"
+                                title={`Acknowledged: ${new Date(req.acknowledgedAt).toLocaleString()}`}
+                              >
+                                <CheckCircle2 className="h-3 w-3" />
+                                Acknowledged {new Date(req.acknowledgedAt).toLocaleString()}
+                              </span>
+                            ) : req.status === "expired" ? (
+                              <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles.expired}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${dotStyles.expired}`} />
+                                Expired
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : (
                         <div className="flex items-center gap-1.5">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -595,6 +737,7 @@ export default function RequestsContent() {
                           <PhoneCallBadge status={req.phoneCallStatus} />
                           <ClientTimeoutBadge timedOutAt={req.clientTimedOutAt} />
                         </div>
+                        )}
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -614,7 +757,7 @@ export default function RequestsContent() {
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1">
                           {canCancel && (
-                            <button onClick={() => handleCancel(req.id)} disabled={isLoading} title="Cancel"
+                            <button onClick={(e) => { e.stopPropagation(); handleCancel(req.id); }} disabled={isLoading} title="Cancel"
                               className="rounded p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors">
                               <X className="h-3.5 w-3.5" />
                             </button>

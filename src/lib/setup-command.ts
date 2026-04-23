@@ -57,7 +57,7 @@ export HEYSUMMON_API_KEY="${apiKey}"${contextLine}
 # polling for you. For raw HTTP, see ${baseUrl}/clients/custom for the full payload shape.
 curl -sS -X POST "$HEYSUMMON_BASE_URL/api/v1/help" \\
   -H "Content-Type: application/json" \\
-  -d "{\\"apiKey\\":\\"$HEYSUMMON_API_KEY\\",\\"question\\":\\"Ask ${expertName} something\\"}"
+  -d "{\\"apiKey\\":\\"$HEYSUMMON_API_KEY\\",\\"question\\":\\"Ask your expert something\\"}"
 
 # TypeScript / JavaScript runtimes: install the SDK (recommended):
 #   npm install @heysummon/consumer-sdk`;

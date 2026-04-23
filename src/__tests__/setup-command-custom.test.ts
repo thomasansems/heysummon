@@ -62,6 +62,14 @@ describe("buildInstallCommand('custom', …)", () => {
     // shellEscape wraps in '...' and escapes internal quotes as '\''
     expect(cmd).toContain("Pablo'\\''s rules");
   });
+
+  it("does not interpolate a hostile expertName into the bash payload", () => {
+    const hostile = 'Thomas"; touch /tmp/pwn; echo "';
+    const cmd = buildInstallCommand({ ...baseOpts, expertName: hostile });
+    expect(cmd).not.toContain(hostile);
+    expect(cmd).not.toContain("touch /tmp/pwn");
+    expect(cmd).toContain("Ask your expert something");
+  });
 });
 
 describe("buildSetupCopyText('custom', …)", () => {

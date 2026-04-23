@@ -25,8 +25,13 @@ vi.mock("@/lib/adapters/slack", () => ({
   verifySlackSignature: vi.fn(),
 }));
 
+vi.mock("@/services/notifications/acknowledge", () => ({
+  acknowledgeNotification: vi.fn(),
+}));
+
 import { prisma } from "@/lib/prisma";
 import { updateMessage, verifySlackSignature } from "@/lib/adapters/slack";
+import { acknowledgeNotification } from "@/services/notifications/acknowledge";
 import { POST } from "@/app/api/adapters/slack/[id]/webhook/route";
 import { NextRequest } from "next/server";
 
@@ -37,6 +42,7 @@ const mockHelpRequestUpdate = vi.mocked(prisma.helpRequest.update);
 const mockMessageCreate = vi.mocked(prisma.message.create);
 const mockUpdateMessage = vi.mocked(updateMessage);
 const mockVerifySignature = vi.mocked(verifySlackSignature);
+const mockAcknowledgeNotification = vi.mocked(acknowledgeNotification);
 
 const channelConfig = {
   botToken: "xoxb-test-token",
@@ -276,6 +282,106 @@ describe("Slack webhook block_actions handler", () => {
       "9999.999",
       expect.stringContaining("Approved"),
     );
+  });
+
+  describe("ack_notification", () => {
+    function makeAckPayload(requestId: string) {
+      return {
+        type: "block_actions",
+        user: { id: "U0123", username: "testuser" },
+        actions: [{ action_id: "ack_notification", value: requestId }],
+        channel: { id: "C0123456789" },
+        message: { ts: "1234567890.123456", text: "Notification" },
+      };
+    }
+
+    it("acknowledges a notification via the shared service and updates the message", async () => {
+      const ackedAt = new Date("2026-04-23T08:00:00.000Z");
+      mockAcknowledgeNotification.mockResolvedValue({
+        ok: true,
+        status: "acknowledged",
+        acknowledgedAt: ackedAt,
+        alreadyAcknowledged: false,
+      });
+
+      const res = await POST(
+        makeInteractiveRequest(makeAckPayload("req-ntf-1")),
+        { params: Promise.resolve({ id: "ch-slack-1" }) },
+      );
+      const json = await res.json();
+
+      expect(json).toEqual({ ok: true });
+      expect(mockAcknowledgeNotification).toHaveBeenCalledWith({
+        requestId: "req-ntf-1",
+        expertUserId: "user-1",
+        source: "slack",
+      });
+      expect(mockHelpRequestFindFirst).not.toHaveBeenCalled();
+      expect(mockUpdateMessage).toHaveBeenCalledWith(
+        "xoxb-test-token",
+        "C0123456789",
+        "1234567890.123456",
+        expect.stringContaining("Acknowledged"),
+      );
+    });
+
+    it("shows 'Already acknowledged' on idempotent ack", async () => {
+      mockAcknowledgeNotification.mockResolvedValue({
+        ok: true,
+        status: "acknowledged",
+        acknowledgedAt: new Date(),
+        alreadyAcknowledged: true,
+      });
+
+      await POST(makeInteractiveRequest(makeAckPayload("req-ntf-2")), {
+        params: Promise.resolve({ id: "ch-slack-1" }),
+      });
+
+      expect(mockUpdateMessage).toHaveBeenCalledWith(
+        "xoxb-test-token",
+        "C0123456789",
+        "1234567890.123456",
+        expect.stringContaining("Already acknowledged"),
+      );
+    });
+
+    it("surfaces NOT_APPLICABLE when service rejects the request kind", async () => {
+      mockAcknowledgeNotification.mockResolvedValue({
+        ok: false,
+        code: "NOT_APPLICABLE",
+        message: "This request expects a reply; use /close to end the conversation",
+      });
+
+      await POST(makeInteractiveRequest(makeAckPayload("req-ntf-3")), {
+        params: Promise.resolve({ id: "ch-slack-1" }),
+      });
+
+      expect(mockUpdateMessage).toHaveBeenCalledWith(
+        "xoxb-test-token",
+        "C0123456789",
+        "1234567890.123456",
+        expect.stringContaining("not applicable"),
+      );
+    });
+
+    it("surfaces NOT_FOUND when the request is missing", async () => {
+      mockAcknowledgeNotification.mockResolvedValue({
+        ok: false,
+        code: "NOT_FOUND",
+        message: "Request not found",
+      });
+
+      await POST(makeInteractiveRequest(makeAckPayload("req-missing")), {
+        params: Promise.resolve({ id: "ch-slack-1" }),
+      });
+
+      expect(mockUpdateMessage).toHaveBeenCalledWith(
+        "xoxb-test-token",
+        "C0123456789",
+        "1234567890.123456",
+        expect.stringContaining("not found"),
+      );
+    });
   });
 
   it("rejects invalid signature", async () => {

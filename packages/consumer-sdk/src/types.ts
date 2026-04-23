@@ -14,6 +14,11 @@ export interface SubmitRequestOptions {
   encryptPublicKey?: string;
   expertName?: string;
   requiresApproval?: boolean;
+  /**
+   * When false, creates a notification-mode request — the expert is alerted but
+   * no reply is expected. Server defaults to true.
+   */
+  responseRequired?: boolean;
 }
 
 export interface SubmitRequestResult {
@@ -22,6 +27,7 @@ export interface SubmitRequestResult {
   status?: string;
   expiresAt?: string;
   serverPublicKey?: string;
+  responseRequired?: boolean;
   // Rejection fields (expert unavailable)
   rejected?: boolean;
   reason?: string;
@@ -29,14 +35,28 @@ export interface SubmitRequestResult {
   nextAvailableAt?: string;
 }
 
+/** Result of a notification-mode submit via `notify()`. */
+export interface NotifyResult {
+  requestId: string;
+  refCode: string;
+  status: "pending";
+  expiresAt: string;
+  mode: "notification";
+}
+
+export type PendingEventType =
+  | "new_request"
+  | "new_message"
+  | "keys_exchanged"
+  | "responded"
+  | "closed"
+  | "cancelled"
+  | "new_notification"
+  | "notification_acknowledged"
+  | "notification_expired";
+
 export interface PendingEvent {
-  type:
-    | "new_request"
-    | "new_message"
-    | "keys_exchanged"
-    | "responded"
-    | "closed"
-    | "cancelled";
+  type: PendingEventType;
   requestId: string;
   refCode: string | null;
   from?: "expert" | "consumer";
@@ -48,6 +68,10 @@ export interface PendingEvent {
   requiresApproval?: boolean;
   createdAt?: string;
   expiresAt?: string;
+  /** Populated on `notification_acknowledged` events. */
+  acknowledgedAt?: string;
+  /** Populated on `notification_expired` events. */
+  expiredAt?: string;
 }
 
 export interface Message {

@@ -2,6 +2,17 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.2.24 -- Unreleased
+
+### Fixed
+- **NPX Full-Circle CI stability (HEY-398).** Three related fixes make `heysummon stop` + `heysummon start -d` reliable under CI. (1) `stop` was returning as soon as `SIGTERM` was delivered without waiting for the daemon to actually exit; it now kills the process group so the detached Next.js daemon takes its children with it, polls for exit, escalates to `SIGKILL` after a grace period, and only removes the PID file once the process is confirmed gone. (2) `start -d` was swallowing all daemon stdout/stderr to `/dev/null`, so bind failures (`EADDRINUSE`) and startup crashes were invisible; it now streams stdout/stderr to `~/.heysummon/server.log`, probes the PID after a short grace window, and exits non-zero with a log tail if the daemon crashed during startup. (3) `start -d` was spawning the Next.js standalone server without re-reading `~/.heysummon/.env`, so the restart landed on port 3000 (Next's default) instead of 3435 and inherited no `DATABASE_URL` — Next standalone does not auto-load `.env` files at runtime. `start -d` now loads the canonical env file and forwards `PORT`, `DATABASE_URL`, `NEXTAUTH_*`, and OAuth secrets into the child environment, so the restarted server binds the configured port and talks to the same database as the initial boot. The CI workflow also asserts port 3435 is free between `stop` and the restart and uploads `server.log` on failure
+
+## v0.2.23 -- 2026-04-23
+
+### Security
+- **Cross-tenant message read closed.** `GET /api/v1/messages/:requestId` now verifies that the caller's API key created the help request before returning encrypted message blobs. Previously any valid API key could fetch the message history of any request whose id it knew. The endpoint returns the same generic `404 Request not found` for both unknown and not-yours ids so request id existence is not leaked across tenants (HEY-403)
+- **OpenClaw approve/deny URL forgery closed.** OpenClaw notification action URLs (`?action=approve|deny&requestId=...`) now require an HMAC-SHA256 `sig=` query parameter signed with the channel's webhook secret. The webhook handler verifies the signature in constant time before accepting the action. Previously the query-param fallback executed without verifying the secret, so anyone who learned a channel id and request id could approve or deny pending help requests for that expert. Existing channels keep working because the action URLs are generated server-side from the stored secret (HEY-403)
+
 ## v0.2.23 -- 2026-04-23
 
 ### Security
@@ -15,6 +26,32 @@ import { Callout } from 'nextra/components'
 
 ### Added
 - **Custom client channel:** new `Custom` option in the **Create New Client** wizard for any runtime HeySummon does not ship a dedicated skill for — n8n, MCP hosts, Paperclip-style control planes, homegrown agent runners, anything that can speak HTTP. Takes a free-text client label (stored as `clientSubChannel`, validated max 64 chars, no control chars / angle brackets) and renders a generic HTTP recipe on the setup page (env exports + sample `POST /api/v1/help` curl + pointer to `@heysummon/consumer-sdk` for TS/JS runtimes). No skill scripts, no per-runtime templates, no Prisma migration — reuses the existing `ApiKey.clientChannel` / `clientSubChannel` columns (HEY-392)
+- **Notification mode (`notify` / `responseRequired: false`) — full feature bundle.** New one-way mode on `POST /api/v1/help` where the expert is alerted but no reply is expected. Complements the existing reply and approval flows (HEY-357, HEY-358).
+  - **`responseRequired` body field** on `POST /api/v1/help` (optional, default `true`). When `false`, the request is created with a 7-day TTL (vs 72h for help requests), skips phone-first / Twilio escalation, and the response omits `serverPublicKey` (HEY-362, HEY-363).
+  - **New `POST /api/v1/acknowledge/:requestId`** endpoint — dedicated terminal verb for notifications. Accepts dashboard session cookie OR `x-api-key` (expert key, or consumer key scoped to the request). Idempotent (re-acks return the original `acknowledgedAt`). Returns `404` when not found, `409` when the request expects a reply (use `/close`). A new module `src/services/notifications/acknowledge.ts` (`acknowledgeNotification`) centralises the transition (HEY-365).
+  - **`POST /api/v1/close/:requestId`** now returns `409 NOT_APPLICABLE` on notification-mode requests (stays idempotent on already-`acknowledged` / `expired`), so `/close` and `/acknowledge` stay cleanly separated.
+  - **`POST /api/v1/message/:requestId`** returns `409 NO_RESPONSE_REQUIRED` on notification-mode requests — notifications are one-way.
+  - **New event types on `GET /api/v1/events/pending`:** `new_notification` (expert branch), `notification_acknowledged` and `notification_expired` (consumer branch). Expiry is computed via an on-read sweep; no new cron introduced (HEY-366).
+  - **Consumer SDK:** `HeySummonClient.notify(opts)` sugar method (wraps `submitRequest` with `responseRequired: false`) returning `{ requestId, refCode, status: "pending", expiresAt, mode: "notification" }`. `SubmitRequestOptions.responseRequired`, `NotifyResult`, and the three new `PendingEvent` type discriminants are exported from `@heysummon/consumer-sdk` (HEY-367).
+  - **Adapters:** Telegram (inline button, callback `ack:{requestId}`), Slack (Block Kit `action_id=ack_notification`), and OpenClaw (action id `ack`) all render notification-mode requests as a single muted "Acknowledge" affordance with no reply surface (HEY-368/369/370).
+  - **Dashboard:** new filter pill (**All · Help requests · Notifications**), muted card style + `Notification` badge, `NotificationAck` component in the detail view, and a visible **Acknowledged** sub-tab (last 30 days) under Notifications for auditing. `ResponseForm` is hidden on notification-mode cards (HEY-371).
+  - **Prisma schema:** `HelpRequest.responseRequired Boolean @default(true)` + `HelpRequest.acknowledgedAt DateTime?`. Backfill-safe via the column default — existing rows implicitly become help-mode. New composite index `(responseRequired, status, expiresAt)` to keep the on-read sweep cheap as volume grows (HEY-360).
+- **`heysummon "<question>"` one-liner.** New `ask` subcommand in the CLI (`@heysummon/app`) lets you gate any shell command on a human decision: `heysummon "Proceed?" && ./deploy.sh prod`. Positional sugar means the `ask` keyword is optional — the first non-flag argument is treated as the question. Flags: `--timeout <duration>` (default `5m`), `--channel <name>`, `-q`/`--quiet`, `--require approve` (reserved; default behaviour). Credentials come from `HEYSUMMON_API_KEY` + `HEYSUMMON_BASE_URL` in the shell env, falling back to `~/.heysummon/.env`. The landing page and quick-start both showcase the new flow (HEY-361).
+
+  **Exit-code contract:**
+
+  | Exit | Meaning |
+  |---|---|
+  | `0` | Approved (or expert replied). Expert's plaintext reply, if any, is on stdout. |
+  | `1` | Denied |
+  | `2` | Timeout — no decision within the window. `reportTimeout` is called on the server. |
+  | `3` | Config / auth error (missing creds, bad flag, invalid or unauthorised key). |
+  | `4` | Network / server error. |
+
+  Under the hood, the CLI delegates request submission and polling to the consumer SDK's `submit-and-poll` with a new `--ask-mode` flag, so existing skill scripts that rely on the `APPROVED`/`DENIED` stdout contract are unaffected.
+
+  **Trust boundary:** expert replies are untrusted input. Quote them before passing them to shells or interpreters — `$(heysummon -q …)` will interpolate whatever the expert typed, including shell metacharacters.
+
 - **n8n community node:** new `n8n-nodes-heysummon` package adds a HeySummon node to any n8n workflow. Two operations -- `Summon` (blocking ask with timeout) and `Get Status` (poll an existing request). Auth via a `HeySummon API` n8n credential type. Self-hosted base URL is a first-class input. End-to-end encryption is on by default; the lifecycle constraint between `Summon` and `Get Status` is documented on the integration page. The package ships under MIT to qualify for n8n's Verified Community Nodes program
 
 ### Changed
@@ -22,6 +59,7 @@ import { Callout } from 'nextra/components'
 - **Integrations IA:** `website/pages/integrations/` reorganised into **Channels** (Twilio) and **Orchestrators** (n8n now; LangGraph, CrewAI, Make, Zapier reserved as coming-soon). Top nav label updated from "Other Integrations" to "Integrations"
 - **`clients/overview.mdx`:** adds a short clarifier distinguishing AI coding clients (Claude Code, Codex, Gemini, OpenClaw) from workflow orchestrators (n8n), with a link forward to the orchestrators section
 - **Consumer SDK:** `HeySummonClientOptions` now accepts optional `userAgent` and `extraHeaders` fields, threaded through every outbound request. Existing callers are unaffected. Used by the n8n node to attribute outbound traffic per PRD §4.8
+- **Telegram adapter:** long messages are now split into chunks (Telegram 4096 char limit) and sent as consecutive messages, preserving readability. Previously, oversized messages would fail to send or be truncated
 
 ---
 

@@ -6,6 +6,8 @@ import { Phone, ShieldAlert, ShieldCheck, Clock, Lock } from "lucide-react";
 import { ChatDisplay } from "./chat-display";
 import { ResponseForm } from "./response-form";
 import { StatusBadge } from "./status-badge";
+import { NotificationAck } from "./notification-ack";
+import { NotificationBadge } from "./notification-badge";
 import {
   generateDashboardKeys,
   decryptDashboardMessage,
@@ -48,6 +50,8 @@ interface HelpRequestDetail {
   clientTimedOutAt: string | null;
   contentFlags: ContentFlag[] | null;
   guardVerified: boolean;
+  responseRequired: boolean;
+  acknowledgedAt: string | null;
 }
 
 interface E2ERawMessage {
@@ -382,9 +386,12 @@ export function RequestDetail({ id }: { id: string }) {
             &larr; Back to requests
           </Link>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white">Help Request</h1>
+            <h1 className="text-xl font-bold text-white">
+              {request.responseRequired === false ? "Notification" : "Help Request"}
+            </h1>
+            {request.responseRequired === false && <NotificationBadge />}
             <StatusBadge status={request.status} />
-            {request.deliveredAt ? (
+            {request.responseRequired === false ? null : request.deliveredAt ? (
               <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
                 Delivered
               </span>
@@ -420,7 +427,7 @@ export function RequestDetail({ id }: { id: string }) {
         </div>
       </div>
 
-      {request.phoneCallStatus && (
+      {request.responseRequired !== false && request.phoneCallStatus && (
         <div className="mb-6 rounded-xl border border-border bg-card p-4">
           <div className="mb-2 flex items-center gap-2">
             <Phone className="h-4 w-4 text-muted-foreground" />
@@ -523,7 +530,7 @@ export function RequestDetail({ id }: { id: string }) {
       )}
 
       {/* E2E encrypted messages — shown when E2E is active */}
-      {e2eActive && e2eMessages.length > 0 && (
+      {request.responseRequired !== false && e2eActive && e2eMessages.length > 0 && (
         <div className="mb-6">
           <div className="mb-3 flex items-center gap-2">
             <h2 className="text-sm font-semibold text-zinc-400">
@@ -538,7 +545,8 @@ export function RequestDetail({ id }: { id: string }) {
       )}
 
       {/* Legacy chat history (server-decrypted) — hidden when E2E replaces it */}
-      {(!e2eActive || e2eMessages.length === 0) &&
+      {request.responseRequired !== false &&
+        (!e2eActive || e2eMessages.length === 0) &&
         request.messages.length > 0 && (
           <div className="mb-6">
             <h2 className="mb-3 text-sm font-semibold text-zinc-400">
@@ -551,7 +559,7 @@ export function RequestDetail({ id }: { id: string }) {
         )}
 
       {/* E2E unsupported warning */}
-      {e2eActive && !e2eSupported && (
+      {request.responseRequired !== false && e2eActive && !e2eSupported && (
         <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-400">
           Your browser does not support Web Crypto Ed25519/X25519. E2E
           encrypted messages cannot be decrypted. Please use Chrome 113+,
@@ -559,26 +567,41 @@ export function RequestDetail({ id }: { id: string }) {
         </div>
       )}
 
-      <div>
-        <h2 className="mb-3 text-sm font-semibold text-zinc-400">
-          Expert Response
-        </h2>
-        {e2eActive && e2eKeyExchangeDone && e2eSupported ? (
-          <ResponseForm
+      {request.responseRequired === false ? (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-zinc-400">
+            Acknowledge
+          </h2>
+          <NotificationAck
             requestId={request.id}
-            currentStatus={request.status}
-            existingResponse={request.response}
-            e2e
-            onE2ESend={handleE2ESend}
+            status={request.status}
+            acknowledgedAt={request.acknowledgedAt}
+            expiresAt={request.expiresAt}
+            onAcknowledged={fetchRequest}
           />
-        ) : (
-          <ResponseForm
-            requestId={request.id}
-            currentStatus={request.status}
-            existingResponse={request.response}
-          />
-        )}
-      </div>
+        </div>
+      ) : (
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-zinc-400">
+            Expert Response
+          </h2>
+          {e2eActive && e2eKeyExchangeDone && e2eSupported ? (
+            <ResponseForm
+              requestId={request.id}
+              currentStatus={request.status}
+              existingResponse={request.response}
+              e2e
+              onE2ESend={handleE2ESend}
+            />
+          ) : (
+            <ResponseForm
+              requestId={request.id}
+              currentStatus={request.status}
+              existingResponse={request.response}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

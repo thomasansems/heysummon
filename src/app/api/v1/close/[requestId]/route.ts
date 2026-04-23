@@ -42,6 +42,29 @@ export async function POST(
       );
     }
 
+    // Notification-mode requests don't get closed — they get acknowledged.
+    // Stay idempotent if the notification has already reached a terminal state.
+    if (helpRequest.responseRequired === false) {
+      if (
+        helpRequest.status === "acknowledged" ||
+        helpRequest.status === "expired"
+      ) {
+        return NextResponse.json({
+          success: true,
+          status: helpRequest.status,
+          acknowledgedAt: helpRequest.acknowledgedAt?.toISOString() ?? null,
+        });
+      }
+      return NextResponse.json(
+        {
+          error:
+            "This request is notification-mode; use /acknowledge instead",
+          code: "NOT_APPLICABLE",
+        },
+        { status: 409 }
+      );
+    }
+
     const previousStatus = helpRequest.status;
 
     if (helpRequest.status === "closed") {

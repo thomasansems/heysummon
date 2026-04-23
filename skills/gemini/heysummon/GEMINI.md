@@ -1,6 +1,9 @@
 # HeySummon -- Human in the Loop
 
-When you need human input, approval, or are stuck on something that requires human judgment -- use HeySummon to ask a human expert and **wait for their response** before continuing.
+HeySummon has two distinct verbs. Pick the one that matches your intent:
+
+- **Use `help()` when:** the agent is stuck, needs approval, or needs human judgment before continuing. The script **blocks** until the expert replies.
+- **Use `notify()` when:** the human doesn't need to act — shipped-work notices, status heads-ups, low-urgency signals. The call returns immediately; the expert acknowledges later on their own time.
 
 ## Setup
 
@@ -12,7 +15,7 @@ Prompts for your HeySummon base URL and API key, validates the key, and register
 
 @./references/architecture.md
 
-## How to ask
+## How to ask for help (blocking)
 
 ```bash
 # Ask a specific expert (recommended)
@@ -26,6 +29,31 @@ bash scripts/ask.sh "Is this the right approach?" '[{"role":"user","content":"co
 ```
 
 The script **blocks and returns the human's answer** on stdout.
+
+## How to notify (fire-and-forget)
+
+Notifications tell a human that something happened. No reply is expected, and the agent
+**does not wait** — it returns the `refCode` immediately and keeps working. The expert
+sees a "Notification" card on the dashboard with a single Acknowledge button.
+
+Trigger phrase: `notify <name> <message>`.
+
+SDK example (from `@heysummon/consumer-sdk`):
+
+```ts
+import { HeySummonClient } from "@heysummon/consumer-sdk";
+
+const client = new HeySummonClient({ baseUrl, apiKey });
+
+// Fire-and-forget heads-up — no response is polled for.
+await client.notify({
+  question: "Deployed v1.4.2 to production. No errors so far.",
+  expertName: "Ops",
+});
+```
+
+Pick `notify` when the human would otherwise find out later by checking a dashboard.
+Pick `help` when you can't move forward until they reply.
 
 ## Other commands
 

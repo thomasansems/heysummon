@@ -4,6 +4,7 @@ import path from "node:path";
 import type {
   SubmitRequestOptions,
   SubmitRequestResult,
+  NotifyResult,
   PendingEvent,
   Message,
   DecryptedMessage,
@@ -118,6 +119,7 @@ export class HeySummonClient {
       encryptPublicKey,
       expertName: opts.expertName,
       requiresApproval: opts.requiresApproval,
+      responseRequired: opts.responseRequired,
     });
 
     if (keys && result.requestId) {
@@ -125,6 +127,30 @@ export class HeySummonClient {
     }
 
     return result;
+  }
+
+  /**
+   * Submit a notification-mode request — alerts the expert but expects no reply.
+   * Thin sugar over `submitRequest` with `responseRequired: false`.
+   */
+  async notify(
+    opts: Omit<SubmitRequestOptions, "responseRequired">
+  ): Promise<NotifyResult> {
+    const result = await this.submitRequest({ ...opts, responseRequired: false });
+
+    if (!result.requestId || !result.refCode || !result.expiresAt) {
+      throw new Error(
+        "notify() received an incomplete server response — missing requestId, refCode, or expiresAt"
+      );
+    }
+
+    return {
+      requestId: result.requestId,
+      refCode: result.refCode,
+      status: "pending",
+      expiresAt: result.expiresAt,
+      mode: "notification",
+    };
   }
 
   /** Poll for pending events (writes lastPollAt heartbeat on the server) */

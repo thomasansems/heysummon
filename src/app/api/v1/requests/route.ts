@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sweepExpiredNotifications } from "@/services/notifications/expire";
 
 export async function GET(request: NextRequest) {
+  // Sweep stale notification-mode requests before reading.
+  await sweepExpiredNotifications().catch((err) => {
+    console.error("[/api/v1/requests] notification sweep failed:", err);
+  });
+
   const statusFilter = request.nextUrl.searchParams.get("status") ?? undefined;
 
   // Support API key auth for expert polling
@@ -43,6 +49,9 @@ export async function GET(request: NextRequest) {
       status: true,
       requiresApproval: true,
       approvalDecision: true,
+      responseRequired: true,
+      acknowledgedAt: true,
+      expiresAt: true,
       createdAt: true,
       deliveredAt: true,
       deliveryStatus: true,
@@ -68,6 +77,9 @@ export async function GET(request: NextRequest) {
     status: r.status,
     requiresApproval: r.requiresApproval,
     approvalDecision: r.approvalDecision || null,
+    responseRequired: r.responseRequired,
+    acknowledgedAt: r.acknowledgedAt,
+    expiresAt: r.expiresAt,
     messageCount: r._count.messageHistory,
     inbound: r.messageHistory.filter((m) => m.from === "consumer").length,
     outbound: r.messageHistory.filter((m) => m.from === "expert").length,

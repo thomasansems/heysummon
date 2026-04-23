@@ -4,10 +4,21 @@ import { stop } from "./commands/stop";
 import { status } from "./commands/status";
 import { update } from "./commands/update";
 import { uninstall } from "./commands/uninstall";
+import { ask } from "./commands/ask";
 
 // Version is injected from package.json at build time
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const VERSION: string = (require("../package.json") as { version: string }).version;
+
+const KNOWN_COMMANDS = new Set([
+  "init",
+  "start",
+  "stop",
+  "status",
+  "update",
+  "uninstall",
+  "ask",
+]);
 
 function printHelp(): void {
   console.log(`
@@ -15,10 +26,12 @@ function printHelp(): void {
   Human-in-the-loop for AI agents
 
   Usage:
+    heysummon "<question>"            Ask a human, gate a shell command (one-liner)
     heysummon [command] [options]
 
   Commands:
-    init          Install and configure HeySummon (default)
+    ask           Ask a human a question and block on the decision
+    init          Install and configure HeySummon (default for flags)
     start         Start the HeySummon server
     stop          Stop the HeySummon server
     status        Check server status
@@ -29,14 +42,34 @@ function printHelp(): void {
     --help, -h    Show this help message
     --version, -v Show version number
 
+  Ask options:
+    --timeout <duration>   How long to wait (default: 5m; e.g. 30s, 10m, 1h)
+    --channel <name>       Route to a specific expert by name (optional)
+    -q, --quiet            Suppress progress output on stderr
+    --require approve      Require explicit approve/deny (default)
+
+  Ask env vars:
+    HEYSUMMON_API_KEY      Your client API key (required)
+    HEYSUMMON_BASE_URL     Your HeySummon instance URL (required)
+                           Also read from ~/.heysummon/.env as a convenience
+
+  Ask exit codes:
+    0  approved            (expert reply printed on stdout, if any)
+    1  denied
+    2  timeout
+    3  config / auth error (missing creds, bad flag, invalid key)
+    4  network / server error
+
   Init options:
     --yes, -y              Use defaults, skip prompts (quickstart)
     --from-source <dir>    Copy from local directory instead of downloading
 
   Start options:
-    --daemon, -d  Run server in background
+    --daemon, -d           Run server in background
 
   Examples:
+    heysummon "Proceed?" && ./deploy.sh prod
+    reply=$(heysummon -q "Which channel?") && slack-post "$reply" done
     npx @heysummon/app              # First-time setup (interactive)
     npx @heysummon/app --yes        # Quickstart with defaults
     npx @heysummon/app start -d     # Start in background
@@ -46,17 +79,33 @@ function printHelp(): void {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  // If first arg is a flag (starts with -), default to "init"
-  const command = (!args[0] || args[0].startsWith("-")) ? "init" : args[0];
+  const first = args[0];
 
-  if (command === "--help" || command === "-h") {
+  // Global flags
+  if (first === "--help" || first === "-h") {
     printHelp();
     return;
   }
-
-  if (command === "--version" || command === "-v") {
+  if (first === "--version" || first === "-v") {
     console.log(VERSION);
     return;
+  }
+
+  // Route:
+  //   - no arg / flag-first → init (back-compat with install flow)
+  //   - known subcommand    → that command
+  //   - anything else       → positional sugar for `ask <that string>`
+  let command: string;
+  let rest: string[];
+  if (!first || first.startsWith("-")) {
+    command = "init";
+    rest = args;
+  } else if (KNOWN_COMMANDS.has(first)) {
+    command = first;
+    rest = args.slice(1);
+  } else {
+    command = "ask";
+    rest = args; // pass the question + any trailing flags
   }
 
   try {
@@ -69,7 +118,7 @@ async function main(): Promise<void> {
         await init({ yes, fromSource });
         break;
       case "start":
-        await start(args.slice(1));
+        await start(rest);
         break;
       case "stop":
         await stop();
@@ -83,6 +132,10 @@ async function main(): Promise<void> {
       case "uninstall":
         await uninstall();
         break;
+      case "ask": {
+        const code = await ask(rest);
+        process.exit(code);
+      }
       default:
         console.log(`  Unknown command: ${command}`);
         printHelp();

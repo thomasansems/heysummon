@@ -207,6 +207,52 @@ describe("Slack Adapter", () => {
       });
     });
 
+    it("renders notification Block Kit with single default-style Acknowledge button", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+      });
+
+      await sendMessageWithBlocks(
+        "xoxb-token",
+        "C123",
+        "*Notification* `HS-NTF1`\n\n*Question:* ship report ready",
+        [{ text: "Acknowledge", action_id: "ack_notification", value: "req-ntf-1" }],
+      );
+
+      const body = JSON.parse(
+        (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+      );
+      expect(body.blocks).toMatchInlineSnapshot(`
+        [
+          {
+            "text": {
+              "text": "*Notification* \`HS-NTF1\`
+
+        *Question:* ship report ready",
+              "type": "mrkdwn",
+            },
+            "type": "section",
+          },
+          {
+            "elements": [
+              {
+                "action_id": "ack_notification",
+                "text": {
+                  "text": "Acknowledge",
+                  "type": "plain_text",
+                },
+                "type": "button",
+                "value": "req-ntf-1",
+              },
+            ],
+            "type": "actions",
+          },
+        ]
+      `);
+      expect(body.blocks[1].elements[0]).not.toHaveProperty("style");
+    });
+
     it("omits style when not provided", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,

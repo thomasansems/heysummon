@@ -41,6 +41,19 @@ hey summon Thomas I want to refactor the auth module. Please approve.
 
 Approval requests show **Approve / Deny** buttons to the expert. The response will be `APPROVED` or `DENIED`.
 
+### Notify mode (one-way, non-blocking)
+
+To alert a human without blocking -- e.g. deploy finished, long job done --
+use `notify`:
+
+```
+notify Thomas deploy finished: build 42 is live on prod
+```
+
+The expert sees a single **Acknowledge** button and the agent continues
+immediately. Notifications expire after 7 days if nobody acks. See
+[Consumer API Reference -> Notification Mode](/consumer/api-reference#notification-mode-notify).
+
 ## Skill Location
 
 ```

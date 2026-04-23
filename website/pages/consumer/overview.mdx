@@ -32,6 +32,19 @@ Use HeySummon when your agent genuinely needs a human:
 
 **Don't** use it for things the agent can figure out on its own — every request interrupts a human.
 
+## Help vs Notification mode
+
+| Mode | SDK method | What it's for |
+|------|-----------|---------------|
+| **Help** | `help()` / `submitRequest()` | Agent is stuck, needs approval, or needs human judgment. Blocks on a reply. |
+| **Notification** | `notify()` | One-way heads-up to a human — deploy finished, scheduled job ran, status update. No reply expected. |
+
+Notifications have a 7-day TTL, render as a single "Acknowledge" button in
+Telegram, Slack, OpenClaw, and the dashboard, and surface on the event poll as
+`notification_acknowledged` once the expert dismisses them. See
+[Notification Mode in the API Reference](/consumer/api-reference#notification-mode-notify)
+for examples.
+
 ## Simple vs encrypted mode
 
 | Mode | How | When to use |

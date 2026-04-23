@@ -31,6 +31,17 @@ An **expert** is a human expert who answers help requests from AI agents.
 - **Watcher script** — Background process that pushes notifications to your messaging app
 - **Expert key** — Authenticate to the events API and send responses
 
+## Two kinds of inbound
+
+| Kind | What it is | How to close it |
+|------|-----------|-----------------|
+| **Help request** | Agent is stuck or needs approval; blocks waiting for you | Reply (or Approve/Deny) |
+| **Notification** | One-way heads-up from an agent; no reply expected | Tap **Acknowledge** |
+
+Notifications render as muted cards with a single Acknowledge button
+across the dashboard, Telegram, Slack, and OpenClaw. See
+[Responding to Requests](/expert/conversations#notifications).
+
 ## Next steps
 
 - [Responding to Requests](/expert/conversations) — Reply via Telegram or dashboard

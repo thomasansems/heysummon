@@ -41,6 +41,17 @@ Every platform gets the same core components:
   - `check-status.sh` -- check status of a request
 - **.env** -- configuration file with API key, base URL, timeout, and summoning guidelines
 
+## Two modes: summon vs notify
+
+HeySummon supports two interaction patterns, both available from every client skill:
+
+| Verb | Blocks the agent? | What the expert sees | Use when |
+|------|------------------|---------------------|----------|
+| `hey summon <name>` | Yes -- agent waits for a reply | Notification with a reply prompt (or Approve/Deny if `--requires-approval`) | The agent is stuck, needs approval, or needs judgment before continuing |
+| `notify <name>` | No -- agent continues | Notification with a single "Acknowledge" button | Fire-and-forget: deploy finished, job ran, status heads-up |
+
+Under the hood, `notify` calls the consumer SDK's `notify()` method (`responseRequired: false`). Notifications render with a single Acknowledge affordance across Telegram, Slack, OpenClaw, and the dashboard, and expire after 7 days if the expert never acks. See [Consumer API Reference -> Notification Mode](/consumer/api-reference#notification-mode-notify) for the full API surface.
+
 ## Summoning Guidelines
 
 When creating a setup link, experts can define **summoning guidelines** -- rules that tell the AI when it should and shouldn't ask for help. These guidelines are stored in the `.env` file as `HEYSUMMON_SUMMON_CONTEXT` and the agent follows them automatically.

@@ -41,6 +41,18 @@ hey summon Thomas I want to refactor the auth module. Please approve.
 
 Approval requests show **Approve / Deny** buttons to the expert. The response will be `APPROVED` or `DENIED`.
 
+### Notify mode (one-way, non-blocking)
+
+For fire-and-forget alerts -- deploy finished, long job done, status heads-up -- use `notify`:
+
+```
+notify Thomas deploy finished: build 42 is live on prod
+```
+
+The expert sees a single **Acknowledge** button and the agent continues
+immediately. Notifications expire after 7 days if nobody acks. See
+[Consumer API Reference -> Notification Mode](/consumer/api-reference#notification-mode-notify).
+
 ## Gemini-Specific Features
 
 Gemini CLI supports `@./` includes in GEMINI.md, which allows the skill to reference additional files like architecture documentation. The skill includes both a standard `SKILL.md` and a `GEMINI.md` with native Gemini includes.

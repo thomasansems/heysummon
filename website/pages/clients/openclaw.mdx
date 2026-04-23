@@ -50,6 +50,19 @@ Or request approval:
 hey summon Thomas I want to refactor the auth module. Please approve.
 ```
 
+### Notify mode (one-way, non-blocking)
+
+For fire-and-forget alerts -- deploy finished, long job done, status heads-up -- use `notify`:
+
+```
+notify Thomas deploy finished: build 42 is live on prod
+```
+
+The expert sees a single **Acknowledge** button (Telegram, WhatsApp, or the
+dashboard) and the agent continues immediately. Notifications expire after 7
+days if nobody acks. See
+[Consumer API Reference -> Notification Mode](/consumer/api-reference#notification-mode-notify).
+
 ## Expert Skill
 
 OpenClaw also supports an **expert skill** (`heysummon-expert`) that allows an OpenClaw agent to act as the expert -- receiving and responding to help requests. Install it from ClaWhub:

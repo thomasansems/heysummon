@@ -32,6 +32,38 @@ export async function sendNotification(
   }
 }
 
+/**
+ * Compute the HMAC-SHA256 signature embedded in approve/deny action URLs.
+ * The signature binds the action and requestId so query-param callbacks
+ * cannot be forged or replayed across requests.
+ */
+export function signQueryAction(
+  webhookSecret: string,
+  action: "approve" | "deny",
+  requestId: string,
+): string {
+  return crypto
+    .createHmac("sha256", webhookSecret)
+    .update(`${action}:${requestId}`)
+    .digest("hex");
+}
+
+/** Constant-time verify the action URL signature. Returns false if the secret is empty. */
+export function verifyQueryActionSignature(
+  webhookSecret: string,
+  action: string,
+  requestId: string,
+  signature: string,
+): boolean {
+  if (!webhookSecret || !signature) return false;
+  if (action !== "approve" && action !== "deny") return false;
+  const expected = signQueryAction(webhookSecret, action, requestId);
+  const expectedBuf = Buffer.from(expected);
+  const sigBuf = Buffer.from(signature);
+  if (expectedBuf.length !== sigBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, sigBuf);
+}
+
 /** Send a notification with approval action URLs */
 export async function sendNotificationWithActions(
   webhookUrl: string,
@@ -44,14 +76,19 @@ export async function sendNotificationWithActions(
     message: string;
   },
 ): Promise<void> {
+  const approveSig = signQueryAction(webhookSecret, "approve", payload.requestId);
+  const denySig = signQueryAction(webhookSecret, "deny", payload.requestId);
+  const params = (action: "approve" | "deny", sig: string) =>
+    `?action=${action}&requestId=${encodeURIComponent(payload.requestId)}&sig=${sig}`;
+
   await sendNotification(webhookUrl, apiKey, webhookSecret, {
     type: "approval_required",
     requestId: payload.requestId,
     refCode: payload.refCode,
     message: payload.message,
     actions: {
-      approve: `${callbackBaseUrl}?action=approve&requestId=${payload.requestId}`,
-      deny: `${callbackBaseUrl}?action=deny&requestId=${payload.requestId}`,
+      approve: `${callbackBaseUrl}${params("approve", approveSig)}`,
+      deny: `${callbackBaseUrl}${params("deny", denySig)}`,
     },
     callbackUrl: callbackBaseUrl,
   });

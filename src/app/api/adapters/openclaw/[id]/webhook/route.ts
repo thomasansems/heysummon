@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { verifyWebhookSignature } from "@/lib/adapters/openclaw";
+import { verifyWebhookSignature, verifyQueryActionSignature } from "@/lib/adapters/openclaw";
 import type { OpenClawConfig } from "@/lib/adapters/types";
 
 /** Max length for an expert reply via OpenClaw */
@@ -49,13 +49,25 @@ export async function POST(
     !signature ||
     !verifyWebhookSignature(config.webhookSecret, rawBody, signature)
   ) {
-    // Also check query-param based actions (approve/deny URLs from notification)
+    // Also check query-param based actions (approve/deny URLs from notification).
+    // The action URL must carry an HMAC signature bound to (action, requestId)
+    // signed with the channel's webhookSecret. Without this, anyone who learned
+    // a channel id and request id could forge an approve/deny call.
     const url = new URL(request.url);
     const queryAction = url.searchParams.get("action");
     const queryRequestId = url.searchParams.get("requestId");
+    const querySig = url.searchParams.get("sig");
 
-    if (queryAction && queryRequestId) {
-      return handleQueryAction(queryAction, queryRequestId, channel, config);
+    if (queryAction && queryRequestId && querySig && config.webhookSecret) {
+      const valid = verifyQueryActionSignature(
+        config.webhookSecret,
+        queryAction,
+        queryRequestId,
+        querySig,
+      );
+      if (valid) {
+        return handleQueryAction(queryAction, queryRequestId, channel, config);
+      }
     }
 
     return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
@@ -84,21 +96,19 @@ export async function POST(
   return handleApproval(parsed.action, parsed.requestId, channel);
 }
 
-/** Handle query-param based approve/deny (from action URLs in notification) */
+/**
+ * Handle query-param based approve/deny.
+ * Caller in the POST handler MUST verify the action URL signature first via
+ * verifyQueryActionSignature(); this function only enforces the action enum.
+ */
 async function handleQueryAction(
   action: string,
   requestId: string,
   channel: { id: string; profile: { userId: string } },
-  config: OpenClawConfig & { webhookSecret?: string },
+  _config: OpenClawConfig & { webhookSecret?: string },
 ): Promise<NextResponse> {
   if (action !== "approve" && action !== "deny") {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  }
-
-  // For query-param actions, verify via API key in Authorization header
-  const authHeader = config.webhookSecret; // The secret acts as the shared auth
-  if (!authHeader) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   return handleApproval(action, requestId, channel);

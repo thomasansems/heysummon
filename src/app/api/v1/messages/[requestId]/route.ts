@@ -34,7 +34,10 @@ export async function GET(
       },
     });
 
-    if (!helpRequest) {
+    // Cross-tenant scoping: only the API key that created the request may read its messages.
+    // Use the same generic 404 response for both "not found" and "not yours" so the endpoint
+    // does not leak the existence of other tenants' request ids.
+    if (!helpRequest || helpRequest.apiKeyId !== authResult.apiKey.id) {
       return NextResponse.json(
         { error: "Request not found" },
         { status: 404 }

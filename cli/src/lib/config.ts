@@ -6,6 +6,7 @@ const HEYSUMMON_DIR = path.join(os.homedir(), ".heysummon");
 const APP_DIR = path.join(HEYSUMMON_DIR, "app");
 const ENV_FILE = path.join(HEYSUMMON_DIR, ".env");
 const PID_FILE = path.join(HEYSUMMON_DIR, "heysummon.pid");
+const SERVER_LOG_FILE = path.join(HEYSUMMON_DIR, "server.log");
 
 export function getHeysummonDir(): string {
   return HEYSUMMON_DIR;
@@ -21,6 +22,10 @@ export function getEnvFile(): string {
 
 export function getPidFile(): string {
   return PID_FILE;
+}
+
+export function getServerLogFile(): string {
+  return SERVER_LOG_FILE;
 }
 
 export function isInitialized(): boolean {
@@ -86,6 +91,39 @@ export function writeEnv(content: string): void {
   fs.writeFileSync(ENV_FILE, content, "utf-8");
 }
 
+export function readEnvFile(): Record<string, string> {
+  const result: Record<string, string> = {};
+  let content: string;
+  try {
+    content = fs.readFileSync(ENV_FILE, "utf-8");
+  } catch {
+    return result;
+  }
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    result[key] = value;
+  }
+  return result;
+}
+
+export function readPortFromEnv(): number | null {
+  const env = readEnvFile();
+  if (!env.PORT) return null;
+  const port = parseInt(env.PORT, 10);
+  return isNaN(port) ? null : port;
+}
+
 export function readPid(): number | null {
   try {
     const pid = parseInt(fs.readFileSync(PID_FILE, "utf-8").trim(), 10);
@@ -113,5 +151,34 @@ export function isProcessRunning(pid: number): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function waitForProcessExit(
+  pid: number,
+  timeoutMs: number,
+  intervalMs = 200
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!isProcessRunning(pid)) return true;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return !isProcessRunning(pid);
+}
+
+export function killProcessTree(pid: number, signal: NodeJS.Signals): void {
+  // Daemons are spawned with detached: true, which makes the child a
+  // process-group leader. Sending the signal to -pid targets the whole
+  // group so orphaned children (e.g. Next.js workers) are not left bound
+  // to the port. Fall back to the single pid if the group kill fails.
+  try {
+    process.kill(-pid, signal);
+  } catch {
+    try {
+      process.kill(pid, signal);
+    } catch {
+      // ignore — process may already be gone
+    }
   }
 }

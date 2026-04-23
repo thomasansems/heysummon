@@ -138,6 +138,21 @@ jobs:
           echo "$OUTPUT"
           echo "$OUTPUT" | grep -qi "stopped\|not running\|not initialized"
 
+      - name: Assert port 3435 is free after stop
+        run: |
+          # Belt-and-braces check for HEY-398: confirm the previous server
+          # actually released the port. If anything is still listening,
+          # surface it now so the restart failure mode is obvious.
+          if ss -lnt | awk '{print $4}' | grep -Eq '(^|:)3435$'; then
+            echo "Port 3435 is still in use after CLI stop:"
+            ss -lntp | grep ':3435' || true
+            echo ""
+            echo "Processes potentially holding the port:"
+            ps -ef | grep -E 'node|next' | grep -v grep || true
+            exit 1
+          fi
+          echo "Port 3435 is free"
+
       - name: CLI start daemon
         run: |
           node cli/bin/cli.js start -d 2>&1
@@ -202,6 +217,12 @@ jobs:
           echo "" >> npx-test-logs.txt
           echo "=== Node processes ===" >> npx-test-logs.txt
           ps aux | grep node >> npx-test-logs.txt 2>&1 || true
+          echo "" >> npx-test-logs.txt
+          echo "=== Port 3435 listeners ===" >> npx-test-logs.txt
+          ss -lntp | grep ':3435' >> npx-test-logs.txt 2>&1 || echo "(nothing listening on :3435)" >> npx-test-logs.txt
+          echo "" >> npx-test-logs.txt
+          echo "=== server.log (last 200 lines) ===" >> npx-test-logs.txt
+          tail -n 200 ~/.heysummon/server.log >> npx-test-logs.txt 2>&1 || echo "(no server.log)" >> npx-test-logs.txt
 
       - name: Upload logs on failure
         if: failure()

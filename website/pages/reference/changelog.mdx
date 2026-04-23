@@ -2,7 +2,7 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
-## Unreleased
+## v0.2.22 -- 2026-04-23
 
 ### Fixed
 - **Multi-user dashboard onboarding loop.** Users added after the first instance setup are no longer bounced into the onboarding wizard. The `/api/onboarding/status` route now returns platform-global expert and API key counts (previously scoped per-user), so `OnboardingGuard` recognises that the platform is already configured and lets additional users through to the dashboard. Their `user.onboardingComplete` flag is auto-flipped to `true` on first call so the check is cheap on subsequent page loads (HEY-226)

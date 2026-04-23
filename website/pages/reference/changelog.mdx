@@ -2,12 +2,19 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
-## Unreleased
+## v0.2.23 -- 2026-04-23
+
+### Security
+- **Cross-tenant message read closed.** `GET /api/v1/messages/:requestId` now verifies that the caller's API key created the help request before returning encrypted message blobs. Previously any valid API key could fetch the message history of any request whose id it knew. The endpoint returns the same generic `404 Request not found` for both unknown and not-yours ids so request id existence is not leaked across tenants (HEY-403)
+- **OpenClaw approve/deny URL forgery closed.** OpenClaw notification action URLs (`?action=approve|deny&requestId=...`) now require an HMAC-SHA256 `sig=` query parameter signed with the channel's webhook secret. The webhook handler verifies the signature in constant time before accepting the action. Previously the query-param fallback executed without verifying the secret, so anyone who learned a channel id and request id could approve or deny pending help requests for that expert. Existing channels keep working because the action URLs are generated server-side from the stored secret (HEY-403)
+
+## v0.2.22 -- 2026-04-23
 
 ### Fixed
 - **Multi-user dashboard onboarding loop.** Users added after the first instance setup are no longer bounced into the onboarding wizard. The `/api/onboarding/status` route now returns platform-global expert and API key counts (previously scoped per-user), so `OnboardingGuard` recognises that the platform is already configured and lets additional users through to the dashboard. Their `user.onboardingComplete` flag is auto-flipped to `true` on first call so the check is cheap on subsequent page loads (HEY-226)
 
 ### Added
+- **Custom client channel:** new `Custom` option in the **Create New Client** wizard for any runtime HeySummon does not ship a dedicated skill for — n8n, MCP hosts, Paperclip-style control planes, homegrown agent runners, anything that can speak HTTP. Takes a free-text client label (stored as `clientSubChannel`, validated max 64 chars, no control chars / angle brackets) and renders a generic HTTP recipe on the setup page (env exports + sample `POST /api/v1/help` curl + pointer to `@heysummon/consumer-sdk` for TS/JS runtimes). No skill scripts, no per-runtime templates, no Prisma migration — reuses the existing `ApiKey.clientChannel` / `clientSubChannel` columns (HEY-392)
 - **n8n community node:** new `n8n-nodes-heysummon` package adds a HeySummon node to any n8n workflow. Two operations -- `Summon` (blocking ask with timeout) and `Get Status` (poll an existing request). Auth via a `HeySummon API` n8n credential type. Self-hosted base URL is a first-class input. End-to-end encryption is on by default; the lifecycle constraint between `Summon` and `Get Status` is documented on the integration page. The package ships under MIT to qualify for n8n's Verified Community Nodes program
 
 ### Changed

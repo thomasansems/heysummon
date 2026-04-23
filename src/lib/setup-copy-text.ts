@@ -53,6 +53,19 @@ export function buildSetupCopyText(
     lines.push("");
     lines.push("Step 2. Run the setup command:");
     lines.push(`  curl -sf "${commandUrl}" | jq -r '.installCommand' | bash`);
+  } else if (channel === "custom") {
+    lines.push("INSTALLATION (Custom — any runtime):");
+    lines.push("");
+    lines.push("HeySummon has no runtime-specific skill for this client. Integrate with the");
+    lines.push("HTTP API directly, or use the TypeScript / JavaScript SDK.");
+    lines.push("");
+    lines.push("Step 1. Fetch the generic recipe (env vars + sample request):");
+    lines.push(`  curl -sf "${commandUrl}" | jq -r '.installCommand'`);
+    lines.push("");
+    lines.push("Step 2. For TypeScript / JavaScript runtimes, install the SDK:");
+    lines.push("  npm install @heysummon/consumer-sdk");
+    lines.push("");
+    lines.push("The SDK handles key generation, end-to-end encryption, and polling for you.");
   } else {
     lines.push(`INSTALLATION (${meta.label}):`);
     lines.push("");

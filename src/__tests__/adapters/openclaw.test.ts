@@ -23,7 +23,14 @@ vi.mock("@/lib/public-url", () => ({
   getPublicBaseUrl: vi.fn(() => "https://heysummon.example.com"),
 }));
 
-import { openClawAdapter, sendNotification, sendNotificationWithActions, verifyWebhookSignature } from "@/lib/adapters/openclaw";
+import {
+  openClawAdapter,
+  sendNotification,
+  sendNotificationWithActions,
+  verifyWebhookSignature,
+  signQueryAction,
+  verifyQueryActionSignature,
+} from "@/lib/adapters/openclaw";
 
 describe("OpenClaw Adapter", () => {
   describe("validateConfig", () => {
@@ -178,6 +185,49 @@ describe("OpenClaw Adapter", () => {
       expect(body.actions.approve).toContain("action=approve&requestId=req-1");
       expect(body.actions.deny).toContain("action=deny&requestId=req-1");
       expect(body.callbackUrl).toBe("https://heysummon.example.com/api/adapters/openclaw/ch-1/webhook");
+
+      // Action URLs must carry an HMAC signature bound to (action, requestId)
+      // signed with the channel's webhookSecret. Without it the webhook would
+      // accept unauthenticated approve/deny calls (HEY-403).
+      const approveUrl = new URL(body.actions.approve);
+      const denyUrl = new URL(body.actions.deny);
+      const approveSig = approveUrl.searchParams.get("sig");
+      const denySig = denyUrl.searchParams.get("sig");
+      expect(approveSig).toBe(signQueryAction("secret", "approve", "req-1"));
+      expect(denySig).toBe(signQueryAction("secret", "deny", "req-1"));
+    });
+  });
+
+  describe("verifyQueryActionSignature", () => {
+    const secret = "test-webhook-secret";
+
+    it("accepts a signature produced by signQueryAction", () => {
+      const sig = signQueryAction(secret, "approve", "req-42");
+      expect(verifyQueryActionSignature(secret, "approve", "req-42", sig)).toBe(true);
+    });
+
+    it("rejects a signature for a different action", () => {
+      const sig = signQueryAction(secret, "approve", "req-42");
+      expect(verifyQueryActionSignature(secret, "deny", "req-42", sig)).toBe(false);
+    });
+
+    it("rejects a signature for a different requestId", () => {
+      const sig = signQueryAction(secret, "approve", "req-42");
+      expect(verifyQueryActionSignature(secret, "approve", "req-99", sig)).toBe(false);
+    });
+
+    it("rejects an unknown action enum", () => {
+      const sig = signQueryAction(secret, "approve", "req-42");
+      expect(verifyQueryActionSignature(secret, "delete", "req-42", sig)).toBe(false);
+    });
+
+    it("rejects an empty signature", () => {
+      expect(verifyQueryActionSignature(secret, "approve", "req-42", "")).toBe(false);
+    });
+
+    it("rejects when webhookSecret is empty", () => {
+      const sig = signQueryAction(secret, "approve", "req-42");
+      expect(verifyQueryActionSignature("", "approve", "req-42", sig)).toBe(false);
     });
   });
 

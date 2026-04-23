@@ -1,11 +1,28 @@
-export type ClientChannel = "openclaw" | "claudecode" | "codex" | "gemini" | "cursor";
+export type ClientChannel =
+  | "openclaw"
+  | "claudecode"
+  | "codex"
+  | "gemini"
+  | "cursor"
+  | "custom";
 
-export const PLATFORM_META: Record<string, { label: string; skillDir: string }> = {
+export interface PlatformMeta {
+  label: string;
+  subtitle?: string;
+  skillDir: string;
+}
+
+export const PLATFORM_META: Record<string, PlatformMeta> = {
   openclaw: { label: "OpenClaw", skillDir: "skills/heysummon" },
   claudecode: { label: "Claude Code", skillDir: ".claude/skills/heysummon" },
   codex: { label: "Codex CLI", skillDir: ".codex/skills/heysummon" },
   gemini: { label: "Gemini CLI", skillDir: ".gemini/skills/heysummon" },
   cursor: { label: "Cursor", skillDir: ".cursor/skills/heysummon" },
+  custom: {
+    label: "Custom",
+    subtitle: "API-only — any runtime",
+    skillDir: "",
+  },
 };
 
 /** Wrap a string in single quotes for safe shell interpolation */
@@ -27,6 +44,24 @@ export function buildInstallCommand(opts: {
 }): string {
   const { channel, skillDir, baseUrl, apiKey, timeout, pollInterval, timeoutFallback, globalInstall, expertName, summonContext } = opts;
   const safeName = shellEscape(expertName);
+
+  if (channel === "custom") {
+    const safeContext = summonContext ? shellEscape(summonContext) : null;
+    const contextLine = safeContext ? `\nexport HEYSUMMON_SUMMON_CONTEXT=${safeContext}` : "";
+    return `# HeySummon — generic HTTP recipe (works with any runtime)
+export HEYSUMMON_BASE_URL="${baseUrl}"
+export HEYSUMMON_API_KEY="${apiKey}"${contextLine}
+
+# Submit a help request. End-to-end encryption keys (signPublicKey / encryptPublicKey)
+# are required — the @heysummon/consumer-sdk handles key generation, encryption, and
+# polling for you. For raw HTTP, see ${baseUrl}/clients/custom for the full payload shape.
+curl -sS -X POST "$HEYSUMMON_BASE_URL/api/v1/help" \\
+  -H "Content-Type: application/json" \\
+  -d "{\\"apiKey\\":\\"$HEYSUMMON_API_KEY\\",\\"question\\":\\"Ask your expert something\\"}"
+
+# TypeScript / JavaScript runtimes: install the SDK (recommended):
+#   npm install @heysummon/consumer-sdk`;
+  }
 
   if (channel === "openclaw") {
     const envPrefix = summonContext

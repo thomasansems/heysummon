@@ -76,6 +76,7 @@ function getExpertAvailability(
 }
 
 const REQUEST_TTL_MS = parseInt(process.env.HEYSUMMON_REQUEST_TTL_MS || String(72 * 60 * 60 * 1000), 10);
+const NOTIFICATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DEBUG = process.env.DEBUG === "true";
 
 /**
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
       messages,
       question,
       requiresApproval,
+      responseRequired,
       publicKey,
       messageCount,
     } = body;
@@ -203,7 +205,7 @@ export async function POST(request: Request) {
         )
       : { unavailable: false, nextAvailableAt: null };
 
-    if (availCheck.unavailable) {
+    if (availCheck.unavailable && responseRequired) {
       // Track the missed request
       if (expertProfileForAvail) {
         await prisma.missedRequest.create({
@@ -245,7 +247,9 @@ export async function POST(request: Request) {
     }
 
     const refCode = await generateUniqueRefCode();
-    const expiresAt = new Date(Date.now() + REQUEST_TTL_MS);
+    const expiresAt = new Date(
+      Date.now() + (responseRequired ? REQUEST_TTL_MS : NOTIFICATION_TTL_MS)
+    );
 
     // v3 legacy: encrypt messages at rest with server key
     let encryptedMessages = null;
@@ -284,6 +288,7 @@ export async function POST(request: Request) {
         serverPrivateKey: serverKeyPair?.privateKey || null,
 
         requiresApproval: requiresApproval ?? false,
+        responseRequired,
         contentFlags: safetyCheck.flags.length > 0 ? JSON.stringify(safetyCheck.flags) : null,
         guardVerified,
       },
@@ -300,8 +305,10 @@ export async function POST(request: Request) {
 
     let phoneFirstAttempted = false;
 
-    // Attempt phone-first call (expert is confirmed available at this point)
-    for (const profile of expertProfiles) {
+    // Attempt phone-first call (expert is confirmed available at this point).
+    // Notification-mode requests (responseRequired=false) never use phone-first —
+    // there is no reply to collect.
+    for (const profile of responseRequired ? expertProfiles : []) {
       if (!profile.phoneFirst || !profile.phoneFirstIntegrationId) continue;
 
       const phoneConfig = await getPhoneFirstConfig(profile.id);
@@ -551,6 +558,16 @@ export async function POST(request: Request) {
       },
       request,
     });
+
+    if (!responseRequired) {
+      return NextResponse.json({
+        requestId: helpRequest.id,
+        refCode: helpRequest.refCode,
+        status: "pending",
+        responseRequired: false,
+        expiresAt: helpRequest.expiresAt.toISOString(),
+      });
+    }
 
     return NextResponse.json({
       requestId: helpRequest.id,

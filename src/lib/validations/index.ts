@@ -125,6 +125,7 @@ export const helpCreateSchema = z.object({
   question: z.string().max(50_000).optional(),
   questionPreview: z.string().max(500).optional(),
   requiresApproval: z.boolean().optional(),
+  responseRequired: z.boolean().optional().default(true),
   messageCount: z.number().int().min(0).max(1000).optional(),
 });
 

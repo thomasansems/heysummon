@@ -438,7 +438,18 @@ export async function POST(request: Request) {
           ? `\n\n*Question:* ${escapedSlackQuestion}`
           : "";
 
-        if (helpRequest.requiresApproval) {
+        if (helpRequest.responseRequired === false) {
+          const msg = `*Notification* \`${helpRequest.refCode}\`${blockQuestionLine}`;
+          await sendSlackBlocks(cfg.botToken, cfg.channelId, msg, [
+            { text: "Acknowledge", action_id: "ack_notification", value: helpRequest.id },
+          ]);
+          if (!questionFitsInBlock && escapedSlackQuestion) {
+            const followUp = questionFitsInPlain
+              ? `*Question:* ${escapedSlackQuestion}`
+              : `*Question (truncated):* ${escapedSlackQuestion.slice(0, slackPlainInlineLimit)}\u2026`;
+            await sendSlackMessage(cfg.botToken, cfg.channelId, followUp);
+          }
+        } else if (helpRequest.requiresApproval) {
           const msg = `*Approval required* \`${helpRequest.refCode}\`${blockQuestionLine}`;
           await sendSlackBlocks(cfg.botToken, cfg.channelId, msg, [
             { text: "\u2713 Approve", action_id: "approve_request", value: helpRequest.id, style: "primary" },

@@ -69,24 +69,6 @@ export function Hero() {
           The self-hosted, platform-agnostic human-in-the-loop API for AI agents. Your agent asks, a human responds, and the workflow continues — works with any framework, any channel, any model. No lock-in, fully self-hosted.
         </motion.p>
 
-        <motion.pre
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="font-mono text-left text-xs sm:text-sm bg-black/40 border border-white/10 rounded-lg p-4 sm:p-5 mb-10 max-w-2xl mx-auto overflow-x-auto"
-        >
-          <code className="block whitespace-pre text-text-body">
-{`# Gate a destructive command on a human
-heysummon "About to DROP TABLE users — approve?" && psql -c "DROP TABLE users"
-
-# Gate a deploy
-heysummon "Ship build #1423 to production?" && ./deploy.sh prod
-
-# Capture the expert's reply
-reply=$(heysummon -q "What channel should I post to?") && slack-post "$reply" "done"`}
-          </code>
-        </motion.pre>
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

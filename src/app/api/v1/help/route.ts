@@ -9,7 +9,7 @@ import { checkContentSafety, applySanitizedContent } from "@/lib/content-safety-
 import { validateApiKeyRequest, sanitizeError } from "@/lib/api-key-auth";
 import { hashDeviceToken } from "@/lib/api-key-auth";
 import { logAuditEvent, AuditEventTypes, redactApiKey } from "@/lib/audit";
-import { sendMessage, sendMessageWithButtons, escapeTelegramMarkdown } from "@/lib/adapters/telegram";
+import { sendMessage, sendLongMessage, sendMessageWithButtons, escapeTelegramMarkdown } from "@/lib/adapters/telegram";
 import { sendMessage as sendSlackMessage, sendMessageWithBlocks as sendSlackBlocks } from "@/lib/adapters/slack";
 import { sendNotification, sendNotificationWithActions } from "@/lib/adapters/openclaw";
 import { getPublicBaseUrl } from "@/lib/public-url";
@@ -350,30 +350,49 @@ export async function POST(request: Request) {
         if (!cfg.expertChatId || !cfg.botToken) return;
 
         const clientName = escapeTelegramMarkdown(key.name || "Unknown client");
-        const questionLine = question
-          ? `\n"${escapeTelegramMarkdown(question.slice(0, 500))}${question.length > 500 ? "..." : ""}"\n`
-          : "\n";
+        const escapedQuestion = question ? escapeTelegramMarkdown(question) : "";
+        // Inline if the full question + chrome fits comfortably under Telegram's
+        // 4096-char per-message limit; otherwise send the question as follow-up
+        // message(s) so the expert sees the full content instead of a truncated preview.
+        const inlineThreshold = 3500;
+        const fitsInline = escapedQuestion.length <= inlineThreshold;
+        const inlineQuestionLine = escapedQuestion ? `\n"${escapedQuestion}"\n` : "\n";
 
         if (helpRequest.requiresApproval) {
-          const msg = [
+          const headerMsg = [
             `*Approval required* from ${clientName}`,
             `Ref: \`${helpRequest.refCode}\``,
-            questionLine,
+            fitsInline ? inlineQuestionLine : "\n",
           ].join("\n");
-          await sendMessageWithButtons(cfg.botToken, cfg.expertChatId, msg, [
+          await sendMessageWithButtons(cfg.botToken, cfg.expertChatId, headerMsg, [
             [
               { text: "\u2713 Approve", callback_data: `approve:${helpRequest.id}` },
               { text: "\u2717 Deny", callback_data: `deny:${helpRequest.id}` },
             ],
           ]);
-        } else {
+          if (!fitsInline && escapedQuestion) {
+            await sendLongMessage(cfg.botToken, cfg.expertChatId, `*Question:*\n"${escapedQuestion}"`);
+          }
+        } else if (fitsInline) {
           const msg = [
             `*New help request* from ${clientName}`,
-            questionLine,
+            inlineQuestionLine,
             `Reply with:`,
             `\`/reply ${helpRequest.refCode} your answer\``,
           ].join("\n");
           await sendMessage(cfg.botToken, cfg.expertChatId, msg);
+        } else {
+          await sendMessage(
+            cfg.botToken,
+            cfg.expertChatId,
+            `*New help request* from ${clientName}\nRef: \`${helpRequest.refCode}\``,
+          );
+          await sendLongMessage(cfg.botToken, cfg.expertChatId, `*Question:*\n"${escapedQuestion}"`);
+          await sendMessage(
+            cfg.botToken,
+            cfg.expertChatId,
+            `Reply with:\n\`/reply ${helpRequest.refCode} your answer\``,
+          );
         }
         // Mark as notified
         await prisma.helpRequest.update({
@@ -397,17 +416,52 @@ export async function POST(request: Request) {
         const cfg = JSON.parse(slackChannel.config) as SlackConfig;
         if (!cfg.channelId || !cfg.botToken) return;
 
-        const questionPreview = question ? `\n\n*Question:* ${escapeSlack(question.slice(0, 500))}${question.length > 500 ? "..." : ""}` : "";
+        const escapedSlackQuestion = question ? escapeSlack(question) : "";
+        // Slack section_block text is capped at 3000 chars; plain chat.postMessage at ~40000.
+        // For approval (uses blocks), keep block compact and send the full question as a
+        // follow-up plain message when it would overflow the block limit.
+        const slackBlockInlineLimit = 2500;
+        const slackPlainInlineLimit = 35000;
+        const questionFitsInBlock = escapedSlackQuestion.length <= slackBlockInlineLimit;
+        const questionFitsInPlain = escapedSlackQuestion.length <= slackPlainInlineLimit;
+        const blockQuestionLine = escapedSlackQuestion && questionFitsInBlock
+          ? `\n\n*Question:* ${escapedSlackQuestion}`
+          : "";
+        const plainQuestionLine = escapedSlackQuestion && questionFitsInPlain
+          ? `\n\n*Question:* ${escapedSlackQuestion}`
+          : "";
 
         if (helpRequest.requiresApproval) {
-          const msg = `*Approval required* \`${helpRequest.refCode}\`${questionPreview}`;
+          const msg = `*Approval required* \`${helpRequest.refCode}\`${blockQuestionLine}`;
           await sendSlackBlocks(cfg.botToken, cfg.channelId, msg, [
             { text: "\u2713 Approve", action_id: "approve_request", value: helpRequest.id, style: "primary" },
             { text: "\u2717 Deny", action_id: "deny_request", value: helpRequest.id, style: "danger" },
           ]);
-        } else {
-          const msg = `*New help request* \`${helpRequest.refCode}\`${questionPreview}\n\nReply with:\n\`reply ${helpRequest.refCode} your answer\``;
+          if (!questionFitsInBlock && escapedSlackQuestion) {
+            const followUp = questionFitsInPlain
+              ? `*Question:* ${escapedSlackQuestion}`
+              : `*Question (truncated):* ${escapedSlackQuestion.slice(0, slackPlainInlineLimit)}\u2026`;
+            await sendSlackMessage(cfg.botToken, cfg.channelId, followUp);
+          }
+        } else if (questionFitsInPlain) {
+          const msg = `*New help request* \`${helpRequest.refCode}\`${plainQuestionLine}\n\nReply with:\n\`reply ${helpRequest.refCode} your answer\``;
           await sendSlackMessage(cfg.botToken, cfg.channelId, msg);
+        } else {
+          await sendSlackMessage(
+            cfg.botToken,
+            cfg.channelId,
+            `*New help request* \`${helpRequest.refCode}\``,
+          );
+          await sendSlackMessage(
+            cfg.botToken,
+            cfg.channelId,
+            `*Question (truncated):* ${escapedSlackQuestion.slice(0, slackPlainInlineLimit)}\u2026`,
+          );
+          await sendSlackMessage(
+            cfg.botToken,
+            cfg.channelId,
+            `Reply with:\n\`reply ${helpRequest.refCode} your answer\``,
+          );
         }
         // Mark as notified (if not already set by Telegram)
         await prisma.helpRequest.update({
@@ -431,7 +485,8 @@ export async function POST(request: Request) {
         const cfg = JSON.parse(openclawChannel.config) as OpenClawConfig & { webhookSecret?: string };
         if (!cfg.webhookUrl || !cfg.apiKey) return;
 
-        const questionPreview = question ? `\n\nQuestion: ${question.slice(0, 500)}${question.length > 500 ? "..." : ""}` : "";
+        // OpenClaw webhook payloads accept the full question — no Telegram/Slack-style block limits.
+        const questionPreview = question ? `\n\nQuestion: ${question}` : "";
         const baseUrl = getPublicBaseUrl();
         const callbackUrl = `${baseUrl}/api/adapters/openclaw/${openclawChannel.id}/webhook`;
 

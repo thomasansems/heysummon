@@ -8,6 +8,22 @@ import { Callout } from 'nextra/components'
 - **Multi-user dashboard onboarding loop.** Users added after the first instance setup are no longer bounced into the onboarding wizard. The `/api/onboarding/status` route now returns platform-global expert and API key counts (previously scoped per-user), so `OnboardingGuard` recognises that the platform is already configured and lets additional users through to the dashboard. Their `user.onboardingComplete` flag is auto-flipped to `true` on first call so the check is cheap on subsequent page loads (HEY-226)
 
 ### Added
+- **`heysummon "<question>"` one-liner.** New `ask` subcommand in the CLI (`@heysummon/app`) lets you gate any shell command on a human decision: `heysummon "Proceed?" && ./deploy.sh prod`. Positional sugar means the `ask` keyword is optional — the first non-flag argument is treated as the question. Flags: `--timeout <duration>` (default `5m`), `--channel <name>`, `-q`/`--quiet`, `--require approve` (reserved; default behaviour). Credentials come from `HEYSUMMON_API_KEY` + `HEYSUMMON_BASE_URL` in the shell env, falling back to `~/.heysummon/.env`. The landing page and quick-start both showcase the new flow (HEY-361).
+
+  **Exit-code contract:**
+
+  | Exit | Meaning |
+  |---|---|
+  | `0` | Approved (or expert replied). Expert's plaintext reply, if any, is on stdout. |
+  | `1` | Denied |
+  | `2` | Timeout — no decision within the window. `reportTimeout` is called on the server. |
+  | `3` | Config / auth error (missing creds, bad flag, invalid or unauthorised key). |
+  | `4` | Network / server error. |
+
+  Under the hood, the CLI delegates request submission and polling to the consumer SDK's `submit-and-poll` with a new `--ask-mode` flag, so existing skill scripts that rely on the `APPROVED`/`DENIED` stdout contract are unaffected.
+
+  **Trust boundary:** expert replies are untrusted input. Quote them before passing them to shells or interpreters — `$(heysummon -q …)` will interpolate whatever the expert typed, including shell metacharacters.
+
 - **n8n community node:** new `n8n-nodes-heysummon` package adds a HeySummon node to any n8n workflow. Two operations -- `Summon` (blocking ask with timeout) and `Get Status` (poll an existing request). Auth via a `HeySummon API` n8n credential type. Self-hosted base URL is a first-class input. End-to-end encryption is on by default; the lifecycle constraint between `Summon` and `Get Status` is documented on the integration page. The package ships under MIT to qualify for n8n's Verified Community Nodes program
 
 ### Changed

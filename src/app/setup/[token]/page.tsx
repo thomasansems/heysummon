@@ -25,6 +25,7 @@ export default async function SetupPage({
   const channel = record.channel as ClientChannel;
   const meta = PLATFORM_META[channel] ?? PLATFORM_META.claudecode;
   const expertName = record.expertName ?? "your expert";
+  const customLabel = channel === "custom" ? record.subChannel ?? null : null;
 
   const bound = !expired && !!(await prisma.ipEvent.findFirst({
     where: { apiKeyId: record.apiKeyId, status: "allowed" },
@@ -55,7 +56,11 @@ export default async function SetupPage({
             <h1 className="text-2xl font-bold text-foreground">HeySummon Setup</h1>
           </div>
           <p className="text-sm text-zinc-500">
-            Connect {meta.label} to expert{" "}
+            Connect{" "}
+            <span className="text-foreground font-medium">
+              {channel === "custom" && customLabel ? customLabel : meta.label}
+            </span>{" "}
+            to expert{" "}
             <span className="text-foreground font-medium">&quot;{expertName}&quot;</span>
           </p>
         </div>
@@ -104,12 +109,18 @@ export default async function SetupPage({
             {/* Main install/register command */}
             <section>
               <h2 className="mb-3 text-lg font-semibold text-foreground">
-                {channel === "openclaw" ? "2. Register expert" : "1. Install the skill"}
+                {channel === "openclaw"
+                  ? "2. Register expert"
+                  : channel === "custom"
+                    ? "1. Generic recipe"
+                    : "1. Install the skill"}
               </h2>
               <p className="mb-3 text-sm text-zinc-400">
                 {channel === "openclaw"
                   ? "Run this from your OpenClaw agent workspace:"
-                  : `Run this in your project directory:`}
+                  : channel === "custom"
+                    ? "Paste this into your runtime to export the env vars and call the HeySummon API."
+                    : "Run this in your project directory:"}
               </p>
               <div className="group relative rounded-lg border border-zinc-800 bg-zinc-950 p-4">
                 <pre className="overflow-x-auto font-mono text-sm text-green-400 whitespace-pre-wrap break-all pr-16">
@@ -118,10 +129,9 @@ export default async function SetupPage({
                 <CopyButton text={installCmd} />
               </div>
               <p className="mt-3 text-xs text-zinc-600">
-                Credentials are pre-filled. The command downloads the skill scripts, configures
-                the connection, and verifies it by calling the API. This verification step binds
-                your device IP to the API key for security -- only verified devices can send
-                requests. Make sure the full command runs to completion.
+                {channel === "custom"
+                  ? "Credentials are pre-filled. For TypeScript / JavaScript runtimes, install the @heysummon/consumer-sdk package — it handles key generation, end-to-end encryption, and polling for you."
+                  : "Credentials are pre-filled. The command downloads the skill scripts, configures the connection, and verifies it by calling the API. This verification step binds your device IP to the API key for security -- only verified devices can send requests. Make sure the full command runs to completion."}
               </p>
             </section>
 

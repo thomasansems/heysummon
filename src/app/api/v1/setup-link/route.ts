@@ -3,9 +3,12 @@ import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getPublicBaseUrl } from "@/lib/public-url";
+import { CUSTOM_CLIENT_LABEL_MAX } from "@/lib/validations";
 
 const SETUP_LINK_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 const MAX_RECENT_CONTEXTS = 10;
+// eslint-disable-next-line no-control-regex -- intentionally rejecting control chars in the label
+const CUSTOM_LABEL_DISALLOWED = /[\x00-\x1f\x7f<>]/;
 
 /**
  * POST /api/v1/setup-link
@@ -25,8 +28,8 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const { keyId, channel, subChannel, summonContext, summonContextMeta, timeout, pollInterval, globalInstall, timeoutFallback } = body as {
     keyId: string;
-    channel: "openclaw" | "claudecode" | "codex" | "gemini" | "cursor";
-    subChannel?: "telegram" | "whatsapp";
+    channel: "openclaw" | "claudecode" | "codex" | "gemini" | "cursor" | "custom";
+    subChannel?: string;
     summonContext?: string;
     summonContextMeta?: Record<string, unknown>;
     timeout?: number;
@@ -37,6 +40,35 @@ export async function POST(request: NextRequest) {
 
   if (!keyId || !channel) {
     return NextResponse.json({ error: "keyId and channel are required" }, { status: 400 });
+  }
+
+  const normalizedSubChannel =
+    typeof subChannel === "string" ? subChannel.trim() : null;
+
+  if (channel === "custom") {
+    if (!normalizedSubChannel) {
+      return NextResponse.json(
+        { error: "subChannel (client label) is required when channel is 'custom'" },
+        { status: 400 },
+      );
+    }
+    if (normalizedSubChannel.length > CUSTOM_CLIENT_LABEL_MAX) {
+      return NextResponse.json(
+        { error: `Client label must be ${CUSTOM_CLIENT_LABEL_MAX} characters or fewer` },
+        { status: 400 },
+      );
+    }
+    if (CUSTOM_LABEL_DISALLOWED.test(normalizedSubChannel)) {
+      return NextResponse.json(
+        { error: "Client label contains disallowed characters" },
+        { status: 400 },
+      );
+    }
+  } else if (normalizedSubChannel && !["telegram", "whatsapp"].includes(normalizedSubChannel)) {
+    return NextResponse.json(
+      { error: "subChannel must be 'telegram' or 'whatsapp' for this channel" },
+      { status: 400 },
+    );
   }
 
   const apiKey = await prisma.apiKey.findFirst({
@@ -60,7 +92,7 @@ export async function POST(request: NextRequest) {
       apiKeyId: apiKey.id,
       baseUrl,
       channel,
-      subChannel: subChannel ?? null,
+      subChannel: normalizedSubChannel,
       expertName: apiKey.expert?.name ?? null,
       summonContext: trimmedContext,
       timeout: timeout ?? 900,

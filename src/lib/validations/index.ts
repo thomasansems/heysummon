@@ -88,25 +88,107 @@ export const expertUpdateSchema = z.object({
 
 export const apiKeyScopeEnum = z.enum(["full", "read", "write", "admin"]);
 
-export const keyCreateSchema = z.object({
-  name: z.string().nullable().optional(),
-  expertId: z.string().optional(),
-  scope: apiKeyScopeEnum.optional(),
-  allowedIps: z.string().nullable().optional(),
-  rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
-  clientChannel: z.enum(["openclaw", "claudecode", "codex", "gemini", "cursor"]).nullable().optional(),
-  clientSubChannel: z.enum(["telegram", "whatsapp"]).nullable().optional(),
-});
+export const clientChannelValues = [
+  "openclaw",
+  "claudecode",
+  "codex",
+  "gemini",
+  "cursor",
+  "custom",
+] as const;
 
-export const keyUpdateSchema = z.object({
-  name: z.string().optional(),
-  isActive: z.boolean().optional(),
-  scope: apiKeyScopeEnum.optional(),
-  allowedIps: z.string().nullable().optional(),
-  rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
-  clientChannel: z.enum(["openclaw", "claudecode", "codex", "gemini", "cursor"]).nullable().optional(),
-  clientSubChannel: z.enum(["telegram", "whatsapp"]).nullable().optional(),
-});
+export const clientChannelEnum = z.enum(clientChannelValues);
+
+/** Free-text label for `clientChannel: "custom"`. Shown in the clients table and setup page. */
+export const CUSTOM_CLIENT_LABEL_MAX = 64;
+// eslint-disable-next-line no-control-regex -- intentionally rejecting control chars in the label
+const CUSTOM_CLIENT_LABEL_DISALLOWED = /[\x00-\x1f\x7f<>]/;
+const OPENCLAW_SUBCHANNELS = ["telegram", "whatsapp"] as const;
+
+/** Trim strings so downstream code and validation see the canonical form. */
+const trimmedNullableString = z.preprocess(
+  (v) => (typeof v === "string" ? v.trim() : v),
+  z.string().max(512).nullable().optional(),
+);
+
+function refineClientSubChannel(
+  data: { clientChannel?: string | null; clientSubChannel?: string | null },
+  ctx: z.RefinementCtx,
+): void {
+  const channel = data.clientChannel ?? null;
+  const sub = data.clientSubChannel ?? null;
+
+  if (channel === "custom") {
+    if (!sub) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["clientSubChannel"],
+        message: "Client label is required when clientChannel is 'custom'",
+      });
+      return;
+    }
+    if (sub.length > CUSTOM_CLIENT_LABEL_MAX) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["clientSubChannel"],
+        message: `Client label must be ${CUSTOM_CLIENT_LABEL_MAX} characters or fewer`,
+      });
+      return;
+    }
+    if (CUSTOM_CLIENT_LABEL_DISALLOWED.test(sub)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["clientSubChannel"],
+        message: "Client label contains disallowed characters",
+      });
+    }
+    return;
+  }
+
+  if (channel === "openclaw") {
+    if (sub && !OPENCLAW_SUBCHANNELS.includes(sub as (typeof OPENCLAW_SUBCHANNELS)[number])) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["clientSubChannel"],
+        message: `clientSubChannel for openclaw must be one of: ${OPENCLAW_SUBCHANNELS.join(", ")}`,
+      });
+    }
+    return;
+  }
+
+  // For other known channels, only allow the legacy enum values or null.
+  if (sub && !OPENCLAW_SUBCHANNELS.includes(sub as (typeof OPENCLAW_SUBCHANNELS)[number])) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["clientSubChannel"],
+      message: "clientSubChannel is only valid for 'openclaw' or 'custom' channels",
+    });
+  }
+}
+
+export const keyCreateSchema = z
+  .object({
+    name: z.string().nullable().optional(),
+    expertId: z.string().optional(),
+    scope: apiKeyScopeEnum.optional(),
+    allowedIps: z.string().nullable().optional(),
+    rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
+    clientChannel: clientChannelEnum.nullable().optional(),
+    clientSubChannel: trimmedNullableString,
+  })
+  .superRefine(refineClientSubChannel);
+
+export const keyUpdateSchema = z
+  .object({
+    name: z.string().optional(),
+    isActive: z.boolean().optional(),
+    scope: apiKeyScopeEnum.optional(),
+    allowedIps: z.string().nullable().optional(),
+    rateLimitPerMinute: z.number().int().min(1).max(10000).optional(),
+    clientChannel: clientChannelEnum.nullable().optional(),
+    clientSubChannel: trimmedNullableString,
+  })
+  .superRefine(refineClientSubChannel);
 
 // ── Request PATCH schema ──
 

@@ -1,5 +1,14 @@
 import { execSync } from "child_process";
-import { readPid, removePid, isProcessRunning } from "../lib/config";
+import {
+  readPid,
+  removePid,
+  isProcessRunning,
+  waitForProcessExit,
+  killProcessTree,
+} from "../lib/config";
+
+const GRACEFUL_EXIT_TIMEOUT_MS = 10_000;
+const FORCE_EXIT_TIMEOUT_MS = 3_000;
 
 export async function stop(): Promise<void> {
   // Check for pm2 first
@@ -26,12 +35,24 @@ export async function stop(): Promise<void> {
     return;
   }
 
-  try {
-    process.kill(pid, "SIGTERM");
+  killProcessTree(pid, "SIGTERM");
+  const gracefulExit = await waitForProcessExit(pid, GRACEFUL_EXIT_TIMEOUT_MS);
+  if (gracefulExit) {
     console.log(`  HeySummon stopped (PID: ${pid})`);
     removePid();
-  } catch (err) {
-    console.error(`  Failed to stop HeySummon (PID: ${pid}):`, err);
+    return;
+  }
+
+  console.warn(`  Process ${pid} did not exit on SIGTERM, sending SIGKILL`);
+  killProcessTree(pid, "SIGKILL");
+  const forcedExit = await waitForProcessExit(pid, FORCE_EXIT_TIMEOUT_MS);
+  if (!forcedExit) {
+    console.error(
+      `  Failed to stop HeySummon (PID: ${pid}) after SIGKILL — leaving PID file in place`
+    );
     process.exit(1);
   }
+
+  console.log(`  HeySummon stopped (PID: ${pid}, forced)`);
+  removePid();
 }

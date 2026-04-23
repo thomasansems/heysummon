@@ -2,6 +2,11 @@ import { Callout } from 'nextra/components'
 
 # Changelog
 
+## v0.2.24 -- Unreleased
+
+### Fixed
+- **NPX Full-Circle CI stability (HEY-398).** The `heysummon stop` CLI command was returning as soon as `SIGTERM` was delivered without waiting for the daemon to actually exit, and `heysummon start -d` swallowed all daemon stdout/stderr to `/dev/null`. On CI, the second `start -d` after a `stop` could therefore hit `EADDRINUSE` on port 3435 invisibly and the following health-poll step would time out. `stop` now kills the process group (so the detached Next.js daemon takes its children with it), polls for exit, escalates to `SIGKILL` after a grace period, and only removes the PID file once the process is confirmed gone. `start -d` now streams stdout/stderr to `~/.heysummon/server.log`, probes the PID after a short grace window, and exits non-zero with a log tail if the daemon crashed during startup. The CI workflow also asserts port 3435 is free between `stop` and the restart and uploads `server.log` on failure
+
 ## v0.2.23 -- 2026-04-23
 
 ### Security

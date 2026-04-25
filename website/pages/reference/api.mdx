@@ -315,6 +315,54 @@ Mark an event as delivered.
 
 ---
 
+## Setup
+
+### Verify install round-trip
+`POST /api/v1/setup/verify-roundtrip`
+
+**Header:** `x-api-key: hs_cli_*`
+
+Confirms that a freshly-installed client can resolve a real notification channel
+for its expert, end-to-end, **without sending an actual notification**. The route
+creates a synthetic `probe: true` HelpRequest, runs the same expert + channel
+resolution path the live `/api/v1/help` endpoint uses, and immediately closes the
+row. It never dispatches Telegram, Slack, or OpenClaw fan-out — it only proves
+the channel *could* dispatch.
+
+<Callout type="info">
+Probe rows are filtered out of every dashboard, events, search, and channel
+adapter query via the `nonProbe()` scope helper. They will not appear in the
+expert's inbox, in `events/pending`, in metrics, or in GDPR data exports.
+</Callout>
+
+**Request body:** none. The request is fully scoped by the `x-api-key` header.
+
+**Response `200`:**
+```json
+{ "ok": true, "expertName": "Jane Smith", "channelType": "telegram" }
+```
+
+**Errors:**
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `auth` | 401 | API key is invalid, expired, or inactive. |
+| `expert_disabled` | 404 | Expert profile is missing or currently disabled. |
+| `no_channel` | 422 | Expert has no active notification channel — add one in the dashboard before installing. |
+| `encryption_unconfigured` | 422 | Expert has channels but none are fully configured (missing tokens or transport secrets, e.g. Telegram `botToken`/`expertChatId`, Slack `botToken`/`channelId`, OpenClaw `webhookUrl`/`apiKey`). |
+| `internal` | 500 | Unexpected server error while verifying. |
+
+Error response shape:
+```json
+{ "ok": false, "code": "no_channel", "error": "Expert has no active notification channel..." }
+```
+
+This endpoint coexists with the older dashboard-polling `setup/verify` endpoint;
+the install script should prefer `verify-roundtrip` because it exercises the real
+channel-resolution path.
+
+---
+
 ## Expert availability
 
 Experts can configure availability windows. If a request is submitted outside

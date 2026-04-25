@@ -8,6 +8,7 @@ import { logAuditEvent, AuditEventTypes } from "@/lib/audit";
 import { sendMessage, escapeTelegramMarkdown } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
 import { sweepExpiredNotifications } from "@/services/notifications/expire";
+import { nonProbe } from "@/lib/help-request-scope";
 
 const DEBUG = process.env.DEBUG === "true";
 
@@ -138,7 +139,7 @@ async function handleExpertPending(expert: { id: string; userId: string }) {
   }
 
   const requests = await prisma.helpRequest.findMany({
-    where: {
+    where: nonProbe({
       expertId: expert.userId,
       // Only return requests from clients linked to THIS specific expert
       apiKey: { expertId: expert.id },
@@ -147,7 +148,7 @@ async function handleExpertPending(expert: { id: string; userId: string }) {
       expiresAt: { gt: new Date() },
       // Notification-mode rows are emitted separately as `new_notification`.
       responseRequired: true,
-    },
+    }),
     select: {
       id: true,
       refCode: true,
@@ -203,13 +204,13 @@ async function handleExpertPending(expert: { id: string; userId: string }) {
 
   // Notification-mode rows are surfaced separately as `new_notification`.
   const notifications = await prisma.helpRequest.findMany({
-    where: {
+    where: nonProbe({
       expertId: expert.userId,
       apiKey: { expertId: expert.id },
       responseRequired: false,
       status: "pending",
       expiresAt: { gt: new Date() },
-    },
+    }),
     select: {
       id: true,
       refCode: true,
@@ -268,10 +269,10 @@ async function sendDeferredNotifications(
 ) {
   // Find requests that haven't been notified yet
   const unnotified = await prisma.helpRequest.findMany({
-    where: {
+    where: nonProbe({
       id: { in: requests.map((r) => r.id) },
       notifiedExpertAt: null,
-    },
+    }),
     select: { id: true, refCode: true, questionPreview: true, apiKey: { select: { name: true } } },
   });
 
@@ -325,7 +326,7 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
   }).catch(() => {});
 
   const requests = await prisma.helpRequest.findMany({
-    where: {
+    where: nonProbe({
       apiKeyId: clientKey.id,
       expiresAt: { gt: new Date() },
       OR: [
@@ -340,7 +341,7 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
           response: { not: null },
         },
       ],
-    },
+    }),
     select: {
       id: true,
       refCode: true,
@@ -387,11 +388,11 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
 
   // Fetch cancelled requests not yet acknowledged by the consumer
   const cancelledRequests = await prisma.helpRequest.findMany({
-    where: {
+    where: nonProbe({
       apiKeyId: clientKey.id,
       status: "cancelled",
       closedAt: { not: null },
-    },
+    }),
     select: {
       id: true,
       refCode: true,
@@ -420,14 +421,14 @@ async function handleConsumerPending(clientKey: { id: string; userId: string }) 
   // on rows the ack service has flipped to `acknowledged`, and `expired` rows
   // are picked up via the `status: "expired"` branch.
   const notificationRequests = await prisma.helpRequest.findMany({
-    where: {
+    where: nonProbe({
       apiKeyId: clientKey.id,
       responseRequired: false,
       OR: [
         { acknowledgedAt: { not: null } },
         { status: "expired" },
       ],
-    },
+    }),
     select: {
       id: true,
       refCode: true,

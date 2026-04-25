@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sweepExpiredNotifications } from "@/services/notifications/expire";
+import { nonProbe } from "@/lib/help-request-scope";
 
 export async function GET(request: NextRequest) {
   // Sweep stale notification-mode requests before reading.
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     userId = user.id;
   }
 
-  const where: Record<string, unknown> = { expertId: userId };
+  const where: Record<string, unknown> = nonProbe({ expertId: userId });
   if (statusFilter === "flagged") {
     // Special filter: show requests that had content safety flags
     where.contentFlags = { not: null };

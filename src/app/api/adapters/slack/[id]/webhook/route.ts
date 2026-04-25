@@ -195,6 +195,7 @@ export async function POST(
         refCode,
         expertId: channel.profile.userId,
         status: { notIn: ["closed", "expired"] },
+        probe: false,
       },
     });
 
@@ -295,6 +296,7 @@ async function handleBlockActions(
       id: requestId,
       expertId: channel.profile.userId,
       requiresApproval: true,
+      probe: false,
     },
   });
 

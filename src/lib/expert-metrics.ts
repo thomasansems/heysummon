@@ -6,6 +6,7 @@
  */
 
 import { prisma } from "./prisma";
+import { nonProbe } from "./help-request-scope";
 
 /**
  * Recalculate and persist expert metrics.
@@ -20,23 +21,23 @@ export async function recalculateMetrics(expertId: string): Promise<void> {
   try {
     // Count responded requests
     const totalResponded = await prisma.helpRequest.count({
-      where: { expertId, status: "responded" },
+      where: nonProbe({ expertId, status: "responded" }),
     });
 
     // Count also closed requests that were previously responded
     const totalRespondedAndClosed = await prisma.helpRequest.count({
-      where: {
+      where: nonProbe({
         expertId,
         status: "closed",
         respondedAt: { not: null },
-      },
+      }),
     });
 
     const responded = totalResponded + totalRespondedAndClosed;
 
     // Count expired requests
     const totalExpired = await prisma.helpRequest.count({
-      where: { expertId, status: "expired" },
+      where: nonProbe({ expertId, status: "expired" }),
     });
 
     // Calculate reliability
@@ -45,19 +46,19 @@ export async function recalculateMetrics(expertId: string): Promise<void> {
 
     // Calculate average rating (from rated requests only)
     const ratingAgg = await prisma.helpRequest.aggregate({
-      where: {
+      where: nonProbe({
         expertId,
         rating: { not: null },
-      },
+      }),
       _avg: { rating: true },
     });
 
     // Calculate average response time (from responded requests only)
     const responseTimeAgg = await prisma.helpRequest.aggregate({
-      where: {
+      where: nonProbe({
         expertId,
         responseTimeMs: { not: null },
-      },
+      }),
       _avg: { responseTimeMs: true },
     });
 

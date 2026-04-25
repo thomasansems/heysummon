@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { nonProbe } from "./help-request-scope";
 
 /**
  * GDPR utilities for HeySummon.
@@ -179,9 +180,11 @@ export async function exportUserData(userId: string) {
 
   if (!user) return null;
 
-  // Fetch requests where user is the expert
+  // Fetch requests where user is the expert. Probe rows are synthetic verification
+  // data created by `POST /api/v1/setup/verify-roundtrip` and must never appear in
+  // a user-initiated GDPR Art. 15 export.
   const requests = await prisma.helpRequest.findMany({
-    where: { expertId: userId },
+    where: nonProbe({ expertId: userId }),
     include: {
       messageHistory: true,
     },
@@ -311,9 +314,11 @@ export async function deleteUserData(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return null;
 
-  // Count records before deletion for the summary
+  // Count records before deletion for the summary. Probe rows are excluded from
+  // the user-facing summary (they are not the user's real activity), but the
+  // `deleteMany` below still cascade-deletes them on account closure.
   const [requestCount, auditCount, apiKeyCount, profileCount] = await Promise.all([
-    prisma.helpRequest.count({ where: { expertId: userId } }),
+    prisma.helpRequest.count({ where: nonProbe({ expertId: userId }) }),
     prisma.auditLog.count({ where: { userId } }),
     prisma.apiKey.count({ where: { userId } }),
     prisma.userProfile.count({ where: { userId } }),

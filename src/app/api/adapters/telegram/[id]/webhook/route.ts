@@ -118,6 +118,7 @@ export async function POST(
         id: requestId,
         expertId: channel.profile.userId,
         requiresApproval: true,
+        probe: false,
       },
     });
 
@@ -294,6 +295,7 @@ export async function POST(
         refCode,
         expertId: channel.profile.userId,
         status: { notIn: ["closed", "expired"] },
+        probe: false,
       },
     });
 

@@ -5,12 +5,11 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/sdk.sh"
-
-[ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
+source "$SCRIPT_DIR/_lib.sh"
 
 # Persist HEYSUMMON_BASE_URL to .env if provided as env prefix
 if [ -n "$HEYSUMMON_BASE_URL" ]; then
-  ENV_FILE="$SKILL_DIR/.env"
+  ENV_FILE="$(heysummon_resolve_env_write)"
   if [ ! -f "$ENV_FILE" ] || ! grep -q "^HEYSUMMON_BASE_URL=" "$ENV_FILE" 2>/dev/null; then
     echo "HEYSUMMON_BASE_URL=$HEYSUMMON_BASE_URL" >> "$ENV_FILE"
   fi

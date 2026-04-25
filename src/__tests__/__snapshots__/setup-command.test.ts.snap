@@ -1,0 +1,146 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildInstallCommand — snapshot all skill channels > snapshot: claudecode 1`] = `
+"if [ -f '.claude/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.claude/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_abc123' ]; then
+    echo "HeySummon already configured at .claude/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .claude/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .claude/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://hs.example.com/api/v1/skill-scripts/claudecode?file=$f" \\
+    -o .claude/skills/heysummon/scripts/$f && chmod +x .claude/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://hs.example.com/api/v1/skill-scripts/claudecode?file=SKILL.md" \\
+  -o .claude/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2hzLmV4YW1wbGUuY29tJwpIRVlTVU1NT05fQVBJX0tFWT0naHNfY2xpX2FiYzEyMycKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBhc2sgd2hlbiB0cnVseSBzdHVjay4nCg==' | base64 -d > .claude/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://hs.example.com' bash .claude/skills/heysummon/scripts/add-expert.sh 'hs_cli_abc123' 'Thomas' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://hs.example.com/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_abc123" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully.""
+`;
+
+exports[`buildInstallCommand — snapshot all skill channels > snapshot: codex 1`] = `
+"if [ -f '.codex/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.codex/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_abc123' ]; then
+    echo "HeySummon already configured at .codex/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .codex/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .codex/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://hs.example.com/api/v1/skill-scripts/codex?file=$f" \\
+    -o .codex/skills/heysummon/scripts/$f && chmod +x .codex/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://hs.example.com/api/v1/skill-scripts/codex?file=SKILL.md" \\
+  -o .codex/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2hzLmV4YW1wbGUuY29tJwpIRVlTVU1NT05fQVBJX0tFWT0naHNfY2xpX2FiYzEyMycKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBhc2sgd2hlbiB0cnVseSBzdHVjay4nCg==' | base64 -d > .codex/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://hs.example.com' bash .codex/skills/heysummon/scripts/add-expert.sh 'hs_cli_abc123' 'Thomas' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://hs.example.com/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_abc123" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully.""
+`;
+
+exports[`buildInstallCommand — snapshot all skill channels > snapshot: cursor 1`] = `
+"if [ -f '.cursor/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.cursor/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_abc123' ]; then
+    echo "HeySummon already configured at .cursor/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .cursor/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .cursor/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://hs.example.com/api/v1/skill-scripts/cursor?file=$f" \\
+    -o .cursor/skills/heysummon/scripts/$f && chmod +x .cursor/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://hs.example.com/api/v1/skill-scripts/cursor?file=SKILL.md" \\
+  -o .cursor/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2hzLmV4YW1wbGUuY29tJwpIRVlTVU1NT05fQVBJX0tFWT0naHNfY2xpX2FiYzEyMycKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBhc2sgd2hlbiB0cnVseSBzdHVjay4nCg==' | base64 -d > .cursor/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://hs.example.com' bash .cursor/skills/heysummon/scripts/add-expert.sh 'hs_cli_abc123' 'Thomas' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://hs.example.com/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_abc123" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully.""
+`;
+
+exports[`buildInstallCommand — snapshot all skill channels > snapshot: gemini 1`] = `
+"if [ -f '.gemini/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.gemini/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_abc123' ]; then
+    echo "HeySummon already configured at .gemini/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .gemini/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .gemini/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://hs.example.com/api/v1/skill-scripts/gemini?file=$f" \\
+    -o .gemini/skills/heysummon/scripts/$f && chmod +x .gemini/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://hs.example.com/api/v1/skill-scripts/gemini?file=SKILL.md" \\
+  -o .gemini/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2hzLmV4YW1wbGUuY29tJwpIRVlTVU1NT05fQVBJX0tFWT0naHNfY2xpX2FiYzEyMycKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBhc2sgd2hlbiB0cnVseSBzdHVjay4nCg==' | base64 -d > .gemini/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://hs.example.com' bash .gemini/skills/heysummon/scripts/add-expert.sh 'hs_cli_abc123' 'Thomas' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://hs.example.com/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_abc123" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully.""
+`;
+
+exports[`buildInstallCommand — snapshot all skill channels > snapshot: openclaw 1`] = `
+"if [ -f 'skills/heysummon/.env' ]; then
+  existing=$( (set -a; . 'skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_abc123' ]; then
+    echo "HeySummon already configured at skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://hs.example.com/api/v1/skill-scripts/openclaw?file=$f" \\
+    -o skills/heysummon/scripts/$f && chmod +x skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://hs.example.com/api/v1/skill-scripts/openclaw?file=SKILL.md" \\
+  -o skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2hzLmV4YW1wbGUuY29tJwpIRVlTVU1NT05fQVBJX0tFWT0naHNfY2xpX2FiYzEyMycKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBhc2sgd2hlbiB0cnVseSBzdHVjay4nCg==' | base64 -d > skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://hs.example.com' bash skills/heysummon/scripts/add-expert.sh 'hs_cli_abc123' 'Thomas' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://hs.example.com/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_abc123" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully.""
+`;

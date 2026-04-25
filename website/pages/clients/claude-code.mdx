@@ -37,6 +37,14 @@ curl -sf "https://your-instance.com/api/v1/setup/st_your_token_here/command" \
 
 Or visit the setup link in your browser and copy the install command.
 
+### Idempotency & re-running
+
+The install command is idempotent. Re-running it with the **same** API key exits 0 with a "nothing to do" message and does not overwrite the existing `.env`. Re-running with a **different** API key refuses by default. To replace the install, prefix with `HEYSUMMON_FORCE=1`:
+
+```bash
+HEYSUMMON_FORCE=1 curl -sf "…/setup/st_token/command" | jq -r '.installCommand' | bash
+```
+
 ### Option C: Interactive Setup
 
 If you already have the skill files installed, run the interactive setup:

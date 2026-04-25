@@ -4,6 +4,9 @@ import { Callout } from 'nextra/components'
 
 ## v0.2.24 -- Unreleased
 
+### Fixed
+- **Claude Code plugin/curl install convergence (HEY-450).** Bundled skill scripts (`ask.sh`, `setup.sh`, `add-expert.sh`, `list-experts.sh`, `check-status.sh`) now share a single `_lib.sh` helper that resolves the canonical `.env` from `$HEYSUMMON_ENV_FILE`, then `$SKILL_DIR/.env`, then `$PWD/.claude/skills/heysummon/.env`. Previously, when scripts were resolved from Claude Code's plugin cache, `$SKILL_DIR/.env` did not exist there and the scripts failed with `HEYSUMMON_API_KEY not set` even when the project-local `.env` was present. The plugin and the curl one-liner now both read and write the same project-local `.env` at `<project>/.claude/skills/heysummon/.env`, eliminating the dual-config divergence. Documented as the canonical install location in `clients/claude-code.mdx`. No data migration needed; users who installed via plugin only and never re-ran setup should run `/heysummon:setup <link>` once to write the project-local `.env`.
+
 ### Added
 - **Install round-trip probe (HEY-445).** New `POST /api/v1/setup/verify-roundtrip` endpoint that creates a synthetic `probe: true` HelpRequest, resolves the expert's active notification channel, and returns `{ ok, expertName, channelType }` — without dispatching any Telegram/Slack/OpenClaw fan-out. Probe rows are filtered out of every dashboard, events, search, and channel-adapter list query through a new `src/lib/help-request-scope.ts` helper, so they never leak into the expert's inbox, counts, or analytics. Distinct error codes (`auth`, `expert_disabled`, `no_channel`, `encryption_unconfigured`, `internal`) let the install script branch on the failure stage. Adds a Prisma migration for `HelpRequest.probe Boolean @default(false)` (existing rows backfill to `false`). Workstream B1 of the install rebuild — the install script (B2) calls this endpoint to prove a real round-trip before declaring success.
 

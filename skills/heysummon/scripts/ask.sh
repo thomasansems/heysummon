@@ -9,9 +9,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/sdk.sh"
-
-# Load .env
-[ -f "$SKILL_DIR/.env" ] && set -a && source "$SKILL_DIR/.env" && set +a
+source "$SCRIPT_DIR/_lib.sh"
 
 QUESTION="$1"
 CONTEXT="${2:-}"

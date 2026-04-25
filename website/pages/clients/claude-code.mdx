@@ -78,16 +78,36 @@ agent keeps working. Notifications expire after 7 days if nobody acks. See
 [Consumer API Reference -> Notification Mode](/consumer/api-reference#notification-mode-notify)
 for the full contract.
 
-## Skill Location
+## Canonical install location
 
-When installed via the marketplace, the plugin lives in Claude Code's plugin cache. When installed manually, the skill files are at:
+Regardless of which entry point you used (marketplace plugin, curl install, or interactive setup), the skill's per-project credentials live at a single canonical location:
 
 ```
-.claude/skills/heysummon/
+<project-root>/.claude/skills/heysummon/.env
+```
+
+This is the only place credentials are written and the first place the bundled scripts look.
+
+**Why project-local?** Per-expert API keys are project-scoped (one project may talk to a different HeySummon instance, or a different expert, than another). `.claude/` is already the convention for Claude Code's project-local configuration. The plugin cache (`~/.claude/plugins/...`) is a Claude Code internal — read-only from the agent's POV and not appropriate for per-project secrets.
+
+The bundled scripts (`ask.sh`, `setup.sh`, `add-expert.sh`, etc.) resolve the `.env` file in this priority order at runtime:
+
+1. `$HEYSUMMON_ENV_FILE` if explicitly set
+2. `$SKILL_DIR/.env` (when scripts are run from the project-local skill folder)
+3. `$PWD/.claude/skills/heysummon/.env` (when scripts are run from the plugin cache)
+
+This means a workspace where the plugin is installed and a workspace where you ran the curl install both end up reading and writing the same project-local `.env`. Re-running setup via either entry point is a no-op or a clean overwrite — never a divergent second config.
+
+## Skill files
+
+```
+<project-root>/.claude/skills/heysummon/
   SKILL.md           # Instructions for Claude
-  scripts/           # ask.sh, setup.sh, etc.
-  .env               # API key and configuration
+  scripts/           # ask.sh, setup.sh, _lib.sh, etc.
+  .env               # API key and configuration (canonical, project-local)
 ```
+
+When installed via the marketplace plugin, the `SKILL.md` and `scripts/` may also exist inside Claude Code's plugin cache. The scripts there will still resolve `.env` from the project-local path above — so credentials never leak into the plugin cache and never diverge between cache and project copies.
 
 ## Configuration
 

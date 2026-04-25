@@ -5,7 +5,8 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/sdk.sh"
-ENV_FILE="$SKILL_DIR/.env"
+source "$SCRIPT_DIR/_lib.sh"
+ENV_FILE="$(heysummon_resolve_env_write)"
 
 echo ""
 echo "HeySummon — Skill Setup"

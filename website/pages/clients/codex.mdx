@@ -9,11 +9,18 @@ HeySummon integrates with OpenAI's Codex CLI through skill files installed in yo
 Your expert provides a setup link from the HeySummon dashboard. Visit the link in your browser and copy the install command, or run it directly:
 
 ```bash
-curl -sf "https://your-instance.com/api/v1/setup/st_your_token_here/command" \
-  | jq -r '.installCommand' | bash
+curl -fsSL "https://your-instance.com/api/v1/setup/st_your_token_here/install.sh" | bash
 ```
 
-This downloads the skill scripts, creates the `.env` file with your credentials, and verifies the connection.
+The install script is atomic: it downloads and verifies skill scripts in a staging directory, swaps them into place, writes `.env`, and proves a real round-trip to your expert before declaring success. On any failure it rolls back. See [Install Script Output](/clients/install-output) for the structured JSON schema, exit codes, and a `jq` recipe for piping the result into agent memory.
+
+#### Idempotency & re-running
+
+The install script is idempotent. Re-running with the **same** `HEYSUMMON_API_KEY` exits 0 and prints the current success JSON without overwriting `.env`. Re-running with a **different** API key refuses by default (exit `15`); pass `HEYSUMMON_FORCE=1` to replace:
+
+```bash
+HEYSUMMON_FORCE=1 curl -fsSL "https://your-instance.com/api/v1/setup/st_token/install.sh" | bash
+```
 
 ### Interactive Setup
 

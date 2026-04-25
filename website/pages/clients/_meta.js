@@ -5,4 +5,5 @@ export default {
   "gemini": "Gemini CLI",
   "openclaw": "OpenClaw",
   "custom": "Custom",
+  "install-output": "Install Script Output",
 }

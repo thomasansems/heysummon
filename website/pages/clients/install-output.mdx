@@ -1,0 +1,183 @@
+import { Callout } from 'nextra/components'
+
+# Install Script Output
+
+Every HeySummon client channel that ships a skill (Claude Code, Codex CLI, Gemini CLI, OpenClaw) installs through the same one-liner:
+
+```bash
+curl -fsSL "https://your-instance.com/api/v1/setup/st_your_token_here/install.sh" | bash
+```
+
+The install script is **atomic** -- it stages, downloads, verifies, swaps, and round-trips against your expert before declaring success. On any failure it rolls back to the previous state. Whether it succeeds or fails, the script always emits a single JSON object on **stdout** so the calling agent can pipe the result straight into its memory. Human-readable progress goes to **stderr**.
+
+<Callout type="info">
+  This page documents the **v1** output contract. Older skill installs (the
+  `…/command | jq -r '.installCommand' | bash` flow) do not produce this JSON
+  and are deprecated.
+</Callout>
+
+## Success JSON (exit 0)
+
+```json
+{
+  "ok": true,
+  "version": "1",
+  "skillDir": "/abs/path/.claude/skills/heysummon",
+  "envPath": "/abs/path/.claude/skills/heysummon/.env",
+  "channel": "claudecode",
+  "expertName": "Thomas",
+  "baseUrl": "https://your-instance.com",
+  "summonCommand": "bash .claude/skills/heysummon/scripts/ask.sh \"<question>\"",
+  "firstAction": "Run summonCommand to confirm the round-trip lands in your expert's dashboard.",
+  "verifyRoundTrip": { "ok": true, "channelType": "telegram" }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `ok` | `true` | Always `true` on success. |
+| `version` | string | Schema version. Currently `"1"`. |
+| `skillDir` | string | Absolute path to the installed skill directory. |
+| `envPath` | string | Absolute path to the generated `.env` (chmod 600). |
+| `channel` | string | Channel slug: `claudecode`, `codex`, `gemini`, `openclaw`. |
+| `expertName` | string | Display name of the expert this install is bound to. |
+| `baseUrl` | string | HeySummon instance URL the skill talks to. |
+| `summonCommand` | string | Copy-pasteable command an agent can run to summon the expert. |
+| `firstAction` | string | Suggested next step for the agent (one short sentence). |
+| `verifyRoundTrip.ok` | `true` | Confirms the platform reached at least one configured notification channel. |
+| `verifyRoundTrip.channelType` | string | Which channel resolved (e.g. `telegram`, `slack`, `openclaw`). |
+
+The round-trip uses a **probe** request: the install script calls `POST /api/v1/setup/verify-roundtrip`, the server resolves the expert's notification channel, then immediately closes the request without sending a Telegram/Slack message or surfacing it in the dashboard.
+
+## Failure JSON (exit ≠ 0)
+
+```json
+{
+  "ok": false,
+  "version": "1",
+  "stage": "verify-roundtrip",
+  "code": "no_channel",
+  "remediation": "Add a notification channel in dashboard before installing.",
+  "skillDir": null,
+  "rolledBack": true
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `ok` | `false` | Always `false` on failure. |
+| `version` | string | Schema version. Currently `"1"`. |
+| `stage` | string | Where the install failed -- see [Stages](#stages) below. |
+| `code` | string | Machine-readable error code -- see [Error codes](#error-codes) below. |
+| `remediation` | string | Human-readable next step (single sentence). |
+| `skillDir` | string \| null | Absolute path to skill dir if it survived, otherwise `null`. |
+| `rolledBack` | boolean | `true` when the staged install was undone (skill dir restored to its prior state). |
+
+## Exit codes
+
+The install script exits with a stable code so wrapping scripts can branch on the failure mode:
+
+| Exit | Stage | Meaning |
+|---|---|---|
+| `0` | -- | Success, or already-configured (idempotent re-run). |
+| `2` | `preflight` | Missing dependency (`curl`, `jq`, `bash >= 3.2`) or no network. |
+| `3` | `token` | Setup token invalid, expired, or already bound to another machine. |
+| `4` | `config` | `install-config` fetch failed. |
+| `5` | `download` | One or more skill files failed to download. |
+| `12` | `checksum` | Downloaded file did not match the server-provided sha256. |
+| `13` | `swap` | Atomic swap into the final `skillDir` failed. |
+| `14` | `lock` | Another install is already running for the same `skillDir`. |
+| `15` | `force` | `skillDir` exists with a different `HEYSUMMON_API_KEY`; re-run with `HEYSUMMON_FORCE=1`. |
+| `20` | `verify-roundtrip` | API key invalid / expired / inactive (`code: "auth"`). |
+| `21` | `verify-roundtrip` | No active notification channel for the expert (`code: "no_channel"`). |
+| `22` | `verify-roundtrip` | Expert has no encryption keypair (`code: "encryption_unconfigured"`). |
+| `23` | `verify-roundtrip` | Expert account is disabled (`code: "expert_disabled"`). |
+| `29` | `verify-roundtrip` | Server-side error (`code: "internal"`). |
+
+## Stages
+
+Stage names are stable and used in the failure JSON's `stage` field:
+
+- `preflight` -- dependency / network checks
+- `token` -- setup token validation
+- `config` -- `install-config` endpoint fetch
+- `download` -- pulling skill scripts to the staging directory
+- `checksum` -- sha256 verification of staged files
+- `swap` -- atomic move of staging into `skillDir`
+- `verify-roundtrip` -- probe call to `/api/v1/setup/verify-roundtrip`
+- `lock` -- concurrent install detected
+- `force` -- existing install with a different API key
+
+## Error codes (`verify-roundtrip` stage)
+
+| `code` | HTTP | When | Remediation |
+|---|---|---|---|
+| `auth` | 401 | API key invalid / expired / inactive | Token may be expired -- regenerate from dashboard. |
+| `expert_disabled` | 404 | Expert profile missing or disabled | Expert account isn't active -- contact admin. |
+| `no_channel` | 422 | No active Telegram / Slack / OpenClaw channel | Add a notification channel in dashboard before installing. |
+| `encryption_unconfigured` | 422 | Expert lacks an encryption keypair | Expert encryption isn't set up -- open dashboard onboarding. |
+| `internal` | 500 | Unexpected server error | Server error -- try again or check status. |
+
+## Idempotency & re-running
+
+The install script is idempotent:
+
+- `skillDir/.env` exists with the **same** `HEYSUMMON_API_KEY` -> the script prints the current success JSON and exits `0` without touching anything.
+- `skillDir/.env` exists with a **different** `HEYSUMMON_API_KEY` -> the script refuses with exit `15`. Re-run with `HEYSUMMON_FORCE=1` to overwrite:
+
+  ```bash
+  HEYSUMMON_FORCE=1 curl -fsSL "https://your-instance.com/api/v1/setup/st_token/install.sh" | bash
+  ```
+
+- A second concurrent install for the same `skillDir` exits `14` while the first holds the lock.
+
+## jq recipe -- store install output in agent memory
+
+The success JSON is structured so an agent can stash the four fields it needs (`skillDir`, `expertName`, `summonCommand`, `firstAction`) in one shot:
+
+```bash
+INSTALL_JSON="$(
+  curl -fsSL "https://your-instance.com/api/v1/setup/st_your_token_here/install.sh" \
+    | bash
+)" || {
+  echo "Install failed:" >&2
+  echo "$INSTALL_JSON" | jq . >&2
+  exit 1
+}
+
+# Persist the four memory-relevant fields to ~/.agent/memory/heysummon.json
+mkdir -p ~/.agent/memory
+echo "$INSTALL_JSON" | jq '{
+  skillDir,
+  expertName,
+  summonCommand,
+  firstAction
+}' > ~/.agent/memory/heysummon.json
+```
+
+For Claude Code's auto-memory:
+
+```bash
+echo "$INSTALL_JSON" | jq -r '
+  "HeySummon installed at \(.skillDir).\n" +
+  "Expert: \(.expertName).\n" +
+  "To summon: \(.summonCommand)\n" +
+  "First action: \(.firstAction)"
+' >> ~/.claude/CLAUDE.md
+```
+
+## Network & proxies
+
+The script uses `curl`, which honours `HTTPS_PROXY`, `HTTP_PROXY`, and `NO_PROXY` automatically. No proxy-specific flags are required.
+
+## Curl-piped-to-bash safety
+
+The script:
+
+- Runs under `set -euo pipefail` from the first line.
+- Stages everything in a sibling temp dir (`<skillDir>.staging.XXXX`) on the same filesystem -- no partial writes ever land in `skillDir`.
+- Verifies sha256 for every downloaded file before moving it.
+- Rolls back from `<skillDir>.bak.<ts>` on any post-swap failure.
+- Never `eval`s server responses.
+
+If the network drops mid-install, the staging dir and (if applicable) the backup are restored on `EXIT` -- you can safely re-run the same one-liner.

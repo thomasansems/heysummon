@@ -4,29 +4,38 @@ HeySummon integrates with OpenClaw through the ClaWhub marketplace. OpenClaw age
 
 ## Installation
 
-### Via ClaWhub (Recommended)
+### Via Setup Link (Recommended)
 
-Install the HeySummon skill from ClaWhub:
+Your expert provides a setup link from the HeySummon dashboard. Run the install command from the directory that holds (or will hold) your `skills/heysummon/` folder -- typically the OpenClaw skill root. The install runs from your current working directory and no longer assumes `~/clawd`:
+
+```bash
+curl -fsSL "https://your-instance.com/api/v1/setup/st_your_token_here/install.sh" | bash
+```
+
+The install script is atomic: it stages skill scripts in a sibling temp directory, verifies sha256 checksums, swaps them into `skills/heysummon/`, writes `.env` (single-quoted values so multi-line summon contexts round-trip cleanly), registers your expert, and proves a real round-trip before declaring success. On any failure it rolls back. See [Install Script Output](/clients/install-output) for the structured JSON schema, exit codes, and a `jq` recipe for piping the result into agent memory.
+
+#### Idempotency & re-running
+
+The install is idempotent:
+
+- If `skills/heysummon/.env` exists with the **same** `HEYSUMMON_API_KEY`, the install exits 0 and prints the current success JSON without overwriting anything.
+- If `.env` exists with a **different** `HEYSUMMON_API_KEY`, the install refuses by default (exit `15`). Re-run with `HEYSUMMON_FORCE=1` to replace:
+
+  ```bash
+  HEYSUMMON_FORCE=1 curl -fsSL "https://your-instance.com/api/v1/setup/st_token/install.sh" | bash
+  ```
+
+This protects against the previous failure mode where a half-completed install (different key, partial scripts) silently overwrote secrets.
+
+### Via ClaWhub (alternative)
+
+If you prefer the ClaWhub installer for the skill files, you can still run:
 
 ```bash
 npx clawhub@latest install heysummon
 ```
 
-Then register your expert using the setup link from the HeySummon dashboard:
-
-```bash
-cd ~/clawd && HEYSUMMON_BASE_URL="https://your-instance.com" \
-  bash skills/heysummon/scripts/add-expert.sh hs_cli_your_key_here 'ExpertName'
-```
-
-### Via Setup Link
-
-Your expert provides a setup link from the HeySummon dashboard. Visit the link in your browser for platform-specific instructions, or use the API directly:
-
-```bash
-curl -sf "https://your-instance.com/api/v1/setup/st_your_token_here/command" \
-  | jq -r '.installCommand' | bash
-```
+…and then run the setup command above to register your expert and write `.env`.
 
 ### OpenClaw Sub-Channels
 

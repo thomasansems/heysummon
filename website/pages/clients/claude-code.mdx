@@ -31,11 +31,20 @@ The setup link is provided by the expert and is valid for 24 hours.
 If you prefer not to use the marketplace, you can install directly from a terminal:
 
 ```bash
-curl -sf "https://your-instance.com/api/v1/setup/st_your_token_here/command" \
-  | jq -r '.installCommand' | bash
+curl -fsSL "https://your-instance.com/api/v1/setup/st_your_token_here/install.sh" | bash
 ```
 
 Or visit the setup link in your browser and copy the install command.
+
+The install script is atomic, verifies a real round-trip to your expert before declaring success, and emits a structured JSON object on stdout. See [Install Script Output](/clients/install-output) for the success / failure JSON schemas, exit codes, and a `jq` recipe for piping the result into agent memory.
+
+#### Idempotency & re-running
+
+The install script is idempotent. Re-running with the **same** `HEYSUMMON_API_KEY` exits 0 and prints the current success JSON without overwriting `.env`. Re-running with a **different** API key refuses by default (exit `15`); pass `HEYSUMMON_FORCE=1` to replace:
+
+```bash
+HEYSUMMON_FORCE=1 curl -fsSL "https://your-instance.com/api/v1/setup/st_token/install.sh" | bash
+```
 
 ### Option C: Interactive Setup
 

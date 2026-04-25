@@ -131,6 +131,103 @@ mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 info "Installing into: $INSTALL_DIR"
 
+# ── Detect existing installation & run update path ──
+
+is_existing_install() {
+  [[ -f "$INSTALL_DIR/.env" && -f "$INSTALL_DIR/docker-compose.yml" ]]
+}
+
+detect_profile() {
+  local running=""
+  running=$(docker compose ps --services --filter status=running 2>/dev/null || true)
+  if [[ -n "$running" ]]; then
+    if grep -qw caddy <<<"$running"; then echo "caddy"; return; fi
+    if grep -qE 'cloudflared|cloudflare-tunnel' <<<"$running"; then echo "cloudflare"; return; fi
+    if grep -qw tailscale <<<"$running"; then echo "tailscale"; return; fi
+  fi
+  if grep -qE '^DOMAIN=..+' .env 2>/dev/null; then echo "caddy"; return; fi
+  if grep -qE '^CLOUDFLARE_TUNNEL_TOKEN=..+' .env 2>/dev/null; then echo "cloudflare"; return; fi
+  if grep -qE '^TAILSCALE_AUTHKEY=..+' .env 2>/dev/null; then echo "tailscale"; return; fi
+  echo "direct"
+}
+
+run_update() {
+  step "Existing installation detected -- running update"
+  info "Directory: $INSTALL_DIR"
+
+  local profile
+  profile=$(detect_profile)
+  info "Detected profile: ${BOLD}${profile}${NC}"
+
+  # Refresh docker-compose.yml from GitHub (back up current one)
+  info "Checking docker-compose.yml for updates..."
+  if curl -fsSL "$REPO_RAW/docker-compose.yml" -o docker-compose.yml.new; then
+    if ! cmp -s docker-compose.yml docker-compose.yml.new; then
+      cp docker-compose.yml "docker-compose.yml.bak.$(date +%Y%m%d%H%M%S)"
+      mv docker-compose.yml.new docker-compose.yml
+      ok "docker-compose.yml updated (previous version backed up)"
+    else
+      rm -f docker-compose.yml.new
+      info "docker-compose.yml already up to date"
+    fi
+  else
+    warn "Could not download latest docker-compose.yml -- using existing file"
+    rm -f docker-compose.yml.new
+  fi
+
+  local compose_args=()
+  if [[ "$profile" != "direct" ]]; then
+    compose_args=(--profile "$profile")
+  fi
+
+  echo ""
+  step "Pulling latest images"
+  docker compose "${compose_args[@]}" pull
+
+  echo ""
+  step "Restarting HeySummon"
+  docker compose "${compose_args[@]}" up -d
+
+  # Extract URL from .env for health check + final message
+  local url=""
+  url=$(grep -E '^HEYSUMMON_PUBLIC_URL=' .env | head -n1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+  if [[ -z "$url" ]]; then
+    url=$(grep -E '^NEXTAUTH_URL=' .env | head -n1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+  fi
+
+  if [[ -n "$url" ]]; then
+    echo ""
+    info "Verifying public access..."
+    sleep 5
+    if curl -fsSL --max-time 10 "${url}/api/v1/health" >/dev/null 2>&1; then
+      ok "Up and running: ${url}"
+    else
+      warn "Could not reach ${url}/api/v1/health yet."
+      warn "Tail logs with: ${BOLD}cd ${INSTALL_DIR} && docker compose logs -f${NC}"
+    fi
+  fi
+
+  # Prune dangling images (non-fatal)
+  docker image prune -f >/dev/null 2>&1 || true
+
+  echo ""
+  echo -e "  ${GREEN}${BOLD}HeySummon updated!${NC}"
+  echo ""
+  echo -e "  ${DIM}|${NC}  Dashboard:  ${BOLD}${url:-http://<your-server-ip>:3445}${NC}"
+  echo -e "  ${DIM}|${NC}  .env:       ${BOLD}${INSTALL_DIR}/.env${NC}"
+  echo -e "  ${DIM}|${NC}  Stop:       ${BOLD}docker compose down${NC}"
+  echo -e "  ${DIM}|${NC}  Logs:       ${BOLD}docker compose logs -f${NC}"
+  echo -e "  ${DIM}|${NC}"
+  echo -e "  ${DIM}|${NC}  ${DIM}Re-run the installer any time to update to the latest image.${NC}"
+  echo -e "  ${DIM}|${NC}  ${DIM}Force a fresh install: HEYSUMMON_FORCE_INSTALL=1 (or remove ${INSTALL_DIR})${NC}"
+  echo ""
+  exit 0
+}
+
+if is_existing_install && [[ "${HEYSUMMON_FORCE_INSTALL:-0}" != "1" ]]; then
+  run_update
+fi
+
 # ── Download compose file ────────────────────────────
 
 if [[ -f docker-compose.yml ]]; then
@@ -498,6 +595,6 @@ if [[ "$CONFIGURED_PROFILE" == "caddy" ]]; then
 fi
 echo -e "  ${DIM}|${NC}"
 echo -e "  ${DIM}|${NC}  Stop:   ${BOLD}docker compose down${NC}"
-echo -e "  ${DIM}|${NC}  Update: ${BOLD}docker compose pull && docker compose up -d${NC}"
+echo -e "  ${DIM}|${NC}  Update: ${BOLD}re-run the installer (or: docker compose pull && docker compose up -d)${NC}"
 echo -e "  ${DIM}|${NC}"
 echo ""

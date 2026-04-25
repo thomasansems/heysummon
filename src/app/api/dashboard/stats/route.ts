@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
+import { nonProbe } from "@/lib/help-request-scope";
 
 export async function GET() {
   const session = await auth();
@@ -22,27 +23,27 @@ export async function GET() {
   const profileIds = expertProfiles.map((p) => p.id);
 
   const [total, open, resolvedCount, expiredCount, missedCount, recentRequests, prevRequests, topClientsRaw] = await Promise.all([
-    prisma.helpRequest.count({ where: { expertId: userId } }),
-    prisma.helpRequest.count({ where: { expertId: userId, status: { in: ["pending", "active"] } } }),
-    prisma.helpRequest.count({ where: { expertId: userId, status: "responded" } }),
-    prisma.helpRequest.count({ where: { expertId: userId, status: "expired" } }),
+    prisma.helpRequest.count({ where: nonProbe({ expertId: userId }) }),
+    prisma.helpRequest.count({ where: nonProbe({ expertId: userId, status: { in: ["pending", "active"] } }) }),
+    prisma.helpRequest.count({ where: nonProbe({ expertId: userId, status: "responded" }) }),
+    prisma.helpRequest.count({ where: nonProbe({ expertId: userId, status: "expired" }) }),
     profileIds.length > 0
       ? prisma.missedRequest.count({ where: { expertId: { in: profileIds } } })
       : 0,
     // Last 7 days
     prisma.helpRequest.findMany({
-      where: { expertId: userId, createdAt: { gte: sevenDaysAgo } },
+      where: nonProbe({ expertId: userId, createdAt: { gte: sevenDaysAgo } }),
       select: { createdAt: true, deliveredAt: true, status: true },
     }),
     // Previous 7 days (for comparison)
     prisma.helpRequest.findMany({
-      where: { expertId: userId, createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } },
+      where: nonProbe({ expertId: userId, createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } }),
       select: { createdAt: true, deliveredAt: true },
     }),
     // Top 5 clients by request count (all time)
     prisma.helpRequest.groupBy({
       by: ["apiKeyId"],
-      where: { expertId: userId, apiKeyId: { not: undefined } },
+      where: nonProbe({ expertId: userId, apiKeyId: { not: undefined } }),
       _count: { id: true },
       orderBy: { _count: { id: "desc" } },
       take: 5,
@@ -111,7 +112,7 @@ export async function GET() {
 
   // Open requests with message preview + direction counts
   const allOpenRequests = await prisma.helpRequest.findMany({
-    where: { expertId: userId, status: { in: ["pending", "active"] } },
+    where: nonProbe({ expertId: userId, status: { in: ["pending", "active"] } }),
     select: {
       id: true,
       refCode: true,

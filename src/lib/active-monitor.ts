@@ -14,6 +14,7 @@ import { transitionRequest, StaleStateError, type RequestStatus } from "./reques
 import { buildRetryUpdate } from "./delivery-retry";
 import { logAuditEvent, AuditEventTypes } from "./audit";
 import { recalculateMetrics } from "./expert-metrics";
+import { nonProbe } from "./help-request-scope";
 
 const INTERVAL_MS = parseInt(
   process.env.HEYSUMMON_MONITOR_INTERVAL_MS ?? "300000",
@@ -32,10 +33,10 @@ async function expireStaleRequests(): Promise<number> {
   const now = new Date();
 
   const stale = await prisma.helpRequest.findMany({
-    where: {
+    where: nonProbe({
       status: { in: ["pending", "active"] },
       expiresAt: { lt: now },
-    },
+    }),
     select: { id: true, status: true, expertId: true },
     take: 100,
   });
@@ -74,10 +75,10 @@ async function retryDeliveries(): Promise<number> {
   const now = new Date();
 
   const retryable = await prisma.helpRequest.findMany({
-    where: {
+    where: nonProbe({
       deliveryStatus: "retrying",
       deliveryNextRetryAt: { lt: now },
-    },
+    }),
     select: { id: true, deliveryRetryCount: true, expertId: true, refCode: true },
     take: 50,
   });
@@ -124,12 +125,12 @@ async function escalateRequests(): Promise<number> {
   const threshold = new Date(Date.now() - ESCALATION_THRESHOLD_MS);
 
   const unacked = await prisma.helpRequest.findMany({
-    where: {
+    where: nonProbe({
       status: "pending",
       deliveredAt: null,
       escalatedAt: null,
       createdAt: { lt: threshold },
-    },
+    }),
     select: { id: true, expertId: true, refCode: true },
     take: 50,
   });

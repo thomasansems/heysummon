@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateApiKeyRequest } from "@/lib/api-key-auth";
+import { nonProbe } from "@/lib/help-request-scope";
 
 /**
  * GET /api/v1/expert/stats — pending count, open requests, total messages
@@ -24,16 +25,16 @@ export async function GET(request: NextRequest) {
   // Count requests by status
   const [pending, open, responded, total] = await Promise.all([
     prisma.helpRequest.count({
-      where: { expertId: expert.userId, status: "pending" },
+      where: nonProbe({ expertId: expert.userId, status: "pending" }),
     }),
     prisma.helpRequest.count({
-      where: { expertId: expert.userId, status: "open" },
+      where: nonProbe({ expertId: expert.userId, status: "open" }),
     }),
     prisma.helpRequest.count({
-      where: { expertId: expert.userId, status: "responded" },
+      where: nonProbe({ expertId: expert.userId, status: "responded" }),
     }),
     prisma.helpRequest.count({
-      where: { expertId: expert.userId },
+      where: nonProbe({ expertId: expert.userId }),
     }),
   ]);
 

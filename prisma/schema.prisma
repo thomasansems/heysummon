@@ -253,6 +253,12 @@ model HelpRequest {
   // Client timeout tracking
   clientTimedOutAt       DateTime? // When the consumer's blocking poll timed out without a response
 
+  // Setup probe — synthetic round-trip verification rows used by the install script.
+  // Probe rows are created with status "closed" and never trigger fan-out;
+  // they are filtered out of every dashboard / events / search list query
+  // via src/lib/help-request-scope.ts.
+  probe                  Boolean   @default(false)
+
   // Channel adapter fields
   expertChannelId        String?
   expertChannel          ExpertChannel? @relation(fields: [expertChannelId], references: [id])

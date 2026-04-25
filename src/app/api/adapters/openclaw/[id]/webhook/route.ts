@@ -128,6 +128,7 @@ async function handleApproval(
       id: requestId,
       expertId: channel.profile.userId,
       requiresApproval: true,
+      probe: false,
     },
   });
 
@@ -215,6 +216,7 @@ async function handleReply(
       id: requestId,
       expertId: channel.profile.userId,
       status: { notIn: ["closed", "expired"] },
+      probe: false,
     },
   });
 

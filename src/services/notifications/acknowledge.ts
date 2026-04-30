@@ -5,6 +5,7 @@ export type AcknowledgeSource =
   | "dashboard"
   | "telegram"
   | "slack"
+  | "discord"
   | "openclaw";
 
 export type AcknowledgeResult =

@@ -7,6 +7,12 @@ export interface HelpRequestEvent {
   expertName: string;
   consumerLabel?: string;
   createdAt: string;
+  /**
+   * Optional link back to the request in the expert dashboard.
+   * Channels with strict outbound payload requirements (e.g. Discord)
+   * use this to keep encrypted question text off the wire.
+   */
+  dashboardUrl?: string;
 }
 
 export interface FormattedMessage {

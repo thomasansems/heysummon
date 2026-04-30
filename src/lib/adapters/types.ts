@@ -22,9 +22,22 @@ export interface SlackConfig {
   botUserId?: string;
 }
 
-export type ChannelType = "openclaw" | "telegram" | "slack";
+export interface DiscordConfig {
+  botToken: string;
+  applicationId: string;
+  publicKey: string;
+  guildId: string;
+  channelId: string;
+  botUserId?: string;
+}
 
-export type ChannelConfig = OpenClawConfig | TelegramConfig | SlackConfig;
+export type ChannelType = "openclaw" | "telegram" | "slack" | "discord";
+
+export type ChannelConfig =
+  | OpenClawConfig
+  | TelegramConfig
+  | SlackConfig
+  | DiscordConfig;
 
 export interface ChannelAdapter {
   type: ChannelType;

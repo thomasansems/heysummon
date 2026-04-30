@@ -2,6 +2,7 @@ import type { ChannelAdapter, ChannelType } from "./types";
 import { telegramAdapter } from "./telegram";
 import { whatsappAdapter } from "./whatsapp";
 import { slackAdapter } from "./slack";
+import { discordAdapter } from "./discord";
 
 export { CHANNEL_TYPES } from "./types";
 export type { ChannelAdapter, ChannelType, HelpRequestEvent, FormattedMessage } from "./types";
@@ -10,12 +11,13 @@ const adapters: Record<string, ChannelAdapter> = {
   telegram: telegramAdapter,
   whatsapp: whatsappAdapter,
   slack: slackAdapter,
+  discord: discordAdapter,
 };
 
 /**
  * Get the adapter for a given channel type.
  * Returns undefined for channel types that don't have an adapter yet
- * (signal, discord, email — coming soon).
+ * (signal, email — coming soon).
  */
 export function getAdapter(type: ChannelType | string): ChannelAdapter | undefined {
   return adapters[type];

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendMessage, sendPhoto, answerCallbackQuery, editMessageText } from "@/lib/adapters/telegram";
 import type { TelegramConfig } from "@/lib/adapters/types";
+import { acknowledgeNotification } from "@/services/notifications/acknowledge";
 
 /** Max length for an expert reply via Telegram */
 const MAX_REPLY_LENGTH = 10_000;
@@ -99,6 +100,50 @@ export async function POST(
 
     if (!cbData) {
       await answerCallbackQuery(config.botToken, cbq.id).catch(() => {});
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── ack:{requestId} ── Notification-mode acknowledge ──
+    const ackMatch = cbData.match(/^ack:(.+)$/);
+    if (ackMatch) {
+      const requestId = ackMatch[1];
+      const result = await acknowledgeNotification({
+        requestId,
+        expertUserId: channel.profile.userId,
+        source: "telegram",
+      });
+
+      if (!result.ok) {
+        const toast =
+          result.code === "NOT_APPLICABLE" ? "Not applicable" : "Request not found";
+        const messageText =
+          result.code === "NOT_APPLICABLE"
+            ? "Notification not applicable -- this request expects a reply."
+            : "Notification not found.";
+        await answerCallbackQuery(config.botToken, cbq.id, toast).catch(() => {});
+        if (cbq.message) {
+          await editMessageText(
+            config.botToken,
+            cbChatId,
+            cbq.message.message_id,
+            messageText,
+          ).catch(() => {});
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      const label = result.alreadyAcknowledged
+        ? "Already acknowledged"
+        : "Acknowledged";
+      await answerCallbackQuery(config.botToken, cbq.id, label).catch(() => {});
+      if (cbq.message) {
+        await editMessageText(
+          config.botToken,
+          cbChatId,
+          cbq.message.message_id,
+          `Notification -- ${label}`,
+        ).catch(() => {});
+      }
       return NextResponse.json({ ok: true });
     }
 

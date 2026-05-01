@@ -365,7 +365,22 @@ export async function POST(request: Request) {
         const fitsInline = escapedQuestion.length <= inlineThreshold;
         const inlineQuestionLine = escapedQuestion ? `\n"${escapedQuestion}"\n` : "\n";
 
-        if (helpRequest.requiresApproval) {
+        if (helpRequest.responseRequired === false) {
+          // Notification mode: render preview-only block with single Acknowledge
+          // button. No /reply instruction, no follow-up of the full question --
+          // notifications are heads-ups, not requests for input.
+          const previewSource = question ?? helpRequest.questionPreview ?? "";
+          const previewText = previewSource.slice(0, 200);
+          const escapedPreview = previewText ? escapeTelegramMarkdown(previewText) : "";
+          const previewLine = escapedPreview ? `\n"${escapedPreview}"\n` : "\n";
+          const headerMsg = [
+            `*Notification* from ${clientName}`,
+            previewLine,
+          ].join("\n");
+          await sendMessageWithButtons(cfg.botToken, cfg.expertChatId, headerMsg, [
+            [{ text: "Acknowledge", callback_data: `ack:${helpRequest.id}` }],
+          ]);
+        } else if (helpRequest.requiresApproval) {
           const headerMsg = [
             `*Approval required* from ${clientName}`,
             `Ref: \`${helpRequest.refCode}\``,
@@ -508,7 +523,21 @@ export async function POST(request: Request) {
         const baseUrl = getPublicBaseUrl();
         const callbackUrl = `${baseUrl}/api/adapters/openclaw/${openclawChannel.id}/webhook`;
 
-        if (helpRequest.requiresApproval) {
+        if (helpRequest.responseRequired === false) {
+          await sendNotificationWithActions(
+            cfg.webhookUrl,
+            cfg.apiKey,
+            cfg.webhookSecret ?? "",
+            callbackUrl,
+            {
+              requestId: helpRequest.id,
+              refCode: helpRequest.refCode ?? "",
+              message: `Notification ${helpRequest.refCode}${questionPreview}`,
+              type: "notification_required",
+              actions: [{ id: "ack", label: "Acknowledge" }],
+            },
+          );
+        } else if (helpRequest.requiresApproval) {
           await sendNotificationWithActions(
             cfg.webhookUrl,
             cfg.apiKey,
@@ -518,6 +547,10 @@ export async function POST(request: Request) {
               requestId: helpRequest.id,
               refCode: helpRequest.refCode ?? "",
               message: `Approval required ${helpRequest.refCode}${questionPreview}`,
+              actions: [
+                { id: "approve", label: "✓ Approve" },
+                { id: "deny", label: "✗ Deny" },
+              ],
             },
           );
         } else {

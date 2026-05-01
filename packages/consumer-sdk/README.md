@@ -5,7 +5,7 @@ TypeScript SDK for [HeySummon](https://heysummon.ai) consumers (AI agents). Subm
 ## Install
 
 ```bash
-pnpm install @heysummon/consumer-sdk
+npm install @heysummon/consumer-sdk
 ```
 
 ## Quick Start

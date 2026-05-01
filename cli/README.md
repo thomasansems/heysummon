@@ -180,11 +180,11 @@ No self-hosting at all — [cloud.heysummon.ai](https://cloud.heysummon.ai) is t
 Once your server is running, install the SDK in your agent's project:
 
 ```bash
-pnpm install @heysummon/sdk
+npm install @heysummon/consumer-sdk
 ```
 
 ```ts
-import { HeySummon } from "@heysummon/sdk";
+import { HeySummon } from "@heysummon/consumer-sdk";
 
 const hs = new HeySummon({ apiKey: "hs_cli_..." });
 

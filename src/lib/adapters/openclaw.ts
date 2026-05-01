@@ -32,14 +32,21 @@ export async function sendNotification(
   }
 }
 
+export const QUERY_ACTIONS = ["approve", "deny", "ack"] as const;
+export type QueryAction = (typeof QUERY_ACTIONS)[number];
+
+function isQueryAction(value: string): value is QueryAction {
+  return (QUERY_ACTIONS as readonly string[]).includes(value);
+}
+
 /**
- * Compute the HMAC-SHA256 signature embedded in approve/deny action URLs.
+ * Compute the HMAC-SHA256 signature embedded in action URLs.
  * The signature binds the action and requestId so query-param callbacks
  * cannot be forged or replayed across requests.
  */
 export function signQueryAction(
   webhookSecret: string,
-  action: "approve" | "deny",
+  action: QueryAction,
   requestId: string,
 ): string {
   return crypto
@@ -56,7 +63,7 @@ export function verifyQueryActionSignature(
   signature: string,
 ): boolean {
   if (!webhookSecret || !signature) return false;
-  if (action !== "approve" && action !== "deny") return false;
+  if (!isQueryAction(action)) return false;
   const expected = signQueryAction(webhookSecret, action, requestId);
   const expectedBuf = Buffer.from(expected);
   const sigBuf = Buffer.from(signature);
@@ -64,7 +71,14 @@ export function verifyQueryActionSignature(
   return crypto.timingSafeEqual(expectedBuf, sigBuf);
 }
 
-/** Send a notification with approval action URLs */
+/**
+ * Send a notification with one or more action URLs.
+ *
+ * `actions` is an ordered list of `{ id, label }` pairs. Each `id` becomes a
+ * key in the wire-format `actions` map (`{ [id]: signedUrl }`) so existing
+ * OpenClaw integrations that read `payload.actions.approve` keep working;
+ * `actionLabels` exposes the human label for renderers.
+ */
 export async function sendNotificationWithActions(
   webhookUrl: string,
   apiKey: string,
@@ -74,22 +88,26 @@ export async function sendNotificationWithActions(
     requestId: string;
     refCode: string;
     message: string;
+    type?: string;
+    actions: Array<{ id: QueryAction; label: string }>;
   },
 ): Promise<void> {
-  const approveSig = signQueryAction(webhookSecret, "approve", payload.requestId);
-  const denySig = signQueryAction(webhookSecret, "deny", payload.requestId);
-  const params = (action: "approve" | "deny", sig: string) =>
-    `?action=${action}&requestId=${encodeURIComponent(payload.requestId)}&sig=${sig}`;
+  const actions: Record<string, string> = {};
+  const actionLabels: Record<string, string> = {};
+  for (const a of payload.actions) {
+    const sig = signQueryAction(webhookSecret, a.id, payload.requestId);
+    actions[a.id] =
+      `${callbackBaseUrl}?action=${a.id}&requestId=${encodeURIComponent(payload.requestId)}&sig=${sig}`;
+    actionLabels[a.id] = a.label;
+  }
 
   await sendNotification(webhookUrl, apiKey, webhookSecret, {
-    type: "approval_required",
+    type: payload.type ?? "approval_required",
     requestId: payload.requestId,
     refCode: payload.refCode,
     message: payload.message,
-    actions: {
-      approve: `${callbackBaseUrl}${params("approve", approveSig)}`,
-      deny: `${callbackBaseUrl}${params("deny", denySig)}`,
-    },
+    actions,
+    actionLabels,
     callbackUrl: callbackBaseUrl,
   });
 }

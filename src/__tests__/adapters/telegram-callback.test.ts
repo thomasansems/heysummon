@@ -24,8 +24,13 @@ vi.mock("@/lib/adapters/telegram", () => ({
   editMessageText: vi.fn(),
 }));
 
+vi.mock("@/services/notifications/acknowledge", () => ({
+  acknowledgeNotification: vi.fn(),
+}));
+
 import { prisma } from "@/lib/prisma";
 import { answerCallbackQuery, editMessageText } from "@/lib/adapters/telegram";
+import { acknowledgeNotification } from "@/services/notifications/acknowledge";
 import { POST } from "@/app/api/adapters/telegram/[id]/webhook/route";
 import { NextRequest } from "next/server";
 
@@ -36,6 +41,7 @@ const mockHelpRequestUpdate = vi.mocked(prisma.helpRequest.update);
 const mockMessageCreate = vi.mocked(prisma.message.create);
 const mockAnswerCbq = vi.mocked(answerCallbackQuery);
 const mockEditMessage = vi.mocked(editMessageText);
+const mockAcknowledgeNotification = vi.mocked(acknowledgeNotification);
 
 function makeRequest(body: unknown, secret: string) {
   return new NextRequest("http://localhost/api/adapters/telegram/ch-1/webhook", {
@@ -262,6 +268,139 @@ describe("Telegram webhook callback_query handler", () => {
     expect(json).toEqual({ ok: true });
     expect(mockAnswerCbq).toHaveBeenCalledWith("123:TOKEN", "cbq-6", "Request not found");
     expect(mockHelpRequestUpdate).not.toHaveBeenCalled();
+  });
+
+  describe("ack callback", () => {
+    function makeAckBody(updateId: number, requestId: string, messageId = 200) {
+      return {
+        update_id: updateId,
+        callback_query: {
+          id: `cbq-ack-${updateId}`,
+          from: { id: 42, first_name: "Test" },
+          message: { message_id: messageId, chat: { id: 42, type: "private" } },
+          data: `ack:${requestId}`,
+        },
+      };
+    }
+
+    it("acknowledges a notification via the shared service and edits the message", async () => {
+      const ackedAt = new Date("2026-04-23T08:00:00.000Z");
+      mockAcknowledgeNotification.mockResolvedValue({
+        ok: true,
+        status: "acknowledged",
+        acknowledgedAt: ackedAt,
+        alreadyAcknowledged: false,
+      });
+
+      const res = await POST(makeRequest(makeAckBody(10, "req-ntf-1"), "secret123"), {
+        params: Promise.resolve({ id: "ch-1" }),
+      });
+
+      expect(await res.json()).toEqual({ ok: true });
+      expect(mockAcknowledgeNotification).toHaveBeenCalledWith({
+        requestId: "req-ntf-1",
+        expertUserId: "user-1",
+        source: "telegram",
+      });
+      // Approve/deny path must not touch the help request when ack handles it.
+      expect(mockHelpRequestFindFirst).not.toHaveBeenCalled();
+      expect(mockHelpRequestUpdate).not.toHaveBeenCalled();
+      expect(mockAnswerCbq).toHaveBeenCalledWith("123:TOKEN", "cbq-ack-10", "Acknowledged");
+      expect(mockEditMessage).toHaveBeenCalledWith(
+        "123:TOKEN",
+        "42",
+        200,
+        expect.stringContaining("Acknowledged"),
+      );
+    });
+
+    it("shows 'Already acknowledged' on idempotent ack", async () => {
+      mockAcknowledgeNotification.mockResolvedValue({
+        ok: true,
+        status: "acknowledged",
+        acknowledgedAt: new Date(),
+        alreadyAcknowledged: true,
+      });
+
+      await POST(makeRequest(makeAckBody(11, "req-ntf-2"), "secret123"), {
+        params: Promise.resolve({ id: "ch-1" }),
+      });
+
+      expect(mockAnswerCbq).toHaveBeenCalledWith(
+        "123:TOKEN",
+        "cbq-ack-11",
+        "Already acknowledged",
+      );
+      expect(mockEditMessage).toHaveBeenCalledWith(
+        "123:TOKEN",
+        "42",
+        200,
+        expect.stringContaining("Already acknowledged"),
+      );
+    });
+
+    it("surfaces NOT_APPLICABLE when service rejects the request kind", async () => {
+      mockAcknowledgeNotification.mockResolvedValue({
+        ok: false,
+        code: "NOT_APPLICABLE",
+        message: "This request expects a reply; use /close to end the conversation",
+      });
+
+      await POST(makeRequest(makeAckBody(12, "req-ntf-3"), "secret123"), {
+        params: Promise.resolve({ id: "ch-1" }),
+      });
+
+      expect(mockAnswerCbq).toHaveBeenCalledWith("123:TOKEN", "cbq-ack-12", "Not applicable");
+      expect(mockEditMessage).toHaveBeenCalledWith(
+        "123:TOKEN",
+        "42",
+        200,
+        expect.stringContaining("not applicable"),
+      );
+    });
+
+    it("surfaces NOT_FOUND when the request is missing", async () => {
+      mockAcknowledgeNotification.mockResolvedValue({
+        ok: false,
+        code: "NOT_FOUND",
+        message: "Request not found",
+      });
+
+      await POST(makeRequest(makeAckBody(13, "req-missing"), "secret123"), {
+        params: Promise.resolve({ id: "ch-1" }),
+      });
+
+      expect(mockAnswerCbq).toHaveBeenCalledWith(
+        "123:TOKEN",
+        "cbq-ack-13",
+        "Request not found",
+      );
+      expect(mockEditMessage).toHaveBeenCalledWith(
+        "123:TOKEN",
+        "42",
+        200,
+        expect.stringContaining("not found"),
+      );
+    });
+
+    it("rejects ack from unauthorized chat (no service call)", async () => {
+      const body = {
+        update_id: 14,
+        callback_query: {
+          id: "cbq-ack-14",
+          from: { id: 999, first_name: "Hacker" },
+          message: { message_id: 201, chat: { id: 999, type: "private" } },
+          data: "ack:req-ntf-1",
+        },
+      };
+
+      await POST(makeRequest(body, "secret123"), {
+        params: Promise.resolve({ id: "ch-1" }),
+      });
+
+      expect(mockAcknowledgeNotification).not.toHaveBeenCalled();
+      expect(mockAnswerCbq).toHaveBeenCalledWith("123:TOKEN", "cbq-ack-14", "Not authorized");
+    });
   });
 
   it("handles unknown callback_data format", async () => {

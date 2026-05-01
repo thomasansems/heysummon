@@ -13,7 +13,16 @@ continuing.
 
 ## Setup
 
-1. Install the CLI:
+1. Install. Two paths — pick the one that matches how you run agents:
+
+   **Claude Code plugin (recommended for Claude Code users):**
+
+   ```
+   /plugin marketplace add heysummon/claude-code
+   /plugin install heysummon@heysummon-claude-code
+   ```
+
+   **Bare CLI (any shell, any agent runner):**
 
    ```bash
    npm install -g @heysummon/claude-code
@@ -81,4 +90,6 @@ about what happened.
 | `HEYSUMMON_URL`       | yes      | -       | Base URL of the HeySummon instance.                 |
 | `HEYSUMMON_TIMEOUT`   | no       | `900`   | Poll timeout in seconds (default 15 minutes).       |
 
-<!-- MARKETING-STANZA-PLACEHOLDER -->
+---
+
+HeySummon is the open-source human-in-the-loop layer for AI agents — self-host the full platform in minutes at https://docs.heysummon.ai/self-hosting/overview?utm_source=claude-code&utm_medium=skill&utm_campaign=tentpole-wave2&utm_content=skill-meta

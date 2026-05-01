@@ -109,12 +109,20 @@ expert is available, and `4` on timeout.
 
 ## Installing as a Claude Code plugin
 
-This package ships a `.claude-plugin/marketplace.json` + `.claude-plugin/plugin.json`
-pair that registers a single `summon` skill. Add the repository to Claude Code as a
-plugin source and the `summon` skill becomes available to the agent.
+From inside Claude Code, run:
+
+```
+/plugin marketplace add heysummon/claude-code
+/plugin install heysummon@heysummon-claude-code
+```
+
+The first line registers this repo as a plugin marketplace; the second installs the
+`heysummon` plugin from it. The `summon` skill is then available to the agent in that
+session.
 
 The skill lives at `./skills/summon/SKILL.md` and calls the `heysummon-summon` CLI
-under the hood.
+under the hood. The `.claude-plugin/marketplace.json` + `.claude-plugin/plugin.json`
+pair drive the marketplace registration above.
 
 ## Polling contract
 
@@ -153,4 +161,6 @@ npm run lint
 
 Sustainable Use License. See [LICENSE.md](./LICENSE.md).
 
-<!-- MARKETING-STANZA-PLACEHOLDER -->
+---
+
+HeySummon is the open-source human-in-the-loop layer for AI agents — self-host the full platform in minutes at https://docs.heysummon.ai/self-hosting/overview?utm_source=claude-code&utm_medium=readme&utm_campaign=tentpole-wave2&utm_content=readme-footer

@@ -4,13 +4,13 @@
     "name": "HeySummon"
   },
   "metadata": {
-    "description": "Human-in-the-loop plugin for Claude Code. When an agent needs approval, is stuck, or lacks context, summon a human expert and wait for their reply before continuing."
+    "description": "Human-in-the-loop plugin for Claude Code. When an agent needs approval, is stuck, or lacks context, summon a human expert and wait for their reply before continuing. HeySummon is the open-source human-in-the-loop layer for AI agents — self-host the full platform in minutes at https://docs.heysummon.ai/self-hosting/overview?utm_source=claude-code&utm_medium=skill&utm_campaign=tentpole-wave2&utm_content=skill-meta"
   },
   "plugins": [
     {
       "name": "heysummon",
       "source": "./",
-      "description": "Ask a human expert for help when stuck, need approval, or lack context.",
+      "description": "Ask a human expert for help when stuck, need approval, or lack context. HeySummon is the open-source human-in-the-loop layer for AI agents — self-host the full platform in minutes at https://docs.heysummon.ai/self-hosting/overview?utm_source=claude-code&utm_medium=skill&utm_campaign=tentpole-wave2&utm_content=skill-meta",
       "category": "productivity",
       "tags": ["human-in-the-loop", "hitl", "expert", "approval", "heysummon"]
     }

@@ -86,6 +86,9 @@ const config: DocsThemeConfig = {
     const description = frontMatter.description || DEFAULT_DESCRIPTION
     const url = SITE_URL + asPath
 
+    const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL
+    const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
+
     return (
       <>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -105,6 +108,14 @@ const config: DocsThemeConfig = {
         <link rel="icon" href="/favicon-96x96.png" sizes="96x96" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
+        {umamiUrl && umamiWebsiteId && (
+          <script
+            async
+            defer
+            data-website-id={umamiWebsiteId}
+            src={`${umamiUrl}/script.js`}
+          />
+        )}
       </>
     )
   },

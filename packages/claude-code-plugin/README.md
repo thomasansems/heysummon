@@ -153,4 +153,6 @@ npm run lint
 
 Sustainable Use License. See [LICENSE.md](./LICENSE.md).
 
-<!-- MARKETING-STANZA-PLACEHOLDER -->
+---
+
+HeySummon is the open-source human-in-the-loop layer for AI agents — self-host the full platform in minutes at https://docs.heysummon.ai/self-hosting/overview?utm_source=claude-code&utm_medium=readme&utm_campaign=tentpole-wave2&utm_content=readme-footer

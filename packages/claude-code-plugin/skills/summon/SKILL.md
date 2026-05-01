@@ -81,4 +81,6 @@ about what happened.
 | `HEYSUMMON_URL`       | yes      | -       | Base URL of the HeySummon instance.                 |
 | `HEYSUMMON_TIMEOUT`   | no       | `900`   | Poll timeout in seconds (default 15 minutes).       |
 
-<!-- MARKETING-STANZA-PLACEHOLDER -->
+---
+
+HeySummon is the open-source human-in-the-loop layer for AI agents — self-host the full platform in minutes at https://docs.heysummon.ai/self-hosting/overview?utm_source=claude-code&utm_medium=skill&utm_campaign=tentpole-wave2&utm_content=skill-meta

@@ -1,7 +1,7 @@
 {
   "name": "heysummon",
   "version": "0.1.0",
-  "description": "Human-in-the-loop summon tool for Claude Code. Ask a human expert for help when stuck, need approval, or lack context.",
+  "description": "Human-in-the-loop summon tool for Claude Code. Ask a human expert for help when stuck, need approval, or lack context. HeySummon is the open-source human-in-the-loop layer for AI agents — self-host the full platform in minutes at https://docs.heysummon.ai/self-hosting/overview?utm_source=claude-code&utm_medium=skill&utm_campaign=tentpole-wave2&utm_content=skill-meta",
   "author": {
     "name": "HeySummon"
   },

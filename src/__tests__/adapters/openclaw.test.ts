@@ -174,6 +174,10 @@ describe("OpenClaw Adapter", () => {
           requestId: "req-1",
           refCode: "HS-ABC1",
           message: "Approval required HS-ABC1",
+          actions: [
+            { id: "approve", label: "Approve" },
+            { id: "deny", label: "Deny" },
+          ],
         },
       );
 
@@ -184,6 +188,7 @@ describe("OpenClaw Adapter", () => {
       expect(body.refCode).toBe("HS-ABC1");
       expect(body.actions.approve).toContain("action=approve&requestId=req-1");
       expect(body.actions.deny).toContain("action=deny&requestId=req-1");
+      expect(body.actionLabels).toEqual({ approve: "Approve", deny: "Deny" });
       expect(body.callbackUrl).toBe("https://heysummon.example.com/api/adapters/openclaw/ch-1/webhook");
 
       // Action URLs must carry an HMAC signature bound to (action, requestId)
@@ -195,6 +200,40 @@ describe("OpenClaw Adapter", () => {
       const denySig = denyUrl.searchParams.get("sig");
       expect(approveSig).toBe(signQueryAction("secret", "approve", "req-1"));
       expect(denySig).toBe(signQueryAction("secret", "deny", "req-1"));
+    });
+
+    it("renders a notification-mode payload with a single signed Acknowledge action", async () => {
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValue(new Response("ok", { status: 200 }));
+
+      await sendNotificationWithActions(
+        "https://example.com/webhook",
+        "api-key",
+        "secret",
+        "https://heysummon.example.com/api/adapters/openclaw/ch-1/webhook",
+        {
+          requestId: "req-ntf-1",
+          refCode: "HS-NTF1",
+          message: "Notification HS-NTF1",
+          type: "notification_required",
+          actions: [{ id: "ack", label: "Acknowledge" }],
+        },
+      );
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1]?.body as string);
+      expect(body.type).toBe("notification_required");
+      expect(body.refCode).toBe("HS-NTF1");
+      expect(Object.keys(body.actions)).toEqual(["ack"]);
+      expect(body.actions.ack).toContain("action=ack&requestId=req-ntf-1");
+      expect(body.actionLabels).toEqual({ ack: "Acknowledge" });
+
+      const ackUrl = new URL(body.actions.ack);
+      expect(ackUrl.searchParams.get("sig")).toBe(
+        signQueryAction("secret", "ack", "req-ntf-1"),
+      );
+      // No approve/deny leakage in notification mode.
+      expect(body.actions.approve).toBeUndefined();
+      expect(body.actions.deny).toBeUndefined();
     });
   });
 
@@ -219,6 +258,16 @@ describe("OpenClaw Adapter", () => {
     it("rejects an unknown action enum", () => {
       const sig = signQueryAction(secret, "approve", "req-42");
       expect(verifyQueryActionSignature(secret, "delete", "req-42", sig)).toBe(false);
+    });
+
+    it("accepts the ack action for notification-mode callbacks", () => {
+      const sig = signQueryAction(secret, "ack", "req-ntf-1");
+      expect(verifyQueryActionSignature(secret, "ack", "req-ntf-1", sig)).toBe(true);
+    });
+
+    it("rejects an ack signature reused for approve", () => {
+      const sig = signQueryAction(secret, "ack", "req-ntf-1");
+      expect(verifyQueryActionSignature(secret, "approve", "req-ntf-1", sig)).toBe(false);
     });
 
     it("rejects an empty signature", () => {

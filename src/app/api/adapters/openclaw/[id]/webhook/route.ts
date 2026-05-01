@@ -4,12 +4,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifyWebhookSignature, verifyQueryActionSignature } from "@/lib/adapters/openclaw";
 import type { OpenClawConfig } from "@/lib/adapters/types";
+import { acknowledgeNotification } from "@/services/notifications/acknowledge";
 
 /** Max length for an expert reply via OpenClaw */
 const MAX_REPLY_LENGTH = 10_000;
 
 const callbackSchema = z.object({
-  action: z.enum(["approve", "deny", "reply"]),
+  action: z.enum(["approve", "deny", "reply", "ack"]),
   requestId: z.string().min(1),
   message: z.string().max(MAX_REPLY_LENGTH).optional(),
 });
@@ -93,6 +94,10 @@ export async function POST(
     return handleReply(parsed.requestId, parsed.message ?? "", channel);
   }
 
+  if (parsed.action === "ack") {
+    return handleAckNotification(parsed.requestId, channel);
+  }
+
   return handleApproval(parsed.action, parsed.requestId, channel);
 }
 
@@ -107,6 +112,10 @@ async function handleQueryAction(
   channel: { id: string; profile: { userId: string } },
   _config: OpenClawConfig & { webhookSecret?: string },
 ): Promise<NextResponse> {
+  if (action === "ack") {
+    return handleAckNotification(requestId, channel);
+  }
+
   if (action !== "approve" && action !== "deny") {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
@@ -255,5 +264,32 @@ async function handleReply(
   return NextResponse.json({
     ok: true,
     message: `Reply sent for ${helpRequest.refCode}`,
+  });
+}
+
+/** Handle ack action — routes through the shared acknowledgeNotification service. */
+async function handleAckNotification(
+  requestId: string,
+  channel: { id: string; profile: { userId: string } },
+): Promise<NextResponse> {
+  const result = await acknowledgeNotification({
+    requestId,
+    expertUserId: channel.profile.userId,
+    source: "openclaw",
+  });
+
+  if (!result.ok) {
+    const status = result.code === "NOT_FOUND" ? 404 : 409;
+    return NextResponse.json(
+      { ok: false, code: result.code, message: result.message },
+      { status },
+    );
+  }
+
+  return NextResponse.json({
+    ok: true,
+    status: result.status,
+    acknowledgedAt: result.acknowledgedAt.toISOString(),
+    alreadyAcknowledged: result.alreadyAcknowledged,
   });
 }

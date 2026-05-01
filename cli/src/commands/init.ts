@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import * as p from "@clack/prompts";
 import {
   getHeysummonDir,
@@ -27,8 +27,16 @@ function copyFromSourceDir(sourceDir: string, destDir: string): void {
   if (!fs.existsSync(path.join(absSource, "package.json"))) {
     throw new Error(`No package.json in source directory: ${absSource}`);
   }
-  execSync(
-    `rsync -a --exclude=node_modules --exclude=.next --exclude=.git "${absSource}/" "${destDir}/"`,
+  execFileSync(
+    "rsync",
+    [
+      "-a",
+      "--exclude=node_modules",
+      "--exclude=.next",
+      "--exclude=.git",
+      `${absSource}/`,
+      `${destDir}/`,
+    ],
     { stdio: "pipe" }
   );
 }

@@ -2,11 +2,12 @@ import { describe, it, expect } from "vitest";
 import { buildSetupCopyText } from "@/lib/setup-copy-text";
 import { buildInstallCommand, type ClientChannel, PLATFORM_META } from "@/lib/setup-command";
 
-// All channels in PLATFORM_META. `custom` produces a different (HTTP-only)
-// install shape — including it keeps drift detection honest as new channels
-// land. Spec called for 5 channels (HEY-442 was authored before `custom`);
-// matrix size is 6 × 2 × 2 = 24.
-const CHANNELS: ClientChannel[] = ["openclaw", "claudecode", "codex", "gemini", "cursor", "custom"];
+// Derive from PLATFORM_META so the snapshot guard automatically covers any
+// new channel a developer adds — silently skipping a channel here would defeat
+// the point of the drift test. `custom` is included; it produces a different
+// (HTTP-only) install shape, but locking it down is still useful.
+// Sorted for deterministic snapshot ordering across runs.
+const CHANNELS: ClientChannel[] = (Object.keys(PLATFORM_META) as ClientChannel[]).sort();
 
 const SUMMON_CONTEXTS: Array<{ key: "noContext" | "withContext"; value: string }> = [
   { key: "noContext", value: "" },

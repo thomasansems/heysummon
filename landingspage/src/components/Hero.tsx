@@ -44,13 +44,16 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-3 px-5 py-2 rounded-full font-mono text-sm text-text-body bg-white/5 border border-white/10 backdrop-blur-md mb-10"
+          className="flex flex-wrap items-center justify-center gap-3 mb-10"
         >
-          <span>Open Source</span>
-          <span className="w-1 h-1 rounded-full bg-white/50"></span>
-          <span>Self-Hosted</span>
-          <span className="w-1 h-1 rounded-full bg-white/50"></span>
-          <span>Platform Agnostic</span>
+          <span className="inline-flex items-center gap-3 px-5 py-2 rounded-full font-mono text-sm text-text-body bg-white/5 border border-white/10 backdrop-blur-md">
+            <span>Open Source</span>
+            <span className="w-1 h-1 rounded-full bg-white/50"></span>
+            <span>Self-Hosted</span>
+            <span className="w-1 h-1 rounded-full bg-white/50"></span>
+            <span>Platform Agnostic</span>
+          </span>
+          <GitHubStars location="hero" />
         </motion.div>
 
         <h1 className="font-serif text-3xl sm:text-5xl md:text-7xl leading-tight tracking-tight mb-6">

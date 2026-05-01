@@ -13,9 +13,16 @@ function getTailscaleHostname(): string | null {
   return null;
 }
 
-function detectMethod(url: string): "tailscale" | "cloudflared" | "custom" {
-  if (url.includes(".ts.net")) return "tailscale";
-  if (url.includes("trycloudflare.com") || url.includes(".cloudflare")) return "cloudflared";
+export function detectMethod(url: string): "tailscale" | "cloudflared" | "custom" {
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return "custom";
+  }
+  if (host.endsWith(".ts.net")) return "tailscale";
+  if (host === "trycloudflare.com" || host.endsWith(".trycloudflare.com")) return "cloudflared";
+  if (host.endsWith(".cloudflare.com") || host.endsWith(".cloudflareaccess.com")) return "cloudflared";
   return "custom";
 }
 

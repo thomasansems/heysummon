@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { trackWaitlistClick, trackDocsClick } from '../lib/analytics';
+import { GitHubStars } from './GitHubStars';
 
 const names = ["Elon", "John Doe", "Thomas", "Pete"];
+const STATIC_HEADING_SUFFIX = 'Anyone.';
 
 export function Hero() {
+  const prefersReducedMotion = useReducedMotion();
   const [nameIndex, setNameIndex] = useState(0);
   const [currentText, setCurrentText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    if (prefersReducedMotion) return;
+
     const timeout = setTimeout(() => {
       const fullText = names[nameIndex];
 
@@ -28,7 +33,7 @@ export function Hero() {
     }, isDeleting ? 50 : 100);
 
     return () => clearTimeout(timeout);
-  }, [currentText, isDeleting, nameIndex]);
+  }, [currentText, isDeleting, nameIndex, prefersReducedMotion]);
 
   return (
     // Hero should be places at the bottom of the page, so it can be the first thing users see when they scroll down
@@ -55,9 +60,20 @@ export function Hero() {
 
         <h1 className="font-serif text-3xl sm:text-5xl md:text-7xl leading-tight tracking-tight mb-6">
           <span>Hey Summon</span>{' '}
-          <span className="inline-block min-w-[2ch] text-left">
-            {currentText}<span className="animate-pulse">|</span>
-          </span>
+          {prefersReducedMotion ? (
+            <span>{STATIC_HEADING_SUFFIX}</span>
+          ) : (
+            <>
+              <span className="sr-only">{STATIC_HEADING_SUFFIX}</span>
+              <span
+                aria-hidden="true"
+                className="inline-block min-w-[2ch] text-left"
+              >
+                {currentText}
+                <span className="animate-pulse">|</span>
+              </span>
+            </>
+          )}
         </h1>
 
         <motion.p

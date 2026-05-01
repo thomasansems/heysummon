@@ -1,0 +1,1123 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`setup copy / install command — drift snapshots > claudecode / noContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Claude Code):
+
+Step 1. Add the HeySummon marketplace (one-time):
+  /plugin marketplace add thomasansems/heysummon
+
+Step 2. Install the plugin (one-time):
+  /plugin install heysummon@client
+
+Step 3. Configure with your setup link:
+  /heysummon:setup https://example.heysummon.test/setup/st_FIXED_TOKEN
+
+ALTERNATIVE (any terminal):
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.claude/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.claude/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .claude/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .claude/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p .claude/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/claudecode?file=$f" \\
+    -o .claude/skills/heysummon/scripts/$f && chmod +x .claude/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/claudecode?file=SKILL.md" \\
+  -o .claude/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > .claude/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .claude/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > claudecode / noContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Claude Code):
+
+Step 1. Add the HeySummon marketplace (one-time):
+  /plugin marketplace add thomasansems/heysummon
+
+Step 2. Install the plugin (one-time):
+  /plugin install heysummon@client
+
+Step 3. Configure with your setup link:
+  /heysummon:setup https://example.heysummon.test/setup/st_FIXED_TOKEN
+
+ALTERNATIVE (any terminal):
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.claude/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.claude/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .claude/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .claude/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .claude/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/claudecode?file=$f" \\
+    -o .claude/skills/heysummon/scripts/$f && chmod +x .claude/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/claudecode?file=SKILL.md" \\
+  -o .claude/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > .claude/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .claude/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > claudecode / withContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Claude Code):
+
+Step 1. Add the HeySummon marketplace (one-time):
+  /plugin marketplace add thomasansems/heysummon
+
+Step 2. Install the plugin (one-time):
+  /plugin install heysummon@client
+
+Step 3. Configure with your setup link:
+  /heysummon:setup https://example.heysummon.test/setup/st_FIXED_TOKEN
+
+ALTERNATIVE (any terminal):
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.claude/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.claude/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .claude/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .claude/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p .claude/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/claudecode?file=$f" \\
+    -o .claude/skills/heysummon/scripts/$f && chmod +x .claude/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/claudecode?file=SKILL.md" \\
+  -o .claude/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > .claude/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .claude/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > claudecode / withContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Claude Code):
+
+Step 1. Add the HeySummon marketplace (one-time):
+  /plugin marketplace add thomasansems/heysummon
+
+Step 2. Install the plugin (one-time):
+  /plugin install heysummon@client
+
+Step 3. Configure with your setup link:
+  /heysummon:setup https://example.heysummon.test/setup/st_FIXED_TOKEN
+
+ALTERNATIVE (any terminal):
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.claude/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.claude/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .claude/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .claude/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .claude/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/claudecode?file=$f" \\
+    -o .claude/skills/heysummon/scripts/$f && chmod +x .claude/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/claudecode?file=SKILL.md" \\
+  -o .claude/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > .claude/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .claude/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > codex / noContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Codex CLI):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .codex/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.codex/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.codex/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .codex/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .codex/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p .codex/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/codex?file=$f" \\
+    -o .codex/skills/heysummon/scripts/$f && chmod +x .codex/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/codex?file=SKILL.md" \\
+  -o .codex/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > .codex/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .codex/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > codex / noContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Codex CLI):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .codex/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.codex/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.codex/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .codex/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .codex/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .codex/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/codex?file=$f" \\
+    -o .codex/skills/heysummon/scripts/$f && chmod +x .codex/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/codex?file=SKILL.md" \\
+  -o .codex/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > .codex/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .codex/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > codex / withContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Codex CLI):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .codex/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.codex/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.codex/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .codex/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .codex/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p .codex/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/codex?file=$f" \\
+    -o .codex/skills/heysummon/scripts/$f && chmod +x .codex/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/codex?file=SKILL.md" \\
+  -o .codex/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > .codex/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .codex/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > codex / withContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Codex CLI):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .codex/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.codex/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.codex/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .codex/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .codex/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .codex/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/codex?file=$f" \\
+    -o .codex/skills/heysummon/scripts/$f && chmod +x .codex/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/codex?file=SKILL.md" \\
+  -o .codex/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > .codex/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .codex/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > cursor / noContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Cursor):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .cursor/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.cursor/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.cursor/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .cursor/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .cursor/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p .cursor/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/cursor?file=$f" \\
+    -o .cursor/skills/heysummon/scripts/$f && chmod +x .cursor/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/cursor?file=SKILL.md" \\
+  -o .cursor/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > .cursor/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .cursor/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > cursor / noContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Cursor):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .cursor/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.cursor/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.cursor/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .cursor/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .cursor/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .cursor/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/cursor?file=$f" \\
+    -o .cursor/skills/heysummon/scripts/$f && chmod +x .cursor/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/cursor?file=SKILL.md" \\
+  -o .cursor/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > .cursor/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .cursor/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > cursor / withContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Cursor):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .cursor/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.cursor/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.cursor/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .cursor/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .cursor/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p .cursor/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/cursor?file=$f" \\
+    -o .cursor/skills/heysummon/scripts/$f && chmod +x .cursor/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/cursor?file=SKILL.md" \\
+  -o .cursor/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > .cursor/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .cursor/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > cursor / withContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Cursor):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .cursor/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.cursor/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.cursor/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .cursor/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .cursor/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .cursor/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/cursor?file=$f" \\
+    -o .cursor/skills/heysummon/scripts/$f && chmod +x .cursor/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/cursor?file=SKILL.md" \\
+  -o .cursor/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > .cursor/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .cursor/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > custom / noContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Custom — any runtime):
+
+HeySummon has no runtime-specific skill for this client. Integrate with the
+HTTP API directly, or use the TypeScript / JavaScript SDK.
+
+Step 1. Fetch the generic recipe (env vars + sample request):
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand'
+
+Step 2. For TypeScript / JavaScript runtimes, install the SDK:
+  npm install @heysummon/consumer-sdk
+
+The SDK handles key generation, end-to-end encryption, and polling for you.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "# HeySummon — generic HTTP recipe (works with any runtime)
+export HEYSUMMON_BASE_URL="https://example.heysummon.test"
+export HEYSUMMON_API_KEY="hs_cli_FIXED_API_KEY"
+
+# Submit a help request. End-to-end encryption keys (signPublicKey / encryptPublicKey)
+# are required — the @heysummon/consumer-sdk handles key generation, encryption, and
+# polling for you. For raw HTTP, see https://example.heysummon.test/clients/custom for the full payload shape.
+curl -sS -X POST "$HEYSUMMON_BASE_URL/api/v1/help" \\
+  -H "Content-Type: application/json" \\
+  -d "{\\"apiKey\\":\\"$HEYSUMMON_API_KEY\\",\\"question\\":\\"Ask your expert something\\"}"
+
+# TypeScript / JavaScript runtimes: install the SDK (recommended):
+#   npm install @heysummon/consumer-sdk",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > custom / noContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Custom — any runtime):
+
+HeySummon has no runtime-specific skill for this client. Integrate with the
+HTTP API directly, or use the TypeScript / JavaScript SDK.
+
+Step 1. Fetch the generic recipe (env vars + sample request):
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand'
+
+Step 2. For TypeScript / JavaScript runtimes, install the SDK:
+  npm install @heysummon/consumer-sdk
+
+The SDK handles key generation, end-to-end encryption, and polling for you.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "# HeySummon — generic HTTP recipe (works with any runtime)
+export HEYSUMMON_BASE_URL="https://example.heysummon.test"
+export HEYSUMMON_API_KEY="hs_cli_FIXED_API_KEY"
+
+# Submit a help request. End-to-end encryption keys (signPublicKey / encryptPublicKey)
+# are required — the @heysummon/consumer-sdk handles key generation, encryption, and
+# polling for you. For raw HTTP, see https://example.heysummon.test/clients/custom for the full payload shape.
+curl -sS -X POST "$HEYSUMMON_BASE_URL/api/v1/help" \\
+  -H "Content-Type: application/json" \\
+  -d "{\\"apiKey\\":\\"$HEYSUMMON_API_KEY\\",\\"question\\":\\"Ask your expert something\\"}"
+
+# TypeScript / JavaScript runtimes: install the SDK (recommended):
+#   npm install @heysummon/consumer-sdk",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > custom / withContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Custom — any runtime):
+
+HeySummon has no runtime-specific skill for this client. Integrate with the
+HTTP API directly, or use the TypeScript / JavaScript SDK.
+
+Step 1. Fetch the generic recipe (env vars + sample request):
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand'
+
+Step 2. For TypeScript / JavaScript runtimes, install the SDK:
+  npm install @heysummon/consumer-sdk
+
+The SDK handles key generation, end-to-end encryption, and polling for you.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "# HeySummon — generic HTTP recipe (works with any runtime)
+export HEYSUMMON_BASE_URL="https://example.heysummon.test"
+export HEYSUMMON_API_KEY="hs_cli_FIXED_API_KEY"
+export HEYSUMMON_SUMMON_CONTEXT='Only summon when stuck or need approval.'
+
+# Submit a help request. End-to-end encryption keys (signPublicKey / encryptPublicKey)
+# are required — the @heysummon/consumer-sdk handles key generation, encryption, and
+# polling for you. For raw HTTP, see https://example.heysummon.test/clients/custom for the full payload shape.
+curl -sS -X POST "$HEYSUMMON_BASE_URL/api/v1/help" \\
+  -H "Content-Type: application/json" \\
+  -d "{\\"apiKey\\":\\"$HEYSUMMON_API_KEY\\",\\"question\\":\\"Ask your expert something\\"}"
+
+# TypeScript / JavaScript runtimes: install the SDK (recommended):
+#   npm install @heysummon/consumer-sdk",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > custom / withContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Custom — any runtime):
+
+HeySummon has no runtime-specific skill for this client. Integrate with the
+HTTP API directly, or use the TypeScript / JavaScript SDK.
+
+Step 1. Fetch the generic recipe (env vars + sample request):
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand'
+
+Step 2. For TypeScript / JavaScript runtimes, install the SDK:
+  npm install @heysummon/consumer-sdk
+
+The SDK handles key generation, end-to-end encryption, and polling for you.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "# HeySummon — generic HTTP recipe (works with any runtime)
+export HEYSUMMON_BASE_URL="https://example.heysummon.test"
+export HEYSUMMON_API_KEY="hs_cli_FIXED_API_KEY"
+export HEYSUMMON_SUMMON_CONTEXT='Only summon when stuck or need approval.'
+
+# Submit a help request. End-to-end encryption keys (signPublicKey / encryptPublicKey)
+# are required — the @heysummon/consumer-sdk handles key generation, encryption, and
+# polling for you. For raw HTTP, see https://example.heysummon.test/clients/custom for the full payload shape.
+curl -sS -X POST "$HEYSUMMON_BASE_URL/api/v1/help" \\
+  -H "Content-Type: application/json" \\
+  -d "{\\"apiKey\\":\\"$HEYSUMMON_API_KEY\\",\\"question\\":\\"Ask your expert something\\"}"
+
+# TypeScript / JavaScript runtimes: install the SDK (recommended):
+#   npm install @heysummon/consumer-sdk",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > gemini / noContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Gemini CLI):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .gemini/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.gemini/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.gemini/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .gemini/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .gemini/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p .gemini/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/gemini?file=$f" \\
+    -o .gemini/skills/heysummon/scripts/$f && chmod +x .gemini/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/gemini?file=SKILL.md" \\
+  -o .gemini/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > .gemini/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .gemini/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > gemini / noContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (Gemini CLI):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .gemini/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.gemini/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.gemini/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .gemini/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .gemini/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .gemini/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/gemini?file=$f" \\
+    -o .gemini/skills/heysummon/scripts/$f && chmod +x .gemini/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/gemini?file=SKILL.md" \\
+  -o .gemini/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > .gemini/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .gemini/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > gemini / withContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Gemini CLI):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .gemini/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.gemini/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.gemini/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .gemini/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .gemini/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p .gemini/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/gemini?file=$f" \\
+    -o .gemini/skills/heysummon/scripts/$f && chmod +x .gemini/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/gemini?file=SKILL.md" \\
+  -o .gemini/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > .gemini/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .gemini/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > gemini / withContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (Gemini CLI):
+
+Run this in your project directory:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+This installs the HeySummon skill to .gemini/skills/heysummon and configures the connection.
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f '.gemini/skills/heysummon/.env' ]; then
+  existing=$( (set -a; . '.gemini/skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at .gemini/skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at .gemini/skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p .gemini/skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/gemini?file=$f" \\
+    -o .gemini/skills/heysummon/scripts/$f && chmod +x .gemini/skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/gemini?file=SKILL.md" \\
+  -o .gemini/skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > .gemini/skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash .gemini/skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > openclaw / noContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (OpenClaw):
+
+Step 1. Install the HeySummon skill (one-time):
+  npx clawhub@latest install heysummon
+
+Step 2. Run the setup command:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f 'skills/heysummon/.env' ]; then
+  existing=$( (set -a; . 'skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/openclaw?file=$f" \\
+    -o skills/heysummon/scripts/$f && chmod +x skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/openclaw?file=SKILL.md" \\
+  -o skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > openclaw / noContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+INSTALLATION (OpenClaw):
+
+Step 1. Install the HeySummon skill (one-time):
+  npx clawhub@latest install heysummon
+
+Step 2. Run the setup command:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f 'skills/heysummon/.env' ]; then
+  existing=$( (set -a; . 'skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/openclaw?file=$f" \\
+    -o skills/heysummon/scripts/$f && chmod +x skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/openclaw?file=SKILL.md" \\
+  -o skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCg==' | base64 -d > skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > openclaw / withContext / global 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (OpenClaw):
+
+Step 1. Install the HeySummon skill (one-time):
+  npx clawhub@latest install heysummon
+
+Step 2. Run the setup command:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f 'skills/heysummon/.env' ]; then
+  existing=$( (set -a; . 'skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install -g @heysummon/consumer-sdk && \\
+mkdir -p skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/openclaw?file=$f" \\
+    -o skills/heysummon/scripts/$f && chmod +x skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/openclaw?file=SKILL.md" \\
+  -o skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;
+
+exports[`setup copy / install command — drift snapshots > openclaw / withContext / local 1`] = `
+{
+  "copyText": "HeySummon Setup
+---
+Connect this AI agent to a human expert via HeySummon.
+
+IMPORTANT — SUMMONING GUIDELINES (save to memory):
+The following guidelines define when and how to summon your human expert.
+You MUST save these to your persistent memory before proceeding with any work.
+These rules take priority over default autonomy settings.
+
+Only summon when stuck or need approval.
+
+INSTALLATION (OpenClaw):
+
+Step 1. Install the HeySummon skill (one-time):
+  npx clawhub@latest install heysummon
+
+Step 2. Run the setup command:
+  curl -sf "https://example.heysummon.test/api/v1/setup/st_FIXED_TOKEN/command" | jq -r '.installCommand' | bash
+
+Setup link (valid 24 hours): https://example.heysummon.test/setup/st_FIXED_TOKEN",
+  "installCommand": "if [ -f 'skills/heysummon/.env' ]; then
+  existing=$( (set -a; . 'skills/heysummon/.env'; printf '%s' "$HEYSUMMON_API_KEY") 2>/dev/null || printf '' )
+  if [ "$existing" = 'hs_cli_FIXED_API_KEY' ]; then
+    echo "HeySummon already configured at skills/heysummon/.env — nothing to do."
+    exit 0
+  fi
+  if [ "\${HEYSUMMON_FORCE:-}" != "1" ]; then
+    echo "Refusing to overwrite existing HeySummon install at skills/heysummon/.env (different apiKey)." >&2
+    echo "To replace, re-run with HEYSUMMON_FORCE=1." >&2
+    exit 1
+  fi
+fi
+npm install @heysummon/consumer-sdk && \\
+mkdir -p skills/heysummon/scripts && \\
+for f in ask.sh sdk.sh setup.sh add-expert.sh list-experts.sh check-status.sh; do \\
+  curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/openclaw?file=$f" \\
+    -o skills/heysummon/scripts/$f && chmod +x skills/heysummon/scripts/$f; \\
+done && \\
+curl -fsSL "https://example.heysummon.test/api/v1/skill-scripts/openclaw?file=SKILL.md" \\
+  -o skills/heysummon/SKILL.md && \\
+printf '%s' 'SEVZU1VNTU9OX0JBU0VfVVJMPSdodHRwczovL2V4YW1wbGUuaGV5c3VtbW9uLnRlc3QnCkhFWVNVTU1PTl9BUElfS0VZPSdoc19jbGlfRklYRURfQVBJX0tFWScKSEVZU1VNTU9OX1RJTUVPVVQ9JzkwMCcKSEVZU1VNTU9OX1BPTExfSU5URVJWQUw9JzMnCkhFWVNVTU1PTl9USU1FT1VUX0ZBTExCQUNLPSdwcm9jZWVkX2NhdXRpb3VzbHknCkhFWVNVTU1PTl9TVU1NT05fQ09OVEVYVD0nT25seSBzdW1tb24gd2hlbiBzdHVjayBvciBuZWVkIGFwcHJvdmFsLicK' | base64 -d > skills/heysummon/.env && \\
+HEYSUMMON_BASE_URL='https://example.heysummon.test' bash skills/heysummon/scripts/add-expert.sh 'hs_cli_FIXED_API_KEY' 'ExampleExpert' && \\
+echo "Verifying connection..." && \\
+curl -sf "https://example.heysummon.test/api/v1/whoami" \\
+  -H "x-api-key: hs_cli_FIXED_API_KEY" > /dev/null && \\
+echo "HeySummon skill installed and connected successfully."",
+}
+`;

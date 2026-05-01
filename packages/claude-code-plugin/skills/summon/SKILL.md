@@ -13,7 +13,16 @@ continuing.
 
 ## Setup
 
-1. Install the CLI:
+1. Install. Two paths — pick the one that matches how you run agents:
+
+   **Claude Code plugin (recommended for Claude Code users):**
+
+   ```
+   /plugin marketplace add heysummon/claude-code
+   /plugin install heysummon@heysummon-claude-code
+   ```
+
+   **Bare CLI (any shell, any agent runner):**
 
    ```bash
    npm install -g @heysummon/claude-code

@@ -108,6 +108,31 @@ describe("Telegram Adapter", () => {
         sendMessageWithButtons("123:TOKEN", "42", "test", [[{ text: "OK", callback_data: "ok" }]])
       ).rejects.toThrow("Failed to send Telegram message with buttons");
     });
+
+    it("renders notification block with single Acknowledge button (no emoji chrome)", async () => {
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => "" });
+
+      const headerMsg = [
+        `*Notification* from Acme`,
+        `\n"ship report ready"\n`,
+      ].join("\n");
+      await sendMessageWithButtons("123:TOKEN", "42", headerMsg, [
+        [{ text: "Acknowledge", callback_data: "ack:req-ntf-1" }],
+      ]);
+
+      const body = JSON.parse(
+        (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+      );
+      expect(body.text).toContain("*Notification* from Acme");
+      expect(body.text).not.toContain("/reply");
+      expect(body.text).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
+      expect(body.reply_markup).toEqual({
+        inline_keyboard: [
+          [{ text: "Acknowledge", callback_data: "ack:req-ntf-1" }],
+        ],
+      });
+      expect(body.reply_markup.inline_keyboard[0]).toHaveLength(1);
+    });
   });
 
   describe("answerCallbackQuery", () => {

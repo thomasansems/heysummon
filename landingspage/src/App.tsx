@@ -5,7 +5,6 @@
 
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
-import { VideoSection } from './components/VideoSection';
 import { ExpertsSection } from './components/ExpertsSection';
 import { ClientsSection } from './components/ClientsSection';
 import { FlowSection } from './components/FlowSection';

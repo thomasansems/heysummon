@@ -51,7 +51,7 @@ const clients: ClientIntegration[] = [
   },
 ];
 
-const clientSoon = [
+const upcomingClients = [
   { name: "Cursor", icon: "/icons/cursor.svg" },
   { name: "OpenAI", icon: "/icons/openai.svg" },
   { name: "NanoClaw", icon: "/icons/docker.svg" },
@@ -229,13 +229,13 @@ export function FrameworksSection() {
               ))}
             </div>
 
-            {/* Coming soon - compact with "soon" badge */}
+            {/* Upcoming clients */}
             <div className="flex flex-wrap gap-2 mb-6">
-              {clientSoon.map(item => (
+              {upcomingClients.map(item => (
                 <div key={item.name} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/5 opacity-50">
                   <img src={item.icon} alt={item.name} className="h-4 w-4 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                   <span className="text-xs text-text-body">{item.name}</span>
-                  <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted bg-white/5 px-1.5 py-0.5 rounded">soon</span>
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted bg-white/5 px-1.5 py-0.5 rounded">upcoming</span>
                 </div>
               ))}
             </div>

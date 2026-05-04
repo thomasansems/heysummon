@@ -5,7 +5,7 @@
  * - Time on page milestones (10s, 30s, 60s, 2m, 5m)
  * - Bounce detection (fires if user leaves without interaction)
  *
- * Renders children unchanged -- this is a side-effect-only wrapper.
+ * Renders children unchanged — this is a side-effect-only wrapper.
  */
 
 import { useEffect, type ReactNode } from 'react';

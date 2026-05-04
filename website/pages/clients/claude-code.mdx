@@ -37,14 +37,6 @@ curl -sf "https://your-instance.com/api/v1/setup/st_your_token_here/command" \
 
 Or visit the setup link in your browser and copy the install command.
 
-### Idempotency & re-running
-
-The install command is idempotent. Re-running it with the **same** API key exits 0 with a "nothing to do" message and does not overwrite the existing `.env`. Re-running with a **different** API key refuses by default. To replace the install, prefix with `HEYSUMMON_FORCE=1`:
-
-```bash
-HEYSUMMON_FORCE=1 curl -sf "…/setup/st_token/command" | jq -r '.installCommand' | bash
-```
-
 ### Option C: Interactive Setup
 
 If you already have the skill files installed, run the interactive setup:
@@ -70,21 +62,6 @@ hey summon Thomas I want to drop the users table and recreate it. Please approve
 ```
 
 Approval requests automatically show **Approve / Deny** buttons to the expert.
-
-### Notify mode (one-way, non-blocking)
-
-If the agent just wants to alert a human without waiting for a reply -- deploy
-finished, scheduled job ran, long build is done -- use `notify` instead:
-
-```
-notify Thomas deploy finished: build 42 is live on prod
-```
-
-The expert receives a notification with a single **Acknowledge** button
-(Telegram, Slack, OpenClaw, or the dashboard). No reply is expected and the
-agent keeps working. Notifications expire after 7 days if nobody acks. See
-[Consumer API Reference -> Notification Mode](/consumer/api-reference#notification-mode-notify)
-for the full contract.
 
 ## Skill Location
 

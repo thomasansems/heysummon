@@ -32,7 +32,7 @@ export function Hero() {
 
   return (
     // Hero should be places at the bottom of the page, so it can be the first thing users see when they scroll down
-    <section className="relative min-h-screen flex items-center pt-80 justify-center overflow-hidden pt-24">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
       {/* Background image */}
       <div className="absolute inset-0 z-0">
         <img src="/sumo.jpg" alt="Background" className="w-full h-full object-cover" />

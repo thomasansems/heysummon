@@ -26,10 +26,6 @@ export function SecuritySection() {
         <p className="text-lg text-text-body max-w-2xl mx-auto mb-4">
           Enterprise-grade security that doesn&apos;t compromise on usability. Self-hosted, platform agnostic, and under your control.
         </p>
-        <p className="text-base text-text-muted max-w-2xl mx-auto italic">
-          Without clear escalation rules, your AI either bothers you constantly or makes expensive
-          mistakes silently.
-        </p>
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

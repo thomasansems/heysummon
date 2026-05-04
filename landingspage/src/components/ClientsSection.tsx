@@ -117,7 +117,7 @@ export function ClientsSection() {
             >
               Join our Discord
             </a>
-            {' '}-- someone might be willing to help.
+            {' '}— someone might be willing to help.
           </span>
         </motion.div>
       </div>

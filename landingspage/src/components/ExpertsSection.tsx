@@ -15,13 +15,13 @@ const steps = [
     icon: Users,
     title: 'Onboard',
     description:
-      'Create your account and connect the channels you already use -- Slack, Telegram, the Dashboard, WhatsApp, or Phone. Set up summoning context so AI agents know exactly when to reach you.',
+      'Create your account and connect the channels you already use — Slack, Telegram, the Dashboard, WhatsApp, or Phone. Set up summoning context so AI agents know exactly when to reach you.',
   },
   {
     icon: Share2,
     title: 'Share',
     description:
-      'Generate a setup link for each client. The link includes your summoning context -- guidelines that tell the AI when to summon you. Clients install the skill and their AI can reach you instantly.',
+      'Generate a setup link for each client. The link includes your summoning context — guidelines that tell the AI when to summon you. Clients install the skill and their AI can reach you instantly.',
   },
 ];
 
@@ -46,6 +46,10 @@ export function ExpertsSection() {
           <p className="text-lg text-text-body max-w-3xl">
             You are the human expert that AI agents reach when they need help. Set up HeySummon on
             your infrastructure and be available on your terms.
+          </p>
+          <p className="text-base text-text-muted max-w-3xl mt-4 italic">
+            Without clear escalation rules, your AI either bothers you constantly or makes expensive
+            mistakes silently.
           </p>
         </motion.div>
 

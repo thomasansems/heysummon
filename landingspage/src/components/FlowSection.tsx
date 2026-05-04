@@ -37,7 +37,7 @@ export function FlowSection() {
           </h2>
           <p className="text-lg text-text-body max-w-3xl mx-auto">
             Set up the expert side once, then connect unlimited AI agents across any platform
-            -- Claude Code, Codex, Cursor, n8n, OpenClaw, or any HTTP client. Every hard question
+            — Claude Code, Codex, Cursor, n8n, OpenClaw, or any HTTP client. Every hard question
             flows to one place. Fully self-hosted.
           </p>
         </motion.div>
